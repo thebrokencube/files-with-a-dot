@@ -1,0 +1,57 @@
+tap "homebrew/bundle"
+tap "homebrew/cask"
+tap "homebrew/cask-versions"
+tap "homebrew/core"
+tap "homebrew/services"
+
+# developer languages & tools
+cask "devcleaner"
+cask "docker"
+brew "fish"
+brew "fisher"
+brew "git"
+brew "go"
+brew "jq"
+brew "mas"
+brew "neovim"
+brew "nvm"
+brew "openjdk"
+brew "pass"
+brew "python@3.8"
+brew "rbenv"
+cask "react-native-debugger"
+brew "terraform"
+brew "the_silver_searcher"
+brew "watchman"
+mas "xcode", id: 497799835
+brew "yarn"
+brew "zsh"
+
+# dependencies
+brew "autoconf"
+brew "automake"
+brew "berkeley-db", link: true
+brew "cocoapods"
+brew "coreutils" # GNU File, Shell, and Text utilities
+brew "cscope"
+brew "gdbm"
+brew "libksba" # X.509 and CMS library
+brew "libtool"
+brew "luv" # Bare libuv bindings for lua
+brew "openssl@3"
+brew "ncurses"
+
+# applications
+cask "amethyst"
+cask "discord"
+cask "google-chrome"
+cask "plex"
+cask "slack"
+cask "spotify"
+cask "zoom"
+
+# TODO: figure out how to remove in favor of nvm
+brew "node"
+
+# TODO: figure out how to remove in favor of rbenv
+brew "ruby"
