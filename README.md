@@ -16,3 +16,4 @@ The following technologies end up being used for managing this repository:
 
 * [Homebrew](https://brew.sh/) - Homebrew is used for managing packages on macOS, and we utilize [Homebrew bundle](https://github.com/Homebrew/homebrew-bundle) for helping define them in code via `~/.Brewfile`.
 * `bash` scripts - For the initial scripts, we use `bash 3` compatible scripts so that we're not relying on anything that won't be there on a clean machine.
+* [Git](https://www.git-scm.com/) - All of the dotfiles and related scripts/documentation are managed by `git`.

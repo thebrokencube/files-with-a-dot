@@ -1,1 +1,2 @@
 Brewfile:$HOME/.Brewfile
+gitconfig:$HOME/.gitconfig

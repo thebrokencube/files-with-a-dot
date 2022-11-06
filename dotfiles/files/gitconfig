@@ -1,0 +1,36 @@
+[color]
+  ui = true
+[core]
+  editor = vim
+[user]
+  name = Sapan Upadhyay
+  email = sapan.upadhyay@gmail.com
+[merge]
+  ff = false
+[pull]
+  rebase = true
+[push]
+  default = nothing
+[rebase]
+  stat = true
+[alias]
+  aa  = add -A
+  ap  = add -p
+  an  = add -N
+  aan = add -AN
+  b   = branch
+  bm  = branch -m
+  co  = checkout
+  cb  = checkout -b
+  c   = commit
+  ca  = commit --amend
+  cm  = commit -m
+  d   = diff
+  dt  = diff --stat
+  ds  = diff --staged
+  dst = diff --staged --stat
+  l   = log --oneline
+  lt  = log --oneline --stat
+  ri  = rebase -i
+  rc  = rebase --continue
+  st  = status -sb
