@@ -1,0 +1,19 @@
+[[ -s "$HOME/.profile" ]] && source "$HOME/.profile" # Load the default .profile
+
+autoload -U promptinit; promptinit
+prompt pure
+
+alias ll='ls -lG'
+alias la='ls -laG'
+alias vim='nvim'
+alias reload-zsh='source ~/.zshrc'
+
+autoload -Uz compinit && compinit -i
+
+# hack to make globbing similar to bash
+#unsetopt glob
+unsetopt nomatch
+
+# environment variables for OOpinion development
+export NODE_AUTH_TOKEN=$(pass show OOpinion/NODE_AUTH_TOKEN)
+export VITE_API_URL=http://localhost:3000

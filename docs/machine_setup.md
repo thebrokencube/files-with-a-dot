@@ -27,3 +27,15 @@ Now that we have all the base packages installed, we can use this repository to 
 
 [[`pass` Playbooks]](./playbooks/pass.md)
 We use [`pass`](http://passwordstore.org) for managing secrets locally, and we use them in env variables during shell setup. There's still some things to figure out (e.g. how to automate setting up the gpg keys, how to distribute shared `pass` stores between machines), so referring to the [playbook](./playbooks/pass.md) may be useful as it evolves.
+
+## 4. Setup Shells
+
+At this point, GPG and `pass` should be set up, so we can finally set up our alternative shell environments.
+
+### `zsh`
+
+If you want to use `zsh`, you'll need to run the following to switch the default terminal to it (Note: it will ask for the user's password):
+
+```bash
+chsh -s /bin/zsh
+```
