@@ -15,3 +15,10 @@ We aim to use Homebrew to manage as many packages as possible (even ones like `g
 1. Install [homebrew](http://brew.sh).
 2. Run `brew bundle install --global` (using `~/.Brewfile` which we setup above). This should get a lot of the system setup for use with all the base packages and programs that are used on a daily basis.
 3. HACK - If you manually downloaded the `Brewfile` above, remove it before proceeding.
+
+## 2. Install Dotfiles
+
+Now that we have all the base packages installed, we can use this repository to get them configured.
+
+1. Since `git` is now installed, we can first start with cloning this repository somewhere (e.g. `~/.dotfiles`).
+2. Navigate to that folder, navigate to the `dotfiles` subdirectory, and then run `./install_dotfiles.sh` to create symlinks for all the configuration stored in this repository.
