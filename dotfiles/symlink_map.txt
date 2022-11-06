@@ -2,3 +2,4 @@ Brewfile:$HOME/.Brewfile
 gitconfig:$HOME/.gitconfig
 profile:$HOME/.profile
 zshrc:$HOME/.zshrc
+fish:$HOME/.config/fish

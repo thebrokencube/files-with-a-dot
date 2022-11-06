@@ -39,3 +39,13 @@ If you want to use `zsh`, you'll need to run the following to switch the default
 ```bash
 chsh -s /bin/zsh
 ```
+
+### `fish`
+
+[[`fish` Playbooks]](./playbooks/fish.md)
+
+If you want to use [`fish` shell](http://www.fishshell.com), you'll need to run the following to switch the default terminal to it (Note: it will ask for the user's password):
+
+```bash
+chsh -s /usr/local/bin/fish
+```
