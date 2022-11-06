@@ -23,12 +23,17 @@ Now that we have all the base packages installed, we can use this repository to 
 1. Since `git` is now installed, we can first start with cloning this repository somewhere (e.g. `~/.dotfiles`).
 2. Navigate to that folder, navigate to the `dotfiles` subdirectory, and then run `./install_dotfiles.sh` to create symlinks for all the configuration stored in this repository.
 
-## 3. (WIP) Setup GPG and `pass`
+## 3. Setup Karabiner Elements
+
+We'll need to start up Karabiner Elements to ensure that the settings have been loaded properly now that it's both installed and configured. To do so, simply open up Karabiner Elements via Spotlight and then check to see if things look correct. For more information or debugging info, please see [the docs](https://karabiner-elements.pqrs.org/docs/manual/).
+
+## 4. (WIP) Setup GPG and `pass`
 
 [[`pass` Playbooks]](./playbooks/pass.md)
+
 We use [`pass`](http://passwordstore.org) for managing secrets locally, and we use them in env variables during shell setup. There's still some things to figure out (e.g. how to automate setting up the gpg keys, how to distribute shared `pass` stores between machines), so referring to the [playbook](./playbooks/pass.md) may be useful as it evolves.
 
-## 4. Setup Shells
+## 5. Setup Shells
 
 At this point, GPG and `pass` should be set up, so we can finally set up our alternative shell environments.
 

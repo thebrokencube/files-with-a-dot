@@ -3,3 +3,4 @@ gitconfig:$HOME/.gitconfig
 profile:$HOME/.profile
 zshrc:$HOME/.zshrc
 fish:$HOME/.config/fish
+karabiner:$HOME/.config/karabiner
