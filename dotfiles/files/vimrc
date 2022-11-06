@@ -1,0 +1,108 @@
+" Don't use vi compatible mode
+set nocompatible
+
+""" BEGIN VUNDLE
+filetype off
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" Plugins
+Plugin 'gmarik/Vundle.vim'
+
+Plugin 'ctrlpvim/ctrlp.vim'
+Plugin 'tpope/vim-fugitive'
+Plugin 'scrooloose/nerdtree'
+Plugin 'michalbachowski/vim-wombat256mod'
+Plugin 'editorconfig/editorconfig-vim'
+Plugin 'mileszs/ack.vim'
+
+" Language plugins
+Plugin 'hashivim/vim-terraform'
+Plugin 'pangloss/vim-javascript'
+Plugin 'HerringtonDarkholme/yats.vim'
+Plugin 'fatih/vim-go'
+
+call vundle#end()
+filetype plugin indent on
+""" END VUNDLE
+
+" Change the leaders
+let mapleader=' '
+let maplocalleader='\'
+
+set autoread " nvim default
+set autowriteall
+
+" Set color scheme
+colorscheme wombat256mod
+
+" Display incomplete commands
+set showcmd
+
+" No backups, move swap files location
+set nobackup
+set directory=~/.local/state/nvim/swap
+
+" No beeps
+set noerrorbells
+
+" Indenting and backspace
+set autoindent " nvim default
+set backspace=indent,eol,start " nvim default
+
+" Tabs as spaces
+set tabstop=2
+set softtabstop=2
+set shiftwidth=2
+set expandtab
+
+" Line numbers and wrapping
+set number
+set wrap
+set formatoptions=1
+set lbr
+
+" Search stuff
+set ignorecase
+set smartcase
+set incsearch
+set nohlsearch
+
+" Syntax highlighting
+syntax enable
+
+" Syntax highlighting optimization for yats.vim (turn off old regex engine)
+set re=0
+
+" Enable mouse support in terminal
+set mouse=a
+
+" Enable clipboard shit
+set clipboard=unnamed
+
+" NERDTree
+nnoremap <Leader>f :NERDTreeFind<CR>
+
+" CtrlP (sourced from: https://github.com/thoughtbot/dotfiles/blob/master/vimrc)
+if executable('ag')
+  " Use Ag over grep
+  set grepprg=ag\ --nogroup\ --nocolor
+
+  let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist|tmp|docs)|(\.(swp|ico|git|svn))$'
+  let g:ctrlp_user_command = 'ag -Q -l --nocolor -g "" %s'
+
+  " Show more files when searching
+  let g:ctrlp_match_window = 'results:25'
+  let g:ctrlp_max_files = 0
+  let g:ctrlp_max_depth = 40
+
+  let g:ctrlp_use_caching = 0
+
+  let g:ackprg = 'ag --vimgrep --ignore=tmp'
+  cnoreabbrev Ack Ack!
+
+  nnoremap <Leader>a :Ack!<Space>
+  nnoremap S :Ack! "\b<C-R><C-W>\b"<CR>
+endif

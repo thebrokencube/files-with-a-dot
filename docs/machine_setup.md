@@ -54,3 +54,12 @@ If you want to use [`fish` shell](http://www.fishshell.com), you'll need to run 
 ```bash
 chsh -s /usr/local/bin/fish
 ```
+
+## 6. Setup `vim`
+
+[[`vim` Playbooks]](./playbooks/vim.md)
+
+Once the shells are setup, we can setup vim and its dependencies. Of note, all shell configurations have `alias vim=nvim`, so we just use `vim` in all of these examples but are actually using Neovim.
+
+1. Open `vim` and run `:PluginInstall`
+2. Once finished, close and re-open `vim` and it should be set up.
