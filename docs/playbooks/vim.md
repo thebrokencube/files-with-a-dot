@@ -3,11 +3,11 @@
 `vim` is used for all console text editing, and has a few workflows for keeping things up to date. There's a lot to fix here, but the basics should be covered. This assumes running `nvim` in the base Terminal application on macOS.
 
 * [Neovim](https://neovim.io/) is the editor of choice for `vim` usage (it's remapped via an alias in all shells as well).
-* [`vim-plug`](https://github.com/junegunn/vim-plug) is used for managing plugins.
+* [Vundle](https://github.com/VundleVim/Vundle.vim) is used for managing plugins.
 * [`the_silver_searcher`](https://github.com/ggreer/the_silver_searcher) is used for powering search
 
 **TODO**
-- [ ] Update vim-plug installation & usage instructions from a clean slate, figure out why i have to keep closing and re-opening to see changes.
+- [ ] more investigation into vundle setup/updates/etc.
 - [ ] `~/.vimrc` settings cleanup
 - [ ] replace `ag` with `rg` ([example](https://phelipetls.github.io/posts/extending-vim-with-ripgrep/))
 - [ ] LSP server integration ([docs](https://neovim.io/doc/user/lsp.html#lsp))

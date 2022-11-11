@@ -1,65 +1,81 @@
-# Machine Setup
-## 0. HACK - Setup Brewfile Manually
+# Machine Setup Guide
 
-We run into a small bootstrapping issue that this repository is managed via git, and we don't have git setup at this point. Since we only need one file at the beginning of the process (`~/.Brewfile`), we can take some manual steps in the short-term until we find a better solution.
-
-1. Download the [`Brewfile`](./dotfiles/files/Brewfile) to the home folder as `~/.Brewfile`.
-2. Once Homebrew has been installed and all packages are installed, come back and delete `~/.Brewfile`. We'll afterwards have the file managed by the dotfile scripts.
-
-## 1. Install Homebrew
+## 1. Install Homebrew & Packages
 
 [[Homebrew Playbooks]](./playbooks/homebrew.md)
 
-We aim to use Homebrew to manage as many packages as possible (even ones like `git`), and to help with that we're utilizing [Homebrew bundle](https://github.com/Homebrew/homebrew-bundle) for helping install/uninstall packages. For now, we can start with the following:
+We aim to use Homebrew to manage as many packages as possible (even ones like `git`), and to help with that we're utilizing [Homebrew bundle](https://github.com/Homebrew/homebrew-bundle) for helping install/uninstall packages. From a fresh machine, we can do the following:
 
-1. Install [homebrew](http://brew.sh).
-2. Run `brew bundle install --global` (using `~/.Brewfile` which we setup above). This should get a lot of the system setup for use with all the base packages and programs that are used on a daily basis.
-3. HACK - If you manually downloaded the `Brewfile` above, remove it before proceeding.
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/first-time-setup.sh)"
+```
 
-## 2. Install Dotfiles
+## 2. Configure GitHub access
 
-Now that we have all the base packages installed, we can use this repository to get them configured.
+Now that we have all the base packages installed, we can use this repository to get them configured. However, first we'll need to get SSH access setup for GitHub.
 
-1. Since `git` is now installed, we can first start with cloning this repository somewhere (e.g. `~/.dotfiles`).
-2. Navigate to that folder, navigate to the `dotfiles` subdirectory, and then run `./install_dotfiles.sh` to create symlinks for all the configuration stored in this repository.
+Go [here in the GitHub settings](https://github.com/settings/keys) and go through the process of setting up an SSH key for this computer and github. In particular:
 
-## 3. Setup Karabiner Elements
+1. [Generate an SSH key and add it to the ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+2. [Add the new SSH key to GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+3. [Test the SSH connection](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection)
 
-We'll need to start up Karabiner Elements to ensure that the settings have been loaded properly now that it's both installed and configured. To do so, simply open up Karabiner Elements via Spotlight and then check to see if things look correct. For more information or debugging info, please see [the docs](https://karabiner-elements.pqrs.org/docs/manual/).
+Github has some good docs about how to manage this all [here](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
-## 4. (WIP) Setup GPG and `pass`
+## 2.a. (OPTIONAL) Set up shared `pass` store
 
-[[`pass` Playbooks]](./playbooks/pass.md)
+If you are using [`pass`](https://www.passwordstore.org) for managing any secrets, you should make sure it's set up on the machine (whether it's a new one or a shared one, like [from this blog post](https://medium.com/@davidpiegza/using-pass-in-a-team-1aa7adf36592)). It's useful to do now if possible before the shells get set up (though you can work around it if you can't for some reason).
 
-We use [`pass`](http://passwordstore.org) for managing secrets locally, and we use them in env variables during shell setup. There's still some things to figure out (e.g. how to automate setting up the gpg keys, how to distribute shared `pass` stores between machines), so referring to the [playbook](./playbooks/pass.md) may be useful as it evolves.
+## 3. Install Dotfiles
 
-## 5. Setup Shells
+1. Since `git` is now installed, we can first start with cloning this repository somewhere, such as:
+```bash
+git clone git@github.com:thebrokencube/files-with-a-dot.git ~/.dotfiles
+```
+
+2. Navigate to `~/.dotfiles/dotfiles` and then run `./install_dotfiles.sh` to create symlinks for all the configuration stored in this repository.
+
+## 4. Setup Shells
 
 At this point, GPG and `pass` should be set up, so we can finally set up our alternative shell environments.
 
-### `zsh`
+### 4.1. `zsh`
 
-If you want to use `zsh`, you'll need to run the following to switch the default terminal to it (Note: it will ask for the user's password):
+`zsh` is the default terminal for macOS. However, if you want to use `zsh`, you'll need to run the following to switch the default terminal to it (Note: it will ask for the user's password):
 
 ```bash
 chsh -s /bin/zsh
 ```
 
-### `fish`
+### 4.2. `fish`
 
 [[`fish` Playbooks]](./playbooks/fish.md)
 
-If you want to use [`fish` shell](http://www.fishshell.com), you'll need to run the following to switch the default terminal to it (Note: it will ask for the user's password):
-
+If you want to use [`fish` shell](http://www.fishshell.com), you'll need to do the following to switch the default terminal to it. First, figure out where homebrew installed fish to with:
 ```bash
-chsh -s /usr/local/bin/fish
+which fish
 ```
 
-## 6. Setup `vim`
+Whatever that is, add it to the end of `/etc/shells` with:
+```bash
+sudo echo "<insert path>" >> /etc/shells
+```
+
+And then run the following to change the default terminal (Note: it will ask for your password):
+```bash
+chsh -s <insert path>
+```
+
+## 5. Setup `vim`
 
 [[`vim` Playbooks]](./playbooks/vim.md)
 
 Once the shells are setup, we can setup vim and its dependencies. Of note, all shell configurations have `alias vim=nvim`, so we just use `vim` in all of these examples but are actually using Neovim.
 
-1. Open `vim` and run `:PluginInstall`
+1. Install [Vundle](https://github.com/VundleVim/Vundle.vim)
+1. Open `vim` and run `:PluginInstall`. You may see some warnings on the first time, but they should go away after this step.
 2. Once finished, close and re-open `vim` and it should be set up.
+
+## 6. Setup Karabiner Elements
+
+We'll need to start up Karabiner Elements to ensure that the settings have been loaded properly now that it's both installed and configured. To do so, simply open up Karabiner Elements via Spotlight and give it all the permissions it needs. For more information or debugging info, please see [the docs](https://karabiner-elements.pqrs.org/docs/manual/).
