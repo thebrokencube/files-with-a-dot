@@ -5,6 +5,14 @@ This repository aims to:
 * keep up-to-date instructions on [setting up a machine from scratch](./docs/machine_setup.md)
 * keep up-to-date [playbooks for common tasks/issues](./docs/playbooks) for software managed by this repository
 
+## Quickstart
+
+If you're starting from a factory-reset installation (assuming the only thing you've done is run all the System Updates, you can run the following to setup everything (note: kinda; still a wip):
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/setup.sh)"
+```
+
 ## System Requirements
 
 This repository assumes you are starting at nothing more than the following:
