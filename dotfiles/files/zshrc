@@ -15,5 +15,6 @@ autoload -Uz compinit && compinit -i
 unsetopt nomatch
 
 # environment variables for OOpinion development
-export NODE_AUTH_TOKEN=$(pass show OOpinion/NODE_AUTH_TOKEN)
+# TODO: uncomment after pass setup
+#export NODE_AUTH_TOKEN=$(pass show OOpinion/NODE_AUTH_TOKEN)
 export VITE_API_URL=http://localhost:3000
