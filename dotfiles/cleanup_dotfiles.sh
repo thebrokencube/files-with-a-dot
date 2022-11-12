@@ -7,9 +7,9 @@ source ./dotfiles_helpers.sh
 unlink_dotfile() {
   local dotfile_path=$(get_dotfile $1)
 
-  if [ -z $dotfile_path ]; then
+  if [[ -z $dotfile_path ]]; then
     echo "no mapping for $1; add to symlink_map.txt if missing"
-  elif [ -L $dotfile_path ]; then
+  elif [[ -L $dotfile_path ]]; then
     unlink $dotfile_path
     echo "unlinked $dotfile_path"
   else

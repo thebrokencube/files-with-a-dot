@@ -7,12 +7,17 @@ source ./dotfiles_helpers.sh
 symlink_dotfile () {
   local sourcefile_path=$(get_sourcefile $1)
   local dotfile_path=$(get_dotfile $1)
+  local parent_dir=$(dirname $dotfile_path)
 
-  if [ -z $dotfile_path ]; then
+  if [[ -z $dotfile_path ]]; then
     echo "no mapping for $1; add to symlink_map.txt if missing"
-  elif [ -e $dotfile_path ]; then
+  elif [[ -e $dotfile_path ]]; then
     echo "$dotfile_path: file already exists"
   else
+    if ! [[ -e $parent_dir ]]; then
+      echo "making parent dir..."
+      mkdir -p $parent_dir
+    fi
     ln -s $sourcefile_path $dotfile_path
     echo "symlinked $1 from $sourcefile_path -> $dotfile_path"
   fi
