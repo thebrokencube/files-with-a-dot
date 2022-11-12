@@ -4,7 +4,9 @@ set -euo pipefail
 BREWFILE_URL="https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/dotfiles/files/Brewfile"
 
 print () {
+  echo
   echo "[setup.sh] $1"
+  echo
 }
 
 # Validate starting state
