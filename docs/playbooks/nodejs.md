@@ -4,7 +4,10 @@ Managing `node` versions, packages, caches, etc. is a huge pain in the ass, and 
 
 The following conventions are attempted as much as possible:
 * Use [`fnm`](https://github.com/Schniz/fnm) to manage node versions.
-  * `nvm` is the usual suspect here, but it's a pain to get working with multiple shells and can be slow at times. To avoid all of this complexity and get better shell support, `fnm` is being tried out for its simplicity and support of other formats (like `.nvmrc`).
+  * `nvm` is the usual suspect here, but it's a pain to get working with multiple shells and can be slow at times:
+    * [`nvm` is not supported via homebrew](https://github.com/nvm-sh/nvm/issues/2914#issuecomment-1279771215)
+    * [complicated `fish` shell support](https://github.com/nvm-sh/nvm#fish)
+  * After a lot of headaches I did get it sort of working, but to avoid all of this complexity and get better shell support, [Fast Node Manager](https://github.com/Schniz/fnm) is being tried out for its simplicity and support of other formats (like `.nvmrc`).
 * Don't mix package managers in a project.
   * Mixing package managers is a recipe for dependency hell; it's best to consolidate on one within a specific project and define all dependencies as best as possible to not rely on global resources. (This isn't unique to Node.js, but is acutely noticeable in the ecosystem.)
 * Be conservative in tool/package choices at the global level.
