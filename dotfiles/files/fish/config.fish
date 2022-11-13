@@ -1,7 +1,11 @@
 if status is-interactive
+  # Load the default .profile
+  bass source ~/.profile
+
   alias vim=nvim
 
-  bass source ~/.profile
+  # Load node version on directory change
+  fnm env --use-on-cd | source
 
   # environment variables for OOpinion development
   set -x NODE_AUTH_TOKEN $(pass show files-with-a-dot/oopinion/NODE_AUTH_TOKEN)
