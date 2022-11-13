@@ -5,6 +5,7 @@ tap "homebrew/core"
 tap "homebrew/services"
 
 # developer languages & tools
+brew "cocoapods"
 cask "devcleaner"
 cask "docker"
 brew "fish"
@@ -30,16 +31,16 @@ brew "zsh"
 # dependencies
 brew "autoconf"
 brew "automake"
-brew "berkeley-db", link: true
-brew "cocoapods"
+brew "berkeley-db", link: true # do we need this? macOS comes with it
 brew "coreutils" # GNU File, Shell, and Text utilities
 brew "cscope"
 brew "gdbm"
 brew "libksba" # X.509 and CMS library
 brew "libtool"
 brew "luv" # Bare libuv bindings for lua
-brew "openssl@3"
 brew "ncurses"
+brew "openssl@3"
+brew "ruby-build"
 
 # applications
 cask "amethyst"
@@ -50,6 +51,3 @@ cask "plex"
 cask "slack"
 cask "spotify"
 cask "zoom"
-
-# TODO: figure out how to remove in favor of rbenv
-brew "ruby"
