@@ -1,18 +1,11 @@
 if status is-interactive
+  # Load the default .profile
+  bass source ~/.profile
+
   alias vim=nvim
 
-  # Add dir for where homebrew applications get installed to if exists
-  if test -e /opt/homebrew/bin/brew
-    fish_add_path /opt/homebrew/bin
-  end
-
-  # Add /usr/local dirs to path if exist
-  if test -e /usr/local/bin
-    fish_add_path /usr/local/bin
-  end
-  if test -e /usr/local/sbin
-    fish_add_path /usr/local/sbin
-  end
+  # Load node version on directory change
+  fnm env --use-on-cd | source
 
   # environment variables for OOpinion development
   set -x NODE_AUTH_TOKEN $(pass show files-with-a-dot/oopinion/NODE_AUTH_TOKEN)

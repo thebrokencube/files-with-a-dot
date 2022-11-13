@@ -9,12 +9,12 @@ cask "devcleaner"
 cask "docker"
 brew "fish"
 brew "fisher"
+brew "fnm"
 brew "git"
 brew "go"
 brew "jq"
 brew "mas"
 brew "neovim"
-brew "nvm"
 brew "openjdk"
 brew "pass"
 brew "python@3.8"
@@ -25,7 +25,6 @@ brew "terraform"
 brew "the_silver_searcher"
 brew "watchman"
 mas "xcode", id: 497799835
-brew "yarn"
 brew "zsh"
 
 # dependencies
@@ -51,9 +50,6 @@ cask "plex"
 cask "slack"
 cask "spotify"
 cask "zoom"
-
-# TODO: figure out how to remove in favor of nvm
-brew "node"
 
 # TODO: figure out how to remove in favor of rbenv
 brew "ruby"
