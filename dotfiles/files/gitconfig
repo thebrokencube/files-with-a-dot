@@ -34,3 +34,5 @@
   ri  = rebase -i
   rc  = rebase --continue
   st  = status -sb
+[init]
+  defaultBranch = main
