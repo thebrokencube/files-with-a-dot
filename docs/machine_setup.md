@@ -97,3 +97,23 @@ At this point, everything should be installed and setup, and you will want to ju
 * print out brew cleanup output if there would be any
 
 This should be enough to run pretty regularly and keep systems up to date with minimal manual work.
+
+## 10. Tool/Language Specific Setup
+
+Some tools and languages have a few further steps before they're fully setup:
+
+### Node.js
+
+[[Node.js playbooks]](./playbooks/nodejs.md)
+
+For `node`, you'll want to install the latest LTS with `fnm install --lts` to get a global version in the system.
+
+### Ruby
+
+[[Ruby playbooks]](./playbooks/ruby.md)
+
+For `ruby`, we currently don't have much to set up since we're not installing a global version yet (TBD).
+
+### Docker
+
+Unfortunately it's a bit non-trivial to get Docker fully working, but most things should work by just opening it.
