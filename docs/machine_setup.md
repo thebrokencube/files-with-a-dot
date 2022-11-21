@@ -22,6 +22,8 @@ Go [here in the GitHub settings](https://github.com/settings/keys) and go throug
 
 Github has some good docs about how to manage this all [here](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
+Once you have set it up, you may also want to add it to the keychain [like so](https://stackoverflow.com/a/10032655) (TODO: figure out how to automate this better)
+
 ## 3. Set up shared `pass` store
 
 If you are using [`pass`](https://www.passwordstore.org) for managing any secrets, you should make sure it's set up on the machine (whether it's a new one or a shared one, like [from this blog post](https://medium.com/@davidpiegza/using-pass-in-a-team-1aa7adf36592)). It's useful to do now if possible before the shells get set up (though you can work around it if you can't for some reason).
