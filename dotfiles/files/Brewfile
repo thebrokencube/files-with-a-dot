@@ -27,6 +27,7 @@ brew "terraform"
 brew "the_silver_searcher"
 brew "watchman"
 mas "xcode", id: 497799835
+brew "wget"
 brew "zsh"
 
 # dependencies
