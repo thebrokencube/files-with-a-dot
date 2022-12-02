@@ -13,6 +13,7 @@ Plugin 'gmarik/Vundle.vim'
 
 Plugin 'ctrlpvim/ctrlp.vim'
 Plugin 'tpope/vim-fugitive'
+Plugin 'tpope/vim-rhubarb'
 Plugin 'scrooloose/nerdtree'
 Plugin 'michalbachowski/vim-wombat256mod'
 Plugin 'editorconfig/editorconfig-vim'
