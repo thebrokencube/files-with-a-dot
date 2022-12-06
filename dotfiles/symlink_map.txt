@@ -6,3 +6,4 @@ fish:$HOME/.config/fish
 karabiner:$HOME/.config/karabiner
 vimrc:$HOME/.vimrc
 nvim:$HOME/.config/nvim
+iterm2:$HOME/.config/iterm2
