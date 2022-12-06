@@ -1,6 +1,6 @@
-----------------------
--- bootstrap packer --
-----------------------
+-------------------------------------
+-- bootstrap and initialize packer --
+-------------------------------------
 
 local ensure_packer = function()
   local fn = vim.fn
@@ -12,16 +12,38 @@ local ensure_packer = function()
   end
   return false
 end
-
 local packer_bootstrap = ensure_packer()
+
+-- Autocommand that reloads neovim whenever you save the plugins.lua file
+vim.cmd [[
+  augroup packer_user_config
+    autocmd!
+    autocmd BufWritePost plugins.lua source <afile> | PackerSync
+  augroup end
+]]
+
+-- Use a protected call so we don't error out on first use
+local status_ok, packer = pcall(require, 'packer')
+if not status_ok then
+  vim.notify('Unable to require packer')
+  return
+end
+
+-- Have packer use a popup window
+packer.init {
+  display = {
+    open_fn = function()
+      return require('packer.util').float { border = 'rounded' }
+    end,
+  },
+}
 
 ------------------------------
 -- load plugins with packer --
 ------------------------------
 
-require('packer').startup(function(use)
-  -- use packer to manage itself
-  use('wbthomason/packer.nvim')
+packer.startup(function(use)
+  use('wbthomason/packer.nvim') -- use packer to manage itself
 
   -------------------------
   -- syntax highlighting --
@@ -54,7 +76,7 @@ require('packer').startup(function(use)
       local builtins = require('telescope.builtin')
       telescope.load_extension('fzf')
 
-      vim.keymap.set('n', '<leader>p', builtins.find_files)
+      vim.keymap.set('n', '<leader>t', builtins.find_files)
       vim.keymap.set('n', '<leader>lg', builtins.live_grep)
       vim.keymap.set('n', '<leader>b', builtins.buffers)
       -- TODO: is there a way to do something similar to search for whatever your cursor
@@ -66,7 +88,6 @@ require('packer').startup(function(use)
     'nvim-telescope/telescope-fzf-native.nvim',
     run = 'make'
   })
-
 
   -------------------------
   -- tree file navigator --
@@ -119,6 +140,28 @@ require('packer').startup(function(use)
     end,
   })
 
+  -----------------------------
+  -- completion and snippets --
+  -----------------------------
+
+  use({
+    'hrsh7th/nvim-cmp',
+    config = function()
+      require('config.cmp')
+    end,
+    requires = {
+      'hrsh7th/cmp-buffer', -- buffer completion
+      'hrsh7th/cmp-path', -- path completions
+      'hrsh7th/cmp-cmdline', -- cmdline completions
+      'saadparwaiz1/cmp_luasnip', -- snippet completions
+    }
+  })
+
+  -- snippets
+  use "L3MON4D3/LuaSnip" --snippet engine
+  use "rafamadriz/friendly-snippets" -- a bunch of snippets to use
+
+
   ---------------------------
   -- miscellaneous utilies --
   ---------------------------
@@ -129,25 +172,19 @@ require('packer').startup(function(use)
     requires = { 'nvim-treesitter/nvim-treesitter' },
   })
 
-  -- strip whitespace on save
-  use('itspriddle/vim-stripper')
-
-  -- disable highlights automatically on cursor move
-  use('romainl/vim-cool')
+  use('itspriddle/vim-stripper') -- strip whitespace on save
+  use('romainl/vim-cool') -- disable highlights automatically on cursor move
 
   --------------------------------
   -- miscellaneous tools/config --
   --------------------------------
 
-  -- editorconfig
-  use('editorconfig/editorconfig-vim')
-
   -- git and github basic integration
   use('tpope/vim-fugitive')
   use('tpope/vim-rhubarb')
 
-  -- colorscheme
-  use('michalbachowski/vim-wombat256mod')
+  use('editorconfig/editorconfig-vim') -- editorconfig
+  use('michalbachowski/vim-wombat256mod') -- colorscheme
 
   -- filetype icons
   use({
@@ -167,9 +204,3 @@ require('packer').startup(function(use)
     require('packer').sync()
   end
 end)
-
--- set colorscheme
-vim.cmd([[
-  set termguicolors
-  colorscheme wombat256mod
-]])
