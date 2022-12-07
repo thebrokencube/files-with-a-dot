@@ -1,4 +1,10 @@
-require('nvim-treesitter.configs').setup({
+local status_ok, nvim_treesitter_configs = pcall(require, 'nvim-treesitter.configs')
+if not status_ok then
+  vim.notify('Unable to require nvim-treesitter.configs')
+  return
+end
+
+nvim_treesitter_configs.setup({
   ensure_installed = {
     'bash',
     'css',
@@ -18,7 +24,7 @@ require('nvim-treesitter.configs').setup({
   highlight = { enable = true },
   textobjects = { enable = true },
 
-  -- Plugins
+  -- plugins
   autotag = { enable = true },
   rainbow = {
     enable = true,
