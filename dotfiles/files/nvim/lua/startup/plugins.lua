@@ -15,12 +15,12 @@ end
 local packer_bootstrap = ensure_packer()
 
 -- Autocommand that reloads neovim whenever you save the plugins.lua file
-vim.cmd [[
+vim.cmd([[
   augroup packer_user_config
     autocmd!
     autocmd BufWritePost plugins.lua source <afile> | PackerSync
   augroup end
-]]
+]])
 
 -- Use a protected call so we don't error out on first use
 local status_ok, packer = pcall(require, 'packer')
@@ -30,13 +30,11 @@ if not status_ok then
 end
 
 -- Have packer use a popup window
-packer.init {
+packer.init({
   display = {
-    open_fn = function()
-      return require('packer.util').float { border = 'rounded' }
-    end,
+    open_fn = function() return require('packer.util').float({ border = 'rounded' }) end,
   },
-}
+})
 
 ------------------------------
 -- load plugins with packer --
@@ -54,9 +52,7 @@ packer.startup(function(use)
       local ts_update = require('nvim-treesitter.install').update({ with_sync = true })
       ts_update()
     end,
-    config = function()
-      require('config.treesitter')
-    end,
+    config = function() require('config.treesitter') end,
     requires = {
       'andymass/vim-matchup', -- extended matchers for %
       'windwp/nvim-ts-autotag', -- auto-complete html tags
@@ -71,27 +67,23 @@ packer.startup(function(use)
   use({
     'nvim-telescope/telescope.nvim',
     requires = { 'nvim-lua/plenary.nvim' },
-    config = function()
-      require('config.telescope')
-    end,
+    config = function() require('config.telescope') end,
   })
   use({
     'nvim-telescope/telescope-fzf-native.nvim',
-    run = 'make'
+    run = 'make',
   })
 
   -------------------------
   -- tree file navigator --
   -------------------------
 
-  use {
+  use({
     'nvim-tree/nvim-tree.lua',
     requires = { 'nvim-tree/nvim-web-devicons' },
-    config = function()
-      require('nvim-tree').setup()
-    end,
-    tag = 'nightly' -- optional, updated every week. (see issue #1193)
-  }
+    config = function() require('nvim-tree').setup() end,
+    tag = 'nightly', -- optional, updated every week. (see issue #1193)
+  })
 
   ----------------
   -- statusline --
@@ -103,9 +95,7 @@ packer.startup(function(use)
       'kyazdani42/nvim-web-devicons',
       'arkav/lualine-lsp-progress',
     },
-    config = function()
-      require('config.lualine')
-    end,
+    config = function() require('config.lualine') end,
   })
 
   -----------------------------
@@ -114,9 +104,7 @@ packer.startup(function(use)
 
   use({
     'hrsh7th/nvim-cmp',
-    config = function()
-      require('config.cmp')
-    end,
+    config = function() require('config.cmp') end,
     requires = {
       'hrsh7th/cmp-buffer', -- buffer completion
       'hrsh7th/cmp-path', -- path completions
@@ -124,7 +112,7 @@ packer.startup(function(use)
       'saadparwaiz1/cmp_luasnip', -- snippet completions
       'hrsh7th/cmp-nvim-lsp', -- nvim-lsp completions
       'hrsh7th/cmp-nvim-lua', -- lua completions
-    }
+    },
   })
 
   -- snippets
@@ -147,17 +135,13 @@ packer.startup(function(use)
     requires = {
       'kyazdani42/nvim-web-devicons',
     },
-    config = function()
-      require('config.trouble')
-    end,
+    config = function() require('config.trouble') end,
   })
 
   -- Stabilize the trouble window
   use({
     'luukvbaal/stabilize.nvim',
-    config = function()
-      require('config.stabilize')
-    end,
+    config = function() require('config.stabilize') end,
   })
 
   ---------------------------
@@ -172,6 +156,17 @@ packer.startup(function(use)
 
   use('itspriddle/vim-stripper') -- strip whitespace on save
   use('romainl/vim-cool') -- disable highlights automatically on cursor move
+
+  -- easily comment stuff
+  use({
+    'numToStr/Comment.nvim',
+    config = function() require('config.comment') end,
+  })
+  -- context comment strings
+  use({
+    'JoosepAlviste/nvim-ts-context-commentstring',
+    requires = { 'nvim-treesitter/nvim-treesitter' },
+  })
 
   --------------------------------
   -- miscellaneous tools/config --
@@ -189,8 +184,8 @@ packer.startup(function(use)
     'nvim-tree/nvim-web-devicons',
     config = function()
       require('nvim-web-devicons').setup({
-        color_icons = true;
-        default = true;
+        color_icons = true,
+        default = true,
       })
     end,
   })
@@ -198,7 +193,5 @@ packer.startup(function(use)
   ----------------------------------------
   -- initialize packer if bootstrapping --
   ----------------------------------------
-  if packer_bootstrap then
-    require('packer').sync()
-  end
+  if packer_bootstrap then require('packer').sync() end
 end)
