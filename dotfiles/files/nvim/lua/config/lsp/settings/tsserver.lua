@@ -7,5 +7,5 @@ end
 return {
   setup = {
     root_dir = lspconfig.util.root_pattern('tsconfig.json'),
-  }
+  },
 }

@@ -1,7 +1,7 @@
 -- Sourced from https://github.com/LunarVim/Neovim-from-scratch/blob/06-LSP/lua/user/lsp/handlers.lua
 
-local telescope_builtins = require("telescope.builtin")
-local telescope_themes = require("telescope.themes")
+local telescope_builtins = require('telescope.builtin')
+local telescope_themes = require('telescope.themes')
 
 local M = {}
 
@@ -68,12 +68,12 @@ local function lsp_keymaps(bufnr)
   local opts = { noremap = true, silent = true }
 
   -- Lookups/Definitions
-  vim.keymap.set('n', '<leader>d', function()
-    telescope_builtins.lsp_definitions(telescope_themes.get_cursor())
-  end)
-  vim.keymap.set('n', '<leader>D', function()
-    telescope_builtins.lsp_type_definitions(telescope_themes.get_cursor())
-  end)
+  vim.keymap.set('n', '<leader>d', function() telescope_builtins.lsp_definitions(telescope_themes.get_cursor()) end)
+  vim.keymap.set(
+    'n',
+    '<leader>D',
+    function() telescope_builtins.lsp_type_definitions(telescope_themes.get_cursor()) end
+  )
   vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>r', '<cmd>Telescope lsp_references<CR>', opts)
   vim.api.nvim_buf_set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
   --vim.api.nvim_buf_set_keymap(bufnr, 'n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
@@ -86,13 +86,11 @@ local function lsp_keymaps(bufnr)
   vim.api.nvim_buf_set_keymap(bufnr, 'n', '[d', "<cmd>lua vim.diagnostic.goto_prev({ border = 'rounded' })<CR>", opts)
   vim.api.nvim_buf_set_keymap(bufnr, 'n', ']d', "<cmd>lua vim.diagnostic.goto_next({ border = 'rounded' })<CR>", opts)
 
-  vim.cmd [[ command! Format execute 'lua vim.lsp.buf.format({ async = true })' ]]
+  vim.cmd([[ command! Format execute 'lua vim.lsp.buf.format({ async = true })' ]])
 end
 
 M.on_attach = function(client, bufnr)
-  if client.name == 'tsserver' then
-    client.server_capabilities.documentFormattingProvider = false
-  end
+  if client.name == 'tsserver' then client.server_capabilities.documentFormattingProvider = false end
   lsp_keymaps(bufnr)
   lsp_highlight_document(client)
 end
