@@ -15,14 +15,14 @@ update_pass_store () {
     print "$PASS_STORE_PATH does not exist; nothing to update."
   else
     print "Updating pass store at $PASS_STORE_PATH..."
-    cd $PASS_STORE_PATH
+    pushd $PASS_STORE_PATH > /dev/null
     git pull
 
     print "Importing keys (note: interactive)..."
     ./import-keys.sh
 
     print "Done updating pass store."
-    cd $HOME
+    popd > /dev/null
   fi
 }
 
@@ -30,17 +30,15 @@ update_dotfiles () {
   if ! [[ -e $DOTFILES_PATH ]]; then
     print "$DOTFILES_PATH does not exist; nothing to update."
   else
-    print "Updating dotfiles at $DOTFILES_PATH..."
-    cd $DOTFILES_PATH
-    git pull
+    pushd $DOTFILES_PATH > /dev/null
 
-    print "Resetting symlinks..."
+    print "Resetting dotfile symlinks..."
     cd ./dotfiles
     ./cleanup_dotfiles.sh
     ./install_dotfiles.sh
 
     print "Done updating dotfiles"
-    cd $HOME
+    popd> /dev/null
   fi
 }
 
