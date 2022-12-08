@@ -11,3 +11,4 @@ vim.cmd([[set updatetime=300]])
 
 require('config.lsp.mason')
 require('config.lsp.handlers').setup()
+require('config.lsp.null-ls')
