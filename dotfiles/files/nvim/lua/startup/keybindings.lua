@@ -15,3 +15,6 @@ vim.keymap.set('n', '<leader>b', builtins.buffers)
 
 -- nvim-tree
 vim.keymap.set('n', '<leader>f', ':NvimTreeOpen %:p:h<CR>', { noremap = true })
+
+-- buffers
+vim.keymap.set('n', '<c-d>', ':bd<CR>')
