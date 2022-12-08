@@ -200,6 +200,12 @@ packer.startup(function(use)
     end,
   })
 
+  -- toggleterm
+  use({
+    'akinsho/toggleterm.nvim',
+    config = function() require('config.toggleterm') end,
+  })
+
   ----------------------------------------
   -- initialize packer if bootstrapping --
   ----------------------------------------
