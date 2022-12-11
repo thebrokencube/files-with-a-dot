@@ -1,7 +1,3 @@
--- disable netrw
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
-
 -- don't use swap files
 vim.opt.swapfile = false
 
@@ -54,3 +50,6 @@ vim.opt.termguicolors = true
 -- split default open behavior
 vim.opt.splitbelow = true
 vim.opt.splitright = true
+
+-- set soft linebreak for text wrapping
+vim.cmd([[ set wrap linebreak ]])
