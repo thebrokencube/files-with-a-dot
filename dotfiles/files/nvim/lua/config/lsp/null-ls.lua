@@ -2,7 +2,7 @@
 
 local status_ok, null_ls = pcall(require, 'null-ls')
 if not status_ok then
-  vim.notify('Unable to require null-ls')
+  vim.notify('Unable to load null-ls')
   return
 end
 

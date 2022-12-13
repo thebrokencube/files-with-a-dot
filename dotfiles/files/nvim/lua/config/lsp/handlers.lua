@@ -1,7 +1,16 @@
 -- Sourced from https://github.com/LunarVim/Neovim-from-scratch/blob/06-LSP/lua/user/lsp/handlers.lua
 
-local telescope_builtins = require('telescope.builtin')
-local telescope_themes = require('telescope.themes')
+local tb_status_ok, telescope_builtin = pcall(require, 'telescope.builtin')
+if not tb_status_ok then
+  vim.notify('Unable to load telescope.builtin')
+  return
+end
+
+local tt_status_ok, telescope_themes = pcall(require, 'telescope.themes')
+if not tt_status_ok then
+  vim.notify('Unable to load telescope.themes')
+  return
+end
 
 local M = {}
 
@@ -68,11 +77,11 @@ local function lsp_keymaps(bufnr)
   local opts = { noremap = true, silent = true }
 
   -- Lookups/Definitions
-  vim.keymap.set('n', '<leader>d', function() telescope_builtins.lsp_definitions(telescope_themes.get_cursor()) end)
+  vim.keymap.set('n', '<leader>d', function() telescope_builtin.lsp_definitions(telescope_themes.get_cursor()) end)
   vim.keymap.set(
     'n',
     '<leader>D',
-    function() telescope_builtins.lsp_type_definitions(telescope_themes.get_cursor()) end
+    function() telescope_builtin.lsp_type_definitions(telescope_themes.get_cursor()) end
   )
   vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>r', '<cmd>Telescope lsp_references<CR>', opts)
   vim.api.nvim_buf_set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)

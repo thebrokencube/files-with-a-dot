@@ -1,7 +1,10 @@
 -- Sourced from https://github.com/LunarVim/Neovim-from-scratch/blob/122bedde844fcef84169889d7666af0592b58c46/lua/user/bufferline.lua
 
 local status_ok, bufferline = pcall(require, 'bufferline')
-if not status_ok then return end
+if not status_ok then
+  vim.notify('Unable to load bufferline')
+  return
+end
 
 bufferline.setup({
   options = {
