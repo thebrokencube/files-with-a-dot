@@ -178,6 +178,12 @@ packer.startup(function(use)
     requires = { 'nvim-treesitter/nvim-treesitter' },
   })
 
+  -- autopair
+  use({
+    'windwp/nvim-autopairs',
+    config = function() require('config.autopairs') end,
+  })
+
   --------------------------------
   -- miscellaneous tools/config --
   --------------------------------

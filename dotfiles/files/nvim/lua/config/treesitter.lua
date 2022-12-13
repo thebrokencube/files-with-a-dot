@@ -26,6 +26,7 @@ nvim_treesitter_configs.setup({
 
   -- plugins
   autotag = { enable = true },
+  autopairs = { enable = true },
   rainbow = {
     enable = true,
     extended_mode = true,
