@@ -17,6 +17,7 @@ nvim_treesitter_configs.setup({
     'python',
     'regex',
     'ruby',
+    'svelte',
     'tsx',
     'typescript',
     'yaml',
