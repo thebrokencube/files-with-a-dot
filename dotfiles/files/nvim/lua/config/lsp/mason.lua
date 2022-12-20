@@ -1,11 +1,14 @@
 -- Sourced from https://github.com/LunarVim/Neovim-from-scratch/blob/06-LSP/lua/user/lsp/mason.lua
 
+-- Look up the names here: https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md
 local servers = {
   'bashls',
   'dockerls',
   'jsonls',
   'sumneko_lua',
   'tsserver',
+  'tailwindcss',
+  'prismals'
 }
 
 local mason_status_ok, mason = pcall(require, 'mason')
