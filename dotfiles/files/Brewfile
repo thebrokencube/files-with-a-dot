@@ -1,0 +1,61 @@
+tap "homebrew/bundle"
+tap "homebrew/cask"
+tap "homebrew/cask-versions"
+tap "homebrew/core"
+tap "homebrew/services"
+tap "homebrew/cask-fonts"
+tap "jesseduffield/lazygit"
+
+# developer languages & tools
+brew "cocoapods"
+cask "devcleaner"
+cask "docker"
+brew "fish"
+brew "fisher"
+brew "fnm"
+cask "font-inconsolata-nerd-font"
+brew "git"
+brew "go"
+cask "iterm2"
+brew "jq"
+brew "jesseduffield/lazygit/lazygit"
+brew "mas"
+brew "neovim"
+brew "openjdk"
+brew "pass"
+brew "python@3.8"
+brew "pure"
+brew "rbenv"
+cask "react-native-debugger"
+brew "ripgrep"
+brew "terraform"
+brew "watchman"
+mas "xcode", id: 497799835
+brew "wget"
+brew "zsh"
+
+# dependencies
+brew "autoconf"
+brew "automake"
+brew "berkeley-db", link: true # do we need this? macOS comes with it
+brew "coreutils" # GNU File, Shell, and Text utilities
+brew "cscope"
+brew "gdbm"
+brew "libksba" # X.509 and CMS library
+brew "libtool"
+brew "luv" # Bare libuv bindings for lua
+brew "ncurses"
+brew "openssl@3"
+brew "ruby-build"
+
+# applications
+cask "alt-tab"
+cask "amethyst"
+cask "discord"
+cask "google-chrome"
+cask "karabiner-elements"
+cask "plex"
+cask "signal"
+cask "slack"
+cask "spotify"
+cask "zoom"

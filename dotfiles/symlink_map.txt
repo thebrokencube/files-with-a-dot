@@ -1,0 +1,8 @@
+Brewfile:$HOME/.Brewfile
+gitconfig:$HOME/.gitconfig
+profile:$HOME/.profile
+zshrc:$HOME/.zshrc
+fish:$HOME/.config/fish
+karabiner:$HOME/.config/karabiner
+nvim:$HOME/.config/nvim
+iterm2:$HOME/.config/iterm2
