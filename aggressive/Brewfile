@@ -1,0 +1,17 @@
+# home/Brewfile - Personal apps for home machine only
+
+# Browsers
+cask "google-chrome"
+
+# Communication
+cask "discord"
+cask "slack"
+
+# Media
+cask "spotify"
+
+# Productivity
+cask "rectangle"                # Window management
+
+# Development
+brew "claude-code"              # Claude AI CLI

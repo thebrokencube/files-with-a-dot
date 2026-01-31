@@ -1,0 +1,35 @@
+# Local configuration files (sensitive data)
+*.local
+.env.local
+.machine
+
+# Backups created by sync.sh
+.backup/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Neovim
+shared/nvim/.config/nvim/plugin/packer_compiled.lua
+shared/nvim/.config/nvim/lazy-lock.json
+
+# Claude Code (runtime/cache files - keep CLAUDE.md, skills, etc.)
+shared/claude/.claude/cache/
+shared/claude/.claude/debug/
+shared/claude/.claude/file-history/
+shared/claude/.claude/projects/
+shared/claude/.claude/shell-snapshots/
+shared/claude/.claude/statsig/
+shared/claude/.claude/todos/
+shared/claude/.claude/*.json
+shared/claude/.claude/*.jsonl

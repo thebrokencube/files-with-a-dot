@@ -1,0 +1,89 @@
+# ~/.shell_common - Shared shell configuration
+# Sourced by bash and zsh
+# Keep this POSIX-compatible for compatibility
+
+# ============================================================================
+# PATH Configuration
+# ============================================================================
+
+# Homebrew (Apple Silicon)
+[ -d "/opt/homebrew/bin" ] && export PATH="/opt/homebrew/bin:$PATH"
+
+# Homebrew (Intel)
+[ -d "/usr/local/bin" ] && export PATH="/usr/local/bin:$PATH"
+[ -d "/usr/local/sbin" ] && export PATH="/usr/local/sbin:$PATH"
+
+# Homebrew keg-only packages (curl, etc.)
+[ -d "/opt/homebrew/opt/curl/bin" ] && export PATH="/opt/homebrew/opt/curl/bin:$PATH"
+
+# User local binaries
+[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+
+export EDITOR="nvim"
+export VISUAL="nvim"
+export LANG="en_US.UTF-8"
+
+# XDG Base Directory (for apps that support it)
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_CACHE_HOME="$HOME/.cache"
+
+# ============================================================================
+# Aliases
+# ============================================================================
+
+# File listing
+alias ll='ls -lG'
+alias la='ls -laG'
+
+# Editors
+alias vim='nvim'
+alias v='nvim'
+
+# Git shortcuts (complement gitconfig aliases)
+alias g='git'
+alias gs='git status -sb'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gl='git log --oneline -20'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gpl='git pull'
+
+# Directory navigation
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Safety
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+# Dotfiles management
+alias dfs='(cd ~/.dotfiles && ./sync.sh)'              # sync dotfiles
+alias dfsp='(cd ~/.dotfiles && ./sync.sh --pull)'      # sync with pull
+alias dfl='(cd ~/.dotfiles && ./sync.sh --links-only)' # links only
+alias dfh='~/.dotfiles/health.sh'                      # health check
+alias dfhf='~/.dotfiles/health.sh --fix'               # health check with fix
+alias dfc='(cd ~/.dotfiles && ./cleanup.sh)'           # cleanup (show)
+alias dfce='(cd ~/.dotfiles && ./cleanup.sh --execute)' # cleanup (execute)
+
+# Legacy alias (backward compat)
+alias dfu='dfs'
+
+# Misc
+alias reload='exec $SHELL -l'
+alias path='echo $PATH | tr ":" "\n"'
+alias week='date +%V'
+
+# ============================================================================
+# Load local/sensitive environment variables
+# ============================================================================
+
+[ -f "$HOME/.env.local" ] && . "$HOME/.env.local"

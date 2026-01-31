@@ -1,0 +1,59 @@
+# ~/.zshrc.dotfiles - Dotfiles zsh configuration
+# This file is sourced by ~/.zshrc (added by sync.sh)
+# It won't replace your existing zsh config, just adds to it
+
+# ============================================================================
+# Source shared configuration (aliases, env vars, PATH)
+# ============================================================================
+
+[ -f "$HOME/.shell_common" ] && source "$HOME/.shell_common"
+
+# ============================================================================
+# Zsh-specific settings
+# ============================================================================
+
+# History
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE=~/.zsh_history
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
+setopt APPEND_HISTORY
+
+# Directory navigation
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
+
+# Globbing (make it behave more like bash)
+unsetopt NOMATCH
+
+# ============================================================================
+# Completions
+# ============================================================================
+
+autoload -Uz compinit && compinit -i
+
+# Case-insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Homebrew completions
+if type brew &>/dev/null; then
+    FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+fi
+
+# ============================================================================
+# Tool initialization
+# ============================================================================
+
+# mise (language version manager)
+if command -v mise &>/dev/null; then
+    eval "$(mise activate zsh)"
+fi
+
+# Starship prompt (should be last for prompt setup)
+if command -v starship &>/dev/null; then
+    eval "$(starship init zsh)"
+fi

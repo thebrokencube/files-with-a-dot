@@ -1,0 +1,13 @@
+# ~/.gitconfig.local - Machine-specific git configuration
+# Copy this to ~/.gitconfig.local and fill in your values
+# This file is ignored by git (not committed)
+
+[user]
+    name = Your Name
+    email = your.email@example.com
+
+# Optional: GPG signing
+# [user]
+#     signingkey = YOUR_GPG_KEY_ID
+# [commit]
+#     gpgsign = true

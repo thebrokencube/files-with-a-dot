@@ -1,0 +1,41 @@
+# Brewfile.shared - Core development tools for all machines
+
+# Core tools
+brew "git"
+brew "neovim"
+
+# Language version management
+brew "mise"                     # Universal version manager (replaces fnm, rbenv, etc.)
+
+# Shell and prompt
+brew "zsh"
+brew "starship"                 # Cross-shell prompt
+
+# Search and navigation
+brew "ripgrep"                  # Fast grep (rg)
+brew "fd"                       # Fast find
+brew "fzf"                      # Fuzzy finder
+brew "tree"                     # Directory tree viewer
+brew "bat"                      # Better cat with syntax highlighting
+
+# Git tools
+brew "lazygit"                  # Terminal UI for git
+brew "gh"                       # GitHub CLI
+
+# JSON/data tools
+brew "jq"                       # JSON processor
+
+# Network
+brew "wget"
+brew "curl"
+
+# Containers
+brew "colima"                   # Lightweight Docker runtime
+brew "docker"                   # Docker CLI
+
+# Terminal
+cask "ghostty"                  # Modern terminal emulator
+cask "iterm2"                   # Fallback terminal
+
+# Fonts
+cask "font-inconsolata-nerd-font"

@@ -1,0 +1,12 @@
+# ~/.bash_profile.dotfiles - Dotfiles bash login shell configuration
+# This file is sourced by ~/.bash_profile (added by sync.sh)
+
+# Homebrew initialization (needed early for PATH)
+if [ -f "/opt/homebrew/bin/brew" ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -f "/usr/local/bin/brew" ]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+# Source .bashrc.dotfiles for interactive settings
+[ -f "$HOME/.bashrc.dotfiles" ] && source "$HOME/.bashrc.dotfiles"

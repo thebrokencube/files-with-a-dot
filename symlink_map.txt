@@ -1,0 +1,33 @@
+# Symlink map - defines where each dotfile should be linked
+# Format: source:destination
+# Paths relative to repo root, $HOME expands to home directory
+# Lines starting with # are comments, blank lines ignored
+
+# Git
+shared/git/.gitconfig:$HOME/.gitconfig
+
+# Shell common
+shared/shell/.shell_common:$HOME/.shell_common
+
+# Bash
+shared/bash/.bashrc.dotfiles:$HOME/.bashrc.dotfiles
+shared/bash/.bash_profile.dotfiles:$HOME/.bash_profile.dotfiles
+
+# Zsh
+shared/zsh/.zshrc.dotfiles:$HOME/.zshrc.dotfiles
+shared/zsh/.zprofile.dotfiles:$HOME/.zprofile.dotfiles
+
+# Starship prompt
+shared/starship/.config/starship.toml:$HOME/.config/starship.toml
+
+# Neovim
+shared/nvim/.config/nvim:$HOME/.config/nvim
+
+# Ghostty
+shared/ghostty/.config/ghostty:$HOME/.config/ghostty
+
+# iTerm2 (uses ~/Library, not ~/.config)
+shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
+
+# Claude Code
+shared/claude/.claude:$HOME/.claude

@@ -1,0 +1,113 @@
+# Starship prompt configuration
+# See: https://starship.rs/config/
+
+# Don't print a new line at the start of the prompt
+add_newline = true
+
+# Timeout for commands that can be slow
+command_timeout = 1000
+
+# Format (order of modules)
+format = """
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$python\
+$ruby\
+$rust\
+$golang\
+$terraform\
+$docker_context\
+$cmd_duration\
+$line_break\
+$character"""
+
+# Directory
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "bold cyan"
+
+# Git branch
+[git_branch]
+symbol = " "
+style = "bold purple"
+
+# Git status
+[git_status]
+style = "bold red"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?${count}"
+stashed = "📦"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+# Character (prompt symbol)
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold green)"
+
+# Command duration
+[cmd_duration]
+min_time = 2000
+format = "took [$duration](bold yellow) "
+
+# Node.js
+[nodejs]
+symbol = " "
+style = "bold green"
+detect_files = ["package.json", ".nvmrc", ".node-version"]
+
+# Python
+[python]
+symbol = " "
+style = "bold yellow"
+
+# Ruby
+[ruby]
+symbol = " "
+style = "bold red"
+
+# Rust
+[rust]
+symbol = " "
+style = "bold orange"
+
+# Go
+[golang]
+symbol = " "
+style = "bold cyan"
+
+# Terraform
+[terraform]
+symbol = "󱁢 "
+style = "bold blue"
+
+# Docker
+[docker_context]
+symbol = " "
+style = "bold blue"
+only_with_files = true
+
+# Disable modules we don't need
+[aws]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[azure]
+disabled = true
+
+[kubernetes]
+disabled = true
+
+[package]
+disabled = true

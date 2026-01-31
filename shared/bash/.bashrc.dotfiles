@@ -1,0 +1,50 @@
+# ~/.bashrc.dotfiles - Dotfiles bash configuration
+# This file is sourced by ~/.bashrc (added by sync.sh)
+# It won't replace your existing bash config, just adds to it
+
+# ============================================================================
+# Source shared configuration (aliases, env vars, PATH)
+# ============================================================================
+
+[ -f "$HOME/.shell_common" ] && source "$HOME/.shell_common"
+
+# ============================================================================
+# Bash-specific settings
+# ============================================================================
+
+# History
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+
+# Shell options
+shopt -s checkwinsize  # Update LINES/COLUMNS after each command
+shopt -s cdspell       # Autocorrect minor cd typos
+shopt -s dirspell 2>/dev/null  # Autocorrect directory spelling in completion
+
+# ============================================================================
+# Completions
+# ============================================================================
+
+# Homebrew completions
+if type brew &>/dev/null; then
+    HOMEBREW_PREFIX="$(brew --prefix)"
+    if [[ -r "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh" ]]; then
+        source "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh"
+    fi
+fi
+
+# ============================================================================
+# Tool initialization
+# ============================================================================
+
+# mise (language version manager)
+if command -v mise &>/dev/null; then
+    eval "$(mise activate bash)"
+fi
+
+# Starship prompt (should be last for prompt setup)
+if command -v starship &>/dev/null; then
+    eval "$(starship init bash)"
+fi

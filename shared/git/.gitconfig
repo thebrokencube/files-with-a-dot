@@ -1,0 +1,86 @@
+[color]
+    ui = true
+[core]
+    editor = nvim
+    pager = less -FRX
+    excludesfile = ~/.gitignore_global
+[merge]
+    ff = false
+    conflictstyle = diff3
+[pull]
+    rebase = true
+[push]
+    default = current
+    autoSetupRemote = true
+[rebase]
+    stat = true
+    autoStash = true
+[init]
+    defaultBranch = main
+[diff]
+    colorMoved = default
+[fetch]
+    prune = true
+
+# ============================================================================
+# Aliases
+# ============================================================================
+[alias]
+    # Staging
+    aa  = add -A
+    ap  = add -p
+    an  = add -N
+    aan = add -AN
+
+    # Branching
+    b   = branch
+    bm  = branch -m
+    bd  = branch -d
+    bD  = branch -D
+
+    # Checkout
+    co  = checkout
+    cb  = checkout -b
+    sw  = switch
+    swc = switch -c
+
+    # Commit
+    c   = commit
+    ca  = commit --amend
+    cm  = commit -m
+    can = commit --amend --no-edit
+
+    # Diff
+    d   = diff
+    dt  = diff --stat
+    ds  = diff --staged
+    dst = diff --staged --stat
+
+    # Log
+    l   = log --oneline -20
+    lt  = log --oneline --stat
+    lg  = log --graph --oneline --all
+    last = log -1 HEAD --stat
+
+    # Rebase
+    ri  = rebase -i
+    rc  = rebase --continue
+    ra  = rebase --abort
+
+    # Status
+    st  = status -sb
+
+    # Stash
+    ss  = stash
+    sp  = stash pop
+    sl  = stash list
+
+    # Undo
+    unstage = reset HEAD --
+    undo = reset --soft HEAD~1
+
+# ============================================================================
+# Include machine-specific config (name, email, signing)
+# ============================================================================
+[include]
+    path = ~/.gitconfig.local
