@@ -51,6 +51,17 @@ docs(api): add rate limiting section
 chore(deps): bump rails to 7.1
 ```
 
+### Tagged Commits (releases on main)
+
+When committing directly to main with a version tag, prepend the version:
+
+```
+v1.2.0: feat(auth): add OAuth2 login flow
+v0.3.2: fix(api): handle null response
+```
+
+The tag message should match the commit message.
+
 ## Green Commits
 
 **Every commit should leave the codebase in a working state:**

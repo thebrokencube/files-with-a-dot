@@ -366,12 +366,13 @@ if [[ "$INTERACTIVE_SETUP" == true ]]; then
     exit 0
 fi
 
+VERSION=$(cd "$DOTFILES_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
 echo "============================================"
-echo "  Dotfiles Health Check"
+echo "  Dotfiles Health Check ($VERSION)"
 echo "============================================"
 echo ""
 echo "Repo: $DOTFILES_DIR"
-echo "Machine: $MACHINE_TYPE"
+echo "Machine type: $MACHINE_TYPE"
 [[ "$AUTO_FIX" == true ]] && echo -e "Auto-fix: ${GREEN}enabled${NC}"
 echo ""
 

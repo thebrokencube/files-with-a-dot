@@ -58,9 +58,10 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 IS_AGGRESSIVE=$([[ "$MACHINE_TYPE" == "aggressive" ]] && echo true || echo false)
+VERSION=$(cd "$SCRIPT_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
 
 echo "============================================"
-echo "  System Cleanup ($MACHINE_TYPE mode)"
+echo "  System Cleanup $VERSION ($MACHINE_TYPE mode)"
 echo "============================================"
 if [[ "$IS_AGGRESSIVE" == false ]]; then
     echo -e "${YELLOW}Conservative mode: Only Homebrew cache cleanup is safe.${NC}"

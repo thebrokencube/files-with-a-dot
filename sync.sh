@@ -802,8 +802,9 @@ prompt_first_time_config() {
 # Main Execution
 # ============================================================================
 
+VERSION=$(cd "$DOTFILES_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
 echo "============================================"
-echo "  Dotfiles Sync"
+echo "  Dotfiles Sync ($VERSION)"
 echo "============================================"
 echo ""
 echo "Repo: $DOTFILES_DIR"
@@ -831,7 +832,7 @@ else
         MACHINE_PROFILE="personal"
     fi
 fi
-echo "Machine: ${MACHINE_TYPE:-unknown}"
+echo "Machine type: ${MACHINE_TYPE:-unknown}"
 echo "Profile: ${MACHINE_PROFILE:-personal}"
 if has_private_overlay; then
     echo "Private: $PRIVATE_DIR"
