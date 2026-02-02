@@ -87,3 +87,5 @@
 [include]
     # Fallback for backwards compatibility
     path = ~/.gitconfig.local
+[credential]
+	helper = osxkeychain
