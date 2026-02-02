@@ -32,6 +32,7 @@ SKIP_PROMPTS=false
 FORCE_PULL=false
 
 MACHINE_ARG=""
+PROFILE_ARG=""
 GIT_NAME_ARG=""
 GIT_EMAIL_ARG=""
 
@@ -45,6 +46,7 @@ while [[ $# -gt 0 ]]; do
         --no-backup) NO_BACKUP=true; shift ;;
         --skip-prompts) SKIP_PROMPTS=true; shift ;;
         --machine) MACHINE_ARG="$2"; shift 2 ;;
+        --profile) PROFILE_ARG="$2"; shift 2 ;;
         --git-name) GIT_NAME_ARG="$2"; shift 2 ;;
         --git-email) GIT_EMAIL_ARG="$2"; shift 2 ;;
         --help|-h)
@@ -64,8 +66,13 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "First-time setup (non-interactive):"
             echo "  --machine TYPE       Set machine type (aggressive|conservative)"
+            echo "  --profile TYPE       Set machine profile (work|personal)"
             echo "  --git-name NAME      Set git user name"
             echo "  --git-email EMAIL    Set git user email"
+            echo ""
+            echo "Private overlay:"
+            echo "  Place private configs in ~/.dotfiles.private/"
+            echo "  Run ./init-private.sh to create the structure"
             echo ""
             echo "Debug:"
             echo "  DEBUG=1 ./sync.sh    Run with debug output"
@@ -76,6 +83,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 MACHINE_TYPE="${MACHINE_ARG:-${DOTFILES_MACHINE:-}}"
+MACHINE_PROFILE="${PROFILE_ARG:-${DOTFILES_PROFILE:-}}"
 GIT_NAME="${GIT_NAME_ARG:-${DOTFILES_GIT_NAME:-}}"
 GIT_EMAIL="${GIT_EMAIL_ARG:-${DOTFILES_GIT_EMAIL:-}}"
 
@@ -86,12 +94,26 @@ BACKUP_DIR="$SCRIPT_DIR/.backup"
 BACKUP_MANIFEST="$BACKUP_DIR/manifest"
 SYMLINK_MAP="$SCRIPT_DIR/symlink_map.txt"
 MACHINE_FILE="$SCRIPT_DIR/.machine"
+PROFILE_FILE="$SCRIPT_DIR/.profile"
+PRIVATE_DIR="$HOME/.dotfiles.private"
 
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 NC='\033[0m'
+
+# Source libraries (optional - functions defined below if libs don't exist)
+[[ -f "$SCRIPT_DIR/lib/paths.sh" ]] && source "$SCRIPT_DIR/lib/paths.sh"
+
+# Private overlay helpers
+has_private_overlay() {
+    [[ -d "$PRIVATE_DIR" ]]
+}
+
+get_profile_dir() {
+    echo "$PRIVATE_DIR/$1"
+}
 
 # State arrays
 ACTIONS=()
@@ -425,12 +447,57 @@ create_dotfiles_symlink() {
 apply_symlinks() {
     echo "Creating symlinks..."
 
+    # Public symlinks
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
         local source=$(get_source "$line")
         local dest=$(get_dest "$line")
         create_symlink "$source" "$dest"
     done < "$SYMLINK_MAP"
+
+    # Private overlay symlinks
+    if has_private_overlay; then
+        echo ""
+        echo "Applying private overlay..."
+
+        # Shared private symlinks
+        local private_map="$PRIVATE_DIR/symlink_map.txt"
+        if [[ -f "$private_map" ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                local source=$(get_source "$line")
+                local dest=$(get_dest "$line")
+                create_private_symlink "$source" "$dest" "$PRIVATE_DIR"
+            done < "$private_map"
+        fi
+
+        # Profile-specific symlinks
+        local profile_dir="$(get_profile_dir "$MACHINE_PROFILE")"
+        local profile_map="$profile_dir/symlink_map.txt"
+        if [[ -f "$profile_map" ]]; then
+            echo "  Applying $MACHINE_PROFILE profile..."
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                local source=$(get_source "$line")
+                local dest=$(get_dest "$line")
+                create_private_symlink "$source" "$dest" "$profile_dir"
+            done < "$profile_map"
+        fi
+
+        # Profile-specific skills
+        local skills_dir="$profile_dir/skills"
+        if [[ -d "$skills_dir" ]]; then
+            for skill in "$skills_dir"/*/; do
+                [[ -d "$skill" ]] || continue
+                local skill_name=$(basename "$skill")
+                [[ "$skill_name" == ".gitkeep" ]] && continue
+                local dest="$HOME/.claude/skills/$skill_name"
+                mkdir -p "$(dirname "$dest")"
+                create_private_symlink "skills/$skill_name" "$dest" "$profile_dir"
+            done
+        fi
+    fi
+
     echo ""
 }
 
@@ -467,6 +534,43 @@ create_symlink() {
     # Create symlink
     ln -s "$source_path" "$dest"
     echo "  $name -> $dest"
+}
+
+create_private_symlink() {
+    local source="$1"
+    local dest="$2"
+    local base_dir="$3"
+    local source_path="$base_dir/$source"
+    local name=$(basename "$source")
+
+    # Skip if source doesn't exist
+    if [[ ! -e "$source_path" ]]; then
+        return
+    fi
+
+    # Skip if already correctly linked
+    if [[ -L "$dest" ]] && [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path")" ]]; then
+        return
+    fi
+
+    # Backup and remove existing (can override public symlinks)
+    if [[ -e "$dest" || -L "$dest" ]]; then
+        # Only backup if it's not one of our symlinks
+        if ! is_ours "$dest"; then
+            backup_file "$dest" "private_symlink_target"
+        fi
+        rm -rf "$dest"
+    fi
+
+    # Create parent directory if needed
+    local parent_dir=$(dirname "$dest")
+    if [[ ! -d "$parent_dir" ]]; then
+        mkdir -p "$parent_dir"
+    fi
+
+    # Create symlink
+    ln -s "$source_path" "$dest"
+    echo "  $name -> $dest (private)"
 }
 
 # ============================================================================
@@ -518,6 +622,25 @@ install_brew_packages() {
         brew bundle --file="$DOTFILES_DIR/aggressive/Brewfile" --verbose || echo "  (some packages may have failed)"
     fi
 
+    # Private overlay Brewfiles
+    if has_private_overlay; then
+        # Shared private Brewfile
+        local private_brewfile="$PRIVATE_DIR/Brewfile"
+        if [[ -f "$private_brewfile" ]]; then
+            echo ""
+            echo "Installing private packages..."
+            brew bundle --file="$private_brewfile" --verbose || echo "  (some packages may have failed)"
+        fi
+
+        # Profile-specific Brewfile
+        local profile_brewfile="$(get_profile_dir "$MACHINE_PROFILE")/Brewfile"
+        if [[ -f "$profile_brewfile" ]]; then
+            echo ""
+            echo "Installing $MACHINE_PROFILE profile packages..."
+            brew bundle --file="$profile_brewfile" --verbose || echo "  (some packages may have failed)"
+        fi
+    fi
+
     # Update mode: upgrade existing packages
     if [[ "$is_first_time" == false ]]; then
         echo ""
@@ -545,46 +668,78 @@ install_brew_packages() {
 
 setup_local_configs() {
     local is_first_time="$1"
+    local local_dir="$DOTFILES_DIR/local"
 
     echo "Setting up local config..."
 
+    # Create local directory if needed
+    mkdir -p "$local_dir"
+
+    # Migrate existing files from home directory to local/
+    if [[ -f "$HOME/.gitconfig.local" && ! -f "$local_dir/gitconfig.local" ]]; then
+        mv "$HOME/.gitconfig.local" "$local_dir/gitconfig.local"
+        echo "  Migrated ~/.gitconfig.local to local/"
+    fi
+    if [[ -f "$HOME/.env.local" && ! -f "$local_dir/env.local" ]]; then
+        mv "$HOME/.env.local" "$local_dir/env.local"
+        echo "  Migrated ~/.env.local to local/"
+    fi
+
     # Git config
-    if [[ ! -f "$HOME/.gitconfig.local" ]]; then
+    if [[ ! -f "$local_dir/gitconfig.local" ]]; then
         if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then
-            cat > "$HOME/.gitconfig.local" << EOF
+            cat > "$local_dir/gitconfig.local" << EOF
 [user]
     name = $GIT_NAME
     email = $GIT_EMAIL
 EOF
-            echo "  Created ~/.gitconfig.local"
+            echo "  Created local/gitconfig.local"
         elif [[ "$is_first_time" == true && "$SKIP_PROMPTS" != true ]]; then
             echo ""
             read -p "Git name: " GIT_NAME
             read -p "Git email: " GIT_EMAIL
             if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then
-                cat > "$HOME/.gitconfig.local" << EOF
+                cat > "$local_dir/gitconfig.local" << EOF
 [user]
     name = $GIT_NAME
     email = $GIT_EMAIL
 EOF
-                echo "  Created ~/.gitconfig.local"
+                echo "  Created local/gitconfig.local"
             fi
         else
-            echo "  Skipping ~/.gitconfig.local (no values provided)"
+            echo "  Skipping local/gitconfig.local (no values provided)"
         fi
     else
-        echo "  ~/.gitconfig.local exists"
+        echo "  local/gitconfig.local exists"
     fi
 
     # Env config
-    if [[ ! -f "$HOME/.env.local" ]]; then
-        echo "# Local environment variables (not in git)" > "$HOME/.env.local"
-        echo "# Add your environment variables here" >> "$HOME/.env.local"
-        echo "# Example: GITHUB_TOKEN=ghp_..." >> "$HOME/.env.local"
-        echo "  Created ~/.env.local"
+    if [[ ! -f "$local_dir/env.local" ]]; then
+        cat > "$local_dir/env.local" << 'EOF'
+# Local environment variables (not in git)
+# Add your environment variables here
+# Example: GITHUB_TOKEN=ghp_...
+# Example: ANTHROPIC_API_KEY=sk-ant-...
+EOF
+        echo "  Created local/env.local"
     else
-        echo "  ~/.env.local exists"
+        echo "  local/env.local exists"
     fi
+
+    # Shell local config
+    if [[ ! -f "$local_dir/shell.local" ]]; then
+        cat > "$local_dir/shell.local" << 'EOF'
+# Local shell aliases and functions (not in git)
+# Add your private aliases here
+#
+# Example:
+# alias myalias='my command'
+EOF
+        echo "  Created local/shell.local"
+    else
+        echo "  local/shell.local exists"
+    fi
+
     echo ""
 }
 
@@ -616,6 +771,31 @@ prompt_first_time_config() {
         esac
         echo "$MACHINE_TYPE" > "$MACHINE_FILE"
     fi
+
+    # Profile selection
+    if [[ -n "$MACHINE_PROFILE" ]]; then
+        if [[ "$MACHINE_PROFILE" != "work" && "$MACHINE_PROFILE" != "personal" ]]; then
+            echo "Error: Invalid profile '$MACHINE_PROFILE'. Must be 'work' or 'personal'."
+            exit 1
+        fi
+        echo "$MACHINE_PROFILE" > "$PROFILE_FILE"
+    elif [[ "$SKIP_PROMPTS" == true ]]; then
+        MACHINE_PROFILE="personal"
+        echo "$MACHINE_PROFILE" > "$PROFILE_FILE"
+        echo "Profile: $MACHINE_PROFILE (default)"
+    else
+        echo ""
+        echo "Machine profile:"
+        echo "  1) personal - Personal machine"
+        echo "  2) work - Work machine"
+        read -p "Enter choice [1-2]: " profile_choice
+        case "$profile_choice" in
+            1) MACHINE_PROFILE="personal" ;;
+            2) MACHINE_PROFILE="work" ;;
+            *) MACHINE_PROFILE="personal" ;;
+        esac
+        echo "$MACHINE_PROFILE" > "$PROFILE_FILE"
+    fi
 }
 
 # ============================================================================
@@ -636,11 +816,26 @@ IS_FIRST_TIME=$(detect_first_time && echo true || echo false)
 if [[ "$IS_FIRST_TIME" == true ]]; then
     echo "Mode: First-time setup"
     [[ -f "$MACHINE_FILE" ]] && MACHINE_TYPE=$(cat "$MACHINE_FILE")
+    [[ -f "$PROFILE_FILE" ]] && MACHINE_PROFILE=$(cat "$PROFILE_FILE")
 else
     echo "Mode: Update"
     MACHINE_TYPE=$(cat "$MACHINE_FILE")
+    # Use --profile arg if provided, otherwise read from file
+    if [[ -n "$PROFILE_ARG" ]]; then
+        MACHINE_PROFILE="$PROFILE_ARG"
+        # Save the new profile
+        echo "$MACHINE_PROFILE" > "$PROFILE_FILE"
+    elif [[ -f "$PROFILE_FILE" ]]; then
+        MACHINE_PROFILE=$(cat "$PROFILE_FILE")
+    else
+        MACHINE_PROFILE="personal"
+    fi
 fi
 echo "Machine: ${MACHINE_TYPE:-unknown}"
+echo "Profile: ${MACHINE_PROFILE:-personal}"
+if has_private_overlay; then
+    echo "Private: $PRIVATE_DIR"
+fi
 echo ""
 
 echo "Detecting current state..."
@@ -702,6 +897,17 @@ fi
 # Create ~/.dotfiles symlink if needed
 create_dotfiles_symlink
 
+# Migrate from ~/.claude directory symlink to granular linking
+if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
+    target=$(readlink "$HOME/.claude")
+    if [[ "$target" == *"shared/claude/.claude"* || "$target" == *".dotfiles"*"/.claude"* ]]; then
+        echo "Migrating ~/.claude from directory link to granular links..."
+        rm "$HOME/.claude"  # Remove symlink (not the directory it points to)
+        mkdir -p "$HOME/.claude/skills"
+        echo ""
+    fi
+fi
+
 # Apply symlinks
 apply_symlinks
 
@@ -729,10 +935,10 @@ echo ""
 
 # Prompt to run cleanup
 if [[ "$SKIP_PROMPTS" != true ]]; then
-    read -p "Run cleanup to remove unused packages? [y/N] " cleanup_response
+    read -p "Run cleanup? [y/N] " cleanup_response
     if [[ "$cleanup_response" == "y" || "$cleanup_response" == "Y" ]]; then
         echo ""
-        "$DOTFILES_DIR/cleanup.sh"
+        "$DOTFILES_DIR/cleanup.sh" --confirmed
     fi
 fi
 

@@ -2,6 +2,8 @@
 *.local
 .env.local
 .machine
+.profile
+local/
 
 # Backups created by sync.sh
 .backup/
@@ -27,9 +29,13 @@ shared/nvim/.config/nvim/lazy-lock.json
 shared/claude/.claude/cache/
 shared/claude/.claude/debug/
 shared/claude/.claude/file-history/
+shared/claude/.claude/paste-cache/
+shared/claude/.claude/plans/
 shared/claude/.claude/projects/
+shared/claude/.claude/session-env/
 shared/claude/.claude/shell-snapshots/
 shared/claude/.claude/statsig/
+shared/claude/.claude/tasks/
 shared/claude/.claude/todos/
 shared/claude/.claude/*.json
 shared/claude/.claude/*.jsonl

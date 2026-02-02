@@ -83,7 +83,16 @@ alias path='echo $PATH | tr ":" "\n"'
 alias week='date +%V'
 
 # ============================================================================
-# Load local/sensitive environment variables
+# Load local/sensitive configuration
 # ============================================================================
 
+# Determine dotfiles location
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+
+# Local environment variables (API keys, tokens, etc.)
+[ -f "$DOTFILES_DIR/local/env.local" ] && . "$DOTFILES_DIR/local/env.local"
+# Fallback to home directory for backwards compatibility
 [ -f "$HOME/.env.local" ] && . "$HOME/.env.local"
+
+# Local shell additions (private aliases, functions)
+[ -f "$DOTFILES_DIR/local/shell.local" ] && . "$DOTFILES_DIR/local/shell.local"

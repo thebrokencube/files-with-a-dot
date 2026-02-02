@@ -1,0 +1,10 @@
+# Private shell aliases and functions
+# This file is sourced by .shell_common
+#
+# Add your private aliases here:
+# alias myalias='my command'
+#
+# Add private functions:
+# myfunction() {
+#     echo "Hello from private function"
+# }

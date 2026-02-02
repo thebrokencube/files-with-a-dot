@@ -8,17 +8,20 @@
 #                    be cleaned but don't automatically remove anything.
 #
 # Usage:
-#   ./cleanup.sh              # Show cleanup opportunities
+#   ./cleanup.sh              # Show cleanup opportunities (interactive prompt)
+#   ./cleanup.sh --confirmed  # Show + execute (user already confirmed)
 #   ./cleanup.sh --execute    # Run cleanup (with confirmation)
-#   ./cleanup.sh --force      # Run without confirmation
+#   ./cleanup.sh --force      # Run without any confirmation
 
 set -e
 
 EXECUTE=false
 FORCE=false
+CONFIRMED=false  # Set when called from sync.sh/bootstrap.sh (user already said yes)
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --confirmed) CONFIRMED=true; EXECUTE=true; shift ;;
         --execute) EXECUTE=true; shift ;;
         --force) EXECUTE=true; FORCE=true; shift ;;
         --help|-h)
@@ -32,11 +35,12 @@ while [[ $# -gt 0 ]]; do
             echo "  - System caches (aggressive mode only)"
             echo ""
             echo "Aggressive mode: Aggressive cleanup with --zap (this repo is source of truth)"
-            echo "Conservative mode: Show opportunities only"
+            echo "Conservative mode: Show opportunities only (Homebrew cache cleanup is safe)"
             echo ""
             echo "Options:"
-            echo "  --execute    Actually run cleanup (with confirmation)"
-            echo "  --force      Run without confirmation"
+            echo "  --confirmed  Show opportunities and execute (called from sync/bootstrap)"
+            echo "  --execute    Run cleanup (with confirmation)"
+            echo "  --force      Run without any confirmation"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -58,7 +62,10 @@ IS_AGGRESSIVE=$([[ "$MACHINE_TYPE" == "aggressive" ]] && echo true || echo false
 echo "============================================"
 echo "  System Cleanup ($MACHINE_TYPE mode)"
 echo "============================================"
-[[ "$IS_AGGRESSIVE" == false ]] && echo "Note: Conservative mode - showing opportunities only"
+if [[ "$IS_AGGRESSIVE" == false ]]; then
+    echo -e "${YELLOW}Conservative mode: Only Homebrew cache cleanup is safe.${NC}"
+    echo "Packages below may be managed by other tools - shown for reference only."
+fi
 echo ""
 
 # ============================================================================
@@ -156,24 +163,41 @@ fi
 # Execute cleanup
 # ============================================================================
 
-INTERACTIVE_YES=false
+# Check if there's meaningful work to do
+HAS_PACKAGE_WORK=false
+[[ "$HAS_BUNDLE_CLEANUP" == true ]] && HAS_PACKAGE_WORK=true
+[[ "$UNUSED" -gt 0 ]] && HAS_PACKAGE_WORK=true
+
+HAS_CACHE_WORK=false
+if [[ -d "$BREW_CACHE" ]]; then
+    # Only count cache as "work" if it's > 100MB
+    CACHE_BYTES=$(du -sk "$BREW_CACHE" 2>/dev/null | awk '{print $1}')
+    [[ "${CACHE_BYTES:-0}" -gt 102400 ]] && HAS_CACHE_WORK=true
+fi
+
+HAS_WORK=false
+[[ "$HAS_PACKAGE_WORK" == true ]] && HAS_WORK=true
+[[ "$HAS_CACHE_WORK" == true ]] && HAS_WORK=true
+[[ "$OLD_DOWNLOADS" -gt 0 ]] && HAS_WORK=true
+
+# Interactive prompt (only when run standalone without flags)
 if [[ "$EXECUTE" == false ]]; then
     echo ""
-    # Check if there's anything to clean
-    HAS_WORK=false
-    [[ "$HAS_BUNDLE_CLEANUP" == true ]] && HAS_WORK=true
-    [[ "$UNUSED" -gt 0 ]] && HAS_WORK=true
-    [[ -d "$BREW_CACHE" ]] && HAS_WORK=true
-    [[ "$OLD_DOWNLOADS" -gt 0 ]] && HAS_WORK=true
-
     if [[ "$HAS_WORK" == true ]]; then
         echo "============================================"
-        read -p "Run cleanup now? [y/N] " run_now
+        if [[ "$IS_AGGRESSIVE" == true ]]; then
+            read -p "Run cleanup now? [y/N] " run_now
+        else
+            echo "Conservative mode: Only Homebrew cache will be cleaned."
+            echo "(Packages shown above are managed by other tools)"
+            read -p "Clean Homebrew cache now? [y/N] " run_now
+        fi
         if [[ "$run_now" == "y" || "$run_now" == "Y" ]]; then
             EXECUTE=true
-            INTERACTIVE_YES=true
+            CONFIRMED=true  # User just confirmed, skip secondary prompt
         else
-            echo "Run with --execute to perform cleanup later."
+            echo ""
+            echo "Run later with: ./cleanup.sh --execute"
             exit 0
         fi
     else
@@ -188,11 +212,12 @@ echo "  Executing Cleanup"
 echo "============================================"
 echo ""
 
-if [[ "$FORCE" == false && "$INTERACTIVE_YES" == false ]]; then
+# Safety confirmation for --execute flag (not needed if --confirmed or --force)
+if [[ "$FORCE" == false && "$CONFIRMED" == false ]]; then
     if [[ "$IS_AGGRESSIVE" == true ]]; then
         read -p "This will remove packages, casks (with --zap), and old files. Continue? [y/N] " confirm
     else
-        read -p "This will only clean Homebrew cache (conservative mode). Continue? [y/N] " confirm
+        read -p "This will clean Homebrew cache. Continue? [y/N] " confirm
     fi
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo "Aborted."

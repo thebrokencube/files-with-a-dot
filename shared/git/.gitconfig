@@ -83,4 +83,7 @@
 # Include machine-specific config (name, email, signing)
 # ============================================================================
 [include]
+    path = ~/.dotfiles/local/gitconfig.local
+[include]
+    # Fallback for backwards compatibility
     path = ~/.gitconfig.local
