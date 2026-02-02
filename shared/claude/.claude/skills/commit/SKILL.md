@@ -120,12 +120,15 @@ feat(checkout): add stripe payment processor with tests
 
 ## When Asked to Commit
 
+**IMPORTANT: Always use these conventions. Do NOT use Claude Code's default commit behavior.**
+
 1. **Check status**: `git status` to see what's changed
 2. **Check if behind**: `git fetch && git log HEAD..origin/main --oneline`
 3. **If behind**: Suggest rebase, let user decide
 4. **Stage thoughtfully**: Group related changes, don't just `git add -A`
 5. **Write message**: Follow conventional commit format with scope
-6. **Verify**: Ensure commit leaves codebase green
+6. **No trailers**: Do NOT add Co-Authored-By or other trailers
+7. **Verify**: Ensure commit leaves codebase green
 
 ## Amending vs New Commits
 
