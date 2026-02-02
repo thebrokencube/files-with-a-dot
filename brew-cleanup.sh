@@ -50,12 +50,15 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
 MACHINE_FILE="$DOTFILES_DIR/.machine"
+PROFILE_FILE="$DOTFILES_DIR/.profile"
+MACHINE_TYPE="aggressive"
+MACHINE_PROFILE=""
 
-if [[ -f "$MACHINE_FILE" ]]; then
-    MACHINE_TYPE=$(cat "$MACHINE_FILE")
-else
-    MACHINE_TYPE="aggressive"
-fi
+[[ -f "$MACHINE_FILE" ]] && MACHINE_TYPE=$(cat "$MACHINE_FILE")
+[[ -f "$PROFILE_FILE" ]] && MACHINE_PROFILE=$(cat "$PROFILE_FILE")
+
+# Source private overlay support
+source "$SCRIPT_DIR/lib/private.sh"
 
 echo "============================================"
 echo "  Homebrew Package Cleanup"
@@ -89,10 +92,29 @@ parse_brewfile() {
 }
 
 echo "Reading Brewfiles..."
+
+# 1. Brewfile.shared (always)
 parse_brewfile "$DOTFILES_DIR/Brewfile.shared"
 
+# 2. aggressive/Brewfile (if aggressive mode)
 if [[ "$MACHINE_TYPE" == "aggressive" && -f "$DOTFILES_DIR/aggressive/Brewfile" ]]; then
     parse_brewfile "$DOTFILES_DIR/aggressive/Brewfile"
+fi
+
+# 3. Private shared Brewfile
+if has_private_overlay; then
+    local_private_brewfile="$(get_private_brewfile)"
+    if [[ -f "$local_private_brewfile" ]]; then
+        parse_brewfile "$local_private_brewfile"
+    fi
+
+    # 4. Profile-specific Brewfile
+    if [[ -n "$MACHINE_PROFILE" ]]; then
+        local_profile_brewfile="$(get_profile_brewfile "$MACHINE_PROFILE")"
+        if [[ -f "$local_profile_brewfile" ]]; then
+            parse_brewfile "$local_profile_brewfile"
+        fi
+    fi
 fi
 
 echo "  Expected formulas: ${#EXPECTED_FORMULAS[@]}"
