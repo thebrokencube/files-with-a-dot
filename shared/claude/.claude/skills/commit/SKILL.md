@@ -156,9 +156,3 @@ git push origin v1.2.0
 - **New changes = new version** - Committing to main means bumping the version
 - **Tag after commit** - Commit first, then tag, then push both
 
-## Co-Author Attribution
-
-When Claude contributes significantly, include:
-```
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
