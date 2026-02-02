@@ -14,4 +14,4 @@ cask "spotify"
 cask "rectangle"                # Window management
 
 # Development
-brew "claude-code"              # Claude AI CLI
+cask "claude-code"              # Claude AI CLI
