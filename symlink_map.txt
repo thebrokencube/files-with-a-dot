@@ -36,3 +36,4 @@ shared/claude/.claude/skills/dotfiles-dev:$HOME/.claude/skills/dotfiles-dev
 shared/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 shared/claude/.claude/skills/brew:$HOME/.claude/skills/brew
 shared/claude/.claude/skills/system:$HOME/.claude/skills/system
+shared/claude/.claude/skills/commit:$HOME/.claude/skills/commit
