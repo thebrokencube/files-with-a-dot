@@ -219,6 +219,7 @@ require('lazy').setup({
         view = { width = 30 },
       })
       vim.keymap.set('n', '<leader>e', ':NvimTreeToggle<CR>', { desc = 'Toggle file [E]xplorer' })
+      vim.keymap.set('n', '<leader>r', ':NvimTreeFindFile<CR>', { desc = '[R]eveal file in tree' })
     end,
   },
 
