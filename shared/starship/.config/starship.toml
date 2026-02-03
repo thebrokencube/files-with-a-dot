@@ -1,24 +1,19 @@
 # Starship prompt configuration
 # See: https://starship.rs/config/
+# Optimized for SPEED - minimal checks
 
 # Don't print a new line at the start of the prompt
 add_newline = true
 
-# Timeout for commands that can be slow
-command_timeout = 1000
+# Timeout for commands - keep low for snappy prompt
+command_timeout = 500
 
-# Format (order of modules)
+# Format - minimal for speed
+# directory + git branch + git status + prompt character
 format = """
 $directory\
 $git_branch\
 $git_status\
-$nodejs\
-$python\
-$ruby\
-$rust\
-$golang\
-$terraform\
-$docker_context\
 $cmd_duration\
 $line_break\
 $character"""
@@ -29,24 +24,10 @@ truncation_length = 3
 truncate_to_repo = true
 style = "bold cyan"
 
-# Git branch
+# Git branch - fast, just reads HEAD
 [git_branch]
 symbol = " "
 style = "bold purple"
-
-# Git status
-[git_status]
-style = "bold red"
-conflicted = "="
-ahead = "⇡${count}"
-behind = "⇣${count}"
-diverged = "⇕⇡${ahead_count}⇣${behind_count}"
-untracked = "?${count}"
-stashed = "📦"
-modified = "!${count}"
-staged = "+${count}"
-renamed = "»${count}"
-deleted = "✘${count}"
 
 # Character (prompt symbol)
 [character]
@@ -54,49 +35,46 @@ success_symbol = "[❯](bold green)"
 error_symbol = "[❯](bold red)"
 vimcmd_symbol = "[❮](bold green)"
 
-# Command duration
+# Command duration - only shows for long commands
 [cmd_duration]
 min_time = 2000
 format = "took [$duration](bold yellow) "
 
-# Node.js
-[nodejs]
-symbol = " "
-style = "bold green"
-detect_files = ["package.json", ".nvmrc", ".node-version"]
-
-# Python
-[python]
-symbol = " "
-style = "bold yellow"
-
-# Ruby
-[ruby]
-symbol = " "
+# Git status - fast with Git's fsmonitor enabled
+[git_status]
 style = "bold red"
+format = "[$all_status$ahead_behind]($style) "
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+untracked = "?"
+modified = "!"
+staged = "+"
+deleted = "✘"
+stashed = ""
+ignore_submodules = true
 
-# Rust
+[nodejs]
+disabled = true
+
+[python]
+disabled = true
+
+[ruby]
+disabled = true
+
 [rust]
-symbol = " "
-style = "bold orange"
+disabled = true
 
-# Go
 [golang]
-symbol = " "
-style = "bold cyan"
+disabled = true
 
-# Terraform
 [terraform]
-symbol = "󱁢 "
-style = "bold blue"
+disabled = true
 
-# Docker
 [docker_context]
-symbol = " "
-style = "bold blue"
-only_with_files = true
+disabled = true
 
-# Disable modules we don't need
 [aws]
 disabled = true
 
@@ -110,4 +88,7 @@ disabled = true
 disabled = true
 
 [package]
+disabled = true
+
+[dotnet]
 disabled = true
