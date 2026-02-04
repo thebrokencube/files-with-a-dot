@@ -3,7 +3,7 @@
 [core]
     editor = nvim
     pager = less -FRX
-    excludesfile = ~/.gitignore_global
+    # Using XDG default: ~/.config/git/ignore (no excludesfile needed)
 [merge]
     ff = false
     conflictstyle = diff3
