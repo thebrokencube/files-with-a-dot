@@ -5,6 +5,7 @@
 
 # Git
 shared/git/.gitconfig:$HOME/.gitconfig
+shared/git/.config/git/ignore:$HOME/.config/git/ignore
 
 # Shell common
 shared/shell/.shell_common:$HOME/.shell_common
