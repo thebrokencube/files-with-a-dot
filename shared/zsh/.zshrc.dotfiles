@@ -49,9 +49,9 @@ fi
 # ============================================================================
 
 # mise (language version manager)
-if command -v mise &>/dev/null; then
-    eval "$(mise activate zsh)"
-fi
+# NOTE: mise activation is handled in machine-specific config (.zshrc.local)
+# because different environments (work vs personal) may have different setup requirements.
+# See $DOTFILES_DIR/local/zshrc.local for the local configuration.
 
 # Starship prompt (should be last for prompt setup)
 if command -v starship &>/dev/null; then
