@@ -20,3 +20,7 @@ My development environment, available globally across all projects.
 - `gs` - Git status
 - `reload` - Restart shell
 - `~/.dotfiles/health.sh` - Diagnose issues
+
+## Git Preferences
+- Do NOT add Co-Authored-By or other trailers to commits
+- Use conventional commits with scope (see commit skill for details)
