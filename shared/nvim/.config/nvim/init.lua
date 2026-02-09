@@ -258,6 +258,7 @@ require('lazy').setup({
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
+        { '<leader>y', group = '[Y]ank' },
       })
     end,
   },
@@ -324,6 +325,47 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move to left window' })
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move to right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move to lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move to upper window' })
+
+-- Copy file paths to clipboard
+vim.keymap.set('n', '<leader>yp', function()
+  local path = vim.fn.fnamemodify(vim.fn.expand('%'), ':~:.')
+  vim.fn.setreg('+', path)
+  vim.notify('Copied: ' .. path)
+end, { desc = '[Y]ank relative [p]ath' })
+
+vim.keymap.set('n', '<leader>yP', function()
+  local path = vim.fn.expand('%:p')
+  vim.fn.setreg('+', path)
+  vim.notify('Copied: ' .. path)
+end, { desc = '[Y]ank absolute [P]ath' })
+
+-- Copy GitHub URL to clipboard
+vim.keymap.set('n', '<leader>yg', function()
+  local file = vim.fn.expand('%:p')
+  local line = vim.fn.line('.')
+  -- Get git root
+  local git_root = vim.fn.systemlist('git -C ' .. vim.fn.shellescape(vim.fn.expand('%:p:h')) .. ' rev-parse --show-toplevel')[1]
+  if vim.v.shell_error ~= 0 then
+    vim.notify('Not in a git repository', vim.log.levels.ERROR)
+    return
+  end
+  -- Get relative path from git root
+  local rel_path = file:sub(#git_root + 2)
+  -- Get remote URL
+  local remote = vim.fn.systemlist('git -C ' .. vim.fn.shellescape(git_root) .. ' remote get-url origin')[1]
+  if vim.v.shell_error ~= 0 then
+    vim.notify('No git remote found', vim.log.levels.ERROR)
+    return
+  end
+  -- Get current branch
+  local branch = vim.fn.systemlist('git -C ' .. vim.fn.shellescape(git_root) .. ' rev-parse --abbrev-ref HEAD')[1]
+  -- Convert SSH/git URL to HTTPS
+  remote = remote:gsub('git@github%.com:', 'https://github.com/')
+  remote = remote:gsub('%.git$', '')
+  local url = remote .. '/blob/' .. branch .. '/' .. rel_path .. '#L' .. line
+  vim.fn.setreg('+', url)
+  vim.notify('Copied: ' .. url)
+end, { desc = '[Y]ank [G]itHub URL' })
 
 -- Highlight on yank
 vim.api.nvim_create_autocmd('TextYankPost', {
