@@ -1,5 +1,10 @@
 # Brewfile.shared - Core development tools for all machines
 
+# Taps
+tap "homebrew/cask-fonts"          # Nerd fonts
+tap "homebrew/services"            # brew services support
+tap "jesseduffield/lazygit"        # lazygit formula
+
 # Core tools
 brew "git"
 brew "neovim"

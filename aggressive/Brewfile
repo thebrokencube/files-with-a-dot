@@ -6,6 +6,7 @@ cask "google-chrome"
 # Communication
 cask "discord"
 cask "slack"
+cask "zoom"
 
 # Media
 cask "spotify"
