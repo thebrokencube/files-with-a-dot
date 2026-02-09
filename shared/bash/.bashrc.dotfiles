@@ -40,9 +40,9 @@ fi
 # ============================================================================
 
 # mise (language version manager)
-if command -v mise &>/dev/null; then
-    eval "$(mise activate bash)"
-fi
+# NOTE: mise activation is handled in machine-specific config
+# Add to $DOTFILES_DIR/local/shell.local:
+#   eval "$(mise activate bash)"  # or with --shims for work setups
 
 # Starship prompt (should be last for prompt setup)
 if command -v starship &>/dev/null; then

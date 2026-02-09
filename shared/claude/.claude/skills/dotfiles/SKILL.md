@@ -33,6 +33,12 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 - `aggressive/Brewfile` only in aggressive mode (personal machines, repo is source of truth)
 - Conservative mode: minimal changes, just shows cleanup opportunities (work machines)
 
+**Local config tiering** (`~/.dotfiles/local/`):
+- `shell.managed` - Aggressive mode only, repo-controlled, updated on every sync (has mise activation)
+- `shell.local` - Never touched by sync, your private customizations
+- `env.local` - API keys, secrets (never in git)
+- `gitconfig.local` - Git identity (never in git)
+
 ## To Show Status (`/dotfiles`)
 1. Read `~/.dotfiles/.machine` for machine type
 2. Check key symlinks exist (from symlink_map.txt)

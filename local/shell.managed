@@ -1,0 +1,15 @@
+# ============================================================================
+# Managed local shell config (aggressive mode only - safe to overwrite)
+# ============================================================================
+# This file is managed by dotfiles and will be updated when you sync.
+# Put your ACTUAL customizations in shell.local (which is never touched).
+
+# mise activation (language version manager)
+if command -v mise &>/dev/null; then
+    # Detect shell and activate appropriately
+    if [ -n "$ZSH_VERSION" ]; then
+        eval "$(mise activate zsh)"
+    elif [ -n "$BASH_VERSION" ]; then
+        eval "$(mise activate bash)"
+    fi
+fi

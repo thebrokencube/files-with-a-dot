@@ -94,5 +94,10 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 # Fallback to home directory for backwards compatibility
 [ -f "$HOME/.env.local" ] && . "$HOME/.env.local"
 
-# Local shell additions (private aliases, functions)
+# Managed local config (aggressive mode only - safe to update from dotfiles repo)
+if [ -f "$DOTFILES_DIR/.machine" ] && [ "$(cat "$DOTFILES_DIR/.machine")" = "aggressive" ]; then
+    [ -f "$DOTFILES_DIR/local/shell.managed" ] && . "$DOTFILES_DIR/local/shell.managed"
+fi
+
+# Private local config (never touched by sync, your customizations)
 [ -f "$DOTFILES_DIR/local/shell.local" ] && . "$DOTFILES_DIR/local/shell.local"

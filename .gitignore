@@ -3,7 +3,11 @@
 .env.local
 .machine
 .profile
-local/
+
+# Local directory - ignore private files but track managed templates
+local/*.local
+local/env.local
+!local/shell.managed
 
 # Backups created by sync.sh
 .backup/

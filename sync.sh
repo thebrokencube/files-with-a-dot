@@ -727,17 +727,31 @@ EOF
     fi
 
     # Shell local config
+    # shell.managed - aggressive mode only, comes from repo (tracked in git)
+    if [[ "$MACHINE_TYPE" == "aggressive" ]]; then
+        if [[ -f "$local_dir/shell.managed" ]]; then
+            echo "  local/shell.managed exists (repo-managed)"
+        else
+            echo "  Warning: local/shell.managed not found - run git pull"
+        fi
+    fi
+
+    # shell.local - never overwritten, user's private customizations
     if [[ ! -f "$local_dir/shell.local" ]]; then
         cat > "$local_dir/shell.local" << 'EOF'
-# Local shell aliases and functions (not in git)
-# Add your private aliases here
+# ============================================================================
+# Private local shell config (never touched by sync)
+# ============================================================================
+# Add your private aliases, functions, and machine-specific config here.
+# This file is never modified by dotfiles sync.
 #
-# Example:
+# Examples:
 # alias myalias='my command'
+# export MY_VAR="value"
 EOF
         echo "  Created local/shell.local"
     else
-        echo "  local/shell.local exists"
+        echo "  local/shell.local exists (not modified)"
     fi
 
     echo ""

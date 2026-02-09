@@ -49,9 +49,9 @@ fi
 # ============================================================================
 
 # mise (language version manager)
-# NOTE: mise activation is handled in machine-specific config (.zshrc.local)
-# because different environments (work vs personal) may have different setup requirements.
-# See $DOTFILES_DIR/local/zshrc.local for the local configuration.
+# NOTE: mise activation is handled in machine-specific config
+# Add to $DOTFILES_DIR/local/shell.local:
+#   eval "$(mise activate zsh)"  # or with --shims for work setups
 
 # Starship prompt (should be last for prompt setup)
 if command -v starship &>/dev/null; then

@@ -78,12 +78,20 @@ This allows linking to any location - useful for apps like iTerm2 that store con
 - **Aggressive mode** (`aggressive/Brewfile`) - additional packages, aggressive cleanup (repo is source of truth)
 - **Conservative mode** - minimal changes, show cleanup opportunities only (other tools may manage packages)
 
-### Sensitive Data
+### Local Configuration (`local/`)
 
-Local-only files are never committed:
+Machine-specific configs in `~/.dotfiles/local/` (not committed to git):
 
-- `~/.gitconfig.local` - Your git name/email
-- `~/.env.local` - API keys (ANTHROPIC_API_KEY, etc.)
+| File | Purpose | Updated by sync? |
+|------|---------|------------------|
+| `shell.managed` | Repo-controlled shell config (aggressive mode only) | ✅ Yes - always |
+| `shell.local` | Your private aliases/functions | ❌ Never touched |
+| `env.local` | API keys, secrets | ❌ Never touched |
+| `gitconfig.local` | Git name/email | ❌ Never touched |
+
+**Aggressive mode**: `shell.managed` is copied from repo on every sync, includes mise activation enabled by default. Override in `shell.local` if needed.
+
+**Conservative mode**: Only `shell.local` exists, fully manual configuration.
 
 ## Scripts
 
