@@ -3,6 +3,8 @@
 #
 # Usage: source "$(dirname "$0")/lib/colors.sh"
 
+# shellcheck disable=SC2034  # Variables are used by scripts that source this file
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

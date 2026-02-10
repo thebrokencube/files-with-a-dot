@@ -55,7 +55,8 @@ check_private_symlink() {
     local source="$1"
     local dest="$2"
     local base_dir="${3:-$PRIVATE_DIR}"
-    local name=$(basename "$source")
+    local name
+    name=$(basename "$source")
     local source_path="$base_dir/$source"
 
     if [[ ! -e "$source_path" ]]; then
@@ -87,7 +88,8 @@ create_private_symlink() {
     local source="$1"
     local dest="$2"
     local base_dir="${3:-$PRIVATE_DIR}"
-    local name=$(basename "$source")
+    local name
+    name=$(basename "$source")
     local source_path="$base_dir/$source"
 
     # Skip if source doesn't exist
@@ -110,7 +112,8 @@ create_private_symlink() {
     fi
 
     # Create parent directory if needed
-    local parent_dir=$(dirname "$dest")
+    local parent_dir
+    parent_dir=$(dirname "$dest")
     if [[ ! -d "$parent_dir" ]]; then
         mkdir -p "$parent_dir"
     fi
@@ -129,8 +132,10 @@ apply_private_symlinks() {
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        local source=$(get_source "$line")
-        local dest=$(get_dest "$line")
+        local source
+        source=$(get_source "$line")
+        local dest
+        dest=$(get_dest "$line")
         create_private_symlink "$source" "$dest" "$base_dir"
     done < "$symlink_map"
 }

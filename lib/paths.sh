@@ -7,7 +7,8 @@
 is_ours() {
     local path="$1"
     [[ -e "$path" ]] || return 1
-    local real_path=$(realpath "$path" 2>/dev/null || echo "")
+    local real_path
+    real_path=$(realpath "$path" 2>/dev/null || echo "")
     [[ -n "$real_path" && "$real_path" == "$DOTFILES_DIR"* ]]
 }
 
@@ -26,7 +27,8 @@ get_source() {
 # Extract destination path from symlink_map line and expand $HOME
 get_dest() {
     local line="$1"
-    local dest=$(echo "$line" | cut -d':' -f2-)
+    local dest
+    dest=$(echo "$line" | cut -d':' -f2-)
     echo "${dest/\$HOME/$HOME}"
 }
 

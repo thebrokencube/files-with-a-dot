@@ -30,6 +30,7 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 - `dot clean` / `dot clean!` - Show / execute cleanup
 - `dot setup` - Interactive first-time setup
 - `dot status` - Show mode, profile, git state
+- `dot validate` - Run validation checks (shellcheck, syntax, symlinks, skills)
 - `dot edit` - Open dotfiles in editor
 
 **Multi-mode**: `~/.dotfiles/.machine` contains `aggressive` or `conservative`

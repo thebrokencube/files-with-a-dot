@@ -31,6 +31,7 @@ ${BOLD}Commands:${NC}
   clean!    Execute cleanup
   setup     Interactive first-time setup
   status    Show current dotfiles state
+  validate  Run validation checks (shellcheck, syntax, symlinks, skills)
   edit      Open dotfiles in editor
   cd        Print dotfiles directory (use: cd \$(dot cd))
   help      Show this help
@@ -129,6 +130,9 @@ case "$COMMAND" in
         ;;
     setup)
         "$DOTFILES_DIR/health.sh" --setup "$@"
+        ;;
+    validate)
+        "$DOTFILES_DIR/scripts/validate.sh" "$@"
         ;;
     status)
         cmd_status

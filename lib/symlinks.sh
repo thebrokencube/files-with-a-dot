@@ -8,7 +8,8 @@
 check_symlink() {
     local source="$1"
     local dest="$2"
-    local name=$(basename "$source")
+    local name
+    name=$(basename "$source")
     local source_path="$DOTFILES_DIR/$source"
 
     if [[ ! -e "$source_path" ]]; then
@@ -35,7 +36,8 @@ create_symlink() {
     local source="$1"
     local dest="$2"
     local source_path="$DOTFILES_DIR/$source"
-    local name=$(basename "$source")
+    local name
+    name=$(basename "$source")
 
     # Skip if source doesn't exist
     if [[ ! -e "$source_path" ]]; then
@@ -56,7 +58,8 @@ create_symlink() {
     fi
 
     # Create parent directory if needed
-    local parent_dir=$(dirname "$dest")
+    local parent_dir
+    parent_dir=$(dirname "$dest")
     if [[ ! -d "$parent_dir" ]]; then
         mkdir -p "$parent_dir"
     fi
@@ -74,8 +77,10 @@ apply_symlinks() {
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        local source=$(get_source "$line")
-        local dest=$(get_dest "$line")
+        local source
+        source=$(get_source "$line")
+        local dest
+        dest=$(get_dest "$line")
         create_symlink "$source" "$dest"
     done < "$symlink_map"
 }

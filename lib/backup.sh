@@ -24,13 +24,16 @@ backup_file() {
 
     # Don't backup our own symlinks
     if [[ -L "$original" ]]; then
-        local target=$(realpath "$original" 2>/dev/null || echo "")
+        local target
+        target=$(realpath "$original" 2>/dev/null || echo "")
         [[ "$target" == "$DOTFILES_DIR"* ]] && return 0
     fi
 
-    local backup_name=$(echo "$original" | sed "s|$HOME/||" | tr '/' '__')
+    local backup_name
+    backup_name=$(echo "$original" | sed "s|$HOME/||" | tr '/' '__')
     local backup_path="$BACKUP_DIR/$backup_name"
-    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     # If backup exists and is identical, skip
     if [[ -e "$backup_path" ]]; then
@@ -79,7 +82,8 @@ sync_backups() {
 # Restore a backed up file
 restore_backup() {
     local original="$1"
-    local backup_name=$(echo "$original" | sed "s|$HOME/||" | tr '/' '__')
+    local backup_name
+    backup_name=$(echo "$original" | sed "s|$HOME/||" | tr '/' '__')
     local backup_path="$BACKUP_DIR/$backup_name"
 
     if [[ -e "$backup_path" ]]; then

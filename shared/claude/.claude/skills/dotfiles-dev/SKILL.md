@@ -81,9 +81,10 @@ Follow the conventions in the commit skill (`shared/claude/.claude/skills/commit
 
 ## Testing Changes
 
-1. **Quick test**: `dot health`
-2. **Full test**: `./uninstall.sh && dot sync --dry-run`
-3. **Interactive test**: `dot setup`
+1. **Validate**: `dot validate` — shellcheck, syntax, symlink sources, skill frontmatter
+2. **Quick test**: `dot health`
+3. **Full test**: `./uninstall.sh && dot sync --dry-run`
+4. **Interactive test**: `dot setup`
 
 ## Multi-Mode Considerations
 
