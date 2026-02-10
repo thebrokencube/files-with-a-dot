@@ -953,7 +953,7 @@ if [[ "$SKIP_PROMPTS" != true ]]; then
     read -p "Run cleanup? [y/N] " cleanup_response
     if [[ "$cleanup_response" == "y" || "$cleanup_response" == "Y" ]]; then
         echo ""
-        "$DOTFILES_DIR/cleanup.sh" --confirmed
+        "$DOTFILES_DIR/cleanup.sh" --force
     fi
 fi
 

@@ -27,7 +27,7 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 - `dot pull` - Pull latest, then sync
 - `dot links` - Symlinks only (no brew, no pull)
 - `dot health` / `dot fix` - Diagnostics / auto-repair
-- `dot clean` / `dot clean!` - Show / execute cleanup
+- `dot clean` - System cleanup (--dry-run, --force)
 - `dot setup` - Interactive first-time setup
 - `dot status` - Show mode, profile, git state
 - `dot validate` - Run validation checks (shellcheck, syntax, symlinks, skills)

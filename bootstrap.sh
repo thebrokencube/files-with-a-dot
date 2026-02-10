@@ -214,7 +214,7 @@ if command -v brew &>/dev/null; then
         read -p "Run cleanup check now? [y/N] " cleanup_choice
         if [[ "$cleanup_choice" == "y" || "$cleanup_choice" == "Y" ]]; then
             echo ""
-            "$DOTFILES_DIR/cleanup.sh" --confirmed
+            "$DOTFILES_DIR/cleanup.sh" --force
             echo ""
         fi
     fi

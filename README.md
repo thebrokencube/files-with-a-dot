@@ -115,7 +115,7 @@ dot links     # Symlinks only (no brew, no pull)
 dot health    # Run health diagnostics
 dot fix       # Health check with auto-fix
 dot clean     # Show cleanup opportunities
-dot clean!    # Execute cleanup
+dot clean --force  # Execute cleanup without prompts
 dot setup     # Interactive first-time setup
 dot status    # Show current state (mode, profile, git)
 dot edit      # Open dotfiles in editor

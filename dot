@@ -37,8 +37,7 @@ ${BOLD}Commands:${NC}
   health    Run health diagnostics
   fix       Health check with auto-fix
   setup     Interactive first-time setup guide
-  clean     Show cleanup opportunities
-  clean!    Execute cleanup
+  clean     System cleanup (--dry-run, --force)
   status    Show current dotfiles state
   validate  Run validation checks (shellcheck, syntax, symlinks, skills)
   edit      Open dotfiles in editor
@@ -54,8 +53,9 @@ ${BOLD}Examples:${NC}
   dot pull                 # Pull latest, then sync
   dot health               # Check everything is healthy
   dot fix                  # Auto-fix broken symlinks
-  dot clean                # Show what could be cleaned up
-  dot clean!               # Actually clean up
+  dot clean                # Show cleanup opportunities
+  dot clean --dry-run      # Show only, no prompt
+  dot clean --force        # Execute without prompts
 EOF
 }
 
@@ -140,9 +140,6 @@ case "$COMMAND" in
         ;;
     clean)
         (cd "$DOTFILES_DIR" && ./cleanup.sh "$@")
-        ;;
-    clean!)
-        (cd "$DOTFILES_DIR" && ./cleanup.sh --execute "$@")
         ;;
     validate)
         "$DOTFILES_DIR/scripts/validate.sh" "$@"

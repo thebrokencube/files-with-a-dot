@@ -40,29 +40,14 @@ completed:
       create: [lib/shell.sh]
       modify: [uninstall.sh]
 
-pending:
-  - bump: minor
+  - version: v0.6.0
     summary: "consolidate cleanup scripts with lib/brew.sh"
     files:
-      create:
-        - lib/brew.sh
-      modify:
-        - cleanup.sh
-        - dot
-      delete:
-        - brew-cleanup.sh
-    details: |
-      lib/brew.sh: build_merged_brewfile() merges 4 Brewfile sources, returns
-      temp file path. detect_brew_cleanup/detect_brew_autoremove/detect_brew_cache
-      for detection. execute_brew_cleanup MERGED_BREWFILE IS_AGGRESSIVE for execution.
+      create: [lib/brew.sh]
+      modify: [cleanup.sh, dot, sync.sh, bootstrap.sh, README.md]
+      delete: [brew-cleanup.sh]
 
-      cleanup.sh: Rewrite as thin orchestrator. Source lib/. Flags: --force (local),
-      --dry-run, --execute. Replace all read -p with confirm. Remove --confirmed flag.
-
-      Delete brew-cleanup.sh entirely.
-
-      dot: clean dispatches to ./cleanup.sh "$@". Remove clean! command.
-
+pending:
   - bump: minor
     summary: "add dot private subcommand"
     files:

@@ -8,22 +8,42 @@
 #                    be cleaned but don't automatically remove anything.
 #
 # Usage:
-#   ./cleanup.sh              # Show cleanup opportunities (interactive prompt)
-#   ./cleanup.sh --confirmed  # Show + execute (user already confirmed)
-#   ./cleanup.sh --execute    # Run cleanup (with confirmation)
-#   ./cleanup.sh --force      # Run without any confirmation
+#   ./cleanup.sh             # Show opportunities, prompt to execute
+#   ./cleanup.sh --dry-run   # Show opportunities only
+#   ./cleanup.sh --force     # Execute without prompts
 
 set -e
 
-EXECUTE=false
+# ── Setup ────────────────────────────────────────────────────────────────────
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=lib/colors.sh
+source "$DOTFILES_DIR/lib/colors.sh"
+# shellcheck source=lib/logging.sh
+source "$DOTFILES_DIR/lib/logging.sh"
+# shellcheck source=lib/config.sh
+source "$DOTFILES_DIR/lib/config.sh"
+# shellcheck source=lib/prompt.sh
+source "$DOTFILES_DIR/lib/prompt.sh"
+# shellcheck source=lib/private.sh
+source "$DOTFILES_DIR/lib/private.sh"
+# shellcheck source=lib/brew.sh
+source "$DOTFILES_DIR/lib/brew.sh"
+
+init_dotfiles_vars
+
+IS_AGGRESSIVE=$([[ "$MACHINE_TYPE" == "aggressive" ]] && echo true || echo false)
+
+# ── Parse flags ──────────────────────────────────────────────────────────────
+
 FORCE=false
-CONFIRMED=false  # Set when called from sync.sh/bootstrap.sh (user already said yes)
+DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --confirmed) CONFIRMED=true; EXECUTE=true; shift ;;
-        --execute) EXECUTE=true; shift ;;
-        --force) EXECUTE=true; FORCE=true; shift ;;
+        --force) FORCE=true; shift ;;
+        --dry-run) DRY_RUN=true; shift ;;
         --help|-h)
             echo "Usage: ./cleanup.sh [OPTIONS]"
             echo ""
@@ -36,193 +56,91 @@ while [[ $# -gt 0 ]]; do
             echo "Conservative mode: Show opportunities only (Homebrew cache cleanup is safe)"
             echo ""
             echo "Options:"
-            echo "  --confirmed  Show opportunities and execute (called from sync/bootstrap)"
-            echo "  --execute    Run cleanup (with confirmation)"
-            echo "  --force      Run without any confirmation"
+            echo "  --dry-run  Show opportunities only"
+            echo "  --force    Run without any prompts"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MACHINE_FILE="$SCRIPT_DIR/.machine"
-PROFILE_FILE="$SCRIPT_DIR/.profile"
-MACHINE_TYPE="aggressive"
-MACHINE_PROFILE=""
-[[ -f "$MACHINE_FILE" ]] && MACHINE_TYPE=$(cat "$MACHINE_FILE")
-[[ -f "$PROFILE_FILE" ]] && MACHINE_PROFILE=$(cat "$PROFILE_FILE")
-
-# Source private overlay support
-source "$SCRIPT_DIR/lib/private.sh"
-
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
-IS_AGGRESSIVE=$([[ "$MACHINE_TYPE" == "aggressive" ]] && echo true || echo false)
-VERSION=$(cd "$SCRIPT_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
-
-# ============================================================================
-# Build merged Brewfile from all sources
-# ============================================================================
-
-MERGED_BREWFILE=""
-
-build_merged_brewfile() {
-    MERGED_BREWFILE=$(mktemp)
-    trap "rm -f '$MERGED_BREWFILE'" EXIT
-
-    echo "# Merged Brewfile for cleanup (auto-generated)" > "$MERGED_BREWFILE"
-    echo "" >> "$MERGED_BREWFILE"
-
-    # 1. Brewfile.shared (always)
-    if [[ -f "$SCRIPT_DIR/Brewfile.shared" ]]; then
-        echo "# From Brewfile.shared" >> "$MERGED_BREWFILE"
-        cat "$SCRIPT_DIR/Brewfile.shared" >> "$MERGED_BREWFILE"
-        echo "" >> "$MERGED_BREWFILE"
-    fi
-
-    # 2. aggressive/Brewfile (if aggressive mode)
-    if [[ "$MACHINE_TYPE" == "aggressive" && -f "$SCRIPT_DIR/aggressive/Brewfile" ]]; then
-        echo "# From aggressive/Brewfile" >> "$MERGED_BREWFILE"
-        cat "$SCRIPT_DIR/aggressive/Brewfile" >> "$MERGED_BREWFILE"
-        echo "" >> "$MERGED_BREWFILE"
-    fi
-
-    # 3. Private shared Brewfile
-    if has_private_overlay; then
-        local private_brewfile="$(get_private_brewfile)"
-        if [[ -f "$private_brewfile" ]]; then
-            echo "# From private/Brewfile" >> "$MERGED_BREWFILE"
-            cat "$private_brewfile" >> "$MERGED_BREWFILE"
-            echo "" >> "$MERGED_BREWFILE"
-        fi
-
-        # 4. Profile-specific Brewfile
-        if [[ -n "$MACHINE_PROFILE" ]]; then
-            local profile_brewfile="$(get_profile_brewfile "$MACHINE_PROFILE")"
-            if [[ -f "$profile_brewfile" ]]; then
-                echo "# From private/$MACHINE_PROFILE/Brewfile" >> "$MERGED_BREWFILE"
-                cat "$profile_brewfile" >> "$MERGED_BREWFILE"
-                echo "" >> "$MERGED_BREWFILE"
-            fi
-        fi
-    fi
-}
+# ── Detect ───────────────────────────────────────────────────────────────────
 
 build_merged_brewfile
 
 echo "============================================"
-echo "  System Cleanup $VERSION ($MACHINE_TYPE mode)"
+echo "  System Cleanup $DOTFILES_VERSION ($MACHINE_TYPE mode)"
 echo "============================================"
 if [[ "$IS_AGGRESSIVE" == false ]]; then
-    echo -e "${YELLOW}Conservative mode: Only Homebrew cache cleanup is safe.${NC}"
+    warn "Conservative mode: Only Homebrew cache cleanup is safe."
     echo "Packages below may be managed by other tools - shown for reference only."
 fi
 echo ""
-
-# ============================================================================
-# Check disk space
-# ============================================================================
 
 echo "Current disk usage:"
 df -h / | tail -1 | awk '{print "  Used: " $3 " / " $2 " (" $5 ")"}'
 echo ""
 
-# ============================================================================
-# 1. Homebrew bundle cleanup
-# ============================================================================
-
-echo -e "${CYAN}1. Homebrew packages not in Brewfiles:${NC}"
+# 1. Packages not in Brewfiles
+section "1. Homebrew packages not in Brewfiles:"
 echo ""
-
-# Check what would be removed using merged Brewfile
-# Note: brew bundle cleanup returns exit code 1 when there ARE packages to clean
-CLEANUP_OUTPUT=$(brew bundle cleanup --file="$MERGED_BREWFILE" 2>&1 || true)
-if echo "$CLEANUP_OUTPUT" | grep -q "Would uninstall"; then
-    # Show the packages that would be removed (skip header lines, indent package names)
-    echo "$CLEANUP_OUTPUT" | grep -v "^Would uninstall" | grep -v "^$" | sed 's/^/  /'
+HAS_BUNDLE_CLEANUP=false
+if detect_brew_cleanup; then
+    echo "$BREW_CLEANUP_OUTPUT" | grep -v "^Would uninstall" | grep -v "^$" | sed 's/^/  /'
     HAS_BUNDLE_CLEANUP=true
 else
     echo "  (none)"
-    HAS_BUNDLE_CLEANUP=false
 fi
 
-# ============================================================================
 # 2. Unused dependencies
-# ============================================================================
-
-echo ""
-echo -e "${CYAN}2. Unused Homebrew dependencies:${NC}"
-AUTOREMOVE_OUTPUT=$(brew autoremove --dry-run 2>&1 || true)
-UNUSED=$(echo "$AUTOREMOVE_OUTPUT" | grep -c "Would uninstall" || true)
-if [[ "$UNUSED" -gt 0 ]]; then
-    echo "$AUTOREMOVE_OUTPUT" | grep "Would uninstall" | sed 's/^/  /'
+section "2. Unused Homebrew dependencies:"
+HAS_UNUSED=false
+if detect_brew_autoremove; then
+    echo "$BREW_AUTOREMOVE_OUTPUT" | grep "Would uninstall" | sed 's/^/  /'
+    HAS_UNUSED=true
 else
     echo "  (none)"
 fi
 
-# ============================================================================
-# 3. Old Homebrew downloads
-# ============================================================================
+# 3. Old downloads
+section "3. Old Homebrew downloads:"
+HAS_CACHE=false
+detect_brew_cache && HAS_CACHE=true
+echo "  Cache size: ${BREW_CACHE_SIZE:-0B}"
 
-echo ""
-echo -e "${CYAN}3. Old Homebrew downloads:${NC}"
-BREW_CACHE=$(brew --cache)
-if [[ -d "$BREW_CACHE" ]]; then
-    CACHE_SIZE=$(du -sh "$BREW_CACHE" 2>/dev/null | awk '{print $1}')
-    echo "  Cache size: $CACHE_SIZE"
-else
-    echo "  (none)"
-fi
+# ── Decide ───────────────────────────────────────────────────────────────────
 
-# ============================================================================
-# Execute cleanup
-# ============================================================================
-
-# Check if there's meaningful work to do
 HAS_PACKAGE_WORK=false
-[[ "$HAS_BUNDLE_CLEANUP" == true ]] && HAS_PACKAGE_WORK=true
-[[ "$UNUSED" -gt 0 ]] && HAS_PACKAGE_WORK=true
-
-HAS_CACHE_WORK=false
-if [[ -d "$BREW_CACHE" ]]; then
-    # Only count cache as "work" if it's > 100MB
-    CACHE_BYTES=$(du -sk "$BREW_CACHE" 2>/dev/null | awk '{print $1}')
-    [[ "${CACHE_BYTES:-0}" -gt 102400 ]] && HAS_CACHE_WORK=true
-fi
+[[ "$HAS_BUNDLE_CLEANUP" == true || "$HAS_UNUSED" == true ]] && HAS_PACKAGE_WORK=true
 
 HAS_WORK=false
-[[ "$HAS_PACKAGE_WORK" == true ]] && HAS_WORK=true
-[[ "$HAS_CACHE_WORK" == true ]] && HAS_WORK=true
+[[ "$HAS_PACKAGE_WORK" == true || "$HAS_CACHE" == true ]] && HAS_WORK=true
 
-# Interactive prompt (only when run standalone without flags)
-if [[ "$EXECUTE" == false ]]; then
+if [[ "$HAS_WORK" == false ]]; then
     echo ""
-    if [[ "$HAS_WORK" == true ]]; then
-        echo "============================================"
-        if [[ "$IS_AGGRESSIVE" == true ]]; then
-            read -p "Run cleanup now? [y/N] " run_now
-        else
-            echo "Conservative mode: Only Homebrew cache will be cleaned."
-            echo "(Packages shown above are managed by other tools)"
-            read -p "Clean Homebrew cache now? [y/N] " run_now
-        fi
-        if [[ "$run_now" == "y" || "$run_now" == "Y" ]]; then
-            EXECUTE=true
-            CONFIRMED=true  # User just confirmed, skip secondary prompt
-        else
-            echo ""
-            echo "Run later with: ./cleanup.sh --execute"
-            exit 0
-        fi
-    else
-        echo "Nothing to clean!"
-        exit 0
-    fi
+    echo "Nothing to clean!"
+    exit 0
 fi
+
+# Dry-run: stop after showing
+if [[ "$DRY_RUN" == true ]]; then
+    exit 0
+fi
+
+echo ""
+echo "============================================"
+if [[ "$IS_AGGRESSIVE" == false ]]; then
+    echo "Conservative mode: Only Homebrew cache will be cleaned."
+    echo "(Packages shown above are managed by other tools)"
+fi
+
+if ! confirm ${FORCE:+-f} "Run cleanup?" "no"; then
+    echo ""
+    echo "Run later with: dot clean"
+    exit 0
+fi
+
+# ── Execute ──────────────────────────────────────────────────────────────────
 
 echo ""
 echo "============================================"
@@ -230,46 +148,23 @@ echo "  Executing Cleanup"
 echo "============================================"
 echo ""
 
-# Safety confirmation for --execute flag (not needed if --confirmed or --force)
-if [[ "$FORCE" == false && "$CONFIRMED" == false ]]; then
-    if [[ "$IS_AGGRESSIVE" == true ]]; then
-        read -p "This will remove packages and casks (with --zap). Continue? [y/N] " confirm
-    else
-        read -p "This will clean Homebrew cache. Continue? [y/N] " confirm
-    fi
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-        echo "Aborted."
-        exit 0
-    fi
-fi
-
-# 1. Bundle cleanup (--zap on home, conservative on work)
+# 1. Bundle cleanup
 if [[ "$HAS_BUNDLE_CLEANUP" == true ]]; then
-    if [[ "$IS_AGGRESSIVE" == true ]]; then
-        echo "Removing packages not in Brewfiles (with --zap)..."
-        brew bundle cleanup --file="$MERGED_BREWFILE" --force --zap || true
-    else
-        echo "Conservative mode: Not removing packages (other tools may manage them)"
-        echo "  To manually remove: brew bundle cleanup --file=... --force"
-    fi
+    info "Removing packages not in Brewfiles..."
+    execute_brew_bundle_cleanup "$IS_AGGRESSIVE"
     echo ""
 fi
 
-# 2. Remove unused dependencies (aggressive only)
-if [[ "$UNUSED" -gt 0 ]]; then
-    if [[ "$IS_AGGRESSIVE" == true ]]; then
-        echo "Removing unused dependencies..."
-        brew autoremove || true
-    else
-        echo "Conservative mode: Not auto-removing dependencies"
-        echo "  To manually remove: brew autoremove"
-    fi
+# 2. Unused dependencies
+if [[ "$HAS_UNUSED" == true ]]; then
+    info "Removing unused dependencies..."
+    execute_brew_autoremove "$IS_AGGRESSIVE"
     echo ""
 fi
 
-# 3. Clean Homebrew cache (safe for all)
-echo "Cleaning Homebrew cache..."
-brew cleanup -s || true
+# 3. Cache cleanup (safe for all)
+info "Cleaning Homebrew cache..."
+execute_brew_cache_cleanup
 echo ""
 
 echo "============================================"
