@@ -37,26 +37,32 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-MACHINE_FILE="$DOTFILES_DIR/.machine"
 BACKUP_DIR="$DOTFILES_DIR/.backup"
 BACKUP_MANIFEST="$BACKUP_DIR/manifest"
 SYMLINK_MAP="$DOTFILES_DIR/symlink_map.txt"
 
-MACHINE_TYPE="home"
-[[ -f "$MACHINE_FILE" ]] && MACHINE_TYPE=$(cat "$MACHINE_FILE")
+# Source libraries
+# shellcheck source=lib/colors.sh
+source "$SCRIPT_DIR/lib/colors.sh"
+# shellcheck source=lib/logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+# shellcheck source=lib/config.sh
+source "$SCRIPT_DIR/lib/config.sh"
+# shellcheck source=lib/paths.sh
+source "$SCRIPT_DIR/lib/paths.sh"
+# shellcheck source=lib/backup.sh
+source "$SCRIPT_DIR/lib/backup.sh"
+# shellcheck source=lib/symlinks.sh
+source "$SCRIPT_DIR/lib/symlinks.sh"
+# shellcheck source=lib/shell.sh
+source "$SCRIPT_DIR/lib/shell.sh"
 
-# Get destination path from symlink map line (with $HOME expanded)
-get_dest() {
-    local line="$1"
-    local dest=$(echo "$line" | cut -d':' -f2-)
-    echo "${dest/\$HOME/$HOME}"
-}
+MACHINE_TYPE="$(read_machine_type)"
+MACHINE_TYPE="${MACHINE_TYPE:-home}"
 
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# ============================================================================
+# Detection phase - analyze current state
+# ============================================================================
 
 echo "============================================"
 echo "  Dotfiles Uninstall"
@@ -76,19 +82,6 @@ WILL_REMOVE=()
 ALREADY_CLEAN=()
 AVAILABLE_RESTORES=()
 
-is_ours() {
-    local path="$1"
-    if [[ -L "$path" ]]; then
-        local target=$(readlink "$path" 2>/dev/null || echo "")
-        [[ "$target" == *"files-with-a-dot"* || "$target" == "$SCRIPT_DIR"* ]]
-    elif [[ -e "$path" ]]; then
-        local real=$(realpath "$path" 2>/dev/null || echo "")
-        [[ "$real" == *"files-with-a-dot"* || "$real" == "$SCRIPT_DIR"* ]]
-    else
-        return 1
-    fi
-}
-
 # Check symlinks from symlink_map.txt
 SYMLINKED_FILES=()
 if [[ -f "$SYMLINK_MAP" ]]; then
@@ -101,16 +94,11 @@ if [[ -f "$SYMLINK_MAP" ]]; then
 fi
 
 # Check shell config source lines
-check_source_line() {
-    local config="$1"
-    local pattern="$2"
-    [[ -f "$config" ]] && grep -qF "$pattern" "$config" 2>/dev/null && WILL_REMOVE+=("Remove source line from $config")
-}
-
-check_source_line "$HOME/.zshrc" ".zshrc.dotfiles"
-check_source_line "$HOME/.zprofile" ".zprofile.dotfiles"
-check_source_line "$HOME/.bashrc" ".bashrc.dotfiles"
-check_source_line "$HOME/.bash_profile" ".bash_profile.dotfiles"
+for pair in "${SHELL_CONFIG_PAIRS[@]}"; do
+    local_config="$HOME/.${pair%%:*}"
+    local_pattern=".${pair##*:}"
+    check_source_line "$local_config" "$local_pattern" && WILL_REMOVE+=("Remove source line from $local_config")
+done
 
 # Check ~/.dotfiles symlink
 if [[ -L "$HOME/.dotfiles" ]]; then
@@ -140,12 +128,15 @@ if [[ -f "$BACKUP_MANIFEST" ]]; then
     done < "$BACKUP_MANIFEST"
 fi
 
-# Report state
+# ============================================================================
+# Report phase - show what was detected
+# ============================================================================
+
 echo "--- Already clean ---"
 if [[ ${#ALREADY_CLEAN[@]} -eq 0 ]]; then
     echo "  (nothing)"
 else
-    for item in "${ALREADY_CLEAN[@]}"; do echo -e "  ${GREEN}✓${NC} $item"; done
+    for item in "${ALREADY_CLEAN[@]}"; do echo -e "  ${GREEN}${SYM_OK}${NC} $item"; done
 fi
 echo ""
 
@@ -153,7 +144,7 @@ echo "--- Will remove ---"
 if [[ ${#WILL_REMOVE[@]} -eq 0 ]]; then
     echo "  (nothing)"
 else
-    for item in "${WILL_REMOVE[@]}"; do echo -e "  ${CYAN}→${NC} $item"; done
+    for item in "${WILL_REMOVE[@]}"; do echo -e "  ${CYAN}${SYM_INFO}${NC} $item"; done
 fi
 echo ""
 
@@ -163,9 +154,9 @@ if [[ ${#AVAILABLE_RESTORES[@]} -eq 0 ]]; then
 else
     for item in "${AVAILABLE_RESTORES[@]}"; do
         if [[ "$RESTORE_BACKUPS" == true ]]; then
-            echo -e "  ${CYAN}⟳${NC} Will restore: $item"
+            echo -e "  ${CYAN}${SYM_BACKUP}${NC} Will restore: $item"
         else
-            echo -e "  ${YELLOW}⟳${NC} $item"
+            echo -e "  ${YELLOW}${SYM_BACKUP}${NC} $item"
         fi
     done
     [[ "$RESTORE_BACKUPS" != true ]] && echo "" && echo "  Use --restore to restore these files"
@@ -176,11 +167,14 @@ echo "--- Frictions ---"
 if [[ ${#FRICTIONS[@]} -eq 0 ]]; then
     echo -e "  ${GREEN}None!${NC}"
 else
-    for item in "${FRICTIONS[@]}"; do echo -e "  ${YELLOW}⚠${NC} $item"; done
+    for item in "${FRICTIONS[@]}"; do echo -e "  ${YELLOW}${SYM_WARN}${NC} $item"; done
 fi
 echo ""
 
-# Gates
+# ============================================================================
+# Execute phase - perform the uninstall
+# ============================================================================
+
 if [[ ${#WILL_REMOVE[@]} -eq 0 ]]; then
     echo -e "${GREEN}Nothing to uninstall - already clean!${NC}"
     exit 0
@@ -191,33 +185,21 @@ if [[ "$DRY_RUN" == true ]]; then
     exit 0
 fi
 
-# Execute uninstall
+# Remove symlinks
 echo "Removing symlinks..."
 for target in "${SYMLINKED_FILES[@]}"; do
     is_ours "$target" && rm -rf "$target" && echo "  Removed: $target"
 done
 
+# Remove shell config source lines
 echo ""
 echo "Removing source lines from shell configs..."
+remove_shell_configs
 
-remove_source_line() {
-    local target_file="$1"
-    local pattern="$2"
-
-    if [[ -f "$target_file" ]] && grep -qF "$pattern" "$target_file" 2>/dev/null; then
-        grep -v "$pattern" "$target_file" | grep -v "# Added by dotfiles" > "$target_file.tmp"
-        mv "$target_file.tmp" "$target_file"
-        echo "  Cleaned: $target_file"
-    fi
-}
-
-remove_source_line "$HOME/.zprofile" ".zprofile.dotfiles"
-remove_source_line "$HOME/.zshrc" ".zshrc.dotfiles"
-remove_source_line "$HOME/.bash_profile" ".bash_profile.dotfiles"
-remove_source_line "$HOME/.bashrc" ".bashrc.dotfiles"
-
+# Remove ~/.dotfiles symlink
 [[ -L "$HOME/.dotfiles" ]] && is_ours "$HOME/.dotfiles" && rm "$HOME/.dotfiles" && echo "  Removed: ~/.dotfiles"
 
+# Remove local config files
 if [[ "$REMOVE_LOCAL" == true ]]; then
     echo ""
     echo "Removing local config files..."

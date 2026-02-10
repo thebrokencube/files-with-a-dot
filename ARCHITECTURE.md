@@ -147,7 +147,8 @@ Summary:
 - [x] `v0.4.2` — ARCHITECTURE.md, plans/ tracking
 - [x] `v0.5.0` — `lib/config.sh`, `lib/prompt.sh`, dot TTY detection
 - [x] `v0.5.1` — health.sh sources lib/, fix git identity check (setup kept, removal deferred to v0.8.0)
-- [ ] `v0.5.2` — `lib/shell.sh`, uninstall.sh wired to lib/
+- [x] `v0.5.2` — Fix `is_ours()` symlink resolution in lib/paths.sh
+- [x] `v0.5.3` — `lib/shell.sh`, uninstall.sh wired to lib/
 - [ ] `v0.6.0` — `lib/brew.sh`, cleanup.sh rewrite, delete brew-cleanup.sh
 - [ ] `v0.7.0` — `dot private` subcommand, delete init-private.sh
 - [ ] `v0.8.0` — sync.sh rewrite (~300 lines), dot orchestrates sync -> cleanup

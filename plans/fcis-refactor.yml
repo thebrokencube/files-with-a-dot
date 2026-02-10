@@ -71,23 +71,36 @@ steps:
       dot: Keep setup command (dispatches to health.sh --setup).
 
   - version: v0.5.2
+    type: fix
+    status: done
+    summary: "resolve DOTFILES_DIR symlink in is_ours check"
+    files:
+      modify:
+        - lib/paths.sh
+    details: |
+      lib/paths.sh: Fix is_ours() to resolve DOTFILES_DIR with realpath
+      before comparing. When DOTFILES_DIR is a symlink (e.g.
+      ~/.dotfiles -> actual repo path), realpath of symlink targets
+      wouldn't match the unresolved DOTFILES_DIR. Now resolves both.
+
+  - version: v0.5.3
     type: refactor
-    status: pending
-    summary: "add shell.sh and wire uninstall.sh to lib/"
+    status: done
+    summary: "add lib/shell.sh, wire uninstall.sh to lib/"
     files:
       create:
         - lib/shell.sh
       modify:
         - uninstall.sh
     details: |
-      lib/shell.sh: get_shell_configs() returns list of managed shell config
-      file pairs. check_source_line/add_source_line/remove_source_line for
-      individual files. integrate_shell_configs() and remove_shell_configs()
-      for bulk operations.
+      lib/shell.sh: SHELL_CONFIG_PAIRS array, check_source_line,
+      add_source_line, remove_source_line, integrate_shell_configs(),
+      remove_shell_configs().
 
       uninstall.sh: Source lib/{colors,logging,config,paths,backup,symlinks,shell}.sh.
-      Remove inline color defs, path utilities, shell config logic. Keep
-      orchestration (detect -> report -> execute).
+      Remove inline color defs, is_ours, get_dest, check_source_line,
+      remove_source_line. Use lib symbols (SYM_OK, SYM_INFO, etc.).
+      Keep orchestration (detect -> report -> execute).
 
   - version: v0.6.0
     type: feat
