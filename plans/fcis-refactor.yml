@@ -66,6 +66,42 @@ completed:
       init_private_overlay() adopts existing local files.
 
 pending:
+  - bump: patch
+    summary: "list symlinks and changed files in status commands"
+    files:
+      modify: [dot, lib/private.sh]
+    details: |
+      dot status: add Symlinks section listing each entry from symlink_map.txt.
+      dot private status: list symlink names under the count, show changed files
+      (Modified/New/Deleted) instead of bare "Uncommitted changes", include
+      untracked files in clean-tree check.
+
+  - bump: patch
+    summary: "add dot private cd subcommand"
+    files:
+      modify: [dot]
+    details: |
+      dot private cd prints $HOME/.dotfiles.private (same pattern as dot cd).
+      Help text updated with cd action.
+
+  - bump: patch
+    summary: "extract shared git_push_with_preview into lib/git.sh"
+    files:
+      create: [lib/git.sh]
+      modify: [lib/private.sh]
+    details: |
+      New lib/git.sh with git_push_with_preview() and parse_git_status() helpers.
+      private_push() slimmed to guard checks + git_push_with_preview call.
+      private_status() calls parse_git_status instead of inline parsing.
+
+  - bump: patch
+    summary: "add dot push command"
+    files:
+      modify: [dot]
+    details: |
+      dot push [message] sources libs, calls git_push_with_preview for the
+      main dotfiles repo. Usage text and examples updated.
+
   - bump: minor
     summary: "thin sync.sh with dot orchestration"
     files:
