@@ -1,6 +1,0 @@
-# Personal-specific symlinks
-# Format: source:destination
-# Paths relative to this directory (personal/), $HOME expands to home directory
-#
-# Example:
-# skills/my-personal-skill:$HOME/.claude/skills/my-personal-skill

@@ -1,13 +1,7 @@
-# Local configuration files (sensitive data)
-*.local
-.env.local
+# Local state (not in git)
 .machine
 .profile
-
-# Local directory - ignore private files but track managed templates
-local/*.local
-local/env.local
-!local/shell.managed
+local/
 
 # Backups created by sync.sh
 .backup/

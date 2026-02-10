@@ -77,18 +77,16 @@ alias week='date +%V'
 # Determine dotfiles location
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 
-# Local environment variables (API keys, tokens, etc.)
-[ -f "$DOTFILES_DIR/local/env.local" ] && . "$DOTFILES_DIR/local/env.local"
-# Fallback to home directory for backwards compatibility
+# Local environment variables (API keys, tokens - via private overlay)
 [ -f "$HOME/.env.local" ] && . "$HOME/.env.local"
 
-# Managed local config (aggressive mode only - safe to update from dotfiles repo)
+# Managed shell config (aggressive mode only - repo-controlled)
 if [ -f "$DOTFILES_DIR/.machine" ] && [ "$(cat "$DOTFILES_DIR/.machine")" = "aggressive" ]; then
-    [ -f "$DOTFILES_DIR/local/shell.managed" ] && . "$DOTFILES_DIR/local/shell.managed"
+    [ -f "$DOTFILES_DIR/aggressive/shell.managed" ] && . "$DOTFILES_DIR/aggressive/shell.managed"
 fi
 
-# Private local config (never touched by sync, your customizations)
-[ -f "$DOTFILES_DIR/local/shell.local" ] && . "$DOTFILES_DIR/local/shell.local"
+# Private shell config (via private overlay)
+[ -f "$HOME/.shell.local" ] && . "$HOME/.shell.local"
 
 # ============================================================================
 # Final PATH fixups

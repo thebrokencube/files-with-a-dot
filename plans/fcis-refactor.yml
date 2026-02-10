@@ -47,25 +47,25 @@ completed:
       modify: [cleanup.sh, dot, sync.sh, bootstrap.sh, README.md]
       delete: [brew-cleanup.sh]
 
-pending:
-  - bump: minor
-    summary: "add dot private subcommand"
+  - version: v0.7.0
+    summary: "add dot private subcommand, consolidate local/ and profiles"
     files:
-      modify:
-        - lib/private.sh
-        - dot
-      delete:
-        - init-private.sh
+      modify: [lib/private.sh, lib/config.sh, lib/brew.sh, dot, sync.sh,
+               shared/shell/.shell_common, shared/git/.gitconfig,
+               shared/bash/.bashrc.dotfiles, shared/zsh/.zshrc.dotfiles,
+               uninstall.sh, .gitignore, templates/private/]
+      create: [aggressive/shell.managed]
+      delete: [init-private.sh]
     details: |
-      Extend lib/private.sh: init_private_overlay() from init-private.sh using
-      confirm for overwrite. private_status(), private_pull(), private_push MSG,
-      private_sync().
+      Consolidate all private/machine-specific config into the private overlay
+      (~/.dotfiles.private/). Remove profile system (work/personal subdirs,
+      --profile flag, MACHINE_PROFILE). Eliminate local/ directory — move
+      shell.managed to aggressive/, local config files (gitconfig.local,
+      env.local, shell.local) live in $HOME and are symlinked by private
+      overlay. Add migrate_private_overlay() for legacy detection/cleanup.
+      init_private_overlay() adopts existing local files.
 
-      Delete init-private.sh.
-
-      dot: Add private subcommand — dot private (status), dot private init,
-      dot private sync, dot private push [MSG], dot private edit.
-
+pending:
   - bump: minor
     summary: "thin sync.sh with dot orchestration"
     files:

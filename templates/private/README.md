@@ -6,47 +6,32 @@ This is your private dotfiles overlay. It layers on top of your public dotfiles.
 
 ```
 ~/.dotfiles.private/
-├── shared/                 # Applies to all profiles
-│   └── shell.local         # Private shell aliases/functions
-├── work/                   # Work profile only
-│   ├── symlink_map.txt     # Work-specific symlinks
-│   ├── Brewfile            # Work-specific packages
-│   └── skills/             # Work Claude skills
-├── personal/               # Personal profile only
-│   ├── symlink_map.txt     # Personal-specific symlinks
-│   ├── Brewfile            # Personal-specific packages
-│   └── skills/             # Personal Claude skills
-├── symlink_map.txt         # Shared private symlinks
-└── Brewfile                # Shared private packages
+├── symlink_map.txt     # Private symlinks
+├── Brewfile            # Private Homebrew packages
+├── skills/             # Private Claude Code skills
+│   └── my-skill/
+│       └── SKILL.md
+└── ...                 # Any other private configs
 ```
 
 ## Usage
 
-1. Set your profile during sync:
-   ```bash
-   ~/.dotfiles/sync.sh --profile work
-   ```
-
-2. Add profile-specific configs to `work/` or `personal/`
-
-3. Run sync to apply changes:
-   ```bash
-   dot sync
-   ```
+1. Add your private configs, symlinks, Brewfile entries, or skills
+2. Run sync to apply: `dot sync`
+3. Or apply just private symlinks: `dot private sync`
 
 ## Merge Order
 
 Configs are applied in this order (later overrides earlier):
 1. Public `shared/`
 2. Public `aggressive/` (if aggressive mode)
-3. Private `shared/`
-4. Private `{profile}/` (work or personal)
+3. Private overlay
 
 ## Adding Skills
 
-Put Claude skills in `{profile}/skills/`:
+Put Claude skills in `skills/`:
 ```
-work/skills/my-work-tool/SKILL.md
+skills/my-tool/SKILL.md
 ```
 
-They'll be symlinked to `~/.claude/skills/`.
+They'll be symlinked to `~/.claude/skills/` on sync.

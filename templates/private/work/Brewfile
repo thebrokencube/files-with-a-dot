@@ -1,6 +1,0 @@
-# Work-specific Homebrew packages
-# Add work tools, internal taps, etc.
-#
-# Example:
-# brew "some-work-tool"
-# tap "company/internal"

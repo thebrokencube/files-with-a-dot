@@ -19,8 +19,8 @@ Three sections: **Design** (target state), **Decisions** (why), **Migration** (p
 | `paths.sh` | Path utilities | `get_source()`, `get_dest()`, `is_ours()`, `resolve_path()` |
 | `backup.sh` | Backup operations | `init_backup()`, `backup_file()`, `sync_backups()`, `restore_backup()` |
 | `symlinks.sh` | Symlink management | `check_symlink()`, `create_symlink()`, `apply_symlinks()` |
-| `private.sh` | Private overlay | `has_private_overlay()`, `apply_private_symlinks()`, `init_private_overlay()`, `private_status()`, `private_sync()`, `private_push()` |
-| `config.sh` | Machine config | `read_machine_type()`, `read_profile()`, `get_dotfiles_version()`, `init_dotfiles_vars()` |
+| `private.sh` | Private overlay | `has_private_overlay()`, `apply_private_symlinks()`, `migrate_private_overlay()`, `init_private_overlay()`, `private_status()`, `private_sync()`, `private_push()` |
+| `config.sh` | Machine config | `read_machine_type()`, `get_dotfiles_version()`, `init_dotfiles_vars()` |
 | `prompt.sh` | User interaction | `confirm()`, `choose()`, `require_interactive()` |
 | `brew.sh` | Homebrew operations | `build_merged_brewfile()`, `detect_brew_cleanup()`, `detect_brew_autoremove()`, `detect_brew_cache()`, `execute_brew_cleanup()` |
 | `shell.sh` | Shell config integration | `get_shell_configs()`, `check_source_line()`, `add_source_line()`, `remove_source_line()`, `integrate_shell_configs()`, `remove_shell_configs()` |

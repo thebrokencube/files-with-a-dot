@@ -1,0 +1,11 @@
+# Private symlinks
+# Format: source:destination
+# Paths relative to this directory, $HOME expands to home directory
+
+# Local configs
+gitconfig.local:$HOME/.gitconfig.local
+env.local:$HOME/.env.local
+shell.local:$HOME/.shell.local
+
+# Add your own:
+# configs/some-config:$HOME/.config/some-config

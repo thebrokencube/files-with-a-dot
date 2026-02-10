@@ -38,6 +38,7 @@ ${BOLD}Commands:${NC}
   fix       Health check with auto-fix
   setup     Interactive first-time setup guide
   clean     System cleanup (--dry-run, --force)
+  private   Manage private overlay (init, status, sync, push, edit)
   status    Show current dotfiles state
   validate  Run validation checks (shellcheck, syntax, symlinks, skills)
   edit      Open dotfiles in editor
@@ -56,6 +57,9 @@ ${BOLD}Examples:${NC}
   dot clean                # Show cleanup opportunities
   dot clean --dry-run      # Show only, no prompt
   dot clean --force        # Execute without prompts
+  dot private              # Show private overlay status
+  dot private init         # Create private overlay from template
+  dot private push "msg"   # Commit and push private changes
 EOF
 }
 
@@ -70,15 +74,6 @@ cmd_status() {
         echo -e "  Mode:    ${GREEN}${machine_type}${NC}"
     else
         echo -e "  Mode:    ${YELLOW}not set${NC} (run dot setup)"
-    fi
-
-    # Profile
-    local profile
-    profile="$(read_profile)"
-    if [ -n "$profile" ]; then
-        echo -e "  Profile: ${GREEN}${profile}${NC}"
-    else
-        echo -e "  Profile: ${YELLOW}not set${NC}"
     fi
 
     # Private overlay
@@ -140,6 +135,52 @@ case "$COMMAND" in
         ;;
     clean)
         (cd "$DOTFILES_DIR" && ./cleanup.sh "$@")
+        ;;
+    private)
+        # Source libs needed for private overlay management
+        # shellcheck source=lib/colors.sh
+        source "$DOTFILES_DIR/lib/colors.sh"
+        # shellcheck source=lib/logging.sh
+        source "$DOTFILES_DIR/lib/logging.sh"
+        # shellcheck source=lib/config.sh
+        source "$DOTFILES_DIR/lib/config.sh"
+        # shellcheck source=lib/prompt.sh
+        source "$DOTFILES_DIR/lib/prompt.sh"
+        # shellcheck source=lib/paths.sh
+        source "$DOTFILES_DIR/lib/paths.sh"
+        # shellcheck source=lib/backup.sh
+        source "$DOTFILES_DIR/lib/backup.sh"
+        # shellcheck source=lib/private.sh
+        source "$DOTFILES_DIR/lib/private.sh"
+
+        init_backup
+
+        subcmd="${1:-status}"
+        shift 2>/dev/null || true
+        case "$subcmd" in
+            status)  private_status ;;
+            init)    init_private_overlay "$@" ;;
+            sync)    private_sync ;;
+            pull)    private_pull ;;
+            push)    private_push "$@" ;;
+            edit)    "${EDITOR:-nvim}" "$HOME/.dotfiles.private" ;;
+            --help|-h)
+                echo "Usage: dot private <action>"
+                echo ""
+                echo "Actions:"
+                echo "  status   Show private overlay state (default)"
+                echo "  init     Create private overlay from template"
+                echo "  sync     Re-apply private symlinks"
+                echo "  pull     Pull latest from remote"
+                echo "  push     Commit and push changes (optional message arg)"
+                echo "  edit     Open private overlay in editor"
+                ;;
+            *)
+                echo -e "${RED}Unknown private action:${NC} $subcmd"
+                echo "Run 'dot private --help' for usage."
+                exit 1
+                ;;
+        esac
         ;;
     validate)
         "$DOTFILES_DIR/scripts/validate.sh" "$@"

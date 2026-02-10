@@ -80,12 +80,9 @@
     undo = reset --soft HEAD~1
 
 # ============================================================================
-# Include machine-specific config (name, email, signing)
+# Include machine-specific config (name, email, signing - via private overlay)
 # ============================================================================
 [include]
-    path = ~/.dotfiles/local/gitconfig.local
-[include]
-    # Fallback for backwards compatibility
     path = ~/.gitconfig.local
 [credential]
 	helper = osxkeychain

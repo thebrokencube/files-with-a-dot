@@ -1,0 +1,7 @@
+# Private Homebrew packages
+# Add tools, taps, casks specific to this machine.
+#
+# Example:
+# brew "some-tool"
+# cask "some-app"
+# tap "company/internal"

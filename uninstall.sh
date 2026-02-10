@@ -115,7 +115,7 @@ fi
 
 # Check local config files
 if [[ "$REMOVE_LOCAL" == true ]]; then
-    for file in "$HOME/.gitconfig.local" "$HOME/.env.local" "$DOTFILES_DIR/.machine"; do
+    for file in "$HOME/.gitconfig.local" "$HOME/.env.local" "$HOME/.shell.local" "$DOTFILES_DIR/.machine"; do
         [[ -f "$file" ]] && WILL_REMOVE+=("Remove local config: $file")
     done
 fi
@@ -203,7 +203,7 @@ remove_shell_configs
 if [[ "$REMOVE_LOCAL" == true ]]; then
     echo ""
     echo "Removing local config files..."
-    for file in "$HOME/.gitconfig.local" "$HOME/.env.local" "$DOTFILES_DIR/.machine"; do
+    for file in "$HOME/.gitconfig.local" "$HOME/.env.local" "$HOME/.shell.local" "$DOTFILES_DIR/.machine"; do
         [[ -f "$file" ]] && rm "$file" && echo "  Removed: $file"
     done
 fi

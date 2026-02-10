@@ -49,7 +49,8 @@ files-with-a-dot/
 │       ├── CLAUDE.md          # Global context (minimal)
 │       └── skills/            # Slash commands
 ├── aggressive/                # Aggressive mode only
-│   └── Brewfile               # Personal/extra apps
+│   ├── Brewfile               # Personal/extra apps
+│   └── shell.managed          # Repo-controlled shell config (mise, etc.)
 ├── symlink_map.txt            # Defines where each config links
 ├── sync.sh                    # Main command: apply dotfiles state
 ├── health.sh                  # Pure diagnostics
@@ -79,20 +80,25 @@ This allows linking to any location - useful for apps like iTerm2 that store con
 - **Aggressive mode** (`aggressive/Brewfile`) - additional packages, aggressive cleanup (repo is source of truth)
 - **Conservative mode** - minimal changes, show cleanup opportunities only (other tools may manage packages)
 
-### Local Configuration (`local/`)
+### Private Overlay (`~/.dotfiles.private/`)
 
-Machine-specific configs in `~/.dotfiles/local/` (not committed to git):
+Machine-specific configs live in a separate private overlay directory (not committed to this repo):
 
-| File | Purpose | Updated by sync? |
-|------|---------|------------------|
-| `shell.managed` | Repo-controlled shell config (aggressive mode only) | ✅ Yes - always |
-| `shell.local` | Your private aliases/functions | ❌ Never touched |
-| `env.local` | API keys, secrets | ❌ Never touched |
-| `gitconfig.local` | Git name/email | ❌ Never touched |
+```
+~/.dotfiles.private/
+├── symlink_map.txt     # Private symlinks
+├── Brewfile            # Private Homebrew packages
+├── skills/             # Private Claude Code skills
+├── gitconfig.local     # Git name/email → symlinked to ~/.gitconfig.local
+├── env.local           # API keys, secrets → symlinked to ~/.env.local
+└── shell.local         # Private aliases/functions → symlinked to ~/.shell.local
+```
 
-**Aggressive mode**: `shell.managed` is copied from repo on every sync, includes mise activation enabled by default. Override in `shell.local` if needed.
+First-time sync offers to initialize this automatically. Manage with `dot private` (init, status, sync, push, edit).
 
-**Conservative mode**: Only `shell.local` exists, fully manual configuration.
+The private overlay is its own git repo — push to a private remote to sync across machines.
+
+**Aggressive mode** also sources `aggressive/shell.managed` (repo-controlled, includes mise activation).
 
 ## Scripts
 
@@ -116,8 +122,8 @@ dot health    # Run health diagnostics
 dot fix       # Health check with auto-fix
 dot clean     # Show cleanup opportunities
 dot clean --force  # Execute cleanup without prompts
-dot setup     # Interactive first-time setup
-dot status    # Show current state (mode, profile, git)
+dot private   # Manage private overlay (init, status, sync, push, edit)
+dot status    # Show current state (mode, git)
 dot edit      # Open dotfiles in editor
 dot help      # Show all commands
 ```
@@ -129,6 +135,7 @@ Options like `--dry-run` and `--skip-brew` pass through to the underlying script
 The `sync.sh` script automatically detects first-time setup and prompts for:
 - Mode (aggressive/conservative)
 - Git identity (name/email)
+- Private overlay initialization
 
 After first sync:
 1. Restart shell: `exec $SHELL -l` (this puts `dot` on PATH)

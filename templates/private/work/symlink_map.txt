@@ -1,6 +1,0 @@
-# Work-specific symlinks
-# Format: source:destination
-# Paths relative to this directory (work/), $HOME expands to home directory
-#
-# Example:
-# skills/my-work-skill:$HOME/.claude/skills/my-work-skill

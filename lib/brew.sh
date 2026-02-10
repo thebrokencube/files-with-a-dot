@@ -2,7 +2,7 @@
 # lib/brew.sh - Homebrew operations (Brewfile merging, cleanup detection/execution)
 #
 # Usage: source "$(dirname "$0")/lib/brew.sh"
-# Requires: DOTFILES_DIR, MACHINE_TYPE, MACHINE_PROFILE to be set
+# Requires: DOTFILES_DIR, MACHINE_TYPE to be set
 # Requires: lib/private.sh to be sourced first
 
 # ── Brewfile merging ─────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ build_merged_brewfile() {
         echo "" >> "$MERGED_BREWFILE"
     fi
 
-    # 3. Private Brewfiles
+    # 3. Private Brewfile
     if has_private_overlay; then
         local private_brewfile
         private_brewfile="$(get_private_brewfile)"
@@ -39,17 +39,6 @@ build_merged_brewfile() {
             echo "# From private/Brewfile" >> "$MERGED_BREWFILE"
             cat "$private_brewfile" >> "$MERGED_BREWFILE"
             echo "" >> "$MERGED_BREWFILE"
-        fi
-
-        # 4. Profile-specific Brewfile
-        if [[ -n "$MACHINE_PROFILE" ]]; then
-            local profile_brewfile
-            profile_brewfile="$(get_profile_brewfile "$MACHINE_PROFILE")"
-            if [[ -f "$profile_brewfile" ]]; then
-                echo "# From private/$MACHINE_PROFILE/Brewfile" >> "$MERGED_BREWFILE"
-                cat "$profile_brewfile" >> "$MERGED_BREWFILE"
-                echo "" >> "$MERGED_BREWFILE"
-            fi
         fi
     fi
 }
