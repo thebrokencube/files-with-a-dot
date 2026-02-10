@@ -1,0 +1,194 @@
+# FCIS Refactor + Non-Interactive Mode
+#
+# Goal: Extract functional core (lib/), make scripts thin orchestrators,
+#        add unified non-interactive protocol.
+#
+# See ARCHITECTURE.md for design details and decision log.
+
+project: fcis-refactor
+status: in-progress
+started: 2025-02-09
+
+steps:
+  - version: v0.4.0
+    type: feat
+    status: done
+    summary: "dot CLI wrapper, replace df* aliases"
+
+  - version: v0.4.1
+    type: feat
+    status: done
+    summary: "validation suite and dot validate command"
+
+  - version: v0.4.2
+    type: docs
+    status: done
+    summary: "add ARCHITECTURE.md and plans/ tracking"
+    files:
+      create:
+        - ARCHITECTURE.md
+        - plans/fcis-refactor.yml
+    details: |
+      ARCHITECTURE.md has three sections: Design (target state), Decisions (why),
+      Migration (checklist). plans/ directory holds structured YAML plans for
+      agent pickup.
+
+  - version: v0.5.0
+    type: feat
+    status: pending
+    summary: "add config and prompt libraries with dot TTY detection"
+    files:
+      create:
+        - lib/config.sh
+        - lib/prompt.sh
+      modify:
+        - dot
+    details: |
+      lib/config.sh: read_machine_type(), read_profile(), get_dotfiles_version(),
+      init_dotfiles_vars(). Replaces identical 3-4 line patterns in 5 scripts.
+
+      lib/prompt.sh: _is_interactive(), confirm [-f] PROMPT [DEFAULT],
+      choose PROMPT OPT1 OPT2..., require_interactive MSG.
+
+      dot: TTY auto-detection at top. Source lib/config.sh. Replace inline
+      machine type/profile reading in cmd_status() with lib calls.
+
+  - version: v0.5.1
+    type: refactor
+    status: pending
+    summary: "health.sh sources lib/ and guards interactive setup"
+    files:
+      modify:
+        - health.sh
+        - dot
+    details: |
+      health.sh: Source lib/{colors,logging,config,prompt}.sh. Remove inline
+      color defs (lines 43-48), inline logging functions (lines 52-56), inline
+      machine type reading (lines 40-41). Guard run_interactive_setup() with
+      require_interactive. Keep check functions as-is.
+
+      dot: setup command errors if non-interactive.
+
+  - version: v0.5.2
+    type: refactor
+    status: pending
+    summary: "add shell.sh and wire uninstall.sh to lib/"
+    files:
+      create:
+        - lib/shell.sh
+      modify:
+        - uninstall.sh
+    details: |
+      lib/shell.sh: get_shell_configs() returns list of managed shell config
+      file pairs. check_source_line/add_source_line/remove_source_line for
+      individual files. integrate_shell_configs() and remove_shell_configs()
+      for bulk operations.
+
+      uninstall.sh: Source lib/{colors,logging,config,paths,backup,symlinks,shell}.sh.
+      Remove inline color defs, path utilities, shell config logic. Keep
+      orchestration (detect -> report -> execute).
+
+  - version: v0.6.0
+    type: feat
+    status: pending
+    summary: "consolidate cleanup scripts with lib/brew.sh"
+    files:
+      create:
+        - lib/brew.sh
+      modify:
+        - cleanup.sh
+        - dot
+      delete:
+        - brew-cleanup.sh
+    details: |
+      lib/brew.sh: build_merged_brewfile() merges 4 Brewfile sources, returns
+      temp file path. detect_brew_cleanup/detect_brew_autoremove/detect_brew_cache
+      for detection. execute_brew_cleanup MERGED_BREWFILE IS_AGGRESSIVE for execution.
+
+      cleanup.sh: Rewrite as thin orchestrator. Source lib/. Flags: --force (local),
+      --dry-run, --execute. Replace all read -p with confirm. Remove --confirmed flag.
+
+      Delete brew-cleanup.sh entirely.
+
+      dot: clean dispatches to ./cleanup.sh "$@". Remove clean! command.
+
+  - version: v0.7.0
+    type: feat
+    status: pending
+    summary: "add dot private subcommand"
+    files:
+      modify:
+        - lib/private.sh
+        - dot
+      delete:
+        - init-private.sh
+    details: |
+      Extend lib/private.sh: init_private_overlay() from init-private.sh using
+      confirm for overwrite. private_status(), private_pull(), private_push MSG,
+      private_sync().
+
+      Delete init-private.sh.
+
+      dot: Add private subcommand — dot private (status), dot private init,
+      dot private sync, dot private push [MSG], dot private edit.
+
+  - version: v0.8.0
+    type: feat
+    status: pending
+    summary: "thin sync.sh with dot orchestration"
+    files:
+      modify:
+        - sync.sh
+        - dot
+    details: |
+      sync.sh: Source ALL lib/ files. Remove ALL inline duplicated code (colors,
+      paths, backup, symlinks, shell config). Remove --skip-prompts flag, use
+      DOTFILES_NONINTERACTIVE env var. Add --force flag. Add Homebrew prerequisite
+      check (from bootstrap.sh). Replace read -p with confirm/choose. Remove
+      cleanup call at end.
+
+      Target: ~300 lines (down from 975). What remains: orchestration sequence,
+      state arrays, report formatting, first-time detection.
+
+      dot: dot sync orchestrates sync.sh -> cleanup.sh. dot pull orchestrates
+      git pull -> sync.sh -> cleanup.sh. Pass "$@" through.
+
+  - version: v0.8.1
+    type: refactor
+    status: pending
+    summary: "slim bootstrap.sh to self-contained clone script"
+    files:
+      modify:
+        - bootstrap.sh
+    details: |
+      Becomes "get the code onto this machine" only: install Xcode CLT if missing,
+      clone repo to ~/.dotfiles, exec sync.sh. Self-contained (no lib/ sourcing).
+      --force flag sets export DOTFILES_NONINTERACTIVE=1 and auto-handles existing dir.
+      No longer installs Homebrew or calls cleanup.sh. Target: ~60-80 lines.
+
+  - version: v0.8.2
+    type: docs
+    status: pending
+    summary: "finalize README and skills for v0.8 architecture"
+    files:
+      modify:
+        - ARCHITECTURE.md
+        - README.md
+        - shared/claude/.claude/skills/dotfiles/SKILL.md
+        - shared/claude/.claude/skills/dotfiles-dev/SKILL.md
+    details: |
+      ARCHITECTURE.md: mark all migration items done.
+      README.md: update CLI reference, add Non-Interactive Mode section,
+      add Private Overlay section, reference ARCHITECTURE.md.
+      Skills: sync with current state.
+
+  - version: v0.8.3
+    type: chore
+    status: pending
+    summary: "add GitHub Actions lint workflow"
+    files:
+      create:
+        - .github/workflows/lint.yml
+    details: |
+      Runs on ubuntu-latest (shellcheck via apt). Triggers on push to main + PRs.
+      Runs ./scripts/validate.sh.
