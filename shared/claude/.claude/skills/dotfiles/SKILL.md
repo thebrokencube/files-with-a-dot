@@ -37,6 +37,9 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 - Selects which private overlay subdirectory to apply (`~/.dotfiles.private/work/` or `personal/`)
 - Affects profile-specific Brewfiles, symlinks, and Claude skills
 
+**Not managed by dotfiles**:
+- `~/.claude/settings.json` - Managed externally (e.g. AWS auth wizards), not tracked in this repo
+
 **Local config tiering** (`~/.dotfiles/local/`):
 - `shell.managed` - Aggressive mode only, repo-controlled, updated on every sync (has mise activation)
 - `shell.local` - Never touched by sync, your private customizations
