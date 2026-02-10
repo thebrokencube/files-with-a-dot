@@ -4,12 +4,14 @@
 # Usage: source "$(dirname "$0")/lib/paths.sh"
 
 # Check if a path is managed by dotfiles (points to DOTFILES_DIR)
+# Resolves both paths to handle DOTFILES_DIR being a symlink
 is_ours() {
     local path="$1"
     [[ -e "$path" ]] || return 1
-    local real_path
+    local real_path real_dotfiles
     real_path=$(realpath "$path" 2>/dev/null || echo "")
-    [[ -n "$real_path" && "$real_path" == "$DOTFILES_DIR"* ]]
+    real_dotfiles=$(realpath "$DOTFILES_DIR" 2>/dev/null || echo "$DOTFILES_DIR")
+    [[ -n "$real_path" && "$real_path" == "$real_dotfiles"* ]]
 }
 
 # Check if path is a symlink NOT managed by dotfiles
