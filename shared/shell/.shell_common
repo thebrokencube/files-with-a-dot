@@ -101,3 +101,10 @@ fi
 
 # Private local config (never touched by sync, your customizations)
 [ -f "$DOTFILES_DIR/local/shell.local" ] && . "$DOTFILES_DIR/local/shell.local"
+
+# ============================================================================
+# Final PATH fixups
+# ============================================================================
+
+# Ensure mise shims take priority over Homebrew
+[ -d "$HOME/.local/share/mise/shims" ] && export PATH="$HOME/.local/share/mise/shims:$PATH"
