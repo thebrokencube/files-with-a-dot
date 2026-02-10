@@ -55,19 +55,20 @@ steps:
 
   - version: v0.5.1
     type: refactor
-    status: pending
-    summary: "health.sh sources lib/ and guards interactive setup"
+    status: done
+    summary: "health.sh sources lib/, fix git identity check"
     files:
       modify:
         - health.sh
         - dot
     details: |
       health.sh: Source lib/{colors,logging,config,prompt}.sh. Remove inline
-      color defs (lines 43-48), inline logging functions (lines 52-56), inline
-      machine type reading (lines 40-41). Guard run_interactive_setup() with
-      require_interactive. Keep check functions as-is.
+      color defs, inline logging functions, inline machine type reading. Guard
+      run_interactive_setup() with require_interactive. Fix git identity check
+      in setup walkthrough to verify both name and email (matching check_local
+      behavior). Setup removal deferred to v0.8.0.
 
-      dot: setup command errors if non-interactive.
+      dot: Keep setup command (dispatches to health.sh --setup).
 
   - version: v0.5.2
     type: refactor
@@ -147,8 +148,12 @@ steps:
       check (from bootstrap.sh). Replace read -p with confirm/choose. Remove
       cleanup call at end.
 
+      First-time sync completion shows comprehensive "Next steps" section
+      (replaces removed dot setup walkthrough): reload shell, open nvim for
+      plugins, select iTerm2 profile, run claude auth, verify with dot health.
+
       Target: ~300 lines (down from 975). What remains: orchestration sequence,
-      state arrays, report formatting, first-time detection.
+      state arrays, report formatting, first-time detection, post-install steps.
 
       dot: dot sync orchestrates sync.sh -> cleanup.sh. dot pull orchestrates
       git pull -> sync.sh -> cleanup.sh. Pass "$@" through.

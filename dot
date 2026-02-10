@@ -36,9 +36,9 @@ ${BOLD}Commands:${NC}
   links     Symlinks only (no brew, no pull)
   health    Run health diagnostics
   fix       Health check with auto-fix
+  setup     Interactive first-time setup guide
   clean     Show cleanup opportunities
   clean!    Execute cleanup
-  setup     Interactive first-time setup
   status    Show current dotfiles state
   validate  Run validation checks (shellcheck, syntax, symlinks, skills)
   edit      Open dotfiles in editor
@@ -135,14 +135,14 @@ case "$COMMAND" in
     fix)
         "$DOTFILES_DIR/health.sh" --fix "$@"
         ;;
+    setup)
+        "$DOTFILES_DIR/health.sh" --setup "$@"
+        ;;
     clean)
         (cd "$DOTFILES_DIR" && ./cleanup.sh "$@")
         ;;
     clean!)
         (cd "$DOTFILES_DIR" && ./cleanup.sh --execute "$@")
-        ;;
-    setup)
-        "$DOTFILES_DIR/health.sh" --setup "$@"
         ;;
     validate)
         "$DOTFILES_DIR/scripts/validate.sh" "$@"

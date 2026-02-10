@@ -122,7 +122,13 @@ uninstall.sh (standalone leaf)
 
 **Decision**: Move all private overlay logic to lib/private.sh. Add `dot private` subcommand with init/sync/push/status/edit. Delete init-private.sh.
 
-### D6: bootstrap.sh stays self-contained
+### D6: Remove `dot setup` — fold into sync + health
+
+**Problem**: `dot setup` dispatched to `health.sh --setup`, an interactive walkthrough (5 steps with `read -p` between each). But most steps were manual actions in other apps (open nvim, select iTerm2 profile, run `claude auth`). The walkthrough format didn't add value over just listing the steps. It also coupled setup concerns into the diagnostics script.
+
+**Decision**: In v0.8.0, remove `run_interactive_setup()` and `--setup` from health.sh, remove `dot setup` from the CLI. Instead: sync.sh shows comprehensive "Next steps" after first-time setup, and `dot health` continues to detect pending items via `check_setup_status()`. Until then, setup is guarded with `require_interactive`.
+
+### D7: bootstrap.sh stays self-contained
 
 **Problem**: bootstrap.sh runs before the repo is cloned, so it can't source lib/.
 
@@ -140,7 +146,7 @@ Summary:
 - [x] `v0.4.1` — Validation suite and `dot validate` command
 - [x] `v0.4.2` — ARCHITECTURE.md, plans/ tracking
 - [x] `v0.5.0` — `lib/config.sh`, `lib/prompt.sh`, dot TTY detection
-- [ ] `v0.5.1` — health.sh sources lib/, guard interactive setup
+- [x] `v0.5.1` — health.sh sources lib/, fix git identity check (setup kept, removal deferred to v0.8.0)
 - [ ] `v0.5.2` — `lib/shell.sh`, uninstall.sh wired to lib/
 - [ ] `v0.6.0` — `lib/brew.sh`, cleanup.sh rewrite, delete brew-cleanup.sh
 - [ ] `v0.7.0` — `dot private` subcommand, delete init-private.sh

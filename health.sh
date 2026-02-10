@@ -35,25 +35,25 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR"
-MACHINE_FILE="$DOTFILES_DIR/.machine"
 
-MACHINE_TYPE="unknown"
-[[ -f "$MACHINE_FILE" ]] && MACHINE_TYPE=$(cat "$MACHINE_FILE")
+# Source libraries
+# shellcheck source=lib/colors.sh
+source "$SCRIPT_DIR/lib/colors.sh"
+# shellcheck source=lib/logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+# shellcheck source=lib/config.sh
+source "$SCRIPT_DIR/lib/config.sh"
+# shellcheck source=lib/prompt.sh
+source "$SCRIPT_DIR/lib/prompt.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+MACHINE_TYPE="$(read_machine_type)"
+MACHINE_TYPE="${MACHINE_TYPE:-unknown}"
 
 ISSUES_FOUND=0
 
-ok() { echo -e "  ${GREEN}✓${NC} $1"; }
-warn() { echo -e "  ${YELLOW}⚠${NC} $1"; ((ISSUES_FOUND++)) || true; }
-err() { echo -e "  ${RED}✗${NC} $1"; ((ISSUES_FOUND++)) || true; }
-info() { echo -e "  ${CYAN}→${NC} $1"; }
-pending() { echo -e "  ${YELLOW}○${NC} $1"; }
+# Override warn/err to count issues
+warn() { echo -e "  ${YELLOW}${SYM_WARN}${NC} $1"; ((ISSUES_FOUND++)) || true; }
+err()  { echo -e "  ${RED}${SYM_ERR}${NC} $1"; ((ISSUES_FOUND++)) || true; }
 
 check_tools() {
     echo "Required tools:"
@@ -63,7 +63,8 @@ check_tools() {
 
     for tool in "${required[@]}"; do
         if command -v "$tool" &>/dev/null; then
-            local version=$("$tool" --version 2>/dev/null | head -1 || echo "installed")
+            local version
+            version=$("$tool" --version 2>/dev/null | head -1 || echo "installed")
             ok "$tool ($version)"
         else
             err "$tool not found"
@@ -111,7 +112,8 @@ check_brew() {
         warn "brew doctor has warnings (run 'brew doctor' for details)"
     fi
 
-    local outdated=$(brew outdated --quiet 2>/dev/null | wc -l | tr -d ' ')
+    local outdated
+    outdated=$(brew outdated --quiet 2>/dev/null | wc -l | tr -d ' ')
     if [[ "$outdated" -gt 0 ]]; then
         warn "$outdated outdated packages"
         [[ "$AUTO_FIX" == true ]] && info "Running brew upgrade..." && brew upgrade 2>/dev/null || true
@@ -132,8 +134,9 @@ check_local() {
     fi
 
     if [[ -f "$HOME/.gitconfig.local" ]]; then
-        local name=$(git config --file "$HOME/.gitconfig.local" user.name 2>/dev/null || echo "")
-        local email=$(git config --file "$HOME/.gitconfig.local" user.email 2>/dev/null || echo "")
+        local name email
+        name=$(git config --file "$HOME/.gitconfig.local" user.name 2>/dev/null || echo "")
+        email=$(git config --file "$HOME/.gitconfig.local" user.email 2>/dev/null || echo "")
         if [[ -n "$name" && -n "$email" ]]; then
             ok "Git identity: $name <$email>"
         else
@@ -149,7 +152,7 @@ check_local() {
         warn "~/.env.local not found"
     fi
 
-    if [[ -f "$MACHINE_FILE" ]]; then
+    if [[ -n "$MACHINE_TYPE" && "$MACHINE_TYPE" != "unknown" ]]; then
         ok "Machine type: $MACHINE_TYPE"
     else
         warn ".machine not set (run sync.sh)"
@@ -172,7 +175,8 @@ check_nvim() {
 
     local lazy_path="$HOME/.local/share/nvim/lazy/lazy.nvim"
     if [[ -d "$lazy_path" ]]; then
-        local plugin_count=$(ls -1 "$HOME/.local/share/nvim/lazy" 2>/dev/null | wc -l | tr -d ' ')
+        local plugin_count
+        plugin_count=$(ls -1 "$HOME/.local/share/nvim/lazy" 2>/dev/null | wc -l | tr -d ' ')
         ok "lazy.nvim installed ($plugin_count plugins)"
     else
         warn "lazy.nvim not installed (open nvim to auto-install)"
@@ -222,7 +226,8 @@ check_setup_status() {
 
     # Check Claude Code skills
     if [[ -d "$HOME/.claude/skills" ]] && [[ $(ls "$HOME/.claude/skills" 2>/dev/null | wc -l) -gt 0 ]]; then
-        local skill_count=$(ls -1 "$HOME/.claude/skills" 2>/dev/null | wc -l | tr -d ' ')
+        local skill_count
+        skill_count=$(ls -1 "$HOME/.claude/skills" 2>/dev/null | wc -l | tr -d ' ')
         ok "Claude Code skills installed ($skill_count skills)"
     else
         pending "Claude Code: Skills not found (run sync.sh)"
@@ -246,6 +251,8 @@ check_setup_status() {
 # ============================================================================
 
 run_interactive_setup() {
+    require_interactive "The --setup walkthrough"
+
     echo "============================================"
     echo -e "  ${BOLD}Interactive Setup Guide${NC}"
     echo "============================================"
@@ -261,7 +268,7 @@ run_interactive_setup() {
     echo "  Action: Run this command (or open a new terminal):"
     echo -e "  ${CYAN}exec \$SHELL -l${NC}"
     echo ""
-    read -p "Press Enter when done (or 's' to skip): " response
+    read -rp "Press Enter when done (or 's' to skip): " response
     [[ "$response" != "s" ]] && ok "Shell reloaded"
     echo ""
 
@@ -277,7 +284,7 @@ run_interactive_setup() {
         echo ""
         echo "  You'll see Lazy.nvim installing plugins. Wait for it to finish."
         echo ""
-        read -p "Press Enter when done (or 's' to skip): " response
+        read -rp "Press Enter when done (or 's' to skip): " response
         [[ "$response" != "s" ]] && ok "Neovim plugins installed"
     fi
     echo ""
@@ -295,7 +302,7 @@ run_interactive_setup() {
         echo ""
         echo "  Test icons work: echo -e \"\\uf015 \\ue0a0 \\uf121\""
         echo ""
-        read -p "Press Enter when done (or 's' to skip): " response
+        read -rp "Press Enter when done (or 's' to skip): " response
         [[ "$response" != "s" ]] && ok "iTerm2 configured"
         echo ""
     fi
@@ -313,7 +320,7 @@ run_interactive_setup() {
             echo ""
             echo "  This will open your browser to authenticate."
             echo ""
-            read -p "Press Enter when done (or 's' to skip): " response
+            read -rp "Press Enter when done (or 's' to skip): " response
             [[ "$response" != "s" ]] && ok "Claude Code authenticated"
         fi
         echo ""
@@ -321,11 +328,11 @@ run_interactive_setup() {
 
     # Step 5: Git identity
     echo -e "${BOLD}Step 5: Git Identity${NC}"
-    if [[ -f "$HOME/.gitconfig.local" ]]; then
-        local name=$(git config --file "$HOME/.gitconfig.local" user.name 2>/dev/null || echo "")
-        if [[ -n "$name" ]]; then
-            ok "Already configured as: $name - skipping"
-        fi
+    local _name _email
+    _name=$(git config --file "$HOME/.gitconfig.local" user.name 2>/dev/null || echo "")
+    _email=$(git config --file "$HOME/.gitconfig.local" user.email 2>/dev/null || echo "")
+    if [[ -n "$_name" && -n "$_email" ]]; then
+        ok "Already configured as: $_name <$_email> - skipping"
     else
         echo "Set your git name and email for commits."
         echo ""
@@ -336,7 +343,7 @@ run_interactive_setup() {
         echo "      name = Your Name"
         echo -e "      email = you@example.com${NC}"
         echo ""
-        read -p "Press Enter when done (or 's' to skip): " response
+        read -rp "Press Enter when done (or 's' to skip): " response
         [[ "$response" != "s" ]] && ok "Git identity configured"
     fi
     echo ""
@@ -346,12 +353,12 @@ run_interactive_setup() {
     echo -e "  ${GREEN}Setup Complete!${NC}"
     echo "============================================"
     echo ""
-    echo "Run './health.sh' to verify everything is working."
+    echo "Run 'dot health' to verify everything is working."
     echo ""
     echo "Useful commands:"
-    echo "  ./sync.sh        - Sync dotfiles (update if needed)"
-    echo "  ./sync.sh --pull - Force pull and sync"
-    echo "  ./health.sh      - Check system health"
+    echo "  dot sync         - Sync dotfiles (update if needed)"
+    echo "  dot pull         - Pull latest, then sync"
+    echo "  dot health       - Check system health"
     echo "  /dotfiles        - Claude Code skill for help"
     echo ""
 }
@@ -366,7 +373,7 @@ if [[ "$INTERACTIVE_SETUP" == true ]]; then
     exit 0
 fi
 
-VERSION=$(cd "$DOTFILES_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
+VERSION="$(get_dotfiles_version)"
 echo "============================================"
 echo "  Dotfiles Health Check ($VERSION)"
 echo "============================================"
