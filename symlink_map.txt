@@ -30,6 +30,9 @@ shared/ghostty/.config/ghostty:$HOME/.config/ghostty
 # iTerm2 (uses ~/Library, not ~/.config)
 shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
 
+# CLI
+dot:$HOME/.local/bin/dot
+
 # Claude Code (granular linking to allow private skills)
 shared/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
 shared/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles

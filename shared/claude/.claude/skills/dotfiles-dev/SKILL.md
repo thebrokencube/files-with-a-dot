@@ -30,7 +30,7 @@ This skill provides guidelines for Claude when helping maintain the dotfiles rep
 1. **Create directory**: `shared/<app>/` mirroring target structure
 2. **Add to symlink_map.txt**: `shared/<app>/config:$HOME/.config/<app>/config`
 3. **If needs brew package**: Add to `Brewfile.shared` or `aggressive/Brewfile`
-4. **Test**: Run `./sync.sh --links-only`
+4. **Test**: Run `dot links`
 
 Example for adding lazydocker:
 ```
@@ -77,13 +77,13 @@ description: When to use this skill (for Claude's context)
 Follow the conventions in the commit skill (`shared/claude/.claude/skills/commit/SKILL.md`):
 - Use conventional commits with scope: `fix(shell): correct PATH ordering`
 - Tag each commit on main with a version: `v0.3.20: fix(shell): correct PATH ordering`
-- Test with `./sync.sh --dry-run` before committing
+- Test with `dot sync --dry-run` before committing
 
 ## Testing Changes
 
-1. **Quick test**: `./health.sh`
-2. **Full test**: `./uninstall.sh && ./sync.sh --dry-run`
-3. **Interactive test**: `./health.sh --setup`
+1. **Quick test**: `dot health`
+2. **Full test**: `./uninstall.sh && dot sync --dry-run`
+3. **Interactive test**: `dot setup`
 
 ## Multi-Mode Considerations
 

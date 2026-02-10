@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# dot - dotfiles management CLI
+# Usage: dot <command> [options]
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+usage() {
+    cat <<EOF
+${BOLD}dot${NC} - dotfiles management
+
+${BOLD}Usage:${NC}
+  dot <command> [options]
+
+${BOLD}Commands:${NC}
+  sync      Sync dotfiles (apply current state)
+  pull      Sync with git pull first
+  links     Symlinks only (no brew, no pull)
+  health    Run health diagnostics
+  fix       Health check with auto-fix
+  clean     Show cleanup opportunities
+  clean!    Execute cleanup
+  setup     Interactive first-time setup
+  status    Show current dotfiles state
+  edit      Open dotfiles in editor
+  cd        Print dotfiles directory (use: cd \$(dot cd))
+  help      Show this help
+
+${BOLD}Options:${NC}
+  All sync.sh options are passed through (--dry-run, --skip-brew, etc.)
+
+${BOLD}Examples:${NC}
+  dot sync                 # Apply dotfiles state
+  dot sync --dry-run       # Preview changes
+  dot pull                 # Pull latest, then sync
+  dot health               # Check everything is healthy
+  dot fix                  # Auto-fix broken symlinks
+  dot clean                # Show what could be cleaned up
+  dot clean!               # Actually clean up
+EOF
+}
+
+cmd_status() {
+    echo -e "${BOLD}Dotfiles Status${NC}"
+    echo ""
+
+    # Machine type
+    if [ -f "$DOTFILES_DIR/.machine" ]; then
+        echo -e "  Mode:    ${GREEN}$(cat "$DOTFILES_DIR/.machine")${NC}"
+    else
+        echo -e "  Mode:    ${YELLOW}not set${NC} (run dot setup)"
+    fi
+
+    # Profile
+    if [ -f "$DOTFILES_DIR/.profile" ]; then
+        echo -e "  Profile: ${GREEN}$(cat "$DOTFILES_DIR/.profile")${NC}"
+    else
+        echo -e "  Profile: ${YELLOW}not set${NC}"
+    fi
+
+    # Private overlay
+    if [ -d "$HOME/.dotfiles.private" ]; then
+        echo -e "  Private: ${GREEN}yes${NC}"
+    else
+        echo -e "  Private: ${BLUE}no${NC}"
+    fi
+
+    # Git status
+    echo ""
+    echo -e "${BOLD}Repository${NC}"
+    echo -e "  Path:    $DOTFILES_DIR"
+    if command -v git &>/dev/null && [ -d "$DOTFILES_DIR/.git" ]; then
+        local branch head
+        branch="$(git -C "$DOTFILES_DIR" branch --show-current 2>/dev/null || echo "unknown")"
+        head="$(git -C "$DOTFILES_DIR" log --oneline -1 2>/dev/null || echo "unknown")"
+        echo -e "  Branch:  $branch"
+        echo -e "  HEAD:    $head"
+
+        # Check if clean
+        if git -C "$DOTFILES_DIR" diff --quiet 2>/dev/null; then
+            echo -e "  State:   ${GREEN}clean${NC}"
+        else
+            echo -e "  State:   ${YELLOW}uncommitted changes${NC}"
+        fi
+    fi
+}
+
+# Require dotfiles directory
+if [ ! -d "$DOTFILES_DIR" ]; then
+    echo -e "${RED}Error:${NC} Dotfiles not found at $DOTFILES_DIR"
+    echo "Run bootstrap first: https://github.com/thebrokencube/files-with-a-dot"
+    exit 1
+fi
+
+# Parse command
+COMMAND="${1:-help}"
+shift 2>/dev/null || true
+
+case "$COMMAND" in
+    sync)
+        (cd "$DOTFILES_DIR" && ./sync.sh "$@")
+        ;;
+    pull)
+        (cd "$DOTFILES_DIR" && ./sync.sh --pull "$@")
+        ;;
+    links)
+        (cd "$DOTFILES_DIR" && ./sync.sh --links-only "$@")
+        ;;
+    health)
+        "$DOTFILES_DIR/health.sh" "$@"
+        ;;
+    fix)
+        "$DOTFILES_DIR/health.sh" --fix "$@"
+        ;;
+    clean)
+        (cd "$DOTFILES_DIR" && ./cleanup.sh "$@")
+        ;;
+    clean!)
+        (cd "$DOTFILES_DIR" && ./cleanup.sh --execute "$@")
+        ;;
+    setup)
+        "$DOTFILES_DIR/health.sh" --setup "$@"
+        ;;
+    status)
+        cmd_status
+        ;;
+    edit)
+        "${EDITOR:-nvim}" "$DOTFILES_DIR"
+        ;;
+    cd)
+        echo "$DOTFILES_DIR"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        echo -e "${RED}Unknown command:${NC} $COMMAND"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

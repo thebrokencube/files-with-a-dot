@@ -35,6 +35,7 @@ This will:
 
 ```
 files-with-a-dot/
+├── dot                        # CLI entry point (symlinked to ~/.local/bin/dot)
 ├── shared/                    # Configs for all machines
 │   ├── nvim/.config/nvim/     # Neovim (kickstart.nvim)
 │   ├── ghostty/.config/ghostty/  # Ghostty terminal
@@ -103,30 +104,25 @@ Machine-specific configs in `~/.dotfiles/local/` (not committed to git):
 | `cleanup.sh` | Cleanup packages and files (aggressive vs conservative mode) |
 | `uninstall.sh` | Remove symlinks and optionally local config |
 
-### Common Commands
+### The `dot` CLI
+
+After sync, the `dot` command is available on PATH (`~/.local/bin/dot`):
 
 ```bash
-./sync.sh                # Sync dotfiles (auto-detects mode)
-./sync.sh --pull         # Force pull before sync
-./sync.sh --dry-run      # Preview changes without applying
-./sync.sh --links-only   # Only re-create symlinks
-./health.sh              # Check system health (read-only)
-./cleanup.sh             # Show cleanup opportunities
-./cleanup.sh --execute   # Actually clean (with confirmation)
+dot sync      # Apply dotfiles state
+dot pull      # Pull latest, then sync
+dot links     # Symlinks only (no brew, no pull)
+dot health    # Run health diagnostics
+dot fix       # Health check with auto-fix
+dot clean     # Show cleanup opportunities
+dot clean!    # Execute cleanup
+dot setup     # Interactive first-time setup
+dot status    # Show current state (mode, profile, git)
+dot edit      # Open dotfiles in editor
+dot help      # Show all commands
 ```
 
-### Aliases
-
-After running sync, these aliases are available:
-
-```bash
-dfs      # Sync dotfiles
-dfsp     # Sync with pull
-dfl      # Links only
-dfh      # Health check
-dfc      # Cleanup (show)
-dfce     # Cleanup (execute)
-```
+Options like `--dry-run` and `--skip-brew` pass through to the underlying scripts.
 
 ## First-Time Setup
 
@@ -135,9 +131,9 @@ The `sync.sh` script automatically detects first-time setup and prompts for:
 - Git identity (name/email)
 
 After first sync:
-1. Restart shell: `exec $SHELL -l`
+1. Restart shell: `exec $SHELL -l` (this puts `dot` on PATH)
 2. Open nvim to trigger plugin installation
-3. Run `./health.sh` to verify everything
+3. Run `dot health` to verify everything
 4. (Optional) Select iTerm2 "Dotfiles Default" profile for icons
 
 ## What's Included
@@ -163,9 +159,8 @@ Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 
 | Plugin | Purpose | Key Binding |
 |--------|---------|-------------|
-| nvim-tree | File explorer | `<leader>e` |
-| telescope | Fuzzy finder | `<leader>sf`, `<leader>sg` |
-| lazygit | Git TUI | `<leader>gg` |
+| nvim-tree | File explorer | `<leader>e` (toggle), `<leader>f` (find file) |
+| telescope | Fuzzy finder | `<leader>sf` (search files), `<leader>sg` (grep) |
 | treesitter | Syntax highlighting | automatic |
 | mason + lspconfig | LSP support | automatic |
 
@@ -190,8 +185,7 @@ This keeps context small while providing detailed help when needed.
 ## Updating
 
 ```bash
-./sync.sh --pull
-# or just: dfsp
+dot pull
 ```
 
 This pulls the latest dotfiles, re-creates symlinks, and updates Homebrew packages.
@@ -201,7 +195,7 @@ This pulls the latest dotfiles, re-creates symlinks, and updates Homebrew packag
 1. Create directory: `shared/<app>/`
 2. Add to `symlink_map.txt`: `shared/<app>/config:$HOME/.config/<app>`
 3. If needs brew package: Add to `Brewfile.shared`
-4. Run: `./sync.sh --links-only` or `dfl`
+4. Run: `dot links`
 
 ## Troubleshooting
 
@@ -210,7 +204,7 @@ This pulls the latest dotfiles, re-creates symlinks, and updates Homebrew packag
 | Git operations fail | Set up GitHub SSH: `ssh -T git@github.com` or check [GitHub docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) |
 | Icons broken in iTerm2 | Select "Dotfiles Default" profile, disable "Draw Powerline Glyphs" |
 | Shell changes not applied | Run `exec $SHELL -l` or `reload` |
-| Symlink conflicts | Run `./sync.sh --dry-run` to see state |
+| Symlink conflicts | Run `dot sync --dry-run` to see state |
 | Nvim plugins missing | Open nvim to trigger auto-install |
 
-Run `./health.sh` for diagnostics.
+Run `dot health` for diagnostics.

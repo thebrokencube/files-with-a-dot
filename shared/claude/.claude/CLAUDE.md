@@ -19,7 +19,8 @@ My development environment, available globally across all projects.
 - `v` / `nvim` - Editor
 - `gs` - Git status
 - `reload` - Restart shell
-- `~/.dotfiles/health.sh` - Diagnose issues
+- `dot health` - Diagnose issues
+- `dot status` - Show dotfiles state
 
 ## Git Preferences
 - Do NOT add Co-Authored-By or other trailers to commits

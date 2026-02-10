@@ -22,11 +22,15 @@ shared/nvim/.config/nvim:$HOME/.config/nvim
 shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
 ```
 
-**Scripts**:
-- `sync.sh` - Main command: apply dotfiles state (auto-detects first-time vs update)
-- `health.sh` - Pure diagnostics, `--fix` to auto-repair
-- `cleanup.sh` - Aggressive cleanup or show opportunities (conservative)
-- `uninstall.sh` - Clean removal
+**CLI**: `dot <command>` (symlinked to `~/.local/bin/dot`):
+- `dot sync` - Apply dotfiles state (auto-detects first-time vs update)
+- `dot pull` - Pull latest, then sync
+- `dot links` - Symlinks only (no brew, no pull)
+- `dot health` / `dot fix` - Diagnostics / auto-repair
+- `dot clean` / `dot clean!` - Show / execute cleanup
+- `dot setup` - Interactive first-time setup
+- `dot status` - Show mode, profile, git state
+- `dot edit` - Open dotfiles in editor
 
 **Multi-mode**: `~/.dotfiles/.machine` contains `aggressive` or `conservative`
 - `shared/` configs apply in all modes
@@ -55,10 +59,10 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 1. Create directory: `~/.dotfiles/shared/<app>/`
 2. Add config files mirroring target structure
 3. Add entry to `symlink_map.txt`: `shared/<app>/config:$HOME/.config/<app>/config`
-4. Run `./sync.sh --links-only`
+4. Run `dot links`
 
 ## First-Time Setup (`/dotfiles setup`)
-Run `~/.dotfiles/health.sh --setup` for interactive walkthrough:
+Run `~/.dotfiles/health.sh --setup` for interactive walkthrough (use direct path before first sync; after sync + shell restart, `dot setup` works):
 1. Shell reload
 2. Neovim plugin installation
 3. iTerm2 profile selection
@@ -67,7 +71,7 @@ Run `~/.dotfiles/health.sh --setup` for interactive walkthrough:
 
 ## Troubleshooting
 - **Git operations fail**: Check GitHub SSH with `ssh -T git@github.com` (must be set up before bootstrap)
-- **Symlink conflicts**: `./sync.sh --dry-run` shows state
-- **Broken links**: `./health.sh --fix` repairs them
-- **Changes not applied**: Run `./sync.sh --links-only`
-- **First-time issues**: Run `./health.sh --setup` for guided help
+- **Symlink conflicts**: `dot sync --dry-run` shows state
+- **Broken links**: `dot fix` repairs them
+- **Changes not applied**: Run `dot links`
+- **First-time issues**: Run `dot setup` for guided help

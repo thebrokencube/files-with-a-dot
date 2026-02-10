@@ -65,18 +65,6 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 
-# Dotfiles management
-alias dfs='(cd ~/.dotfiles && ./sync.sh)'              # sync dotfiles
-alias dfsp='(cd ~/.dotfiles && ./sync.sh --pull)'      # sync with pull
-alias dfl='(cd ~/.dotfiles && ./sync.sh --links-only)' # links only
-alias dfh='~/.dotfiles/health.sh'                      # health check
-alias dfhf='~/.dotfiles/health.sh --fix'               # health check with fix
-alias dfc='(cd ~/.dotfiles && ./cleanup.sh)'           # cleanup (show)
-alias dfce='(cd ~/.dotfiles && ./cleanup.sh --execute)' # cleanup (execute)
-
-# Legacy alias (backward compat)
-alias dfu='dfs'
-
 # Misc
 alias reload='exec $SHELL -l'
 alias path='echo $PATH | tr ":" "\n"'
