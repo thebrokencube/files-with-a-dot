@@ -139,7 +139,7 @@ Summary:
 - [x] `v0.4.0` — `dot` CLI wrapper, replace df* aliases
 - [x] `v0.4.1` — Validation suite and `dot validate` command
 - [x] `v0.4.2` — ARCHITECTURE.md, plans/ tracking
-- [ ] `v0.5.0` — `lib/config.sh`, `lib/prompt.sh`, dot TTY detection
+- [x] `v0.5.0` — `lib/config.sh`, `lib/prompt.sh`, dot TTY detection
 - [ ] `v0.5.1` — health.sh sources lib/, guard interactive setup
 - [ ] `v0.5.2` — `lib/shell.sh`, uninstall.sh wired to lib/
 - [ ] `v0.6.0` — `lib/brew.sh`, cleanup.sh rewrite, delete brew-cleanup.sh

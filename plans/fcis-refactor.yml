@@ -35,7 +35,7 @@ steps:
 
   - version: v0.5.0
     type: feat
-    status: pending
+    status: done
     summary: "add config and prompt libraries with dot TTY detection"
     files:
       create:

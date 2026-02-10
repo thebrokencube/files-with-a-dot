@@ -6,6 +6,11 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 
+# Non-interactive auto-detection: if stdin isn't a TTY, set env var
+if [[ ! -t 0 ]] && [[ -z "${DOTFILES_NONINTERACTIVE:-}" ]]; then
+    export DOTFILES_NONINTERACTIVE=1
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,6 +18,10 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
+
+# Source config library
+# shellcheck source=lib/config.sh
+[[ -f "$DOTFILES_DIR/lib/config.sh" ]] && source "$DOTFILES_DIR/lib/config.sh"
 
 usage() {
     cat <<EOF
@@ -55,15 +64,19 @@ cmd_status() {
     echo ""
 
     # Machine type
-    if [ -f "$DOTFILES_DIR/.machine" ]; then
-        echo -e "  Mode:    ${GREEN}$(cat "$DOTFILES_DIR/.machine")${NC}"
+    local machine_type
+    machine_type="$(read_machine_type)"
+    if [ -n "$machine_type" ]; then
+        echo -e "  Mode:    ${GREEN}${machine_type}${NC}"
     else
         echo -e "  Mode:    ${YELLOW}not set${NC} (run dot setup)"
     fi
 
     # Profile
-    if [ -f "$DOTFILES_DIR/.profile" ]; then
-        echo -e "  Profile: ${GREEN}$(cat "$DOTFILES_DIR/.profile")${NC}"
+    local profile
+    profile="$(read_profile)"
+    if [ -n "$profile" ]; then
+        echo -e "  Profile: ${GREEN}${profile}${NC}"
     else
         echo -e "  Profile: ${YELLOW}not set${NC}"
     fi
