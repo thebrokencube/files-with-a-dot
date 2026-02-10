@@ -136,22 +136,8 @@ uninstall.sh (standalone leaf)
 
 ---
 
-## Migration
+## Migrations
 
-Detailed step-by-step plan with file lists and implementation details: **[`plans/fcis-refactor.yml`](plans/fcis-refactor.yml)**
-
-Summary:
-
-- [x] `v0.4.0` — `dot` CLI wrapper, replace df* aliases
-- [x] `v0.4.1` — Validation suite and `dot validate` command
-- [x] `v0.4.2` — ARCHITECTURE.md, plans/ tracking
-- [x] `v0.5.0` — `lib/config.sh`, `lib/prompt.sh`, dot TTY detection
-- [x] `v0.5.1` — health.sh sources lib/, fix git identity check (setup kept, removal deferred to v0.8.0)
-- [x] `v0.5.2` — Fix `is_ours()` symlink resolution in lib/paths.sh
-- [x] `v0.5.3` — `lib/shell.sh`, uninstall.sh wired to lib/
-- [ ] `v0.6.0` — `lib/brew.sh`, cleanup.sh rewrite, delete brew-cleanup.sh
-- [ ] `v0.7.0` — `dot private` subcommand, delete init-private.sh
-- [ ] `v0.8.0` — sync.sh rewrite (~300 lines), dot orchestrates sync -> cleanup
-- [ ] `v0.8.1` — bootstrap.sh slimmed to self-contained clone script
-- [ ] `v0.8.2` — Final docs update (README, ARCHITECTURE, skills)
-- [ ] `v0.8.3` — GitHub Actions lint workflow
+| Status | Plan | Details |
+|--------|------|---------|
+| 🔄 | FCIS Refactor + Non-Interactive Mode | [`plans/fcis-refactor.yml`](plans/fcis-refactor.yml) |

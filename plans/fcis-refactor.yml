@@ -4,107 +4,44 @@
 #        add unified non-interactive protocol.
 #
 # See ARCHITECTURE.md for design details and decision log.
+#
+# Versioning: completed steps show their actual version tag. Pending steps
+# show their semver bump type (patch/minor). Actual version is determined
+# at commit time based on the current tag + bump type.
 
 project: fcis-refactor
 status: in-progress
 started: 2025-02-09
 
-steps:
+completed:
   - version: v0.4.0
-    type: feat
-    status: done
     summary: "dot CLI wrapper, replace df* aliases"
 
   - version: v0.4.1
-    type: feat
-    status: done
     summary: "validation suite and dot validate command"
 
   - version: v0.4.2
-    type: docs
-    status: done
     summary: "add ARCHITECTURE.md and plans/ tracking"
-    files:
-      create:
-        - ARCHITECTURE.md
-        - plans/fcis-refactor.yml
-    details: |
-      ARCHITECTURE.md has three sections: Design (target state), Decisions (why),
-      Migration (checklist). plans/ directory holds structured YAML plans for
-      agent pickup.
 
   - version: v0.5.0
-    type: feat
-    status: done
     summary: "add config and prompt libraries with dot TTY detection"
     files:
-      create:
-        - lib/config.sh
-        - lib/prompt.sh
-      modify:
-        - dot
-    details: |
-      lib/config.sh: read_machine_type(), read_profile(), get_dotfiles_version(),
-      init_dotfiles_vars(). Replaces identical 3-4 line patterns in 5 scripts.
-
-      lib/prompt.sh: _is_interactive(), confirm [-f] PROMPT [DEFAULT],
-      choose PROMPT OPT1 OPT2..., require_interactive MSG.
-
-      dot: TTY auto-detection at top. Source lib/config.sh. Replace inline
-      machine type/profile reading in cmd_status() with lib calls.
+      create: [lib/config.sh, lib/prompt.sh]
+      modify: [dot]
 
   - version: v0.5.1
-    type: refactor
-    status: done
     summary: "health.sh sources lib/, fix git identity check"
     files:
-      modify:
-        - health.sh
-        - dot
-    details: |
-      health.sh: Source lib/{colors,logging,config,prompt}.sh. Remove inline
-      color defs, inline logging functions, inline machine type reading. Guard
-      run_interactive_setup() with require_interactive. Fix git identity check
-      in setup walkthrough to verify both name and email (matching check_local
-      behavior). Setup removal deferred to v0.8.0.
-
-      dot: Keep setup command (dispatches to health.sh --setup).
-
-  - version: v0.5.2
-    type: fix
-    status: done
-    summary: "resolve DOTFILES_DIR symlink in is_ours check"
-    files:
-      modify:
-        - lib/paths.sh
-    details: |
-      lib/paths.sh: Fix is_ours() to resolve DOTFILES_DIR with realpath
-      before comparing. When DOTFILES_DIR is a symlink (e.g.
-      ~/.dotfiles -> actual repo path), realpath of symlink targets
-      wouldn't match the unresolved DOTFILES_DIR. Now resolves both.
+      modify: [health.sh, dot]
 
   - version: v0.5.3
-    type: refactor
-    status: done
     summary: "add lib/shell.sh, wire uninstall.sh to lib/"
     files:
-      create:
-        - lib/shell.sh
-      modify:
-        - uninstall.sh
-    details: |
-      lib/shell.sh: SHELL_CONFIG_PAIRS array, check_source_line,
-      add_source_line, remove_source_line, integrate_shell_configs(),
-      remove_shell_configs().
+      create: [lib/shell.sh]
+      modify: [uninstall.sh]
 
-      uninstall.sh: Source lib/{colors,logging,config,paths,backup,symlinks,shell}.sh.
-      Remove inline color defs, is_ours, get_dest, check_source_line,
-      remove_source_line. Use lib symbols (SYM_OK, SYM_INFO, etc.).
-      Keep orchestration (detect -> report -> execute).
-
-  - version: v0.6.0
-    type: feat
-    status: pending
+pending:
+  - bump: minor
     summary: "consolidate cleanup scripts with lib/brew.sh"
     files:
       create:
@@ -126,9 +63,7 @@ steps:
 
       dot: clean dispatches to ./cleanup.sh "$@". Remove clean! command.
 
-  - version: v0.7.0
-    type: feat
-    status: pending
+  - bump: minor
     summary: "add dot private subcommand"
     files:
       modify:
@@ -146,9 +81,7 @@ steps:
       dot: Add private subcommand — dot private (status), dot private init,
       dot private sync, dot private push [MSG], dot private edit.
 
-  - version: v0.8.0
-    type: feat
-    status: pending
+  - bump: minor
     summary: "thin sync.sh with dot orchestration"
     files:
       modify:
@@ -165,15 +98,12 @@ steps:
       (replaces removed dot setup walkthrough): reload shell, open nvim for
       plugins, select iTerm2 profile, run claude auth, verify with dot health.
 
-      Target: ~300 lines (down from 975). What remains: orchestration sequence,
-      state arrays, report formatting, first-time detection, post-install steps.
+      Remove dot setup command (D6). Target: ~300 lines (down from 975).
 
       dot: dot sync orchestrates sync.sh -> cleanup.sh. dot pull orchestrates
       git pull -> sync.sh -> cleanup.sh. Pass "$@" through.
 
-  - version: v0.8.1
-    type: refactor
-    status: pending
+  - bump: patch
     summary: "slim bootstrap.sh to self-contained clone script"
     files:
       modify:
@@ -184,10 +114,8 @@ steps:
       --force flag sets export DOTFILES_NONINTERACTIVE=1 and auto-handles existing dir.
       No longer installs Homebrew or calls cleanup.sh. Target: ~60-80 lines.
 
-  - version: v0.8.2
-    type: docs
-    status: pending
-    summary: "finalize README and skills for v0.8 architecture"
+  - bump: patch
+    summary: "finalize README and skills for new architecture"
     files:
       modify:
         - ARCHITECTURE.md
@@ -200,9 +128,7 @@ steps:
       add Private Overlay section, reference ARCHITECTURE.md.
       Skills: sync with current state.
 
-  - version: v0.8.3
-    type: chore
-    status: pending
+  - bump: patch
     summary: "add GitHub Actions lint workflow"
     files:
       create:
