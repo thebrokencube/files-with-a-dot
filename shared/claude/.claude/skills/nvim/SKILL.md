@@ -21,11 +21,10 @@ description: Neovim configuration help - plugins, keybindings, LSP setup, troubl
 ## Key Plugins
 | Plugin | Purpose | Key Binding |
 |--------|---------|-------------|
-| nvim-tree | File explorer | `<leader>e` |
-| telescope | Fuzzy finder | `<leader>sf` (files), `<leader>sg` (grep) |
+| nvim-tree | File explorer | `<leader>e` (toggle), `<leader>f` (find current file) |
+| telescope | Fuzzy finder | `<leader>sf` (search files), `<leader>sg` (grep) |
 | treesitter | Syntax highlighting | automatic |
 | mason + lspconfig | LSP support | automatic |
-| lazygit.nvim | Git TUI | `<leader>gg` |
 | tokyonight | Color scheme | automatic |
 
 ## LSP Server Management

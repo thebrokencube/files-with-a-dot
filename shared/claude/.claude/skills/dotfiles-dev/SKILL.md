@@ -74,9 +74,9 @@ description: When to use this skill (for Claude's context)
 
 ## Commit Conventions
 
-When committing changes to this repo:
-- Amend to current version tag (e.g., `v0.2`) during active development
-- Use descriptive commit messages
+Follow the conventions in the commit skill (`shared/claude/.claude/skills/commit/SKILL.md`):
+- Use conventional commits with scope: `fix(shell): correct PATH ordering`
+- Tag each commit on main with a version: `v0.3.20: fix(shell): correct PATH ordering`
 - Test with `./sync.sh --dry-run` before committing
 
 ## Testing Changes

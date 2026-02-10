@@ -33,6 +33,10 @@ shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/Dyn
 - `aggressive/Brewfile` only in aggressive mode (personal machines, repo is source of truth)
 - Conservative mode: minimal changes, just shows cleanup opportunities (work machines)
 
+**Profile**: `~/.dotfiles/.profile` contains `work` or `personal`
+- Selects which private overlay subdirectory to apply (`~/.dotfiles.private/work/` or `personal/`)
+- Affects profile-specific Brewfiles, symlinks, and Claude skills
+
 **Local config tiering** (`~/.dotfiles/local/`):
 - `shell.managed` - Aggressive mode only, repo-controlled, updated on every sync (has mise activation)
 - `shell.local` - Never touched by sync, your private customizations

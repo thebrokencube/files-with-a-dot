@@ -31,7 +31,7 @@ This is your private dotfiles overlay. It layers on top of your public dotfiles.
 
 3. Run sync to apply changes:
    ```bash
-   dfu  # or ~/.dotfiles/sync.sh
+   dfs  # or ~/.dotfiles/sync.sh
    ```
 
 ## Merge Order
