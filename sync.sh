@@ -28,7 +28,7 @@ SKIP_PULL=false
 LINKS_ONLY=false
 DRY_RUN=false
 NO_BACKUP=false
-SKIP_PROMPTS=false
+FORCE=false
 FORCE_PULL=false
 
 MACHINE_ARG=""
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
         --pull) FORCE_PULL=true; shift ;;
         --links-only) LINKS_ONLY=true; SKIP_BREW=true; SKIP_PULL=true; shift ;;
         --no-backup) NO_BACKUP=true; shift ;;
-        --skip-prompts) SKIP_PROMPTS=true; shift ;;
+        --force) FORCE=true; shift ;;
         --machine) MACHINE_ARG="$2"; shift 2 ;;
         --git-name) GIT_NAME_ARG="$2"; shift 2 ;;
         --git-email) GIT_EMAIL_ARG="$2"; shift 2 ;;
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-pull          Skip git pull"
             echo "  --links-only         Only re-create symlinks (implies --skip-brew --skip-pull)"
             echo "  --no-backup          Skip backing up existing files"
-            echo "  --skip-prompts       Skip all interactive prompts"
+            echo "  --force              Auto-confirm all prompts"
             echo ""
             echo "First-time setup (non-interactive):"
             echo "  --machine TYPE       Set machine type (aggressive|conservative)"
@@ -397,10 +397,10 @@ setup_local_configs() {
     email = $GIT_EMAIL
 EOF
             echo "  Created ~/.gitconfig.local"
-        elif [[ "$is_first_time" == true && "$SKIP_PROMPTS" != true ]]; then
+        elif [[ "$is_first_time" == true ]] && _is_interactive; then
             echo ""
-            read -p "Git name: " GIT_NAME
-            read -p "Git email: " GIT_EMAIL
+            read -rp "Git name: " GIT_NAME
+            read -rp "Git email: " GIT_EMAIL
             if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then
                 cat > "$HOME/.gitconfig.local" << EOF
 [user]
@@ -425,32 +425,17 @@ prompt_first_time_config() {
             echo "Error: Invalid machine type '$MACHINE_TYPE'. Must be 'aggressive' or 'conservative'."
             exit 1
         fi
-        echo "$MACHINE_TYPE" > "$MACHINE_FILE"
-    elif [[ "$SKIP_PROMPTS" == true ]]; then
-        MACHINE_TYPE="aggressive"
-        echo "$MACHINE_TYPE" > "$MACHINE_FILE"
-        echo "Machine type: $MACHINE_TYPE (default)"
     else
-        echo ""
-        echo "Machine type:"
-        echo "  1) aggressive - Source of truth, aggressive cleanup (personal machines)"
-        echo "  2) conservative - Minimal changes, show cleanup opportunities only (work machines)"
-        read -p "Enter choice [1-2]: " choice
-        case "$choice" in
-            1) MACHINE_TYPE="aggressive" ;;
-            2) MACHINE_TYPE="conservative" ;;
-            *) MACHINE_TYPE="aggressive" ;;
-        esac
-        echo "$MACHINE_TYPE" > "$MACHINE_FILE"
+        MACHINE_TYPE=$(choose "Machine type:" "aggressive" "conservative")
     fi
-
+    echo "$MACHINE_TYPE" > "$MACHINE_FILE"
 }
 
 # ============================================================================
 # Main Execution
 # ============================================================================
 
-VERSION=$(cd "$DOTFILES_DIR" && git describe --tags --always 2>/dev/null || echo "unknown")
+VERSION="$(get_dotfiles_version)"
 echo "============================================"
 echo "  Dotfiles Sync ($VERSION)"
 echo "============================================"
@@ -500,9 +485,9 @@ if [[ "$DRY_RUN" == true ]]; then
     exit 0
 fi
 
-if [[ "$SKIP_PROMPTS" != true ]]; then
-    read -p "Proceed with sync? [Y/n] " confirm
-    [[ "$confirm" == "n" || "$confirm" == "N" ]] && echo "Aborted." && exit 2
+if ! confirm ${FORCE:+-f} "Proceed with sync?"; then
+    echo "Aborted."
+    exit 2
 fi
 
 # Execute sync
@@ -585,19 +570,16 @@ setup_local_configs "$IS_FIRST_TIME"
 
 # Offer to init private overlay on first-time setup
 if [[ "$IS_FIRST_TIME" == true ]] && ! has_private_overlay; then
-    if [[ "$SKIP_PROMPTS" != true ]]; then
+    echo ""
+    echo "The private overlay stores machine-specific configs (git identity,"
+    echo "API keys, shell customizations) in a separate directory that can"
+    echo "optionally be backed up to a private git remote."
+    echo ""
+    if confirm ${FORCE:+-f} "Initialize private overlay at $PRIVATE_DIR?"; then
+        init_private_overlay
         echo ""
-        echo "The private overlay stores machine-specific configs (git identity,"
-        echo "API keys, shell customizations) in a separate directory that can"
-        echo "optionally be backed up to a private git remote."
-        echo ""
-        read -p "Initialize private overlay at $PRIVATE_DIR? [Y/n] " init_private
-        if [[ "$init_private" != "n" && "$init_private" != "N" ]]; then
-            init_private_overlay
-            echo ""
-            echo "Applying private symlinks..."
-            private_sync
-        fi
+        echo "Applying private symlinks..."
+        private_sync
     fi
 elif has_private_overlay; then
     # Existing overlay: re-apply symlinks (may have new entries)
@@ -619,15 +601,6 @@ echo -e "  ${GREEN}Sync complete!${NC}"
 echo "============================================"
 echo ""
 
-# Prompt to run cleanup
-if [[ "$SKIP_PROMPTS" != true ]]; then
-    read -p "Run cleanup? [y/N] " cleanup_response
-    if [[ "$cleanup_response" == "y" || "$cleanup_response" == "Y" ]]; then
-        echo ""
-        "$DOTFILES_DIR/cleanup.sh" --force
-    fi
-fi
-
 echo ""
 echo "Next steps:"
 echo "  - Open nvim and run :Lazy update for plugins"
@@ -641,9 +614,6 @@ fi
 echo ""
 
 # Prompt to reload shell
-if [[ "$SKIP_PROMPTS" != true ]]; then
-    read -p "Reload shell now? [Y/n] " reload_response
-    if [[ "$reload_response" != "n" && "$reload_response" != "N" ]]; then
-        exec $SHELL -l
-    fi
+if confirm ${FORCE:+-f} "Reload shell now?"; then
+    exec $SHELL -l
 fi
