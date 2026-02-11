@@ -73,15 +73,12 @@ completed:
     files:
       modify: [dot, lib/private.sh]
 
-pending:
-  - bump: patch
-    summary: "add dot private cd subcommand"
+  - version: v0.7.3
+    summary: "add path subcommand, rename cd to path"
     files:
       modify: [dot]
-    details: |
-      dot private cd prints $HOME/.dotfiles.private (same pattern as dot cd).
-      Help text updated with cd action.
 
+pending:
   - bump: patch
     summary: "extract shared git_push_with_preview into lib/git.sh"
     files:

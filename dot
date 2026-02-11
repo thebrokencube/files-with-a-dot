@@ -42,7 +42,7 @@ ${BOLD}Commands:${NC}
   status    Show current dotfiles state
   validate  Run validation checks (shellcheck, syntax, symlinks, skills)
   edit      Open dotfiles in editor
-  cd        Print dotfiles directory (use: cd \$(dot cd))
+  path      Print dotfiles directory (use: cd \$(dot path))
   help      Show this help
 
 ${BOLD}Options:${NC}
@@ -179,6 +179,7 @@ case "$COMMAND" in
             pull)    private_pull ;;
             push)    private_push "$@" ;;
             edit)    "${EDITOR:-nvim}" "$HOME/.dotfiles.private" ;;
+            path)    echo "$HOME/.dotfiles.private" ;;
             --help|-h)
                 echo "Usage: dot private <action>"
                 echo ""
@@ -189,6 +190,7 @@ case "$COMMAND" in
                 echo "  pull     Pull latest from remote"
                 echo "  push     Commit and push changes (optional message arg)"
                 echo "  edit     Open private overlay in editor"
+                echo "  path     Print private overlay path (use: cd \$(dot private path))"
                 ;;
             *)
                 echo -e "${RED}Unknown private action:${NC} $subcmd"
@@ -206,7 +208,7 @@ case "$COMMAND" in
     edit)
         "${EDITOR:-nvim}" "$DOTFILES_DIR"
         ;;
-    cd)
+    path)
         echo "$DOTFILES_DIR"
         ;;
     help|--help|-h)
