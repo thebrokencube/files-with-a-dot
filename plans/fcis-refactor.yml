@@ -85,14 +85,6 @@ completed:
       modify: [lib/private.sh, dot]
 
 pending:
-  - bump: patch
-    summary: "add dot push command"
-    files:
-      modify: [dot]
-    details: |
-      dot push [message] sources libs, calls git_push_with_preview for the
-      main dotfiles repo. Usage text and examples updated.
-
   - bump: minor
     summary: "thin sync.sh with dot orchestration"
     files:
