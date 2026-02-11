@@ -613,7 +613,3 @@ if [[ "$IS_FIRST_TIME" == true ]]; then
 fi
 echo ""
 
-# Prompt to reload shell
-if confirm ${FORCE:+-f} "Reload shell now?"; then
-    exec $SHELL -l
-fi

@@ -22,6 +22,8 @@ NC='\033[0m'
 # Source config library
 # shellcheck source=lib/config.sh
 [[ -f "$DOTFILES_DIR/lib/config.sh" ]] && source "$DOTFILES_DIR/lib/config.sh"
+# shellcheck source=lib/prompt.sh
+[[ -f "$DOTFILES_DIR/lib/prompt.sh" ]] && source "$DOTFILES_DIR/lib/prompt.sh"
 
 usage() {
     cat <<EOF
@@ -135,25 +137,37 @@ shift 2>/dev/null || true
 case "$COMMAND" in
     sync)
         (cd "$DOTFILES_DIR" && ./sync.sh "$@")
-        # Run cleanup after sync (pass through --dry-run/--force)
+        # Offer cleanup after sync
         cleanup_args=()
         for arg in "$@"; do
             case "$arg" in
                 --dry-run|--force) cleanup_args+=("$arg") ;;
             esac
         done
-        (cd "$DOTFILES_DIR" && ./cleanup.sh "${cleanup_args[@]+"${cleanup_args[@]}"}")
+        if confirm "Run cleanup?" "no"; then
+            (cd "$DOTFILES_DIR" && ./cleanup.sh --force "${cleanup_args[@]+"${cleanup_args[@]}"}")
+        fi
+        # Offer shell reload
+        if confirm "Reload shell now?"; then
+            exec $SHELL -l
+        fi
         ;;
     pull)
         (cd "$DOTFILES_DIR" && ./sync.sh --pull "$@")
-        # Run cleanup after sync (pass through --dry-run/--force)
+        # Offer cleanup after sync
         cleanup_args=()
         for arg in "$@"; do
             case "$arg" in
                 --dry-run|--force) cleanup_args+=("$arg") ;;
             esac
         done
-        (cd "$DOTFILES_DIR" && ./cleanup.sh "${cleanup_args[@]+"${cleanup_args[@]}"}")
+        if confirm "Run cleanup?" "no"; then
+            (cd "$DOTFILES_DIR" && ./cleanup.sh --force "${cleanup_args[@]+"${cleanup_args[@]}"}")
+        fi
+        # Offer shell reload
+        if confirm "Reload shell now?"; then
+            exec $SHELL -l
+        fi
         ;;
     links)
         (cd "$DOTFILES_DIR" && ./sync.sh --links-only "$@")
