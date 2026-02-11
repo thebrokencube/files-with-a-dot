@@ -380,37 +380,6 @@ apply_symlinks() {
 }
 
 # ============================================================================
-# Shell Integration
-# ============================================================================
-
-integrate_shell_configs() {
-    echo "Integrating shell configs..."
-
-    add_source_line "$HOME/.zprofile" "$HOME/.zprofile.dotfiles"
-    add_source_line "$HOME/.zshrc" "$HOME/.zshrc.dotfiles"
-    add_source_line "$HOME/.bash_profile" "$HOME/.bash_profile.dotfiles"
-    add_source_line "$HOME/.bashrc" "$HOME/.bashrc.dotfiles"
-    echo ""
-}
-
-add_source_line() {
-    local target="$1"
-    local source_file="$2"
-    local source_line="[ -f \"$source_file\" ] && source \"$source_file\""
-
-    [[ ! -f "$target" ]] && echo "# Shell configuration" > "$target"
-
-    if ! grep -qF "$source_file" "$target" 2>/dev/null; then
-        backup_file "$target" "shell_config"
-        echo "" >> "$target"
-        echo "# Added by dotfiles" >> "$target"
-        echo "$source_line" >> "$target"
-        echo "  Added to $target"
-    fi
-    return 0
-}
-
-# ============================================================================
 # Homebrew Management
 # ============================================================================
 
