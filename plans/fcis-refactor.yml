@@ -85,27 +85,82 @@ completed:
       modify: [lib/private.sh, dot]
 
 pending:
-  - bump: minor
-    summary: "thin sync.sh with dot orchestration"
+  # ── Thin sync.sh: source libs and delete inline duplicates ─────────────
+  # Each patch removes one group of duplicated functions. No behavior changes.
+
+  - bump: patch
+    summary: "source all missing libs in sync.sh"
     files:
-      modify:
-        - sync.sh
-        - dot
+      modify: [sync.sh]
     details: |
-      sync.sh: Source ALL lib/ files. Remove ALL inline duplicated code (colors,
-      paths, backup, symlinks, shell config). Remove --skip-prompts flag, use
-      DOTFILES_NONINTERACTIVE env var. Add --force flag. Add Homebrew prerequisite
-      check (from bootstrap.sh). Replace read -p with confirm/choose. Remove
-      cleanup call at end.
+      Add source lines for config, prompt, backup, symlinks, shell, brew, git.
+      No deletions — inline defs shadow lib defs. Zero-risk change.
 
-      First-time sync completion shows comprehensive "Next steps" section
-      (replaces removed dot setup walkthrough): reload shell, open nvim for
-      plugins, select iTerm2 profile, run claude auth, verify with dot health.
+  - bump: patch
+    summary: "delete path helper duplicates from sync.sh"
+    files:
+      modify: [sync.sh]
+    details: |
+      Delete inline is_ours, is_foreign_symlink, get_source, get_dest.
+      Already provided by lib/paths.sh (sourced since v0.7.0).
 
-      Remove dot setup command (D6). Target: ~300 lines (down from 975).
+  - bump: patch
+    summary: "delete backup function duplicates from sync.sh"
+    files:
+      modify: [sync.sh]
+    details: |
+      Delete inline init_backup, backup_file, sync_backups.
+      Now provided by lib/backup.sh. Keep BACKUP_DIR/BACKUP_MANIFEST
+      top-level assignments (needed by analyze_state before init_backup runs).
 
-      dot: dot sync orchestrates sync.sh -> cleanup.sh. dot pull orchestrates
-      git pull -> sync.sh -> cleanup.sh. Pass "$@" through.
+  - bump: patch
+    summary: "delete symlink creation duplicates from sync.sh"
+    files:
+      modify: [sync.sh]
+    details: |
+      Delete inline create_symlink, create_private_symlink, create_dotfiles_symlink.
+      Now provided by lib/symlinks.sh and lib/private.sh. Add DOTFILES_DIR
+      update after lib's create_dotfiles_symlink call in main flow.
+
+  - bump: patch
+    summary: "delete shell integration duplicates from sync.sh"
+    files:
+      modify: [sync.sh]
+    details: |
+      Delete inline integrate_shell_configs, add_source_line.
+      Now provided by lib/shell.sh.
+
+  - bump: patch
+    summary: "replace apply_symlinks + check_symlink with lib calls"
+    files:
+      modify: [sync.sh]
+    details: |
+      Delete inline check_symlink and apply_symlinks. Replace apply_symlinks
+      call in main flow with lib/symlinks.sh apply_symlinks for public +
+      lib/private.sh apply_private_symlinks for private. Refactor
+      check_shell_config calls to use SHELL_CONFIG_PAIRS from lib/shell.sh.
+
+  # ── Prompt and orchestration ───────────────────────────────────────────
+
+  - bump: patch
+    summary: "replace read -p with lib/prompt.sh, add --force flag"
+    files:
+      modify: [sync.sh]
+    details: |
+      Replace SKIP_PROMPTS flag with FORCE flag. Remove --skip-prompts arg,
+      add --force. Replace all interactive prompts with confirm/choose from
+      lib/prompt.sh (freeform git name/email guarded by _is_interactive).
+      Use get_dotfiles_version from lib/config.sh. Remove cleanup prompt (D3).
+
+  - bump: minor
+    summary: "orchestrate sync→cleanup in dot, remove setup"
+    files:
+      modify: [dot, health.sh]
+    details: |
+      dot: sync runs sync.sh then cleanup.sh, pull runs sync.sh --pull then
+      cleanup.sh. Pass --dry-run/--force through. Remove setup command.
+      health.sh: remove --setup flag and run_interactive_setup().
+      Breaking change: removes --skip-prompts, removes dot setup.
 
   - bump: patch
     summary: "slim bootstrap.sh to self-contained clone script"
