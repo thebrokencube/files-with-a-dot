@@ -122,32 +122,6 @@ ALREADY_DONE=()
 FRICTIONS=()
 WILL_BACKUP=()
 
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-is_ours() {
-    local path="$1"
-    [[ -e "$path" ]] || return 1
-    local real_path=$(realpath "$path" 2>/dev/null || echo "")
-    [[ -n "$real_path" && "$real_path" == "$SCRIPT_DIR"* ]]
-}
-
-is_foreign_symlink() {
-    local path="$1"
-    [[ -L "$path" ]] && ! is_ours "$path"
-}
-
-get_source() {
-    local line="$1"
-    echo "$line" | cut -d':' -f1
-}
-
-get_dest() {
-    local line="$1"
-    local dest=$(echo "$line" | cut -d':' -f2-)
-    echo "${dest/\$HOME/$HOME}"
-}
 
 # ============================================================================
 # Backup System
