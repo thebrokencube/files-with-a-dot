@@ -65,17 +65,15 @@ completed:
       overlay. Add migrate_private_overlay() for legacy detection/cleanup.
       init_private_overlay() adopts existing local files.
 
-pending:
-  - bump: patch
+  - version: v0.7.1
+    summary: "add pending items for status, push, and lib/git.sh work"
+
+  - version: v0.7.2
     summary: "list symlinks and changed files in status commands"
     files:
       modify: [dot, lib/private.sh]
-    details: |
-      dot status: add Symlinks section listing each entry from symlink_map.txt.
-      dot private status: list symlink names under the count, show changed files
-      (Modified/New/Deleted) instead of bare "Uncommitted changes", include
-      untracked files in clean-tree check.
 
+pending:
   - bump: patch
     summary: "add dot private cd subcommand"
     files:

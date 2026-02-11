@@ -101,6 +101,21 @@ cmd_status() {
             echo -e "  State:   ${YELLOW}uncommitted changes${NC}"
         fi
     fi
+
+    # Symlinks
+    local symlink_map="$DOTFILES_DIR/symlink_map.txt"
+    if [ -f "$symlink_map" ]; then
+        echo ""
+        echo -e "${BOLD}Symlinks${NC}"
+        while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            echo "$line" | grep -q '^\s*#' && continue
+            local name dest
+            name="$(basename "$(echo "$line" | cut -d: -f1)")"
+            dest="$(echo "$line" | cut -d: -f2-)"
+            echo "  $name → $dest"
+        done < "$symlink_map"
+    fi
 }
 
 # Require dotfiles directory

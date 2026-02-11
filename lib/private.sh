@@ -376,10 +376,28 @@ private_status() {
         echo -e "  Branch:  $branch"
 
         if git -C "$PRIVATE_DIR" diff --quiet 2>/dev/null && \
-           git -C "$PRIVATE_DIR" diff --cached --quiet 2>/dev/null; then
+           git -C "$PRIVATE_DIR" diff --cached --quiet 2>/dev/null && \
+           [[ -z "$(git -C "$PRIVATE_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]]; then
             ok "Clean (no uncommitted changes)"
         else
-            warn "Uncommitted changes"
+            warn "Uncommitted changes:"
+            local status_output
+            status_output="$(git -C "$PRIVATE_DIR" status --short 2>/dev/null)"
+            local modified=() added=() deleted=()
+            while IFS= read -r line; do
+                [[ -z "$line" ]] && continue
+                local code="${line:0:2}"
+                local file="${line:3}"
+                case "$code" in
+                    " M"|"M "|"MM"|"AM") modified+=("$file") ;;
+                    "??"|"A "|" A")      added+=("$file") ;;
+                    " D"|"D ")           deleted+=("$file") ;;
+                    *)                   modified+=("$file") ;;
+                esac
+            done <<< "$status_output"
+            [[ ${#modified[@]} -gt 0 ]] && echo "    Modified: $(IFS=', '; echo "${modified[*]}")"
+            [[ ${#added[@]} -gt 0 ]]    && echo "    New:      $(IFS=', '; echo "${added[*]}")"
+            [[ ${#deleted[@]} -gt 0 ]]  && echo "    Deleted:  $(IFS=', '; echo "${deleted[*]}")"
         fi
 
         # Remote status
@@ -399,6 +417,13 @@ private_status() {
         local count
         count=$(grep -cv '^\s*#\|^\s*$' "$private_map" 2>/dev/null || echo 0)
         info "Symlinks: $count"
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            local name dest
+            name="$(basename "$(echo "$line" | cut -d: -f1)")"
+            dest="$(echo "$line" | cut -d: -f2-)"
+            echo "    $name → $dest"
+        done < "$private_map"
     fi
 
     # Skills
