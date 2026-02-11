@@ -336,18 +336,6 @@ handle_git_pull() {
 # Symlink Operations
 # ============================================================================
 
-create_dotfiles_symlink() {
-    if [[ "$SCRIPT_DIR" == "$DOTFILES_LINK" ]]; then
-        return 0
-    elif [[ ! -L "$DOTFILES_LINK" && ! -e "$DOTFILES_LINK" ]]; then
-        echo "Creating ~/.dotfiles symlink..."
-        ln -s "$SCRIPT_DIR" "$DOTFILES_LINK"
-        DOTFILES_DIR="$DOTFILES_LINK"
-    else
-        DOTFILES_DIR="$DOTFILES_LINK"
-    fi
-}
-
 apply_symlinks() {
     echo "Creating symlinks..."
 
@@ -389,78 +377,6 @@ apply_symlinks() {
     fi
 
     echo ""
-}
-
-create_symlink() {
-    local source="$1"
-    local dest="$2"
-    local source_path="$DOTFILES_DIR/$source"
-    local name=$(basename "$source")
-
-    # Skip if source doesn't exist
-    if [[ ! -e "$source_path" ]]; then
-        return
-    fi
-
-    # Skip if already correctly linked
-    if [[ -L "$dest" ]] && [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path")" ]]; then
-        return
-    fi
-
-    # Backup and remove existing
-    if [[ -e "$dest" || -L "$dest" ]]; then
-        if ! is_ours "$dest"; then
-            backup_file "$dest" "symlink_target"
-        fi
-        rm -rf "$dest"
-    fi
-
-    # Create parent directory if needed
-    local parent_dir=$(dirname "$dest")
-    if [[ ! -d "$parent_dir" ]]; then
-        mkdir -p "$parent_dir"
-    fi
-
-    # Create symlink
-    ln -s "$source_path" "$dest"
-    echo "  $name -> $dest"
-}
-
-create_private_symlink() {
-    local source="$1"
-    local dest="$2"
-    local base_dir="$3"
-    local source_path="$base_dir/$source"
-    local name=$(basename "$source")
-
-    # Skip if source doesn't exist
-    if [[ ! -e "$source_path" ]]; then
-        return
-    fi
-
-    # Skip if already correctly linked
-    if [[ -L "$dest" ]] && [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path")" ]]; then
-        return
-    fi
-
-    # Backup and remove existing (can override public symlinks)
-    if [[ -e "$dest" || -L "$dest" ]]; then
-        # Only backup if it's not one of our symlinks
-        if ! is_ours "$dest"; then
-            backup_file "$dest" "private_symlink_target"
-        fi
-        rm -rf "$dest"
-    fi
-
-    # Create parent directory if needed
-    local parent_dir=$(dirname "$dest")
-    if [[ ! -d "$parent_dir" ]]; then
-        mkdir -p "$parent_dir"
-    fi
-
-    # Create symlink
-    ln -s "$source_path" "$dest"
-    echo "  $name -> $dest (private)"
 }
 
 # ============================================================================
@@ -720,6 +636,8 @@ fi
 
 # Create ~/.dotfiles symlink if needed
 create_dotfiles_symlink
+# Use symlink path for subsequent symlinks (more portable)
+[[ "$DOTFILES_DIR" != "$HOME/.dotfiles" && -L "$HOME/.dotfiles" ]] && DOTFILES_DIR="$HOME/.dotfiles"
 
 # Migrate: remove legacy profile system (profiles removed in v0.7.0)
 [[ -f "$SCRIPT_DIR/.profile" ]] && rm -f "$SCRIPT_DIR/.profile"
