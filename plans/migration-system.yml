@@ -1,0 +1,100 @@
+# Migration System — Consolidated, version-gated migrations
+#
+# Goal: Single place for all migration logic with version-stamp gating.
+#       Replaces scattered migrate_* calls and inline migration code.
+#       Provides infrastructure that other projects add migrations to.
+#
+# No dependencies — can start immediately.
+# Must be complete before fcis-v2 step 7 (extract scripts/private),
+# because that step deletes lib/private.sh which contains
+# migrate_private_overlay(). The migration function must already
+# live in scripts/migrate by then.
+#
+# Design:
+#   scripts/migrate is a standalone script. sync.sh calls it once early
+#   in the sync flow. It reads ~/.dotfiles/.migrate-version (stamp file),
+#   runs any migrations newer than that version, then updates the stamp.
+#
+#   All migrations are idempotent — they check preconditions before acting.
+#   This means:
+#     - No special handling for installs that predate the version stamp.
+#     - First run without a stamp: runs ALL migrations (idempotent = safe).
+#     - Creates stamp at current version afterward.
+#     - The stamp is an optimization (skip no-op checks), not a correctness gate.
+#
+# Verification (every commit):
+#   1. ./scripts/validate.sh
+#   2. ./sync.sh --dry-run --skip-pull
+
+project: migration-system
+status: pending
+blocks: [fcis-v2-standalone-scripts (step 7 only)]
+
+pending:
+  - bump: patch
+    summary: "create scripts/migrate, consolidate existing migrations"
+    files:
+      create: [scripts/migrate]
+      modify: [sync.sh, lib/private.sh]
+    details: |
+      Create scripts/migrate with version-stamp infrastructure:
+        - Reads .migrate-version from DOTFILES_DIR
+        - Defines migrations as functions, each tagged with a version
+        - Runs migrations newer than stamp (or all if no stamp)
+        - All migrations are idempotent (check before acting)
+        - Updates stamp after successful run
+        - Supports --dry-run (show what would run)
+        - Sources lib/{colors,logging,config}.sh for output formatting
+      Consolidate ALL existing migration code into versioned functions.
+      Current locations (must all be moved):
+        sync.sh line 366-388: local/ files → $HOME (no private overlay case)
+        sync.sh line 524-525: remove legacy .profile (DUPLICATED below)
+        sync.sh line 526: calls migrate_private_overlay()
+        sync.sh line 528-537: .claude dir symlink → granular linking
+        lib/private.sh migrate_private_overlay():
+          - Legacy profile dirs (work/, personal/) → flat (lines 134-198)
+          - local/ files → adopt into private overlay (lines 201-216)
+          - Fix private symlink_map.txt destinations (lines 218-243)
+          - Legacy .profile cleanup (lines 245-250, duplicate of sync.sh)
+
+      Versioned migration functions:
+        migrate_to_v0_7_0:
+          - Legacy profile dirs (work/, personal/) → flat structure
+          - Legacy local/ files → $HOME (if no private overlay)
+          - Legacy local/ files → adopt into private overlay (if exists)
+          - Fix private symlink_map.txt destinations
+          - Remove legacy .profile file
+          - Remove shell.managed from local/ (moved to aggressive/)
+        migrate_to_v0_8_0:
+          - .claude directory symlink → granular linking
+
+      sync.sh: remove ALL inline migration code (setup_local_configs
+      migration block, .profile line, migrate_private_overlay call,
+      .claude migration block). Replace with single `scripts/migrate` call.
+      lib/private.sh: delete migrate_private_overlay() function.
+      Note: setup_local_configs() still handles first-time git identity
+      prompting — that's NOT migration, it stays in sync.sh.
+
+  # ── Future migrations (added by other projects) ─────────────────────
+  # scripts/migrate is infrastructure. Other projects add versioned
+  # migration functions to it as needed. Known upcoming migrations:
+  #
+  # From stow-migration project:
+  #   migrate_to_v<stow>:
+  #     - Remove all existing manually-created symlinks so stow can
+  #       recreate them (stow refuses to manage symlinks it didn't create)
+  #     - Restructure private overlay for stow compatibility:
+  #       rename files (add dot prefix), move skills/ to .claude/skills/,
+  #       add .stow-local-ignore, delete symlink_map.txt
+  #     - Remove old iterm2 symlink (path changes from flat to deep)
+  #
+  # These are implemented as part of the stow-migration project, not here.
+  # Listed for planning visibility.
+
+  - bump: patch
+    summary: "prune completed migrations"
+    details: |
+      After all installs have run past a migration version, the migration
+      function can be deleted. Add a comment convention marking migrations
+      with a "safe to prune after" note.
+      Not urgent — migrations are cheap to keep. Do periodically.

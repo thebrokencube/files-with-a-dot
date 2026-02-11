@@ -1,0 +1,105 @@
+# Stow Migration — Replace custom symlinks with GNU Stow
+#
+# Goal: Swap the internals of scripts/symlinks to use stow instead of
+#       custom symlink management code. Also restructure shared/ and
+#       private overlay layouts for stow compatibility.
+#
+# Predecessor: fcis-v2-standalone-scripts (scripts/symlinks must exist first)
+# Depends on: migration-system (scripts/migrate must exist to add stow migrations)
+#
+# Because scripts/symlinks has a clean interface (check/apply/remove),
+# this migration is contained — only the script internals change.
+# sync.sh, uninstall.sh, health.sh, dot don't change at all.
+#
+# Stow invocations (target state):
+#   Standard packages: stow -d shared -t $HOME git bash zsh shell starship nvim ghostty iterm2
+#   Granular packages: stow -d shared -t $HOME --no-folding claude
+#   Private overlay:   stow -d $PRIVATE_DIR -t $HOME --no-folding .
+#   Manual:            ln -sf $DOTFILES_DIR/dot $HOME/.local/bin/dot
+#
+# Key stow behavior: stow refuses to manage symlinks it didn't create.
+# Existing symlinks must be removed before stow can recreate them.
+# This is handled by a migration step in scripts/migrate.
+#
+# Verification (every commit):
+#   1. ./scripts/validate.sh
+#   2. ./sync.sh --dry-run --skip-pull
+#   3. After stow swap: test full `dot sync` end-to-end
+
+project: stow-migration
+status: pending
+depends-on: [fcis-v2-standalone-scripts, migration-system]
+
+pending:
+  - bump: patch
+    summary: "add stow to Brewfile.shared"
+    files:
+      modify: [Brewfile.shared]
+    details: |
+      stow is already installed but make it declarative.
+      Add `brew "stow"` to Brewfile.shared.
+
+  - bump: patch
+    summary: "restructure shared/iterm2 for stow compatibility"
+    files:
+      modify: [shared/iterm2/]
+    details: |
+      Move dotfiles-profile.json to mirror target path:
+      shared/iterm2/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
+      This is a repo structure change. The existing symlink at the old target
+      will be cleaned up by the stow conversion migration (next step).
+
+  - bump: patch
+    summary: "add stow conversion migrations to scripts/migrate"
+    files:
+      modify: [scripts/migrate]
+    details: |
+      Add migration functions to scripts/migrate that prepare the system
+      for stow. All idempotent. Three parts:
+
+      1. Remove existing manually-created symlinks:
+         Read symlink_map.txt (still exists at this point), remove each
+         symlink at the destination. This clears the way for stow to
+         recreate them. Only removes symlinks that point into DOTFILES_DIR
+         (safety check — don't remove unrelated symlinks).
+
+      2. Restructure private overlay for stow layout:
+         - Rename gitconfig.local → .gitconfig.local (add dot prefix)
+         - Rename env.local → .env.local
+         - Rename shell.local → .shell.local
+         - Move skills/ → .claude/skills/ (mirrors $HOME target)
+         - Create .stow-local-ignore (Brewfile, workspace-claude.md, etc.)
+         - Delete symlink_map.txt from private overlay
+         Update private overlay template (templates/private/) to match.
+
+      3. Remove stale iterm2 symlink:
+         The old symlink at ~/Library/.../dotfiles-profile.json points
+         to shared/iterm2/dotfiles-profile.json (flat path). Remove it
+         so stow can create a new one pointing to the deep path.
+
+  - bump: minor
+    summary: "swap scripts/symlinks internals to use stow"
+    files:
+      modify: [scripts/symlinks]
+    details: |
+      Replace custom symlink creation/checking with stow calls:
+        apply: stow -d shared -t $HOME <packages> + stow --no-folding claude
+               + stow -d $PRIVATE_DIR -t $HOME --no-folding . (if private exists)
+               + ln -sf for dot CLI
+        check: stow -n (dry-run mode) to detect what needs linking
+        remove: stow -D (delete mode) for all packages
+      Delete all custom symlink code (check_symlink, create_symlink, etc.).
+      symlink_map.txt is no longer read — directory structure is the manifest.
+      Minor bump: symlink_map.txt no longer used (breaking for anyone
+      relying on it directly).
+
+  - bump: patch
+    summary: "delete symlink_map.txt and update docs"
+    files:
+      delete: [symlink_map.txt]
+      modify: [ARCHITECTURE.md, README.md]
+    details: |
+      Remove symlink_map.txt from repo (stow uses directory structure).
+      Update ARCHITECTURE.md with stow-based symlink model.
+      Update README.md: how to add new configs, private overlay layout.
+      Update skills if they reference symlink_map.txt.

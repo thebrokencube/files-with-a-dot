@@ -1,0 +1,160 @@
+# FCIS Refactor v2 — Standalone Scripts
+#
+# Goal: Convert sourced lib/ functions into standalone scripts with clean
+#       interfaces. Each script handles one concern, receives config via
+#       env vars, supports --check/--dry-run/--force. sync.sh becomes a
+#       thin orchestrator that calls scripts in sequence.
+#
+# Predecessor: fcis-refactor (v1) — extracted libs, non-interactive protocol
+# Depends on: migration-system (migrate_private_overlay must be extracted
+#             to scripts/migrate before we can delete lib/private.sh)
+# Enables: stow-migration (swap internals of scripts/symlinks)
+#
+# Design principles:
+#   - Scripts are independently runnable and testable
+#   - Config via env vars: DOTFILES_DIR, MACHINE_TYPE, DOTFILES_NONINTERACTIVE
+#   - Flags: --check (report only), --dry-run (no writes), --force (no prompts)
+#   - Exit codes: 0 = success/no-op, 1 = error, 2 = user cancelled
+#   - Source lib/ only for formatting (colors, logging, prompt)
+#   - Each extraction updates all callsites AND docs in the same step
+#
+# What stays as sourced lib/:
+#   colors.sh   — color constants (tiny, needed everywhere)
+#   logging.sh  — ok/err/warn/info/section (tiny, needed everywhere)
+#   prompt.sh   — confirm/choose/_is_interactive (interactive helpers)
+#   config.sh   — init_dotfiles_vars/get_dotfiles_version (env setup)
+#
+# Verification (every commit):
+#   1. ./scripts/validate.sh (shellcheck, syntax, symlink sources, skills)
+#   2. ./sync.sh --dry-run --skip-pull (confirm identical output)
+#   3. Tag: git tag v<version>
+
+project: fcis-v2-standalone-scripts
+status: pending
+depends-on: [fcis-refactor, migration-system]
+blocks: [stow-migration]
+
+pending:
+  # ── Foundation ─────────────────────────────────────────────────────────
+
+  - bump: patch
+    summary: "define env var contract and script interface pattern"
+    files:
+      modify: [ARCHITECTURE.md]
+    details: |
+      Document the standalone script contract in ARCHITECTURE.md:
+        - Env vars: DOTFILES_DIR, MACHINE_TYPE, PRIVATE_DIR,
+          DOTFILES_NONINTERACTIVE (set by dot or caller before invoking)
+        - Flags: --check, --dry-run, --force (consistent across all scripts)
+        - Exit codes: 0/1/2
+        - Sourcing pattern: scripts source lib/{colors,logging,prompt,config}.sh
+        - Each script has --help
+      Update the Migrations table to show fcis-refactor as complete and
+      link to all active projects.
+      This is the contract that all subsequent extractions follow.
+
+  # ── Extractions (simplest first, minor bump last) ──────────────────────
+  # Each step creates the script AND updates all callsites (sync.sh,
+  # uninstall.sh, health.sh, dot, cleanup.sh). The old lib/ file is
+  # deleted in the same step once no callers remain.
+
+  - bump: patch
+    summary: "extract scripts/shell-integrate from lib/shell.sh"
+    files:
+      create: [scripts/shell-integrate]
+      modify: [sync.sh, uninstall.sh]
+      delete: [lib/shell.sh]
+    details: |
+      Standalone script for managing shell config source lines.
+      Subcommands: check, apply, remove.
+      sync.sh calls `scripts/shell-integrate apply`.
+      uninstall.sh calls `scripts/shell-integrate remove`.
+      Simplest extraction — no shared state beyond DOTFILES_DIR.
+
+  - bump: patch
+    summary: "extract scripts/backup from lib/backup.sh"
+    files:
+      create: [scripts/backup]
+      modify: [sync.sh]
+      delete: [lib/backup.sh]
+    details: |
+      Standalone script for backup operations.
+      Subcommands: init, sync, restore, status.
+      Reads DOTFILES_DIR env var, manages .backup/ directory.
+      sync.sh calls `scripts/backup init && scripts/backup sync`.
+
+  - bump: patch
+    summary: "extract scripts/symlinks (including private symlinks)"
+    files:
+      create: [scripts/symlinks]
+      modify: [sync.sh, uninstall.sh, health.sh, lib/private.sh]
+      delete: [lib/symlinks.sh, lib/paths.sh]
+    details: |
+      Standalone script for ALL symlink management (public + private).
+      Absorbs from lib/symlinks.sh: check_symlink, create_symlink, apply_symlinks.
+      Absorbs from lib/paths.sh: get_source, get_dest, is_ours, is_foreign_symlink.
+      Absorbs from lib/private.sh: check_private_symlink, create_private_symlink,
+        apply_private_symlinks (these are symlink operations, not "private management").
+      Remove absorbed functions from lib/private.sh (it keeps management functions
+      and the has_private_overlay/get_private_* helpers that other scripts use).
+      Subcommands:
+        `scripts/symlinks check [--private]` — report status of all symlinks.
+        `scripts/symlinks apply [--private]` — create/update symlinks.
+        `scripts/symlinks remove` — delete managed symlinks.
+      Includes the ~/.dotfiles convenience symlink.
+      This is the script whose internals get swapped to stow later.
+
+  - bump: patch
+    summary: "simplify brew to direct brew bundle calls"
+    files:
+      modify: [sync.sh, cleanup.sh]
+      delete: [lib/brew.sh]
+    details: |
+      lib/brew.sh is mostly thin wrappers around brew bundle. Replace with
+      direct brew bundle calls in sync.sh and cleanup.sh.
+      The Brewfile-merging logic (shared + machine-type + private) either
+      inlines into the callers or becomes a small helper in config.sh.
+      cleanup.sh currently sources lib/brew.sh — update to use direct calls.
+
+  - bump: patch
+    summary: "slim bootstrap.sh to self-contained clone script"
+    files:
+      modify: [bootstrap.sh]
+    details: |
+      Becomes "get the code onto this machine" only: install Xcode CLT
+      if missing, clone repo to ~/.dotfiles, exec sync.sh. Self-contained
+      (no lib/ sourcing — repo not cloned yet).
+      --force sets DOTFILES_NONINTERACTIVE=1 and auto-handles existing dir.
+      No longer installs Homebrew or calls cleanup.sh.
+      Target: ~60-80 lines.
+
+  # ── Private management ─────────────────────────────────────────────────
+  # lib/private.sh originally had three concerns:
+  #   1. Symlink functions → already moved to scripts/symlinks above
+  #   2. Migration logic → already moved to scripts/migrate (migration-system project)
+  #   3. Management CLI → extracted below
+  #
+  # IMPORTANT: migration-system must be complete before this step, because
+  # this step deletes lib/private.sh. If migrate_private_overlay() is still
+  # in lib/private.sh, deleting it will break sync.
+
+  - bump: minor
+    summary: "extract scripts/private for dot private subcommands"
+    files:
+      create: [scripts/private]
+      modify: [dot, sync.sh, cleanup.sh]
+      delete: [lib/private.sh, lib/git.sh]
+    details: |
+      Standalone script for private overlay management CLI.
+      Subcommands: init, sync, push, pull, status, edit.
+      Also provides: has_private_overlay, get_private_brewfile (used by
+      sync.sh and cleanup.sh for conditional private brew/symlink logic).
+      These become `scripts/private has-overlay` and `scripts/private brewfile`.
+      ~200 lines (down from 483 — symlinks and migration already extracted).
+      lib/git.sh (git_push_with_preview) moves here since only push uses it.
+      dot's `private` subcommand dispatches to this script instead of
+      sourcing lib/private.sh inline.
+      sync.sh calls `scripts/private sync` for the post-sync overlay apply.
+      cleanup.sh: update to call `scripts/private has-overlay` and
+      `scripts/private brewfile` instead of sourcing lib/private.sh.
+      Minor bump: changes how dot private dispatches (subprocess vs inline).

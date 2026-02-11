@@ -1,17 +1,15 @@
-# FCIS Refactor + Non-Interactive Mode
+# FCIS Refactor v1 — Extract libs + Non-Interactive Mode
 #
 # Goal: Extract functional core (lib/), make scripts thin orchestrators,
 #        add unified non-interactive protocol.
 #
-# See ARCHITECTURE.md for design details and decision log.
-#
-# Versioning: completed steps show their actual version tag. Pending steps
-# show their semver bump type (patch/minor). Actual version is determined
-# at commit time based on the current tag + bump type.
+# Status: COMPLETE (v0.4.0 – v0.8.1)
+# Successor projects: standalone-scripts, stow-migration
 
 project: fcis-refactor
-status: in-progress
+status: complete
 started: 2025-02-09
+finished: 2026-02-10
 
 completed:
   - version: v0.4.0
@@ -56,14 +54,6 @@ completed:
                uninstall.sh, .gitignore, templates/private/]
       create: [aggressive/shell.managed]
       delete: [init-private.sh]
-    details: |
-      Consolidate all private/machine-specific config into the private overlay
-      (~/.dotfiles.private/). Remove profile system (work/personal subdirs,
-      --profile flag, MACHINE_PROFILE). Eliminate local/ directory — move
-      shell.managed to aggressive/, local config files (gitconfig.local,
-      env.local, shell.local) live in $HOME and are symlinked by private
-      overlay. Add migrate_private_overlay() for legacy detection/cleanup.
-      init_private_overlay() adopts existing local files.
 
   - version: v0.7.1
     summary: "add pending items for status, push, and lib/git.sh work"
@@ -133,44 +123,15 @@ completed:
   - version: v0.8.0
     summary: "orchestrate sync→cleanup in dot, remove setup"
     files:
-      modify: [dot, health.sh]
+      modify: [dot, health.sh, lib/private.sh]
     details: |
       dot: sync runs sync.sh then cleanup.sh, pull runs sync.sh --pull then
       cleanup.sh. Pass --dry-run/--force through. Remove setup command.
       health.sh: remove --setup flag and run_interactive_setup().
+      lib/private.sh: fix set -e bug in migrate_private_overlay.
       Breaking change: removes dot setup.
 
-pending:
-  - bump: patch
-    summary: "slim bootstrap.sh to self-contained clone script"
+  - version: v0.8.1
+    summary: "remove deprecated homebrew/cask-fonts and homebrew/services taps"
     files:
-      modify:
-        - bootstrap.sh
-    details: |
-      Becomes "get the code onto this machine" only: install Xcode CLT if missing,
-      clone repo to ~/.dotfiles, exec sync.sh. Self-contained (no lib/ sourcing).
-      --force flag sets export DOTFILES_NONINTERACTIVE=1 and auto-handles existing dir.
-      No longer installs Homebrew or calls cleanup.sh. Target: ~60-80 lines.
-
-  - bump: patch
-    summary: "finalize README and skills for new architecture"
-    files:
-      modify:
-        - ARCHITECTURE.md
-        - README.md
-        - shared/claude/.claude/skills/dotfiles/SKILL.md
-        - shared/claude/.claude/skills/dotfiles-dev/SKILL.md
-    details: |
-      ARCHITECTURE.md: mark all migration items done.
-      README.md: update CLI reference, add Non-Interactive Mode section,
-      add Private Overlay section, reference ARCHITECTURE.md.
-      Skills: sync with current state.
-
-  - bump: patch
-    summary: "add GitHub Actions lint workflow"
-    files:
-      create:
-        - .github/workflows/lint.yml
-    details: |
-      Runs on ubuntu-latest (shellcheck via apt). Triggers on push to main + PRs.
-      Runs ./scripts/validate.sh.
+      modify: [Brewfile.shared]
