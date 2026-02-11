@@ -249,7 +249,7 @@ migrate_private_overlay() {
         did_migrate=true
     fi
 
-    [[ "$did_migrate" == true ]] && echo ""
+    [[ "$did_migrate" == true ]] && echo "" || true
 }
 
 # ── Management functions ─────────────────────────────────────────────────────

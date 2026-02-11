@@ -10,20 +10,17 @@
 set -e
 
 AUTO_FIX=false
-INTERACTIVE_SETUP=false
 SPECIFIC_CHECK=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --fix) AUTO_FIX=true; shift ;;
-        --setup) INTERACTIVE_SETUP=true; shift ;;
         --check) SPECIFIC_CHECK="$2"; shift 2 ;;
         --help|-h)
             echo "Usage: ./health.sh [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --fix          Auto-fix issues where possible"
-            echo "  --setup        Interactive first-time setup guide"
             echo "  --check NAME   Run specific check only"
             echo ""
             echo "Available checks: tools, brew, local, nvim, setup"
@@ -247,131 +244,8 @@ check_setup_status() {
 }
 
 # ============================================================================
-# Interactive Setup - walks through manual steps
-# ============================================================================
-
-run_interactive_setup() {
-    require_interactive "The --setup walkthrough"
-
-    echo "============================================"
-    echo -e "  ${BOLD}Interactive Setup Guide${NC}"
-    echo "============================================"
-    echo ""
-    echo "This will walk you through manual setup steps."
-    echo "Press Enter to continue after each step, or 's' to skip."
-    echo ""
-
-    # Step 1: Shell
-    echo -e "${BOLD}Step 1: Shell Configuration${NC}"
-    echo "Your shell needs to be reloaded to pick up new config."
-    echo ""
-    echo "  Action: Run this command (or open a new terminal):"
-    echo -e "  ${CYAN}exec \$SHELL -l${NC}"
-    echo ""
-    read -rp "Press Enter when done (or 's' to skip): " response
-    [[ "$response" != "s" ]] && ok "Shell reloaded"
-    echo ""
-
-    # Step 2: Neovim
-    echo -e "${BOLD}Step 2: Neovim Plugins${NC}"
-    if [[ -d "$HOME/.local/share/nvim/lazy" ]] && [[ $(ls "$HOME/.local/share/nvim/lazy" 2>/dev/null | wc -l) -gt 5 ]]; then
-        ok "Already installed - skipping"
-    else
-        echo "Neovim plugins install automatically on first launch."
-        echo ""
-        echo "  Action: Open neovim and wait for plugins to install:"
-        echo -e "  ${CYAN}nvim${NC}"
-        echo ""
-        echo "  You'll see Lazy.nvim installing plugins. Wait for it to finish."
-        echo ""
-        read -rp "Press Enter when done (or 's' to skip): " response
-        [[ "$response" != "s" ]] && ok "Neovim plugins installed"
-    fi
-    echo ""
-
-    # Step 3: iTerm2 (macOS only)
-    if [[ "$(uname)" == "Darwin" ]]; then
-        echo -e "${BOLD}Step 3: iTerm2 Profile${NC}"
-        echo "To get icons working in iTerm2, use the Dotfiles profile."
-        echo ""
-        echo "  Action:"
-        echo "  1. Open iTerm2"
-        echo "  2. Go to Profiles (⌘+O or Profiles menu)"
-        echo "  3. Select 'Dotfiles Default'"
-        echo "  4. Click 'Set as Default' (optional)"
-        echo ""
-        echo "  Test icons work: echo -e \"\\uf015 \\ue0a0 \\uf121\""
-        echo ""
-        read -rp "Press Enter when done (or 's' to skip): " response
-        [[ "$response" != "s" ]] && ok "iTerm2 configured"
-        echo ""
-    fi
-
-    # Step 4: Claude Code Authentication
-    if command -v claude &>/dev/null; then
-        echo -e "${BOLD}Step 4: Claude Code Authentication${NC}"
-        if claude auth status &>/dev/null; then
-            ok "Already authenticated - skipping"
-        else
-            echo "Claude Code needs to be authenticated."
-            echo ""
-            echo "  Action: Run this command:"
-            echo -e "  ${CYAN}claude auth${NC}"
-            echo ""
-            echo "  This will open your browser to authenticate."
-            echo ""
-            read -rp "Press Enter when done (or 's' to skip): " response
-            [[ "$response" != "s" ]] && ok "Claude Code authenticated"
-        fi
-        echo ""
-    fi
-
-    # Step 5: Git identity
-    echo -e "${BOLD}Step 5: Git Identity${NC}"
-    local _name _email
-    _name=$(git config --file "$HOME/.gitconfig.local" user.name 2>/dev/null || echo "")
-    _email=$(git config --file "$HOME/.gitconfig.local" user.email 2>/dev/null || echo "")
-    if [[ -n "$_name" && -n "$_email" ]]; then
-        ok "Already configured as: $_name <$_email> - skipping"
-    else
-        echo "Set your git name and email for commits."
-        echo ""
-        echo "  Action: The install script should have prompted for this."
-        echo "  If not, edit ~/.gitconfig.local:"
-        echo ""
-        echo -e "  ${CYAN}[user]"
-        echo "      name = Your Name"
-        echo -e "      email = you@example.com${NC}"
-        echo ""
-        read -rp "Press Enter when done (or 's' to skip): " response
-        [[ "$response" != "s" ]] && ok "Git identity configured"
-    fi
-    echo ""
-
-    # Done
-    echo "============================================"
-    echo -e "  ${GREEN}Setup Complete!${NC}"
-    echo "============================================"
-    echo ""
-    echo "Run 'dot health' to verify everything is working."
-    echo ""
-    echo "Useful commands:"
-    echo "  dot sync         - Sync dotfiles (update if needed)"
-    echo "  dot pull         - Pull latest, then sync"
-    echo "  dot health       - Check system health"
-    echo "  /dotfiles        - Claude Code skill for help"
-    echo ""
-}
-
-# ============================================================================
 # Main
 # ============================================================================
-
-# If --setup flag, run interactive setup and exit
-if [[ "$INTERACTIVE_SETUP" == true ]]; then
-    run_interactive_setup
-    exit 0
-fi
 
 VERSION="$(get_dotfiles_version)"
 echo "============================================"
@@ -412,7 +286,6 @@ else
     echo -e "  ${YELLOW}Found $ISSUES_FOUND issue(s)${NC}"
     echo ""
     echo "  Run with --fix to auto-fix where possible"
-    echo "  Run with --setup for interactive first-time guide"
 fi
 echo "============================================"
 
