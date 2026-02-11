@@ -97,10 +97,24 @@ PRIVATE_DIR="$HOME/.dotfiles.private"
 source "$SCRIPT_DIR/lib/colors.sh"
 # shellcheck source=lib/logging.sh
 source "$SCRIPT_DIR/lib/logging.sh"
+# shellcheck source=lib/config.sh
+source "$SCRIPT_DIR/lib/config.sh"
+# shellcheck source=lib/prompt.sh
+source "$SCRIPT_DIR/lib/prompt.sh"
 # shellcheck source=lib/paths.sh
 source "$SCRIPT_DIR/lib/paths.sh"
+# shellcheck source=lib/backup.sh
+source "$SCRIPT_DIR/lib/backup.sh"
+# shellcheck source=lib/symlinks.sh
+source "$SCRIPT_DIR/lib/symlinks.sh"
+# shellcheck source=lib/shell.sh
+source "$SCRIPT_DIR/lib/shell.sh"
 # shellcheck source=lib/private.sh
 source "$SCRIPT_DIR/lib/private.sh"
+# shellcheck source=lib/brew.sh
+source "$SCRIPT_DIR/lib/brew.sh"
+# shellcheck source=lib/git.sh
+source "$SCRIPT_DIR/lib/git.sh"
 
 # State arrays
 ACTIONS=()
