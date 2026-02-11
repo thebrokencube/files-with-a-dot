@@ -8,10 +8,10 @@
 # Each pair means: target_config should source the source_dotfile
 # shellcheck disable=SC2034  # Array used by scripts that source this file
 SHELL_CONFIG_PAIRS=(
-    ".zprofile:.zprofile.dotfiles"
-    ".zshrc:.zshrc.dotfiles"
-    ".bash_profile:.bash_profile.dotfiles"
-    ".bashrc:.bashrc.dotfiles"
+    "zprofile:zprofile.dotfiles"
+    "zshrc:zshrc.dotfiles"
+    "bash_profile:bash_profile.dotfiles"
+    "bashrc:bashrc.dotfiles"
 )
 
 # Check if a shell config file contains a source line for the given pattern

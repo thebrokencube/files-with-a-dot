@@ -194,10 +194,10 @@ analyze_state() {
 
     # Check shell configs
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking shell configs..."
-    check_shell_config "$HOME/.zshrc" ".zshrc.dotfiles"
-    check_shell_config "$HOME/.zprofile" ".zprofile.dotfiles"
-    check_shell_config "$HOME/.bashrc" ".bashrc.dotfiles"
-    check_shell_config "$HOME/.bash_profile" ".bash_profile.dotfiles"
+    local pair
+    for pair in "${SHELL_CONFIG_PAIRS[@]}"; do
+        check_shell_config "$HOME/.${pair%%:*}" ".${pair##*:}"
+    done
 
     # Check all symlink map entries
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking symlink map entries..."
@@ -239,31 +239,6 @@ check_shell_config() {
     else
         ACTIONS+=("Append source line to $config")
         [[ "$NO_BACKUP" != true ]] && WILL_BACKUP+=("$config (shell config)")
-    fi
-    return 0
-}
-
-check_symlink() {
-    local source="$1"
-    local dest="$2"
-    local name=$(basename "$source")
-    local source_path="$SCRIPT_DIR/$source"
-
-    if [[ ! -e "$source_path" ]]; then
-        return 0
-    fi
-
-    if [[ -L "$dest" ]]; then
-        if [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path" 2>/dev/null)" ]]; then
-            ALREADY_DONE+=("$name")
-        else
-            FRICTIONS+=("$dest is a symlink to $(readlink "$dest"), conflicts with $name")
-        fi
-    elif [[ -e "$dest" ]]; then
-        ACTIONS+=("Link $name (existing $dest will be backed up)")
-        [[ "$NO_BACKUP" != true ]] && WILL_BACKUP+=("$dest ($name)")
-    else
-        ACTIONS+=("Link $name")
     fi
     return 0
 }
@@ -330,53 +305,6 @@ handle_git_pull() {
         git pull --rebase
         echo ""
     fi
-}
-
-# ============================================================================
-# Symlink Operations
-# ============================================================================
-
-apply_symlinks() {
-    echo "Creating symlinks..."
-
-    # Public symlinks
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        local source=$(get_source "$line")
-        local dest=$(get_dest "$line")
-        create_symlink "$source" "$dest"
-    done < "$SYMLINK_MAP"
-
-    # Private overlay symlinks
-    if has_private_overlay; then
-        echo ""
-        echo "Applying private overlay..."
-
-        local private_map="$PRIVATE_DIR/symlink_map.txt"
-        if [[ -f "$private_map" ]]; then
-            while IFS= read -r line || [[ -n "$line" ]]; do
-                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-                local source=$(get_source "$line")
-                local dest=$(get_dest "$line")
-                create_private_symlink "$source" "$dest" "$PRIVATE_DIR"
-            done < "$private_map"
-        fi
-
-        # Private skills
-        local skills_dir="$PRIVATE_DIR/skills"
-        if [[ -d "$skills_dir" ]]; then
-            for skill in "$skills_dir"/*/; do
-                [[ -d "$skill" ]] || continue
-                local skill_name=$(basename "$skill")
-                [[ "$skill_name" == ".gitkeep" ]] && continue
-                local dest="$HOME/.claude/skills/$skill_name"
-                mkdir -p "$(dirname "$dest")"
-                create_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR"
-            done
-        fi
-    fi
-
-    echo ""
 }
 
 # ============================================================================
@@ -624,7 +552,27 @@ if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
 fi
 
 # Apply symlinks
-apply_symlinks
+echo "Creating symlinks..."
+apply_symlinks "$SYMLINK_MAP"
+
+if has_private_overlay; then
+    echo ""
+    echo "Applying private overlay..."
+    apply_private_symlinks "$(get_private_symlink_map)" "$PRIVATE_DIR"
+
+    # Private skills
+    if [[ -d "$PRIVATE_DIR/skills" ]]; then
+        for skill in "$PRIVATE_DIR/skills"/*/; do
+            [[ -d "$skill" ]] || continue
+            skill_name=$(basename "$skill")
+            [[ "$skill_name" == ".gitkeep" ]] && continue
+            dest="$HOME/.claude/skills/$skill_name"
+            mkdir -p "$(dirname "$dest")"
+            create_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR"
+        done
+    fi
+fi
+echo ""
 
 # Integrate shell configs
 integrate_shell_configs
