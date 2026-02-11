@@ -78,17 +78,13 @@ completed:
     files:
       modify: [dot]
 
-pending:
-  - bump: patch
+  - version: v0.7.4
     summary: "extract shared git_push_with_preview into lib/git.sh"
     files:
       create: [lib/git.sh]
-      modify: [lib/private.sh]
-    details: |
-      New lib/git.sh with git_push_with_preview() and parse_git_status() helpers.
-      private_push() slimmed to guard checks + git_push_with_preview call.
-      private_status() calls parse_git_status instead of inline parsing.
+      modify: [lib/private.sh, dot]
 
+pending:
   - bump: patch
     summary: "add dot push command"
     files:

@@ -165,6 +165,8 @@ case "$COMMAND" in
         source "$DOTFILES_DIR/lib/paths.sh"
         # shellcheck source=lib/backup.sh
         source "$DOTFILES_DIR/lib/backup.sh"
+        # shellcheck source=lib/git.sh
+        source "$DOTFILES_DIR/lib/git.sh"
         # shellcheck source=lib/private.sh
         source "$DOTFILES_DIR/lib/private.sh"
 

@@ -6,6 +6,7 @@
 #
 # Management functions (init, status, pull, push, sync) additionally require:
 #   lib/colors.sh, lib/logging.sh, lib/config.sh, lib/prompt.sh to be sourced
+#   lib/git.sh for push and status operations
 #   lib/paths.sh, lib/backup.sh for sync operations
 
 PRIVATE_DIR="$HOME/.dotfiles.private"
@@ -375,29 +376,14 @@ private_status() {
         branch="$(git -C "$PRIVATE_DIR" branch --show-current 2>/dev/null || echo "unknown")"
         echo -e "  Branch:  $branch"
 
-        if git -C "$PRIVATE_DIR" diff --quiet 2>/dev/null && \
-           git -C "$PRIVATE_DIR" diff --cached --quiet 2>/dev/null && \
-           [[ -z "$(git -C "$PRIVATE_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]]; then
+        parse_git_status "$PRIVATE_DIR"
+        if [[ ${#_GIT_MODIFIED[@]} -eq 0 && ${#_GIT_ADDED[@]} -eq 0 && ${#_GIT_DELETED[@]} -eq 0 ]]; then
             ok "Clean (no uncommitted changes)"
         else
             warn "Uncommitted changes:"
-            local status_output
-            status_output="$(git -C "$PRIVATE_DIR" status --short 2>/dev/null)"
-            local modified=() added=() deleted=()
-            while IFS= read -r line; do
-                [[ -z "$line" ]] && continue
-                local code="${line:0:2}"
-                local file="${line:3}"
-                case "$code" in
-                    " M"|"M "|"MM"|"AM") modified+=("$file") ;;
-                    "??"|"A "|" A")      added+=("$file") ;;
-                    " D"|"D ")           deleted+=("$file") ;;
-                    *)                   modified+=("$file") ;;
-                esac
-            done <<< "$status_output"
-            [[ ${#modified[@]} -gt 0 ]] && echo "    Modified: $(IFS=', '; echo "${modified[*]}")"
-            [[ ${#added[@]} -gt 0 ]]    && echo "    New:      $(IFS=', '; echo "${added[*]}")"
-            [[ ${#deleted[@]} -gt 0 ]]  && echo "    Deleted:  $(IFS=', '; echo "${deleted[*]}")"
+            [[ ${#_GIT_MODIFIED[@]} -gt 0 ]] && echo "    Modified: $(IFS=', '; echo "${_GIT_MODIFIED[*]}")"
+            [[ ${#_GIT_ADDED[@]} -gt 0 ]]    && echo "    New:      $(IFS=', '; echo "${_GIT_ADDED[*]}")"
+            [[ ${#_GIT_DELETED[@]} -gt 0 ]]  && echo "    Deleted:  $(IFS=', '; echo "${_GIT_DELETED[*]}")"
         fi
 
         # Remote status
@@ -451,10 +437,9 @@ private_pull() {
 }
 
 # Commit and push private overlay changes.
-# Args: $1 = commit message (optional, defaults to "Update private dotfiles")
+# Args: $1 = commit message (optional, auto-generated if omitted)
+# Requires: lib/git.sh to be sourced
 private_push() {
-    local msg="${1:-Update private dotfiles}"
-
     if ! has_private_overlay; then
         err "No private overlay found. Run: dot private init"
         return 1
@@ -464,29 +449,7 @@ private_push() {
         return 1
     fi
 
-    # Check if there are changes
-    if git -C "$PRIVATE_DIR" diff --quiet 2>/dev/null && \
-       git -C "$PRIVATE_DIR" diff --cached --quiet 2>/dev/null && \
-       [[ -z "$(git -C "$PRIVATE_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]]; then
-        ok "Nothing to push (working tree clean)"
-        return 0
-    fi
-
-    info "Committing changes..."
-    (
-        cd "$PRIVATE_DIR" || return
-        git add -A
-        git commit -m "$msg"
-    )
-
-    if git -C "$PRIVATE_DIR" remote get-url origin &>/dev/null; then
-        info "Pushing to remote..."
-        git -C "$PRIVATE_DIR" push
-        ok "Pushed."
-    else
-        warn "No remote configured. Committed locally only."
-        echo "  To add a remote: cd $PRIVATE_DIR && git remote add origin <url>"
-    fi
+    git_push_with_preview "$PRIVATE_DIR" "private" "${1:-}"
 }
 
 # Re-apply private symlinks.
