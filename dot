@@ -147,10 +147,8 @@ case "$COMMAND" in
         if confirm "Run cleanup?" "no"; then
             (cd "$DOTFILES_DIR" && ./cleanup.sh --force "${cleanup_args[@]+"${cleanup_args[@]}"}")
         fi
-        # Offer shell reload
-        if confirm "Reload shell now?"; then
-            exec $SHELL -l
-        fi
+        echo ""
+        echo -e "${GREEN}Run 'reload' to apply shell changes.${NC}"
         ;;
     pull)
         (cd "$DOTFILES_DIR" && ./sync.sh --pull "$@")
@@ -164,10 +162,8 @@ case "$COMMAND" in
         if confirm "Run cleanup?" "no"; then
             (cd "$DOTFILES_DIR" && ./cleanup.sh --force "${cleanup_args[@]+"${cleanup_args[@]}"}")
         fi
-        # Offer shell reload
-        if confirm "Reload shell now?"; then
-            exec $SHELL -l
-        fi
+        echo ""
+        echo -e "${GREEN}Run 'reload' to apply shell changes.${NC}"
         ;;
     links)
         (cd "$DOTFILES_DIR" && ./sync.sh --links-only "$@")
