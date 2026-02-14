@@ -114,6 +114,8 @@ _Small projects may have 0-2 rows. Larger projects should enumerate all facts th
 - **Scaling**: Small projects might have one compilation target and no cross-references. Large projects might have many of each. The sections are optional — omit Cross-Reference Schema entirely if there's nothing to track.
 - **Status column**: Maintained by agents when editing source files (mark as **Stale**) and by the compile command (mark as **Clean**). The audit verifies this by content comparison — it doesn't trust the column.
 - **External Systems**: List MCP server names and capabilities, not specific tool names. The skill discovers tools from what's available at runtime.
+- **Target descriptions**: The description text for each compilation target drives both compilation and audit behavior. Document not just *what* compiles where, but *how* the format changes — what's condensed, what's excluded, what's reformatted, and what's local-only. Vague descriptions lead to incorrect compilation and false audit results.
+- **Format alignment**: When possible, use the same format in source and target files (e.g., both using tables for structured data). This reduces compilation to "condense prose, preserve structure" rather than "reformat tables to bullets." Format translation between source and target should be the exception, not the default.
 
 ## Finding Project Config
 
