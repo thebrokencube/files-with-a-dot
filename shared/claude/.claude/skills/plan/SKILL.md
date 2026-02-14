@@ -48,7 +48,7 @@ Project config     Source mappings, targets, state            <project>/README.m
 ```markdown
 # Build Manifest
 
-Tracks compilation status between local source files and external targets.
+Tracks compilation status between local source files and external targets. See [README.md](./README.md) for the compilation model overview.
 
 **Last reviewed:** YYYY-MM-DD
 
@@ -58,7 +58,7 @@ Tracks compilation status between local source files and external targets.
 
 | System | Used for | Access method |
 |--------|----------|---------------|
-| _e.g., Jira_ | _Epic descriptions_ | _MCP: editJiraIssue_ |
+| _e.g., Jira_ | _Epic descriptions_ | _MCP (jira-confluence server)_ |
 | _e.g., Google Doc_ | _Shared spec_ | _Manual: paste-from-markdown_ |
 
 ---
@@ -69,27 +69,39 @@ Tracks compilation status between local source files and external targets.
 
 _Description of what this compilation target does and any notes on format differences._
 
-| Source | Target | Status | Last compiled |
-|--------|--------|--------|---------------|
-| _source-file.md_ | _target location or system_ | Clean | _YYYY-MM-DD_ |
+| Source | Target | Status |
+|--------|--------|--------|
+| _source-file.md_ | _target location or identifier_ | Clean |
 
-_Repeat this section for each compilation target or tier._
+**Last compiled:** _YYYY-MM-DD or "Not yet"_
+
+_Repeat this section for each compilation target._
+
+---
+
+## Cross-Reference Schema
+
+Facts that appear in multiple files. The audit checks that each fact in "Also appears in" matches the value in its source of truth.
+
+| Fact | Source of truth | Also appears in |
+|------|----------------|-----------------|
+| _e.g., Epic statuses_ | _Per-epic file headers_ | _PROJECT.md, README.md_ |
+| _e.g., Jira epic keys_ | _This manifest_ | _PROJECT.md, per-epic files_ |
+
+_Small projects may have 0-2 rows. Larger projects should enumerate all facts that are duplicated across files. Only list facts where drift would cause real confusion — don't track every trivial mention._
 
 ---
 
 ## Pending
 
 - [ ] _Items that need to be compiled_
-
----
-
-## After Compilation
-
-1. Update "Last compiled" dates in the tables above
-2. Update "Last Propagated" dates in source file headers (if applicable)
-3. Archive or clear the pending section
-4. Commit the updates
 ```
+
+### Template notes
+
+- **Scaling**: Small projects might have one compilation target and no cross-references. Large projects might have many of each. The sections are optional — omit Cross-Reference Schema entirely if there's nothing to track.
+- **Status column**: Maintained by agents when editing source files (mark as **Stale**) and by the compile command (mark as **Clean**). The audit verifies this by content comparison — it doesn't trust the column.
+- **External Systems**: List MCP server names and capabilities, not specific tool names. The skill discovers tools from what's available at runtime.
 
 ## Finding Project Config
 
@@ -99,9 +111,8 @@ _Repeat this section for each compilation target or tier._
 
 `PLAN_MANIFEST.md` contains:
 - **External systems**: What this project compiles to and how to access each target
-- **Source mappings**: Which source files compile into which targets
-- **Compilation status**: Clean vs Stale per target
-- **Last compiled dates**: When each target was last updated
+- **Compilation targets**: Which source files compile into which targets, with status
+- **Cross-reference schema**: Which facts are shared across files, with their source of truth
 - **Compilation workflows**: How to compile each target type (MCP, manual, etc.)
 
 ## Commands
@@ -123,49 +134,68 @@ Compile source files into their external targets.
 **Specific target**: Compile one target by name (names come from `PLAN_MANIFEST.md`).
 
 After compilation:
-1. Update status to **Clean** and "Last compiled" dates in `PLAN_MANIFEST.md`
-2. If source files have "Last Propagated" header fields, update those too
-3. Ask user about committing: "Commit compilation updates? (now / batch later)"
+1. Update status to **Clean** in `PLAN_MANIFEST.md`
+2. Update **Last compiled** dates in `PLAN_MANIFEST.md`
+3. If source files have "Last Propagated" header fields, update those too
+4. Ask user about committing: "Commit compilation updates? (now / batch later)"
 
 ### `audit [scope]`
 
-Check the state of the project. Think of this as `git status` for the compilation system.
+Check the state of the project. Think of this as `git status` for the compilation system. The audit is **data-driven** — it reads `PLAN_MANIFEST.md` to determine what to check, then verifies by reading actual content.
 
-**`local`** (default): Check compilation status and cross-file consistency without external calls.
+**`local`** (default): Check compilation status and cross-reference consistency without external calls.
 
 **`external`**: Local checks plus validate against external systems listed in `PLAN_MANIFEST.md`, using available tools.
 
 **Specific target** (e.g., `audit jira BEN-47872`): Validate one target against its external system.
 
-#### What to check
+#### Step 1: Compilation status (content comparison)
 
-1. **Compilation status** — Read `PLAN_MANIFEST.md`. Report which targets are Clean vs Stale. Check if source files appear modified since last compilation.
+For each row in each **Compilation Targets** table:
 
-2. **Cross-file consistency** — Read all source files and cross-reference:
-   - Statuses that appear in multiple files should agree
-   - Dates should reflect the most recent edit session
-   - Shared facts (lists, references, identifiers) should be consistent everywhere
-   - File references should resolve
+1. Read the **source** file content
+2. Read the **target** content (local file, or fetch from external system if `external` scope)
+3. Compare semantically — does the target reflect the source? Account for expected format differences noted in the target section's description (e.g., tables → bullet points, condensed for Jira)
+4. Report:
+   - If content matches and Status says Clean → **Clean**
+   - If content matches but Status says Stale → **Warning** (status column is wrong, should be Clean)
+   - If content differs and Status says Stale → **Stale** (expected, needs compilation)
+   - If content differs and Status says Clean → **Error** (status column is wrong, should be Stale)
 
-3. **External validation** (if `external` scope) — For each external system in `PLAN_MANIFEST.md`, use available tools to fetch current state and compare against local sources. Flag meaningful differences, not formatting noise.
+For local audit, only check targets that are local files. For external audit, also fetch and compare external targets.
+
+#### Step 2: Cross-reference consistency
+
+For each row in the **Cross-Reference Schema** table:
+
+1. Read the **source of truth** and extract the fact's current value
+2. For each location in **Also appears in**, read and extract the same fact
+3. Compare — do all locations agree with the source of truth?
+4. Report each fact as Clean, Warning, or Error with specific details on what differs
+
+If the project has no Cross-Reference Schema section, skip this step.
+
+#### Step 3: External validation (if `external` scope)
+
+For each external system in `PLAN_MANIFEST.md`, use available MCP tools to fetch current state and compare against local sources. Flag meaningful content differences, not formatting noise.
 
 #### Output format
 
 Group by section. Use severity levels:
 
-- ✅ **Clean** — consistent, no action needed
-- ⚠️ **Warning** — possibly stale or minor inconsistency
-- ❌ **Error** — clear inconsistency that should be fixed
+- **Clean** — consistent, no action needed
+- **Warning** — possible issue or minor inconsistency
+- **Error** — clear inconsistency that should be fixed
 
 ```
 ## Compilation Status
-- [target]: Clean / Stale (details)
+- [target section]: [source → target]: Clean / Stale / Error (details)
 
-## Cross-File Consistency
-- ✅ / ⚠️ / ❌ finding
+## Cross-Reference Consistency
+- [fact]: Clean / Warning / Error (what differs where)
 
 ## External Validation (if requested)
-- [target]: Matches ✅ / Differs ⚠️ (what changed)
+- [system] [target]: Matches / Differs (what changed)
 ```
 
 Audit only reports — it does not fix anything. The user decides what to address.
