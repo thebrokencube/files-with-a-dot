@@ -31,6 +31,31 @@ Project config     Source mappings, targets, state            <project>/README.m
 
 **Project config**: The project's own files. An entry point (typically README.md) describes the compilation model and file roles. `PLAN_MANIFEST.md` tracks source mappings, external systems relevant to this project, compilation status, and workflows. All project-specific detail lives here.
 
+### File Roles
+
+Source files, compiled targets, and infrastructure serve different purposes. Knowing which role a file plays determines how to write it and what to expect during compilation.
+
+- **Source files**: Working memory. Accumulate detail — open questions, checklists, decision rationale. Written for authors and agents. These are the single source of truth for their content.
+- **Compiled targets**: Communication layer. Two flavors:
+  - *Summary targets*: High-level overview, significantly condensed from sources. Audience is stakeholders who need the "what" without the "how."
+  - *Tab-ready targets*: Cleaned-up versions of source material — strip local metadata (`- Last Updated:`, `- [ ]` checkboxes, `---` separators), normalize formatting, make paste-ready. Preserve substance but remove working-memory artifacts.
+- **Infrastructure** (manifest, entry point navigation): Operational state. Note: an entry point (like README.md) may also be a compilation source — document this in the manifest so it's explicit.
+
+**Directory convention** (recommended): Mirror the external issue hierarchy in the filesystem. The project root corresponds to the top-level issue. Subdirectories map to child issue types.
+
+```
+project/                     # Top-level issue (Initiative, Project Name, etc.)
+├── {bucket}/                # Child issue groupings (if applicable)
+│   ├── README.md            #   → Description for this level
+│   └── {epic}/epic.md       #   → Description for child issue
+├── reference/               # Source: domain knowledge (not issue-mapped)
+├── compiled/                # Generated — edit source, recompile
+├── PLAN_MANIFEST.md
+└── README.md
+```
+
+**Compile = reduce**: Compilation is distillation. Match target detail to its role and audience. The manifest's target descriptions specify the transformation — what to condense, what to strip, what to preserve.
+
 ### Bootstrapping a New Project
 
 1. **Environment** (one-time per environment): Ensure Claude Code has context about what external systems are available to you. This can live in any CLAUDE.md that's in scope — global, workspace, or repo level. If you've already set this up, skip it.
@@ -106,7 +131,7 @@ _Small projects may have 0-2 rows. Larger projects should enumerate all facts th
 
 ## Pending
 
-- [ ] _Items that need to be compiled_
+_Operational status: what needs attention next. Keep concise — stale targets and action items, not changelog._
 ```
 
 ### Template notes
@@ -139,9 +164,9 @@ Compile source files into their external targets.
 
 1. Read `PLAN_MANIFEST.md`, identify stale targets
 2. Compile in dependency order (intermediate files before their downstream targets)
-3. For each target, follow the workflow documented in `PLAN_MANIFEST.md`:
-   - **Intermediate file** (assembled from multiple sources): Read sources, reformat to match the target's style, update the file
-   - **External description** (pushed to an external system): Condense source content appropriately, push via the access method listed in `PLAN_MANIFEST.md`
+3. For each target, follow the workflow documented in `PLAN_MANIFEST.md`. Apply the file role (see File Roles above) to determine the transformation:
+   - **Intermediate file** (assembled from multiple sources): Read sources, apply the target's role (summary or tab-ready), update the file
+   - **External description** (pushed to an external system): Condense source content per its role, push via the access method listed in `PLAN_MANIFEST.md`
    - **Manual target** (requires user action): Provide instructions and wait for confirmation
 4. For manual-only targets, instruct the user on what to do
 
