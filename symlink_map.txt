@@ -41,3 +41,4 @@ shared/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 shared/claude/.claude/skills/brew:$HOME/.claude/skills/brew
 shared/claude/.claude/skills/system:$HOME/.claude/skills/system
 shared/claude/.claude/skills/commit:$HOME/.claude/skills/commit
+shared/claude/.claude/skills/plan:$HOME/.claude/skills/plan
