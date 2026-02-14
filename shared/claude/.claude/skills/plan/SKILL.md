@@ -63,6 +63,18 @@ Tracks compilation status between local source files and external targets. See [
 
 ---
 
+## Repositories
+
+_Optional. Document repository URL conventions when source files link to code._
+
+| Repo | GitHub URL pattern |
+|------|-------------------|
+| _e.g., zenpayroll_ | `https://github.com/Org/repo/blob/main/{path}` |
+
+_Use `blob/main/` for files, `tree/main/` for directories._
+
+---
+
 ## Compilation Targets
 
 ### [Target name] ([source] → [target type])
@@ -132,6 +144,8 @@ Compile source files into their external targets.
 4. For manual-only targets, instruct the user on what to do
 
 **Specific target**: Compile one target by name (names come from `PLAN_MANIFEST.md`).
+
+**Code references**: When source files contain links to code repositories (e.g., GitHub URLs), preserve them during compilation. When compiling to targets that support links (Jira, Google Docs via paste-from-markdown), file references should remain clickable. Code blocks (directory trees, DSL examples) are excluded — only link references in tables and inline text.
 
 After compilation:
 1. Update status to **Clean** in `PLAN_MANIFEST.md`
