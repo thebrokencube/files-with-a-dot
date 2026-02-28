@@ -1,0 +1,171 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Ad-hoc markdown→ADF converter for simple ticket descriptions.
+# Handles: ## headings, **bold**, `code`, [links](url), - bullets, 1. ordered lists, paragraphs.
+#
+# Modes:
+#   md-to-adf input.md                    → raw ADF doc JSON
+#   md-to-adf --acli RETIRE-3100 input.md → acli --from-json payload
+#   md-to-adf --acli RETIRE-3100 < input  → same, from stdin
+#   md-to-adf --lint file.md              → validate markdown uses supported subset only
+
+require "json"
+
+def parse_inline(text)
+  return [] if text.nil? || text.strip.empty?
+
+  segments = []
+  remaining = text
+
+  until remaining.empty?
+    case remaining
+    when /\A\*\*(.+?)\*\*/
+      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "strong" }] }
+      remaining = $'
+    when /\A`(.+?)`/
+      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "code" }] }
+      remaining = $'
+    when %r{\A\[(.+?)\]\((https?://[^\)]+)\)}
+      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "link", "attrs" => { "href" => $2 } }] }
+      remaining = $'
+    when /\A(.*?)(?=\*\*|`|\[)/
+      segments << { "type" => "text", "text" => $1 } unless $1.empty?
+      remaining = $'
+    else
+      segments << { "type" => "text", "text" => remaining }
+      remaining = ""
+    end
+  end
+
+  segments
+end
+
+def parse_markdown(input)
+  lines = input.lines.map(&:chomp)
+  content = []
+  i = 0
+
+  while i < lines.length
+    line = lines[i]
+
+    case line
+    when /\A## (.+)/
+      content << {
+        "type" => "heading",
+        "attrs" => { "level" => 2 },
+        "content" => parse_inline($1)
+      }
+      i += 1
+    when /\A- (.+)/
+      items = []
+      while i < lines.length && lines[i] =~ /\A- (.+)/
+        items << {
+          "type" => "listItem",
+          "content" => [{ "type" => "paragraph", "content" => parse_inline($1) }]
+        }
+        i += 1
+      end
+      content << { "type" => "bulletList", "content" => items }
+    when /\A\d+\. (.+)/
+      items = []
+      while i < lines.length && lines[i] =~ /\A\d+\. (.+)/
+        items << {
+          "type" => "listItem",
+          "content" => [{ "type" => "paragraph", "content" => parse_inline($1) }]
+        }
+        i += 1
+      end
+      content << { "type" => "orderedList", "content" => items }
+    when /\A\s*\z/
+      i += 1
+    else
+      content << { "type" => "paragraph", "content" => parse_inline(line) }
+      i += 1
+    end
+  end
+
+  { "version" => 1, "type" => "doc", "content" => content }
+end
+
+def lint(input, filename)
+  issues = []
+  lines = input.lines
+  in_code_block = false
+
+  lines.each_with_index do |line, idx|
+    lineno = idx + 1
+    stripped = line.chomp
+
+    # Track code block state (report the opening line, skip contents)
+    if stripped =~ /\A```/
+      if !in_code_block
+        issues << [lineno, "code block (fenced) not supported"]
+        in_code_block = true
+      else
+        in_code_block = false
+      end
+      next
+    end
+    next if in_code_block
+
+    if stripped =~ /\A###+ /
+      issues << [lineno, "level 3+ heading not supported (only ## supported)"]
+    elsif stripped =~ /\A\|.+\|/
+      issues << [lineno, "table syntax not supported"]
+    elsif stripped =~ /\A>/
+      issues << [lineno, "blockquote not supported"]
+    elsif stripped =~ /\A  +- / || stripped =~ /\A\t+- /
+      issues << [lineno, "nested list not supported"]
+    elsif stripped =~ /\A  +\d+\. / || stripped =~ /\A\t+\d+\. /
+      issues << [lineno, "nested list not supported"]
+    end
+  end
+
+  issues
+end
+
+# --- CLI ---
+
+args = ARGV.dup
+
+if args[0] == "--lint"
+  args.shift
+  all_issues = []
+
+  if args.empty?
+    # stdin
+    input = $stdin.read
+    lint(input, "<stdin>").each do |lineno, msg|
+      all_issues << "<stdin>:#{lineno}: #{msg}"
+    end
+  else
+    args.each do |file|
+      input = File.read(file)
+      lint(input, file).each do |lineno, msg|
+        all_issues << "#{file}:#{lineno}: #{msg}"
+      end
+    end
+  end
+
+  unless all_issues.empty?
+    all_issues.each { |issue| $stderr.puts issue }
+    exit 1
+  end
+  exit 0
+end
+
+acli_key = nil
+if args[0] == "--acli"
+  args.shift
+  acli_key = args.shift
+end
+
+input = args[0] ? File.read(args[0]) : $stdin.read
+adf = parse_markdown(input)
+
+if acli_key
+  puts JSON.pretty_generate({ "issues" => [acli_key], "description" => adf })
+else
+  puts JSON.pretty_generate(adf)
+end
