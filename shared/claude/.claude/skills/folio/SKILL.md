@@ -161,6 +161,54 @@ Tree targets contain multiple internal nodes, each with its own linked file, ins
 
 Each tree node compiles independently from its own source file — nodes do NOT consume child outputs. Bottom-up order matters for the external system (parent descriptions may reference children), not for data flow.
 
+#### Jira Push Pipeline
+
+Tree targets with `system: jira` and `compiled_ext: .json` use a two-phase pipeline: source markdown is compiled to ADF JSON intermediates, then pushed via acli.
+
+**Pipeline overview:**
+
+```
+source .md → lint (md-to-adf --lint) → compile (md-to-adf --acli) → compiled .json → push (acli)
+```
+
+**Phase 1 — Lint:** Run the `lint` command from tooling.yml on the source file. If unsupported markdown features are found, report the issues to the user and stop. Do not produce broken ADF.
+
+**Phase 2 — Precompile:** Run the `precompile` command from tooling.yml to convert source markdown to ADF JSON. The template placeholders resolve from tree node fields:
+
+| Placeholder | Resolves from |
+|-------------|---------------|
+| `{id}` | Tree node `id` (Jira key) |
+| `{source}` | Tree node `file` (source markdown path) |
+| `{compiled}` | `{compiled_dir}/{id}{compiled_ext}` |
+
+**Phase 3 — Push:** Push the compiled JSON to Jira via acli: `acli jira workitem edit --from-json {compiled} --yes`
+
+**`compiled_dir` and `compiled_ext` convention:** When a tree target declares these fields, compiled artifacts go to `{compiled_dir}/{id}{compiled_ext}`. This gives inspectable intermediate artifacts that can be reviewed before push. Example: `compiled_dir: compiled/jira/`, `compiled_ext: .json` → node BEN-47882 compiles to `compiled/jira/BEN-47882.json`.
+
+**Known limitations** (what `md-to-adf --lint` catches):
+
+- No tables (`| ... |` syntax)
+- No fenced code blocks (`` ``` ``)
+- No blockquotes (`>`)
+- No nested lists (indented `- ` or `1. `)
+- No level 3+ headings (`###`)
+
+These are limitations of the md-to-adf script, not of ADF itself. Source files that use these features must be flattened before compilation or use an alternative pipeline.
+
+**Concrete example** — compiling one tree node:
+
+```bash
+# 1. Lint
+md-to-adf --lint unify/testing/BEN-47882.md
+# Exit 0 → clean
+
+# 2. Precompile (source → ADF JSON)
+md-to-adf --acli BEN-47882 < unify/testing/BEN-47882.md > compiled/jira/BEN-47882.json
+
+# 3. Push to Jira
+acli jira workitem edit --from-json compiled/jira/BEN-47882.json --yes
+```
+
 #### Batch target compilation
 
 Batch targets contain multiple items sharing a pattern. Each item has its own source and external output:
@@ -271,6 +319,8 @@ targets:
     tree:
       system: jira
       field: description
+      compiled_dir: compiled/jira/  # Optional: directory for compiled intermediates
+      compiled_ext: .json           # Optional: extension for compiled files ({compiled_dir}/{id}{compiled_ext})
       root:
         id: "PROJ-100"
         label: "Initiative"

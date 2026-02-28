@@ -7,6 +7,8 @@ systems:
     pull: cli:acli
     push: cli:acli
     check: "acli --version"
+    precompile: "md-to-adf --acli {id} < {source} > {compiled}"
+    lint: "md-to-adf --lint {source}"
   confluence:
     pull: mcp:jira-confluence
     push: mcp:jira-confluence
