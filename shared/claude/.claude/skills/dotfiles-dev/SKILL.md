@@ -74,10 +74,31 @@ description: When to use this skill (for Claude's context)
 
 ## Commit Conventions
 
-Follow the conventions in the commit skill (`shared/claude/.claude/skills/commit/SKILL.md`):
+Follow the conventions in the commit skill, plus dotfiles-specific rules:
 - Use conventional commits with scope: `fix(shell): correct PATH ordering`
-- Tag each commit on main with a version: `v0.3.20: fix(shell): correct PATH ordering`
 - Test with `dot sync --dry-run` before committing
+
+### Versioning and Tags
+
+The dotfiles repo uses **semantic versioning** with tagged commits on main: `vMAJOR.MINOR.PATCH`
+
+- **MAJOR** - Breaking changes
+- **MINOR** - New features (backwards compatible)
+- **PATCH** - Bug fixes
+
+Prepend the version to the commit message and create a matching annotated tag:
+
+```
+v0.3.20: fix(shell): correct PATH ordering
+```
+
+```bash
+git tag -a v0.3.20 -m "v0.3.20: fix(shell): correct PATH ordering"
+git push origin main v0.3.20
+```
+
+- **Tags are immutable** — once pushed, NEVER move or delete
+- **Every commit on main = tagged** — commit first, then tag, then push both
 
 ## Testing Changes
 

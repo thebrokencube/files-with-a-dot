@@ -43,3 +43,4 @@ shared/claude/.claude/skills/system:$HOME/.claude/skills/system
 shared/claude/.claude/skills/commit:$HOME/.claude/skills/commit
 shared/claude/.claude/skills/plan:$HOME/.claude/skills/plan
 shared/claude/.claude/skills/folio:$HOME/.claude/skills/folio
+shared/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr

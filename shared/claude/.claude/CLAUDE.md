@@ -24,7 +24,8 @@ My development environment, available globally across all projects.
 
 ## Git Preferences
 - Do NOT add Co-Authored-By or other trailers to commits
-- Use conventional commits with scope (see commit skill for details)
+- Use conventional commits: `type(scope): description` (see commit skill for details)
+- When working with stacked branches, follow propagation and fixup rules (see stacked-pr skill for details)
 
 ## Cross-Repo Awareness
 - **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles-dev skill).
