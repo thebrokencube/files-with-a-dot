@@ -134,10 +134,3 @@ uninstall.sh (standalone leaf)
 
 **Decision**: Keep bootstrap.sh self-contained (~60-80 lines). Its only job is: install Xcode CLT, clone repo, exec sync.sh. Homebrew prerequisite check moves to sync.sh (which can use lib/).
 
----
-
-## Migrations
-
-| Status | Plan | Details |
-|--------|------|---------|
-| 🔄 | FCIS Refactor + Non-Interactive Mode | [`plans/fcis-refactor.yml`](plans/fcis-refactor.yml) |
