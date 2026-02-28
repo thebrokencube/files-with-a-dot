@@ -481,3 +481,66 @@ private_sync() {
 
     ok "Private symlinks applied."
 }
+
+# ── Managed files ─────────────────────────────────────────────────────────────
+# Merge base + private overlay JSON files and write to destination.
+# Reads a managed_map.txt with format: base[+overlay]:destination
+
+apply_managed_files() {
+    local map_file="$1"
+    [[ ! -f "$map_file" ]] && return 0
+
+    # Require jq for JSON merging
+    if ! command -v jq &>/dev/null; then
+        warn "jq not found — skipping managed files (install jq via Homebrew)"
+        return 0
+    fi
+
+    section "Merging managed files..."
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip comments and blank lines
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        # Parse format: base[+overlay]:destination
+        local spec="${line%%:*}"
+        local dest="${line#*:}"
+        dest=$(eval echo "$dest")  # Expand $HOME
+
+        local base_rel overlay_rel
+        if [[ "$spec" == *"+"* ]]; then
+            base_rel="${spec%%+*}"
+            overlay_rel="${spec#*+}"
+        else
+            base_rel="$spec"
+            overlay_rel=""
+        fi
+
+        local base_path="$DOTFILES_DIR/$base_rel"
+        local overlay_path=""
+        [[ -n "$overlay_rel" ]] && overlay_path="$PRIVATE_DIR/$overlay_rel"
+
+        local have_base=false have_overlay=false
+        [[ -f "$base_path" ]] && have_base=true
+        [[ -n "$overlay_path" && -f "$overlay_path" ]] && have_overlay=true
+
+        if [[ "$have_base" == false && "$have_overlay" == false ]]; then
+            warn "Skipping $(basename "$dest") — no base or overlay found"
+            continue
+        fi
+
+        # Ensure parent directory exists
+        mkdir -p "$(dirname "$dest")"
+
+        if [[ "$have_base" == true && "$have_overlay" == true ]]; then
+            jq -s '.[0] * .[1]' "$base_path" "$overlay_path" > "$dest"
+            ok "Merged base + private → $dest"
+        elif [[ "$have_base" == true ]]; then
+            cp "$base_path" "$dest"
+            ok "Copied base → $dest (no private overlay)"
+        else
+            cp "$overlay_path" "$dest"
+            ok "Copied private → $dest (no base)"
+        fi
+    done < "$map_file"
+}

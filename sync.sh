@@ -586,6 +586,10 @@ elif has_private_overlay; then
     echo "Applying private symlinks..."
     private_sync
 fi
+
+# Apply managed files (base + private overlay merge)
+apply_managed_files "$DOTFILES_DIR/managed_map.txt"
+
 echo ""
 
 # Setup mise
