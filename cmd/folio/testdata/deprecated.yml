@@ -1,0 +1,12 @@
+schema: 1
+project: "Deprecated Fields Test"
+
+context_sources:
+  - name: "old format"
+
+sources: []
+
+targets: {}
+
+tasks: []
+pending: []

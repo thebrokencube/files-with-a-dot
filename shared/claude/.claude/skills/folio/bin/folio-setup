@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# folio-setup — verify folio dependencies are installed
+# Exit codes: 0 = all OK, 1 = missing dependencies
+# Compatible with bash 3.2+
+
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[0;33m'
+readonly BOLD='\033[1m'
+readonly RESET='\033[0m'
+
+CHECK_MODE=false
+
+usage() {
+  cat <<EOF
+Usage: folio-setup [--check]
+
+Verify folio dependencies are installed.
+
+Options:
+  --check    Silent mode: exit 0 if OK, exit 1 if missing
+  --help     Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check) CHECK_MODE=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+missing=0
+
+# Check bash is present (3.2+ is fine)
+if [[ "$CHECK_MODE" == false ]]; then
+  echo -e "${GREEN}✓${RESET} bash ${BASH_VERSION}"
+fi
+
+# Check yq v4
+if command -v yq &>/dev/null; then
+  yq_version=$(yq --version 2>&1)
+  if echo "$yq_version" | grep -qE 'version v?4'; then
+    if [[ "$CHECK_MODE" == false ]]; then
+      echo -e "${GREEN}✓${RESET} yq ($yq_version)"
+    fi
+  else
+    missing=1
+    if [[ "$CHECK_MODE" == false ]]; then
+      echo -e "${RED}✗${RESET} yq found but not v4 ($yq_version)"
+      echo -e "  ${YELLOW}brew install yq${RESET}"
+    fi
+  fi
+else
+  missing=1
+  if [[ "$CHECK_MODE" == false ]]; then
+    echo -e "${RED}✗${RESET} yq not found"
+    echo -e "  ${YELLOW}brew install yq${RESET}"
+  fi
+fi
+
+if [[ "$CHECK_MODE" == false && "$missing" -eq 0 ]]; then
+  echo -e "\n${GREEN}${BOLD}All dependencies satisfied.${RESET}"
+fi
+
+exit "$missing"

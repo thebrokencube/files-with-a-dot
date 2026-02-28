@@ -1,0 +1,53 @@
+schema: 1
+project: "Full Featured Project"
+
+sources:
+  - path: README.md
+  - external: jira
+    id: "ACME-123"
+    notes: "Original ticket"
+  - path: reference/cached.md
+    derived_from:
+      - external: web
+        url: "https://example.com/article"
+        cached: "2026-01-15"
+        notes: "Summarized article"
+  - external: github
+    id: "Org/repo"
+    path: "app/models/user.rb"
+
+repositories:
+  myrepo: "https://github.com/Org/repo/blob/main/{path}"
+
+targets:
+  summary:
+    instructions: "Condense research into summary"
+    transform: distill
+    sources:
+      - path: README.md
+    outputs:
+      - path: compiled/summary.md
+
+  jira-update:
+    instructions: "Push summary to Jira"
+    transform: adapt
+    blocked_by: [summary]
+    sources:
+      - path: compiled/summary.md
+    outputs:
+      - external: jira
+        id: "ACME-123"
+        field: description
+      - path: compiled/jira-update.md
+
+cross_references:
+  - fact: "Key finding"
+    source_of_truth: "README.md"
+    also_appears_in:
+      - "reference/cached.md"
+
+tasks:
+  - "Review findings"
+
+pending:
+  - "Waiting on stakeholder feedback"

@@ -10,6 +10,9 @@ brew "neovim"
 # Language version management
 brew "mise"                     # Universal version manager (replaces fnm, rbenv, etc.)
 
+# Languages
+brew "go"                       # Go compiler (folio CLI)
+
 # Shell and prompt
 brew "zsh"
 brew "starship"                 # Cross-shell prompt

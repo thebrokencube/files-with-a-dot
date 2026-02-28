@@ -1,0 +1,403 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# folio-test — lint and functional tests for folio scripts
+# Exit codes: 0 = all passed, 1 = failures
+
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly BOLD='\033[1m'
+readonly DIM='\033[2m'
+readonly RESET='\033[0m'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+failures=0
+tests=0
+
+pass() { tests=$((tests + 1)); echo -e "  ${GREEN}✓${RESET} $1"; }
+fail() { tests=$((tests + 1)); failures=$((failures + 1)); echo -e "  ${RED}✗${RESET} $1"; }
+
+# --- Lint ---
+echo -e "${BOLD}Lint${RESET}"
+
+if command -v shellcheck &>/dev/null; then
+  if shellcheck "$SCRIPT_DIR"/folio-setup "$SCRIPT_DIR"/folio-init "$SCRIPT_DIR"/folio-validate "$SCRIPT_DIR"/folio-status 2>&1; then
+    pass "shellcheck: all scripts clean"
+  else
+    fail "shellcheck: errors found"
+  fi
+else
+  fail "shellcheck: not installed (brew install shellcheck)"
+fi
+
+# --- Setup ---
+echo -e "\n${BOLD}folio-setup${RESET}"
+
+if "$SCRIPT_DIR"/folio-setup --check; then
+  pass "folio-setup --check exits 0"
+else
+  fail "folio-setup --check exits non-zero (missing deps?)"
+fi
+
+output=$("$SCRIPT_DIR"/folio-setup 2>&1)
+if echo "$output" | grep -q "bash"; then
+  pass "folio-setup reports bash"
+else
+  fail "folio-setup missing bash check"
+fi
+
+if echo "$output" | grep -q "yq"; then
+  pass "folio-setup reports yq"
+else
+  fail "folio-setup missing yq check"
+fi
+
+# --- Init ---
+echo -e "\n${BOLD}folio-init${RESET}"
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+
+(cd "$tmpdir" && "$SCRIPT_DIR"/folio-init --name "Test Project" >/dev/null 2>&1)
+if [[ -f "$tmpdir/folio.yml" ]]; then
+  pass "folio-init creates folio.yml"
+else
+  fail "folio-init did not create folio.yml"
+fi
+
+schema=$(yq eval '.schema' "$tmpdir/folio.yml")
+if [[ "$schema" == "1" ]]; then
+  pass "folio-init sets schema: 1"
+else
+  fail "folio-init schema is '$schema', expected '1'"
+fi
+
+project=$(yq eval '.project' "$tmpdir/folio.yml")
+if [[ "$project" == "Test Project" ]]; then
+  pass "folio-init sets project name"
+else
+  fail "folio-init project is '$project', expected 'Test Project'"
+fi
+
+# Reject double-init
+if (cd "$tmpdir" && "$SCRIPT_DIR"/folio-init --name "Dupe" 2>/dev/null); then
+  fail "folio-init should refuse when folio.yml exists"
+else
+  pass "folio-init refuses when folio.yml exists"
+fi
+
+# --- Validate ---
+echo -e "\n${BOLD}folio-validate${RESET}"
+
+# Valid minimal folio
+if "$SCRIPT_DIR"/folio-validate --folio "$tmpdir/folio.yml" >/dev/null 2>&1; then
+  pass "folio-validate accepts minimal folio.yml"
+else
+  fail "folio-validate rejects valid minimal folio.yml"
+fi
+
+# JSON mode
+json=$("$SCRIPT_DIR"/folio-validate --folio "$tmpdir/folio.yml" --json 2>&1)
+if echo "$json" | grep -q '"valid":true'; then
+  pass "folio-validate --json reports valid:true"
+else
+  fail "folio-validate --json output: $json"
+fi
+
+# Missing file
+if "$SCRIPT_DIR"/folio-validate --folio "$tmpdir/nonexistent.yml" >/dev/null 2>&1; then
+  fail "folio-validate should fail on missing file"
+else
+  pass "folio-validate rejects missing file (exit 2)"
+fi
+
+# Bad schema
+bad_folio="$tmpdir/bad_schema.yml"
+cat > "$bad_folio" <<'YAML'
+schema: 99
+project: "Bad"
+targets: {}
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$bad_folio" >/dev/null 2>&1; then
+  fail "folio-validate should reject schema: 99"
+else
+  pass "folio-validate rejects bad schema version"
+fi
+
+# Missing source file
+src_folio="$tmpdir/missing_src.yml"
+cat > "$src_folio" <<'YAML'
+schema: 1
+project: "Missing Source"
+targets:
+  test-target:
+    sources:
+      - path: does_not_exist.md
+    outputs:
+      - external: jira
+        id: "TEST-1"
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$src_folio" >/dev/null 2>&1; then
+  fail "folio-validate should reject missing source file"
+else
+  pass "folio-validate rejects missing source file"
+fi
+
+# External output missing id
+noid_folio="$tmpdir/noid.yml"
+cat > "$noid_folio" <<'YAML'
+schema: 1
+project: "No ID"
+targets:
+  test-target:
+    sources: []
+    outputs:
+      - external: jira
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$noid_folio" >/dev/null 2>&1; then
+  fail "folio-validate should reject external output without id"
+else
+  pass "folio-validate rejects external output missing id"
+fi
+
+# --- Status ---
+echo -e "\n${BOLD}folio-status${RESET}"
+
+# Status on minimal folio
+output=$("$SCRIPT_DIR"/folio-status --folio "$tmpdir/folio.yml" 2>&1)
+if echo "$output" | grep -q "Test Project"; then
+  pass "folio-status shows project name"
+else
+  fail "folio-status missing project name"
+fi
+
+if echo "$output" | grep -q "No targets"; then
+  pass "folio-status reports no targets for empty folio"
+else
+  fail "folio-status should report no targets"
+fi
+
+# Status with external target
+ext_folio="$tmpdir/ext_status.yml"
+touch "$tmpdir/source.md"
+cat > "$ext_folio" <<'YAML'
+schema: 1
+project: "External Test"
+targets:
+  my-target:
+    sources:
+      - path: source.md
+    outputs:
+      - external: jira
+        id: "TEST-1"
+pending:
+  - "Note one"
+  - "Note two"
+YAML
+output=$("$SCRIPT_DIR"/folio-status --folio "$ext_folio" 2>&1)
+if echo "$output" | grep -q "unknown"; then
+  pass "folio-status reports external target as unknown"
+else
+  fail "folio-status should report external as unknown"
+fi
+
+if echo "$output" | grep -q "Pending: .* notes"; then
+  pass "folio-status shows pending count"
+else
+  fail "folio-status missing pending count"
+fi
+
+# JSON mode
+json=$("$SCRIPT_DIR"/folio-status --folio "$ext_folio" --json 2>&1)
+if echo "$json" | grep -q '"status":"unknown"'; then
+  pass "folio-status --json reports unknown for external"
+else
+  fail "folio-status --json output: $json"
+fi
+
+# --- Unified Sources: Validate ---
+echo -e "\n${BOLD}folio-validate (unified sources)${RESET}"
+
+# Valid project-level sources (primary local)
+psrc_folio="$tmpdir/proj_sources.yml"
+touch "$tmpdir/proj_source.md"
+cat > "$psrc_folio" <<'YAML'
+schema: 1
+project: "Source Test"
+sources:
+  - path: proj_source.md
+  - external: jira
+    id: "TEST-1"
+    notes: "A ticket"
+targets: {}
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$psrc_folio" >/dev/null 2>&1; then
+  pass "folio-validate accepts valid project-level sources"
+else
+  fail "folio-validate rejects valid project-level sources"
+fi
+
+# Missing local source path
+psrc_missing="$tmpdir/proj_src_missing.yml"
+cat > "$psrc_missing" <<'YAML'
+schema: 1
+project: "Missing Source"
+sources:
+  - path: does_not_exist.md
+targets: {}
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$psrc_missing" >/dev/null 2>&1; then
+  fail "folio-validate should reject missing project source path"
+else
+  pass "folio-validate rejects missing project source file"
+fi
+
+# External source missing id
+psrc_noid="$tmpdir/proj_src_noid.yml"
+cat > "$psrc_noid" <<'YAML'
+schema: 1
+project: "No ID"
+sources:
+  - external: jira
+targets: {}
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$psrc_noid" >/dev/null 2>&1; then
+  fail "folio-validate should reject external source without id"
+else
+  pass "folio-validate rejects external source missing id"
+fi
+
+# Deprecated context_sources warning
+psrc_deprecated="$tmpdir/proj_src_deprecated.yml"
+cat > "$psrc_deprecated" <<'YAML'
+schema: 1
+project: "Deprecated"
+context_sources:
+  - type: jira_ticket
+    id: "OLD-1"
+targets: {}
+YAML
+dep_out=$("$SCRIPT_DIR"/folio-validate --folio "$psrc_deprecated" 2>&1)
+if echo "$dep_out" | grep -qi "deprecated\|context_sources"; then
+  pass "folio-validate warns on deprecated context_sources"
+else
+  fail "folio-validate should warn about context_sources: $dep_out"
+fi
+
+# Derived source missing external in derived_from
+psrc_derived_bad="$tmpdir/proj_src_derived_bad.yml"
+touch "$tmpdir/derived_file.md"
+cat > "$psrc_derived_bad" <<'YAML'
+schema: 1
+project: "Bad Derived"
+sources:
+  - path: derived_file.md
+    derived_from:
+      url: "https://example.com"
+targets: {}
+YAML
+if "$SCRIPT_DIR"/folio-validate --folio "$psrc_derived_bad" >/dev/null 2>&1; then
+  fail "folio-validate should reject derived_from without external"
+else
+  pass "folio-validate rejects derived_from missing external field"
+fi
+
+# --- Unified Sources: Status ---
+echo -e "\n${BOLD}folio-status (unified sources)${RESET}"
+
+# Human output shows project-level sources
+psrc_status="$tmpdir/proj_src_status.yml"
+touch "$tmpdir/primary.md"
+cat > "$psrc_status" <<'YAML'
+schema: 1
+project: "Source Status"
+sources:
+  - path: primary.md
+  - external: jira
+    id: "TEST-1"
+targets: {}
+YAML
+output=$("$SCRIPT_DIR"/folio-status --folio "$psrc_status" 2>&1)
+if echo "$output" | grep -q "Sources:"; then
+  pass "folio-status shows Sources section"
+else
+  fail "folio-status missing Sources section: $output"
+fi
+if echo "$output" | grep -q "primary"; then
+  pass "folio-status shows primary source kind"
+else
+  fail "folio-status missing primary kind: $output"
+fi
+if echo "$output" | grep -q "external"; then
+  pass "folio-status shows external source kind"
+else
+  fail "folio-status missing external kind: $output"
+fi
+
+# JSON output includes sources array
+json=$("$SCRIPT_DIR"/folio-status --folio "$psrc_status" --json 2>&1)
+if echo "$json" | grep -q '"sources"'; then
+  pass "folio-status --json includes sources array"
+else
+  fail "folio-status --json missing sources: $json"
+fi
+if echo "$json" | grep -q '"kind":"primary"'; then
+  pass "folio-status --json includes source kind"
+else
+  fail "folio-status --json missing kind in sources: $json"
+fi
+
+# --- Local mtime-based status ---
+echo -e "\n${BOLD}folio-status (mtime derivation)${RESET}"
+
+local_folio="$tmpdir/local_status.yml"
+mkdir -p "$tmpdir/compiled"
+echo "source content" > "$tmpdir/local_source.md"
+sleep 1
+echo "compiled content" > "$tmpdir/compiled/output.md"
+cat > "$local_folio" <<'YAML'
+schema: 1
+project: "Local Test"
+targets:
+  local-target:
+    sources:
+      - path: local_source.md
+    outputs:
+      - path: compiled/output.md
+YAML
+
+output=$("$SCRIPT_DIR"/folio-status --folio "$local_folio" 2>&1)
+if echo "$output" | grep -q "clean"; then
+  pass "folio-status derives clean when output is newer"
+else
+  fail "folio-status should report clean: $output"
+fi
+
+# Make source newer → stale
+sleep 1
+echo "updated source" > "$tmpdir/local_source.md"
+output=$("$SCRIPT_DIR"/folio-status --folio "$local_folio" 2>&1)
+if echo "$output" | grep -q "stale"; then
+  pass "folio-status derives stale when source is newer"
+else
+  fail "folio-status should report stale: $output"
+fi
+
+# Remove output → missing
+rm "$tmpdir/compiled/output.md"
+output=$("$SCRIPT_DIR"/folio-status --folio "$local_folio" 2>&1)
+if echo "$output" | grep -q "missing"; then
+  pass "folio-status derives missing when output doesn't exist"
+else
+  fail "folio-status should report missing: $output"
+fi
+
+# --- Summary ---
+echo -e "\n${DIM}─────────────────────────────${RESET}"
+if [[ "$failures" -eq 0 ]]; then
+  echo -e "${GREEN}${BOLD}All $tests tests passed.${RESET}"
+else
+  echo -e "${RED}${BOLD}$failures of $tests tests failed.${RESET}"
+fi
+
+exit "$failures"

@@ -1,0 +1,191 @@
+package output
+
+import (
+	"fmt"
+	"io"
+	"sort"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
+)
+
+const (
+	ansiRed    = "\033[0;31m"
+	ansiGreen  = "\033[0;32m"
+	ansiYellow = "\033[0;33m"
+	ansiBold   = "\033[1m"
+	ansiDim    = "\033[2m"
+	ansiReset  = "\033[0m"
+)
+
+type palette struct {
+	red, green, yellow, bold, dim, reset string
+}
+
+func newPalette(color bool) palette {
+	if !color {
+		return palette{}
+	}
+	return palette{
+		red:    ansiRed,
+		green:  ansiGreen,
+		yellow: ansiYellow,
+		bold:   ansiBold,
+		dim:    ansiDim,
+		reset:  ansiReset,
+	}
+}
+
+// PrintValidateTerminal renders validation results to a terminal.
+func PrintValidateTerminal(w io.Writer, r *validate.Result, folioPath string, color bool) {
+	p := newPalette(color)
+
+	if len(r.Errors) > 0 {
+		fmt.Fprintf(w, "%s%sValidation failed%s (%d error(s))\n\n", p.red, p.bold, p.reset, len(r.Errors))
+		for _, err := range r.Errors {
+			fmt.Fprintf(w, "  %s✗%s %s\n", p.red, p.reset, err)
+		}
+	}
+
+	if len(r.Warnings) > 0 {
+		fmt.Fprintln(w)
+		for _, warn := range r.Warnings {
+			fmt.Fprintf(w, "  %s!%s %s\n", p.yellow, p.reset, warn)
+		}
+	}
+
+	if len(r.Errors) == 0 {
+		fmt.Fprintf(w, "%s%sValid%s — %s\n", p.green, p.bold, p.reset, folioPath)
+	}
+}
+
+// PrintStatusTerminal renders project status to a terminal.
+func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[string]string, color bool) {
+	p := newPalette(color)
+
+	fmt.Fprintf(w, "%s%s%s\n\n", p.bold, ps.Project, p.reset)
+
+	// Project-level sources
+	if len(ps.Sources) > 0 {
+		fmt.Fprintln(w, "Sources:")
+		for _, src := range ps.Sources {
+			fmt.Fprintf(w, "  %-28s %s\n", src.Label, src.Kind)
+		}
+		fmt.Fprintln(w)
+	}
+
+	// Targets
+	if len(ps.Targets) == 0 {
+		fmt.Fprintf(w, "%sNo targets defined.%s\n", p.dim, p.reset)
+	} else {
+		fmt.Fprintln(w, "Targets:")
+		for _, tid := range sortedKeys(ps.Targets) {
+			ts := ps.Targets[tid]
+			for _, out := range ts.Outputs {
+				s := out.Status
+				c := statusColor(s, p)
+				var detail string
+				if out.Type == "external" {
+					detail = fmt.Sprintf("external: %s %s", out.System, out.ID)
+				} else {
+					detail = out.Path
+				}
+
+				// Annotate transitive staleness
+				annotation := ""
+				if cause, ok := causedBy[tid]; ok {
+					annotation = fmt.Sprintf(" << %s", cause)
+				}
+
+				fmt.Fprintf(w, "  %-24s %s%s%s (%s)%s\n", tid, c, s, p.reset, detail, annotation)
+			}
+
+			// Show sources
+			if len(ts.Sources) > 0 {
+				srcList := ""
+				for i, s := range ts.Sources {
+					if i > 0 {
+						srcList += ", "
+					}
+					srcList += s
+				}
+				fmt.Fprintf(w, "  %s                        sources: %s%s\n", p.dim, srcList, p.reset)
+			}
+
+			// Show tree
+			if ts.TreeRoot != nil {
+				printTreeNode(w, ts.TreeRoot, p, "    ", true)
+			}
+
+			// Show batch items
+			if len(ts.BatchItems) > 0 {
+				for i, item := range ts.BatchItems {
+					connector := "├── "
+					if i == len(ts.BatchItems)-1 {
+						connector = "└── "
+					}
+					c := statusColor(item.Status, p)
+					fmt.Fprintf(w, "    %s%s%s%s  %s → %s:%s\n", connector, c, item.Status, p.reset, item.ID, item.System, item.ExtID)
+				}
+			}
+		}
+	}
+
+	// Tasks and pending
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Tasks: %s%d%s open\n", p.bold, ps.Tasks, p.reset)
+	fmt.Fprintf(w, "Pending: %s%d%s notes\n", p.bold, ps.Pending, p.reset)
+}
+
+func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p palette, indent string, isLast bool) {
+	connector := "├── "
+	if isLast {
+		connector = "└── "
+	}
+
+	label := node.ID
+	if node.Label != "" {
+		label = fmt.Sprintf("%s (%s)", node.ID, node.Label)
+	}
+
+	c := statusColor(node.Status, p)
+	annotation := ""
+	if node.CausedBy != "" {
+		annotation = fmt.Sprintf(" %s<< %s%s", p.dim, node.CausedBy, p.reset)
+	}
+
+	fmt.Fprintf(w, "%s%s%s%s%s %s%s\n", indent, connector, c, node.Status, p.reset, label, annotation)
+
+	childIndent := indent + "│   "
+	if isLast {
+		childIndent = indent + "    "
+	}
+
+	for i := range node.Children {
+		printTreeNode(w, &node.Children[i], p, childIndent, i == len(node.Children)-1)
+	}
+}
+
+func statusColor(s string, p palette) string {
+	switch s {
+	case "clean":
+		return p.green
+	case "stale":
+		return p.yellow
+	case "missing":
+		return p.red
+	case "unknown":
+		return p.yellow
+	default:
+		return p.reset
+	}
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
