@@ -30,6 +30,9 @@ clipboard-paste-protection = true
 # Mouse
 mouse-hide-while-typing = true
 
+# Bell — show visual indicator on tab, no audible beep
+bell = visual
+
 # macOS specific
 macos-option-as-alt = true
 macos-titlebar-style = tabs
