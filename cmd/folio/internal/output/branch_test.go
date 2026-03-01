@@ -1,7 +1,10 @@
 package output
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
@@ -184,5 +187,80 @@ func TestPropagationOrderEmpty(t *testing.T) {
 	order := PropagationOrder(bt)
 	if len(order) != 0 {
 		t.Errorf("expected empty order, got %v", order)
+	}
+}
+
+func TestAnnotateBranchStatusMixed(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	// Write source file first
+	os.WriteFile(filepath.Join(dir, "source.md"), []byte("source"), 0644)
+	time.Sleep(50 * time.Millisecond)
+
+	// Write local output after source → clean
+	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("output"), 0644)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Mixed Test",
+		Targets: map[string]config.Target{
+			"mixed": {
+				Branch:  "feat-mixed",
+				Sources: []config.Source{{Path: "source.md"}},
+				Outputs: []config.Output{
+					{Path: "compiled/out.md"},
+					{External: "jira", ID: "PROJ-1", Field: "description"},
+				},
+			},
+		},
+	}
+
+	targets := f.Targets
+	bt := BuildBranchTopology(targets)
+
+	AnnotateBranchStatus(bt, f, dir, nil)
+
+	node := bt.Roots[0].Children[0]
+	if node.ID != "mixed" {
+		t.Fatalf("node ID = %q, want mixed", node.ID)
+	}
+	// Local output is clean; external "unknown" should be ignored
+	if node.Status != "clean" {
+		t.Errorf("status = %q, want clean (external unknown should be ignored)", node.Status)
+	}
+}
+
+func TestAnnotateBranchStatusExternalOnly(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	// Need a local output sibling for precompile rule in real validation,
+	// but AnnotateBranchStatus works on any config — no validation check.
+	f := &config.Folio{
+		Schema:  1,
+		Project: "External Only Test",
+		Targets: map[string]config.Target{
+			"ext-only": {
+				Branch: "feat-ext",
+				Outputs: []config.Output{
+					{External: "jira", ID: "PROJ-1", Field: "description"},
+				},
+			},
+		},
+	}
+
+	targets := f.Targets
+	bt := BuildBranchTopology(targets)
+
+	AnnotateBranchStatus(bt, f, dir, nil)
+
+	node := bt.Roots[0].Children[0]
+	if node.ID != "ext-only" {
+		t.Fatalf("node ID = %q, want ext-only", node.ID)
+	}
+	// No local outputs → hasLocal is false → status stays zero-value
+	if node.Status != "" {
+		t.Errorf("status = %q, want empty (no local outputs)", node.Status)
 	}
 }
