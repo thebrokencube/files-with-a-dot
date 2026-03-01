@@ -139,6 +139,64 @@ func TestParseInvalidYAML(t *testing.T) {
 	}
 }
 
+func TestParseNormalizesNilSlices(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Bare"
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f.Sources == nil {
+		t.Error("Sources should be initialized, got nil")
+	}
+	if f.Targets == nil {
+		t.Error("Targets should be initialized, got nil")
+	}
+	if f.Tasks == nil {
+		t.Error("Tasks should be initialized, got nil")
+	}
+	if f.Pending == nil {
+		t.Error("Pending should be initialized, got nil")
+	}
+	if f.CrossReferences == nil {
+		t.Error("CrossReferences should be initialized, got nil")
+	}
+	if f.Repositories == nil {
+		t.Error("Repositories should be initialized, got nil")
+	}
+}
+
+func TestParseRejectsUnknownTopLevelKeys(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Test"
+targetz:
+  my-target:
+    transform: distill
+`)
+	_, err := Parse(data)
+	if err == nil {
+		t.Error("expected error for unknown key 'targetz', got nil")
+	}
+}
+
+func TestParseRejectsUnknownNestedKeys(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Test"
+targets:
+  my-target:
+    transfrom: distill
+    outputs: []
+`)
+	_, err := Parse(data)
+	if err == nil {
+		t.Error("expected error for unknown nested key 'transfrom', got nil")
+	}
+}
+
 func TestParseBatchTarget(t *testing.T) {
 	data := []byte(`
 schema: 1

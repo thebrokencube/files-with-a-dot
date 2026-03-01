@@ -25,6 +25,7 @@ type Source struct {
 // DerivedFrom records the provenance of a derived source.
 type DerivedFrom struct {
 	External string `yaml:"external"`
+	ID       string `yaml:"id"`
 	URL      string `yaml:"url"`
 	Cached   string `yaml:"cached"`
 	Notes    string `yaml:"notes"`
@@ -59,9 +60,11 @@ type Batch struct {
 
 // Tree represents a hierarchical target structure (e.g., Jira initiative → projects → epics).
 type Tree struct {
-	System string   `yaml:"system"` // default external system for all nodes
-	Field  string   `yaml:"field"`  // default output field for all nodes
-	Root   TreeNode `yaml:"root"`
+	System      string   `yaml:"system"`       // default external system for all nodes
+	Field       string   `yaml:"field"`         // default output field for all nodes
+	CompiledDir string   `yaml:"compiled_dir"`  // output directory for compiled node files
+	CompiledExt string   `yaml:"compiled_ext"`  // file extension for compiled node files
+	Root        TreeNode `yaml:"root"`
 }
 
 // TreeNode represents a single node in a target tree.
@@ -71,12 +74,14 @@ type TreeNode struct {
 	File         string     `yaml:"file"`         // linked file path (optional for grouping nodes)
 	Transform    string     `yaml:"transform"`    // optional, inherits target default
 	Instructions string     `yaml:"instructions"` // optional, per-node compilation instructions
+	Notes        string     `yaml:"notes"`        // optional, advisory notes about this node
 	Children     []TreeNode `yaml:"children"`     // recursive
 }
 
 // BatchItem represents a single item in a batch target.
 type BatchItem struct {
 	ID     string `yaml:"id"`
+	Label  string `yaml:"label"`  // optional human-readable name
 	Source string `yaml:"source"`
 	Output Output `yaml:"output"`
 }

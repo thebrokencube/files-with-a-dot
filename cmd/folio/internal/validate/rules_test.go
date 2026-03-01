@@ -704,6 +704,53 @@ func TestValidateBatchItemNoSystemAnywhere(t *testing.T) {
 	}
 }
 
+func TestValidateEmptySource(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{}, // neither path nor external
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for empty source")
+	}
+	if !containsError(r, "must have either 'path' or 'external' set") {
+		t.Errorf("expected empty source error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateAmbiguousSource(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "README.md", External: "jira", ID: "PROJ-123"},
+		},
+	}
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Test"), 0644)
+
+	r := Validate(f, dir)
+	// Should still be valid (warning only)
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "both 'path' and 'external' set") {
+		t.Errorf("expected ambiguity warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func containsWarning(r *Result, substr string) bool {
+	for _, w := range r.Warnings {
+		if strings.Contains(w, substr) {
+			return true
+		}
+	}
+	return false
+}
+
 func containsError(r *Result, substr string) bool {
 	for _, e := range r.Errors {
 		if strings.Contains(e, substr) {

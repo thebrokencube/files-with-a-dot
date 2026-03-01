@@ -11,7 +11,6 @@ import (
 
 // PrintValidateJSON renders validation results as JSON.
 func PrintValidateJSON(w io.Writer, r *validate.Result) {
-	// Ensure non-nil slices for JSON output
 	if r.Errors == nil {
 		r.Errors = []string{}
 	}
@@ -29,12 +28,7 @@ func PrintValidateJSON(w io.Writer, r *validate.Result) {
 
 // PrintStatusJSON renders project status as JSON.
 func PrintStatusJSON(w io.Writer, ps *status.ProjectStatus) {
-	if ps.Sources == nil {
-		ps.Sources = []status.SourceInfo{}
-	}
-	if ps.Targets == nil {
-		ps.Targets = make(map[string]status.TargetStatus)
-	}
+	// Per-target slices may still be nil (depends on target definition)
 	for tid, ts := range ps.Targets {
 		if ts.Sources == nil {
 			ts.Sources = []string{}

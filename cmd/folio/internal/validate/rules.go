@@ -70,6 +70,10 @@ func Validate(f *config.Folio, folioDir string) *Result {
 }
 
 func validateSource(r *Result, src config.Source, prefix string, folioDir string) {
+	if src.External != "" && src.Path != "" {
+		r.addWarning("%s: source has both 'path' and 'external' set — path is ignored for external sources", prefix)
+	}
+
 	if src.External != "" {
 		if src.ID == "" {
 			r.addError("%s: external source '%s' missing required field: id", prefix, src.External)
@@ -84,6 +88,8 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 				r.addError("%s: derived_from[%d] missing required field: external", prefix, j)
 			}
 		}
+	} else {
+		r.addError("%s: source must have either 'path' or 'external' set", prefix)
 	}
 }
 
