@@ -59,6 +59,8 @@ Convergence criteria:
 - Implementation order is specified
 - Trade-offs between the two proposals are noted where they diverged meaningfully
 - If both proposals agreed on an approach, that's a strong signal — keep it
+- The merged plan must be an executable spec: function signatures, struct definitions, and
+  edge-case handling are pre-decided — not left to the implementer
 
 After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
@@ -82,9 +84,10 @@ After Phases 1-4 complete, hand off to built-in plan mode for structured approva
    - A summary of what the review flagged and how it was addressed
    - A brief note on where the two proposals differed and which was chosen
    - **The implementation order must end with an explicit step for Phase 7 (retrospective).** This is not implicit — it must appear as a numbered step so it cannot be skipped during execution.
-   - **Execution conventions**: Project-specific implementation idioms — commit workflow
-     (e.g., conventional commits, `folio home push`), tool flags (e.g., `rm -f` not `rm`),
-     and repo-specific patterns discovered in Phase 1.
+   - **Execution conventions** (required section): Implementation idioms locked before
+     execution begins. Required fields: commit format, scope target (max commits —
+     typically ~5), validation commands (build, test, lint), module/package path, push
+     workflow, and repo-specific patterns discovered in Phase 1.
 3. Call `ExitPlanMode` with `allowedPrompts` populated from the plan — e.g., if the plan includes running tests, include `{"tool": "Bash", "prompt": "run tests"}`. This presents the plan to the user for approval.
 
 The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
@@ -95,7 +98,18 @@ The user sees the plan file cleanly. They may request changes, ask questions, or
 
 Only after user approval (ExitPlanMode accepted). Execute the plan step by step, following the specified order. If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
 
+**One logical unit per commit.** Each commit maps to one feature, fix, or refactor. If a
+plan step spans multiple concerns, split it at commit time.
+
+**Verify before review.** Before launching review agents, run the validation commands from
+the plan's execution conventions: build, then test, then lint. Only proceed to review if
+all pass.
+
 **Review before each commit**: Before every commit, launch 2 review agents (subagent_type: general-purpose) — one checking accuracy, one checking scope — then converge findings and fix issues before committing. This catches implementation bugs that planning can't — typos, stale references, broken cross-references.
+
+**After review fixes**: Apply mechanical fixes (typos, missing imports, stale paths) and
+commit without re-launching review agents. Only re-review if a fix changes logic or
+introduces new code paths.
 
 **Content extraction check**: When a step moves or extracts content across files, diff the
 old content against the new locations before committing. Verify nothing was dropped,
@@ -180,6 +194,8 @@ Merge the two proposals into a single implementation plan:
 - If both agreed on an approach, that's a strong signal — keep it
 - Every file to change must be listed with what changes and why
 - Specify implementation order
+- Pre-decide function signatures, type definitions, and edge-case handling where feasible
+- Include an "Execution conventions" section with commit format, validation commands, and scope target
 
 Keep the merged plan under 100 lines. Be concrete.
 ```
