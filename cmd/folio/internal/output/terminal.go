@@ -269,88 +269,43 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 	}
 }
 
-// deriveBase returns the base branch for a target by looking at its first
-// blocked_by dependency that has a Branch set. Falls back to "main".
-func deriveBase(tid string, targets map[string]config.Target) string {
-	t := targets[tid]
-	for _, dep := range t.BlockedBy {
-		if dt, ok := targets[dep]; ok && dt.Branch != "" {
-			return dt.Branch
-		}
-	}
-	return "main"
-}
-
 // PrintBranchDAG renders branch topology derived from targets with Branch set.
-func PrintBranchDAG(w io.Writer, targets map[string]config.Target,
-	adj map[string][]string, allTargets []string, color bool) {
-	p := newPalette(color)
-
-	// Filter to targets with a branch set
-	var withBranch []string
-	for _, tid := range allTargets {
-		if targets[tid].Branch != "" {
-			withBranch = append(withBranch, tid)
-		}
-	}
-
-	if len(withBranch) == 0 {
+func PrintBranchDAG(w io.Writer, targets map[string]config.Target, color bool) {
+	bt := BuildBranchTopology(targets)
+	if len(bt.Roots) == 0 {
 		return
 	}
 
-	// Build child map: base branch → list of target IDs branching from it
-	children := make(map[string][]string)
-	for _, tid := range withBranch {
-		base := deriveBase(tid, targets)
-		children[base] = append(children[base], tid)
-	}
+	p := newPalette(color)
 
-	// Find roots: branches not themselves a target branch name, or "main"
-	branchToTid := make(map[string]string)
-	for _, tid := range withBranch {
-		branchToTid[targets[tid].Branch] = tid
-	}
-
-	var roots []string
-	for base := range children {
-		if _, isBranch := branchToTid[base]; !isBranch {
-			roots = append(roots, base)
-		}
-	}
-	sort.Strings(roots)
-
-	var printNode func(tid string, indent string, isLast bool)
-	printNode = func(tid string, indent string, isLast bool) {
-		t := targets[tid]
+	var printNode func(node *BranchNode, indent string, isLast bool)
+	printNode = func(node *BranchNode, indent string, isLast bool) {
 		connector := "├── "
 		if isLast {
 			connector = "└── "
 		}
-		fmt.Fprintf(w, "%s%s%s%s%s\n", indent, connector, p.bold, tid, p.reset)
+		fmt.Fprintf(w, "%s%s%s%s%s\n", indent, connector, p.bold, node.ID, p.reset)
 
-		base := deriveBase(tid, targets)
 		prStr := ""
-		if t.PR != "" {
-			prStr = fmt.Sprintf("  PR: %s", t.PR)
+		if node.PR != "" {
+			prStr = fmt.Sprintf("  PR: %s", node.PR)
 		}
-		fmt.Fprintf(w, "%s    %sbranch: %s (base: %s)%s%s\n", indent, p.dim, t.Branch, base, prStr, p.reset)
+		fmt.Fprintf(w, "%s    %sbranch: %s (base: %s)%s%s\n", indent, p.dim, node.Branch, node.Base, prStr, p.reset)
 
 		childIndent := indent + "│   "
 		if isLast {
 			childIndent = indent + "    "
 		}
 
-		kids := children[t.Branch]
-		for i, kid := range kids {
-			printNode(kid, childIndent, i == len(kids)-1)
+		for i, kid := range node.Children {
+			printNode(kid, childIndent, i == len(node.Children)-1)
 		}
 	}
 
-	for _, root := range roots {
-		fmt.Fprintf(w, "%s%s%s\n", p.bold, root, p.reset)
-		kids := children[root]
-		for i, kid := range kids {
-			printNode(kid, "", i == len(kids)-1)
+	for _, root := range bt.Roots {
+		fmt.Fprintf(w, "%s%s%s\n", p.bold, root.Base, p.reset)
+		for i, kid := range root.Children {
+			printNode(kid, "", i == len(root.Children)-1)
 		}
 	}
 }

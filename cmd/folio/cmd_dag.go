@@ -60,7 +60,7 @@ func runDag(args []string) int {
 	allTargets := maputil.SortedKeys(f.Targets)
 
 	if *branches {
-		output.PrintBranchDAG(os.Stdout, f.Targets, merged, allTargets, !*noColor)
+		output.PrintBranchDAG(os.Stdout, f.Targets, !*noColor)
 		return 0
 	} else if *jsonMode {
 		dj := dagJSON{}
