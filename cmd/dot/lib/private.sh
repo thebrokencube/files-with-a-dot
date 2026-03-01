@@ -37,7 +37,7 @@ check_private_symlink() {
     local dest="$2"
     local base_dir="${3:-$PRIVATE_DIR}"
     local name
-    name=$(basename "$source")
+    name="${dest#"$HOME"/}"
     local source_path="$base_dir/$source"
 
     if [[ ! -e "$source_path" ]]; then
@@ -46,7 +46,7 @@ check_private_symlink() {
 
     if [[ -L "$dest" ]]; then
         if [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path" 2>/dev/null)" ]]; then
-            ALREADY_DONE+=("$name (private)")
+            DONE_PRIVATE+=("$name")
         else
             # Check if it's linked to public version - private should override
             if is_ours "$dest"; then
@@ -70,7 +70,7 @@ create_private_symlink() {
     local dest="$2"
     local base_dir="${3:-$PRIVATE_DIR}"
     local name
-    name=$(basename "$source")
+    name="${dest#"$HOME"/}"
     local source_path="$base_dir/$source"
 
     # Skip if source doesn't exist
@@ -101,7 +101,7 @@ create_private_symlink() {
 
     # Create symlink
     ln -s "$source_path" "$dest"
-    echo "  $name -> $dest (private)"
+    echo "  $name (private)"
 }
 
 # Apply private symlinks from a symlink_map file
@@ -405,10 +405,9 @@ private_status() {
         info "Symlinks: $count"
         while IFS= read -r line || [[ -n "$line" ]]; do
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            local name dest
-            name="$(basename "$(echo "$line" | cut -d: -f1)")"
-            dest="$(echo "$line" | cut -d: -f2-)"
-            echo "    $name → $dest"
+            local dest
+            dest=$(get_dest "$line")
+            echo "    ${dest#"$HOME"/}"
         done < "$private_map"
     fi
 

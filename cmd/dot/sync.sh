@@ -119,7 +119,10 @@ source "$DOT_DIR/lib/git.sh"
 
 # State arrays
 ACTIONS=()
-ALREADY_DONE=()
+DONE_INFRA=()      # git status, ~/.dotfiles link
+DONE_SHELL=()      # shell config integrations
+DONE_SYMLINKS=()   # public symlinks (from symlink_map.txt)
+DONE_PRIVATE=()    # private overlay symlinks
 FRICTIONS=()
 WILL_BACKUP=()
 
@@ -160,10 +163,10 @@ analyze_state() {
                 if [[ "$BEHIND" -gt 0 ]]; then
                     ACTIONS+=("Pull $BEHIND commit(s) from remote")
                 else
-                    ALREADY_DONE+=("Git repo up to date")
+                    DONE_INFRA+=("Git repo up to date")
                 fi
             else
-                ALREADY_DONE+=("Git repo up to date")
+                DONE_INFRA+=("Git repo up to date")
             fi
         fi
     fi
@@ -171,10 +174,10 @@ analyze_state() {
     # Check ~/.dotfiles
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking ~/.dotfiles..."
     if [[ "$DOTFILES_DIR" == "$DOTFILES_LINK" ]]; then
-        ALREADY_DONE+=("~/.dotfiles (repo location)")
+        DONE_INFRA+=("~/.dotfiles (repo location)")
     elif [[ -L "$DOTFILES_LINK" ]]; then
         if is_ours "$DOTFILES_LINK"; then
-            ALREADY_DONE+=("~/.dotfiles symlink")
+            DONE_INFRA+=("~/.dotfiles symlink")
         else
             FRICTIONS+=("~/.dotfiles is a symlink to $(readlink "$DOTFILES_LINK"), not this repo")
         fi
@@ -211,6 +214,34 @@ analyze_state() {
         done < "$SYMLINK_MAP"
     fi
 
+    # Check private symlinks
+    if has_private_overlay; then
+        [[ "${DEBUG:-}" == "1" ]] && echo "  Checking private symlinks..."
+        local private_map
+        private_map="$(get_private_symlink_map)"
+        if [[ -f "$private_map" ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                local source dest
+                source=$(get_source "$line")
+                dest=$(get_dest "$line")
+                check_private_symlink "$source" "$dest" "$PRIVATE_DIR" || true
+            done < "$private_map"
+        fi
+
+        # Private skills
+        if [[ -d "$PRIVATE_DIR/skills" ]]; then
+            for skill in "$PRIVATE_DIR/skills"/*/; do
+                [[ -d "$skill" ]] || continue
+                local skill_name
+                skill_name=$(basename "$skill")
+                [[ "$skill_name" == ".gitkeep" ]] && continue
+                local dest="$HOME/.claude/skills/$skill_name"
+                check_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR" || true
+            done
+        fi
+    fi
+
     # Check brew
     if [[ "$SKIP_BREW" == false ]]; then
         if ! command -v brew &>/dev/null; then
@@ -230,15 +261,16 @@ analyze_state() {
 check_shell_config() {
     local config="$1"
     local source_file="$2"
+    local display="~/${config#"$HOME"/}"
 
     if [[ ! -e "$config" ]]; then
-        ACTIONS+=("Create $config with source line")
+        ACTIONS+=("Create $display with source line")
     elif is_foreign_symlink "$config"; then
-        FRICTIONS+=("$config is a symlink to $(readlink "$config") - can't modify")
+        FRICTIONS+=("$display is a symlink to $(readlink "$config") - can't modify")
     elif grep -qF "$source_file" "$config" 2>/dev/null; then
-        ALREADY_DONE+=("$config sources $source_file")
+        DONE_SHELL+=("$display sources $source_file")
     else
-        ACTIONS+=("Append source line to $config")
+        ACTIONS+=("Append source line to $display")
         [[ "$NO_BACKUP" != true ]] && WILL_BACKUP+=("$config (shell config)")
     fi
     return 0
@@ -249,11 +281,16 @@ check_shell_config() {
 # ============================================================================
 
 report_state() {
+    local total_done=$(( ${#DONE_INFRA[@]} + ${#DONE_SHELL[@]} + ${#DONE_SYMLINKS[@]} + ${#DONE_PRIVATE[@]} ))
+
     echo "--- Already in place ---"
-    if [[ ${#ALREADY_DONE[@]} -eq 0 ]]; then
+    if [[ $total_done -eq 0 ]]; then
         echo "  (nothing)"
     else
-        for item in "${ALREADY_DONE[@]}"; do echo -e "  ${GREEN}✓${NC} $item"; done
+        for item in "${DONE_INFRA[@]}"; do echo -e "  ${GREEN}✓${NC} $item"; done
+        for item in "${DONE_SHELL[@]}"; do echo -e "  ${GREEN}✓${NC} $item"; done
+        for item in "${DONE_SYMLINKS[@]}"; do echo -e "  ${GREEN}✓${NC} $item"; done
+        for item in "${DONE_PRIVATE[@]}"; do echo -e "  ${GREEN}✓${NC} $item (private)"; done
     fi
     echo ""
 

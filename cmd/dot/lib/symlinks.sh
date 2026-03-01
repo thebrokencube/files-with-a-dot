@@ -9,7 +9,7 @@ check_symlink() {
     local source="$1"
     local dest="$2"
     local name
-    name=$(basename "$source")
+    name="${dest#"$HOME"/}"
     local source_path="$DOTFILES_DIR/$source"
 
     if [[ ! -e "$source_path" ]]; then
@@ -18,7 +18,7 @@ check_symlink() {
 
     if [[ -L "$dest" ]]; then
         if [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path" 2>/dev/null)" ]]; then
-            ALREADY_DONE+=("$name")
+            DONE_SYMLINKS+=("$name")
         else
             FRICTIONS+=("$dest is a symlink to $(readlink "$dest"), conflicts with $name")
         fi
@@ -37,7 +37,7 @@ create_symlink() {
     local dest="$2"
     local source_path="$DOTFILES_DIR/$source"
     local name
-    name=$(basename "$source")
+    name="${dest#"$HOME"/}"
 
     # Skip if source doesn't exist
     if [[ ! -e "$source_path" ]]; then
