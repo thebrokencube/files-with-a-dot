@@ -160,7 +160,7 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	if target.Transform == "" {
 		r.addError("Target '%s': missing required field: transform", tid)
 	} else if !config.ValidTransforms[target.Transform] {
-		r.addError("Target '%s': invalid transform '%s' (must be: distill, extract, adapt, compose, scaffold)", tid, target.Transform)
+		r.addError("Target '%s': invalid transform '%s' (must be: distill, extract, adapt, compose)", tid, target.Transform)
 	}
 
 	// Precompile rule: external outputs require a local path sibling

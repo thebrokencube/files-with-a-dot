@@ -103,6 +103,17 @@ acli jira workitem edit --from-json compiled/jira/BEN-48284.json --yes # 3. Push
 
 **md-to-adf limitations** (caught by `--lint`): no tables, no fenced code blocks, no blockquotes, no nested lists, no h3+. Flatten source files before compilation.
 
+## Transform Types
+
+The `transform` field on targets and tree nodes is a semantic hint for Claude, not a code branch. The CLI validates that the value is one of the allowed types but does not alter behavior based on which type is used.
+
+| Type | Intent | Example |
+|------|--------|---------|
+| `distill` | Condense sources into a shorter, focused output | Thread analysis -> workflow guide |
+| `extract` | Pull specific information out of broader sources | Spec -> API reference table |
+| `adapt` | Reshape content for a different audience or format | Internal plan -> Jira epic description |
+| `compose` | Combine multiple sources into a unified whole | Multiple plans -> initiative overview |
+
 ## Reference Files
 
 - **references/compile.md** — Compile workflow: folio.yml schema, steps, tree targets, batch targets

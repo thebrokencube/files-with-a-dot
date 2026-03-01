@@ -314,7 +314,7 @@ func TestValidateCycleDetection(t *testing.T) {
 }
 
 func TestValidateAllTransforms(t *testing.T) {
-	transforms := []string{"distill", "extract", "adapt", "compose", "scaffold"}
+	transforms := []string{"distill", "extract", "adapt", "compose"}
 	for _, tr := range transforms {
 		dir := t.TempDir()
 		os.MkdirAll(filepath.Join(dir, "compiled"), 0755)

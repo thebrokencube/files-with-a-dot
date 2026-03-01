@@ -102,10 +102,11 @@ type CrossReference struct {
 }
 
 // ValidTransforms is the set of allowed transform values.
+// These are semantic hints for Claude — the CLI validates the enum but does not
+// branch on transform type.
 var ValidTransforms = map[string]bool{
-	"distill":  true,
-	"extract":  true,
-	"adapt":    true,
-	"compose":  true,
-	"scaffold": true,
+	"distill": true,
+	"extract": true,
+	"adapt":   true,
+	"compose": true,
 }

@@ -119,12 +119,9 @@ full session context to be useful). Cover:
 Only capture actionable findings, not session notes. Findings that aren't worth planning
 aren't actionable — note them in the retro summary and move on.
 
-**Recording findings**: For each actionable finding, invoke `/folio plan <finding>` to vet
-and implement it as a durable change. This is not optional — verbal agreements evaporate.
-
-**Recursion guard**: A `/folio plan` invoked from Phase 7 runs Phases 1-6 normally but
-replaces its own Phase 7 with a single-sentence summary ("Retrospective finding recorded,
-no further action needed."). Only one level of nesting is permitted.
+**Recording findings**: Add each actionable finding to the relevant folio project's pending
+list (via `folio project add-pending` or direct edit). One line per finding. This ensures
+durable capture without over-engineering the retrospective step.
 
 ## Re-run Rule
 
@@ -241,4 +238,4 @@ Keep your review under 40 lines. Only flag real issues.
 
 - **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary.
 - **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
-- **Retrospective nesting**: When `/folio plan` is invoked from a Phase 7 retrospective, its own Phase 7 is replaced by a one-line summary. Only one level of nesting is permitted.
+- **Retrospective findings**: Phase 7 captures findings as pending items in the folio project, not as recursive `/folio plan` invocations.
