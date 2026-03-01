@@ -4,7 +4,7 @@ description: Knowledge work lifecycle — plan, compose, review. Manages project
   structure via folio.yml with source-to-target composition and diverge-converge
   planning for non-trivial tasks.
 user_invocable: true
-argument-hint: "[plan|compose|review|status|...] [args]"
+argument-hint: "[gather|plan|compose|review|status|...] [args]"
 ---
 
 # Folio
@@ -24,6 +24,12 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
 ## Workflows
+
+### /folio gather [url|topic]
+
+Bring sources into the folio. CLI scaffolds source entries from URLs; skill mode does deep research on a topic.
+
+-> Read references/gather.md for full workflow (includes CLI flags and skill research mode).
 
 ### /folio plan [topic]
 
@@ -120,6 +126,7 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 
 ## Reference Files
 
+- **references/gather.md** — Gather workflow: URL scaffold, materialize, deep research mode
 - **references/compose.md** — Compose workflow: steps, tree targets, batch targets, iteration loop
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates
