@@ -1,7 +1,8 @@
 #!/bin/bash
 # validate-skills.sh - Verify skill frontmatter has required fields
 #
-# Each skills/*/SKILL.md must have YAML frontmatter with 'name' and 'description'.
+# Each skill SKILL.md must have YAML frontmatter with 'name' and 'description'.
+# Skill paths are derived from symlink_map.txt (lines targeting ~/.claude/skills/*).
 #
 # Usage:
 #   ./scripts/validate-skills.sh
@@ -10,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SKILLS_DIR="$DOTFILES_DIR/configs/base/claude/.claude/skills"
+SYMLINK_MAP="$DOTFILES_DIR/symlink_map.txt"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,20 +19,29 @@ NC='\033[0m'
 
 ERRORS=0
 
-if [[ ! -d "$SKILLS_DIR" ]]; then
-    echo -e "${RED}Error:${NC} Skills directory not found at $DOTFILES_DIR/configs/base/claude/.claude/skills"
+if [[ ! -f "$SYMLINK_MAP" ]]; then
+    echo -e "${RED}Error:${NC} symlink_map.txt not found at $SYMLINK_MAP"
     exit 1
 fi
 
 echo "Checking skill frontmatter..."
 
-for skill_dir in "$SKILLS_DIR"/*/; do
-    [[ -d "$skill_dir" ]] || continue
-    skill_name=$(basename "$skill_dir")
-    skill_file="$skill_dir/SKILL.md"
+# Parse symlink_map.txt for skill entries (destination matches $HOME/.claude/skills/*)
+while IFS=: read -r source dest; do
+    # Skip comments and blank lines
+    [[ -z "$source" || "$source" =~ ^[[:space:]]*# ]] && continue
+
+    # Expand $HOME in destination and check if it's a skill
+    expanded_dest="${dest/\$HOME/$HOME}"
+    [[ "$expanded_dest" == "$HOME/.claude/skills/"* ]] || continue
+
+    # Resolve source relative to DOTFILES_DIR
+    skill_source="$DOTFILES_DIR/$source"
+    skill_name=$(basename "$expanded_dest")
+    skill_file="$skill_source/SKILL.md"
 
     if [[ ! -f "$skill_file" ]]; then
-        echo -e "  ${RED}MISSING:${NC} $skill_name/SKILL.md"
+        echo -e "  ${RED}MISSING:${NC} $skill_name/SKILL.md (source: $source)"
         ((ERRORS++))
         continue
     fi
@@ -64,7 +74,7 @@ for skill_dir in "$SKILLS_DIR"/*/; do
         echo -e "  ${RED}MISSING FIELDS:${NC} $skill_name ($missing)"
         ((ERRORS++))
     fi
-done
+done < "$SYMLINK_MAP"
 
 if [[ $ERRORS -eq 0 ]]; then
     echo -e "  ${GREEN}All skills valid${NC}"

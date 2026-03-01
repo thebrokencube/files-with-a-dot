@@ -1,26 +1,6 @@
----
-name: folio
-description: Knowledge work lifecycle — research, plan, compile, audit. Manages project structure via folio.yml with source-to-target compilation and derived status.
-user_invocable: true
----
+# Compile Workflow
 
-# Folio
-
-Lifecycle toolkit for knowledge work. Local source files compile into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
-
-**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (compile, audit, add-pending). Workflows use CLI commands as building blocks.
-
-## Quick Orientation
-
-Before handling any folio request, check for a folio.yml in the current directory (or use `--folio PATH`).
-
-| What you find | What's available |
-|---|---|
-| No folio.yml | No folio infrastructure needed. |
-| folio.yml with local outputs only | Local compilation targets. |
-| folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
-
----
+Read by `/folio compile [target]`. Assumes you've already read SKILL.md for orientation and tooling resolution.
 
 ## folio.yml Schema
 
@@ -102,60 +82,7 @@ pending: []                            # Backlog items (list of strings)
 
 The `§` separator means: read file before `§`, locate section after `§`. Some cross-references may be descriptive — do best-effort comparison.
 
----
-
-## Tooling Resolution
-
-External outputs resolve their push/pull method from `tooling.yml` (co-located with this skill file). Read `external:` from the target output, look up that system in tooling.yml, get the `pull`/`push` methods.
-
-**Method types**: `cli:<tool>` = shell command, `mcp:<server>` = MCP tool call, `manual` = present to user, `manual:<hint>` = manual with guidance. Unlisted systems: pull=skip, push=manual.
-
-### Jira Push Pipeline
-
-Tree targets with `system: jira` and `compiled_ext: .json` use a three-phase pipeline:
-
-```
-source .md -> lint (md-to-adf --lint) -> precompile (md-to-adf --acli) -> compiled .json -> push (acli)
-```
-
-| Placeholder | Resolves from |
-|---|---|
-| `{id}` | Tree node `id` (Jira key) |
-| `{source}` | Tree node `file` |
-| `{compiled}` | `{compiled_dir}/{id}{compiled_ext}` |
-
-Example:
-```bash
-md-to-adf --lint epic.md                                               # 1. Lint
-md-to-adf --acli BEN-48284 < epic.md > compiled/jira/BEN-48284.json   # 2. Precompile
-acli jira workitem edit --from-json compiled/jira/BEN-48284.json --yes # 3. Push
-```
-
-**md-to-adf limitations** (caught by `--lint`): no tables, no fenced code blocks, no blockquotes, no nested lists, no h3+. Flatten source files before compilation.
-
----
-
-## Workflows
-
-Everything below is Claude-driven — not CLI commands. If any CLI command fails, run `folio setup --check` first.
-
-### CLI Pass-Throughs
-
-These slash commands run the corresponding CLI command and report results:
-
-| Command | Runs |
-|---|---|
-| `/folio setup` | `folio setup` |
-| `/folio status` | `folio project status` (mention `/folio compile` if stale targets exist) |
-| `/folio validate` | `folio project validate` |
-| `/folio init` | `folio project init --name "Name"` (ask for name if not provided) |
-| `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
-
-### `/folio compile [target]`
-
-Compile sources into targets. Compilation is distillation — sources are working memory; targets are communication condensed for their audience.
-
-**Steps:**
+## Compile Steps
 
 1. Run `folio project validate`. Stop if invalid.
 2. Run `folio project status --json`. Identify stale/missing/unknown targets (or filter to the specific target requested).
@@ -170,7 +97,7 @@ Compile sources into targets. Compilation is distillation — sources are workin
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.
 
-#### Tree target compilation
+## Tree Target Compilation
 
 Each node compiles independently from its own file. Nodes do NOT consume child outputs. Compile bottom-up (children before parents).
 
@@ -179,12 +106,12 @@ Each node compiles independently from its own file. Nodes do NOT consume child o
 3. Walk bottom-up. For each stale/missing node:
    a. Read the node's `file`
    b. Apply node's `instructions` (fall back to target-level if none)
-   c. If `compiled_dir`/`compiled_ext` set: use [Jira Push Pipeline](#jira-push-pipeline)
+   c. If `compiled_dir`/`compiled_ext` set: use Jira Push Pipeline (see SKILL.md)
    d. Otherwise: compile and push via tooling.yml method for `tree.system`
    e. Skip push for non-system-ID nodes (descriptive slugs — report as "no external target")
 4. Touch the target's local `path:` output to update mtime (if one exists)
 
-#### Batch target compilation
+## Batch Target Compilation
 
 Multiple items sharing one set of instructions. Each item has its own source and output.
 
@@ -194,39 +121,3 @@ Multiple items sharing one set of instructions. Each item has its own source and
    b. Apply target-level `instructions`
    c. Push via tooling.yml. Output: `{external: batch.system, id: item.output.id, field: item.output.field || batch.field}`
 3. Touch the target's local `path:` output (if one exists)
-
-### `/folio audit [scope]`
-
-Project health check — like `git status` for the compilation system.
-
-**Scope**: no arg or `local` = local only. `external` = also fetch and compare external targets. Specific target ID = validate just that target externally.
-
-**Steps:**
-
-1. Run `folio project validate`. Report errors.
-2. Run `folio project status`. Report all targets.
-3. For each `cross_references` entry: read source_of_truth and each also_appears_in, flag differences. Descriptive references: report as not machine-checkable.
-4. (External scope only) Fetch external targets via tooling.yml pull method, compare against local. For format differences (ADF vs markdown), compare structural elements not literal text.
-
-**Output:**
-```
-## Status
-- [target-id]: clean / stale / missing / unknown
-
-## Cross-References
-- [fact]: consistent / warning / error
-
-## External Validation (if requested)
-- [system] [id]: matches / differs
-```
-
-Audit only reports. It does not fix anything.
-
-### `/folio add-pending`
-
-Add item to the `pending` list in folio.yml.
-
-1. If text provided with command, use it. Otherwise ask.
-2. Read folio.yml, locate or create `pending:` list
-3. Append new item string
-4. Write with targeted editing (don't reformat the whole file)

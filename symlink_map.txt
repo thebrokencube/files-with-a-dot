@@ -39,6 +39,5 @@ configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
 configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
-configs/base/claude/.claude/skills/architect:$HOME/.claude/skills/architect
-configs/base/claude/.claude/skills/folio:$HOME/.claude/skills/folio
+cmd/folio/skill:$HOME/.claude/skills/folio
 configs/base/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr

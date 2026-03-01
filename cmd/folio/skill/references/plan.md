@@ -1,29 +1,23 @@
----
-name: architect
-description: Diverge-converge architect for non-trivial tasks. Two agents propose through different lenses, then merge + review. Extends EnterPlanMode with upfront research and multi-agent planning.
-user_invocable: true
----
+# Plan Workflow
 
-# Architect
-
-Multi-agent planning skill for non-trivial implementation tasks. Two agents propose independently through different lenses, then their proposals are merged and reviewed before presenting to the user.
-
-Phases: understand → propose → converge → review → present → implement → retrospective. Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval. Phase 6 implements the approved plan (with review before each commit). Phase 7 runs post-implementation.
+Read by `/folio plan [topic]`. Multi-agent diverge-converge planning for non-trivial tasks.
 
 ## When to Use
 
-Use `/architect` instead of `EnterPlanMode` for any non-trivial task — multi-file changes, architectural decisions, unclear requirements, or multiple valid approaches.
+Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-file changes, architectural decisions, unclear requirements, or multiple valid approaches.
 
 **Skip planning entirely** for trivial changes: single-file fixes, obvious bugs, one-line tweaks. Just do them.
 
-## Commands
+## Invocation
 
-- `/architect` or `/architect <topic>` — Plan with default lenses (pragmatic vs thorough)
-- `/architect <lens1> vs <lens2>` — Plan with custom lenses
+- `/folio plan` — Infer topic from context, default lenses (pragmatic vs thorough)
+- `/folio plan <topic>` — Explicit topic, default lenses
 
-If a topic is provided, use it as the planning focus. Otherwise, infer from recent conversation context.
+Custom lenses are specified naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). The agent parses the user's intent and crafts lens descriptions accordingly. Default lenses (pragmatic vs thorough) apply when no lens guidance is given.
 
-## Workflow
+## Phases
+
+Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval. Phase 6 implements the approved plan. Phase 7 runs post-implementation.
 
 ### Phase 1: Understand
 
@@ -33,7 +27,12 @@ Gather context before spawning any agents. This happens in the main conversation
 2. Read relevant files — entry points, existing implementations, tests, CLAUDE.md
 3. Search for related patterns in the codebase (Grep/Glob)
 4. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and tasks/pending items.
-5. Compile a **context summary** (max 30 lines): what exists, what needs to change, key constraints, and relevant folio context (if any)
+5. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
+   (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
+   must not re-evaluate them. Include pinned constraints as a distinct section at the top
+   of the context summary.
+6. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
+   exists, what needs to change, key trade-offs, and relevant folio context (if any)
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
 
@@ -41,7 +40,7 @@ This summary is passed to all downstream agents. Diversity comes from lenses, no
 
 Launch 2 Plan agents in parallel, each with the same context summary but a different lens. Each returns a proposal (max 80 lines).
 
-Default lenses (override with `/architect <lens1> vs <lens2>`):
+Default lenses:
 - **Pragmatic**: Minimize changes, reuse existing code, prefer the simplest approach that works
 - **Thorough**: Consider edge cases, maintainability, architectural fit, future extensibility
 
@@ -57,7 +56,7 @@ Convergence criteria:
 
 ### Phase 4: Review
 
-Launch 1 agent (subagent_type=general-purpose) to review the merged plan. The review covers three checks:
+Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The review covers three checks:
 
 1. **Accuracy**: Does the plan reference correct file paths, function names, and APIs? Are assumptions about existing code valid?
 2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
@@ -75,6 +74,9 @@ After Phases 1-4 complete, hand off to built-in plan mode for structured approva
    - A summary of what the review flagged and how it was addressed
    - A brief note on where the two proposals differed and which was chosen
    - **The implementation order must end with an explicit step for Phase 7 (retrospective).** This is not implicit — it must appear as a numbered step so it cannot be skipped during execution.
+   - **Execution conventions**: Project-specific implementation idioms — commit workflow
+     (e.g., conventional commits, `folio home push`), tool flags (e.g., `rm -f` not `rm`),
+     and repo-specific patterns discovered in Phase 1.
 3. Call `ExitPlanMode` with `allowedPrompts` populated from the plan — e.g., if the plan includes running tests, include `{"tool": "Bash", "prompt": "run tests"}`. This presents the plan to the user for approval.
 
 The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
@@ -87,9 +89,20 @@ Only after user approval (ExitPlanMode accepted). Execute the plan step by step,
 
 **Review before each commit**: Before every commit, launch 2 review agents (subagent_type: general-purpose) — one checking accuracy, one checking scope — then converge findings and fix issues before committing. This catches implementation bugs that planning can't — typos, stale references, broken cross-references.
 
+**Content extraction check**: When a step moves or extracts content across files, diff the
+old content against the new locations before committing. Verify nothing was dropped,
+duplicated, or silently truncated. Do not rely solely on review agents — run an explicit
+before/after comparison.
+
+**Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml tasks/pending, adding reference files for significant decisions, and keeping cross-references current throughout implementation.
+
 ### Phase 7: Retrospective
 
 **Mandatory — no skip.** After all implementation commits are complete, launch 1 agent (subagent_type: general-purpose) to review the planning process itself — what worked, what added friction, what to change next time. Only capture actionable findings, not session notes. Present findings to the user and ask where to record them and if any warrant immediate changes.
+
+## Re-run Rule
+
+If plan feedback from the user requires rethinking (not just minor edits), re-run phases 2-4 (full diverge-converge). Do not patch the existing plan.
 
 ## Agent Prompts
 
@@ -203,7 +216,7 @@ Keep your review under 40 lines. Only flag real issues.
 Use with `subagent_type: "general-purpose"`.
 
 ```
-You are reviewing how an /architect planning process went.
+You are reviewing how a /folio plan planning process went.
 
 ## Original Task
 {task_description}
@@ -224,4 +237,4 @@ Only capture actionable findings, not session notes. Keep under 20 lines.
 ## Notes
 
 - **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary. After implementation, folio targets that reference changed code may need recompilation — flag this in the retrospective.
-- **Custom lenses**: Users can specify lenses with `/architect <lens1> vs <lens2>`, e.g., `/architect performance vs readability`. Parse the two sides of "vs" as lens names and craft descriptions that match.
+- **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
