@@ -17,7 +17,26 @@
       "Bash(wc *)",
       "Bash(which *)",
       "Bash(echo *)",
-      "Bash(pwd*)"
+      "Bash(pwd*)",
+      "Bash(git rev-parse*)",
+      "Bash(git remote*)",
+      "Bash(git stash list*)",
+      "Bash(git tag*)",
+      "Bash(git config --get*)",
+      "Bash(git ls-files*)",
+      "Bash(stat *)",
+      "Bash(file *)",
+      "Bash(realpath *)",
+      "Bash(readlink *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(tree *)",
+      "Bash(test *)",
+      "ListMcpResourcesTool",
+      "ReadMcpResourceTool"
     ]
   },
   "hooks": {
