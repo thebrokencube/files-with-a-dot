@@ -10,8 +10,9 @@ Publishing sends composed output to external systems. It is the final step in th
 2. Identify the target to publish. If no target specified, list targets with external outputs.
 3. For each external output on the target:
    a. Resolve the push method from tooling.yml (`external:` field -> system -> push method)
-   b. If local compiled output exists, read it as the content to push
-   c. Execute the push via the resolved method
+   b. If local compiled output exists, read it as the content to push. If no compiled output exists, stop and report "no compiled output for {target}" — do not proceed to the gate.
+   c. **Review gate (hard)**: Present target ID, external system, push method, and first 5 lines of content. Wait for explicit "yes" before pushing. One gate per external output.
+   d. Execute the push via the resolved method
 4. Report what was published and where.
 
 ## Publish Methods
@@ -58,3 +59,8 @@ acli jira workitem edit --from-json compiled/jira/BEN-48284.json --yes # 3. Push
 | Slack | `mcp:slack` — send message via Slack MCP tool |
 | Clipboard | `folio pbcopy <target>` — copies first local output to clipboard for manual paste |
 | Confluence | `mcp:jira-confluence` — update page via Confluence MCP tool |
+
+## Error Handling
+
+- **Push fails mid-batch**: Report which outputs succeeded and which failed. Do not auto-retry — let the user decide whether to re-run.
+- **No compiled output**: Stop before the review gate. Report "no compiled output for {target}" and suggest `/folio compose` first.

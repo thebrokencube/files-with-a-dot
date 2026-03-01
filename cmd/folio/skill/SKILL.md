@@ -107,6 +107,28 @@ External outputs resolve their push/pull method from `tooling.yml` (co-located w
 
 > Jira push pipeline and other publish methods: see references/publish.md.
 
+## Review Gates
+
+Two gate types, proportional to risk:
+
+| Type | Behavior | Used when |
+|------|----------|-----------|
+| **Hard** | Stop. Present summary. Require explicit "yes" to proceed. | Destructive/external-facing operations |
+| **Soft** | Present summary. Proceed unless user objects. | Local/reversible operations |
+
+### Gate placement
+
+| Workflow | Gate | Placement | What's shown |
+|----------|------|-----------|-------------|
+| publish | Hard | Before each push | Target, system, method, first 5 lines |
+| compose | Soft | After composition loop, before final status | Targets composed, paths, sizes (cap 5) |
+| gather (skill) | Soft | Before file write | Proposed filename, length, 3 key facts |
+| stack push | Hard | Before push | Branches, local vs remote tips, force-with-lease |
+| stack propagate | Soft | After propagation | Rebased branches, conflicts resolved, stale remainder |
+| stack check | None | — | Read-only |
+| review | None | — | Read-only |
+| plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
+
 ## Transform Types
 
 The `transform` field on targets and tree nodes is a semantic hint for Claude, not a code branch. The CLI validates that the value is one of the allowed types but does not alter behavior based on which type is used.
