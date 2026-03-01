@@ -107,21 +107,3 @@ This repo includes [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 | `/commit` | Git commit conventions and versioning |
 | `/stacked-pr` | Stacked branch workflows and propagation |
 
-## Adding New Configs
-
-1. Create directory: `configs/base/<app>/`
-2. Add to `symlink_map.txt`: `configs/base/<app>/config:$HOME/.config/<app>`
-3. If needs brew package: Add to `Brewfile.shared`
-4. Run: `dot links`
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Git operations fail | Set up GitHub SSH: `ssh -T git@github.com` or check [GitHub docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) |
-| Icons broken in iTerm2 | Select "Dotfiles Default" profile, disable "Draw Powerline Glyphs" |
-| Shell changes not applied | Run `exec $SHELL -l` or `reload` |
-| Symlink conflicts | Run `dot sync --dry-run` to see state |
-| Nvim plugins missing | Open nvim to trigger auto-install |
-
-Run `dot health` for diagnostics.
