@@ -32,8 +32,14 @@ func runDag(args []string) int {
 	fs := flag.NewFlagSet("dag", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
+	branches := fs.Bool("branches", false, "Show branch topology")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
+
+	if *branches && *jsonMode {
+		fmt.Fprintln(os.Stderr, output.Errf("--branches and --json are mutually exclusive"))
+		return 1
+	}
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
@@ -53,7 +59,10 @@ func runDag(args []string) int {
 
 	allTargets := maputil.SortedKeys(f.Targets)
 
-	if *jsonMode {
+	if *branches {
+		output.PrintBranchDAG(os.Stdout, f.Targets, merged, allTargets, !*noColor)
+		return 0
+	} else if *jsonMode {
 		dj := dagJSON{}
 		for _, tid := range allTargets {
 			node := dagNode{ID: tid}

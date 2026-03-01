@@ -742,6 +742,70 @@ func TestValidateAmbiguousSource(t *testing.T) {
 	}
 }
 
+func TestValidateTreeNodeInvalidSync(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "root.md"), []byte("# Root"), 0644)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"tree-target": {
+				Transform: "compose",
+				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				Tree: &config.Tree{
+					System: "jira",
+					Root: config.TreeNode{
+						ID:   "ROOT-1",
+						File: "root.md",
+						Sync: "bogus",
+					},
+				},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for bad sync mode")
+	}
+	if !containsError(r, "invalid sync mode") {
+		t.Errorf("expected sync mode error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateTreeNodeValidSyncModes(t *testing.T) {
+	modes := []string{"push", "pull", "both", ""}
+	for _, mode := range modes {
+		dir := t.TempDir()
+		os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+		os.WriteFile(filepath.Join(dir, "root.md"), []byte("# Root"), 0644)
+
+		f := &config.Folio{
+			Schema:  1,
+			Project: "Test",
+			Targets: map[string]config.Target{
+				"tree-target": {
+					Transform: "compose",
+					Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+					Tree: &config.Tree{
+						System: "jira",
+						Root: config.TreeNode{
+							ID:   "ROOT-1",
+							File: "root.md",
+							Sync: mode,
+						},
+					},
+				},
+			},
+		}
+		r := Validate(f, dir)
+		if containsError(r, "sync mode") {
+			t.Errorf("sync mode %q should be valid, got errors: %v", mode, r.Errors)
+		}
+	}
+}
+
 func containsWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {

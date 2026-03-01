@@ -70,8 +70,8 @@ func TestParseFull(t *testing.T) {
 	}
 
 	// Targets
-	if len(f.Targets) != 2 {
-		t.Fatalf("targets len = %d, want 2", len(f.Targets))
+	if len(f.Targets) != 3 {
+		t.Fatalf("targets len = %d, want 3", len(f.Targets))
 	}
 	summary, ok := f.Targets["summary"]
 	if !ok {
@@ -96,6 +96,23 @@ func TestParseFull(t *testing.T) {
 	}
 	if len(jiraUpdate.Outputs) != 2 {
 		t.Errorf("jira-update outputs len = %d", len(jiraUpdate.Outputs))
+	}
+
+	featureBranch, ok := f.Targets["feature-branch"]
+	if !ok {
+		t.Fatal("missing target 'feature-branch'")
+	}
+	if featureBranch.Branch != "feat/my-feature" {
+		t.Errorf("feature-branch.branch = %q, want %q", featureBranch.Branch, "feat/my-feature")
+	}
+	if featureBranch.PR != "#42" {
+		t.Errorf("feature-branch.pr = %q, want %q", featureBranch.PR, "#42")
+	}
+	if featureBranch.Tree == nil {
+		t.Fatal("feature-branch.tree is nil")
+	}
+	if featureBranch.Tree.Root.Sync != "pull" {
+		t.Errorf("feature-branch tree root sync = %q, want %q", featureBranch.Tree.Root.Sync, "pull")
 	}
 
 	// Cross references
@@ -361,5 +378,78 @@ pending: []
 	projB := root.Children[1]
 	if projB.Transform != "adapt" {
 		t.Errorf("child[1].transform = %q, want adapt", projB.Transform)
+	}
+}
+
+func TestParseTreeNodeWithSync(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Sync Test"
+sources: []
+targets:
+  tree-target:
+    instructions: "Tree with sync"
+    transform: compose
+    sources: []
+    outputs: []
+    tree:
+      system: jira
+      field: description
+      root:
+        id: "ROOT-1"
+        label: "Root"
+        sync: pull
+        children:
+          - id: "CHILD-1"
+            label: "Child"
+            sync: both
+tasks: []
+pending: []
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	tt := f.Targets["tree-target"]
+	if tt.Tree == nil {
+		t.Fatal("tree is nil")
+	}
+	if tt.Tree.Root.Sync != "pull" {
+		t.Errorf("root.sync = %q, want pull", tt.Tree.Root.Sync)
+	}
+	if len(tt.Tree.Root.Children) != 1 {
+		t.Fatalf("root children len = %d, want 1", len(tt.Tree.Root.Children))
+	}
+	if tt.Tree.Root.Children[0].Sync != "both" {
+		t.Errorf("child.sync = %q, want both", tt.Tree.Root.Children[0].Sync)
+	}
+}
+
+func TestParseTargetWithBranchAndPR(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Branch Test"
+sources: []
+targets:
+  my-target:
+    instructions: "Target with branch"
+    transform: distill
+    branch: "feat/my-branch"
+    pr: "#123"
+    sources: []
+    outputs: []
+tasks: []
+pending: []
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	tgt := f.Targets["my-target"]
+	if tgt.Branch != "feat/my-branch" {
+		t.Errorf("branch = %q, want %q", tgt.Branch, "feat/my-branch")
+	}
+	if tgt.PR != "#123" {
+		t.Errorf("pr = %q, want %q", tgt.PR, "#123")
 	}
 }

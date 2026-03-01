@@ -436,6 +436,69 @@ pending: []
 	}
 }
 
+func TestIntegrationTreeNodeWithSync(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "compiled/.gitkeep", "")
+	writeFixture(t, dir, "root.md", "# Root")
+	writeFixture(t, dir, "child.md", "# Child")
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Sync Integration"
+sources: []
+targets:
+  tree-target:
+    instructions: "Tree with sync modes"
+    transform: compose
+    sources: []
+    outputs:
+      - path: compiled/manifest.md
+    tree:
+      system: jira
+      field: description
+      root:
+        id: "ROOT-1"
+        file: root.md
+        sync: pull
+        children:
+          - id: "CHILD-1"
+            file: child.md
+            sync: both
+tasks: []
+pending: []
+`)
+	r := loadAndValidate(t, dir)
+	if !r.Valid {
+		t.Errorf("expected valid tree with sync modes, got errors: %v", r.Errors)
+	}
+}
+
+func TestIntegrationTargetWithBranchAndPR(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "compiled/.gitkeep", "")
+	writeFixture(t, dir, "README.md", "# Test")
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Branch Integration"
+sources: []
+targets:
+  my-target:
+    instructions: "Target with branch metadata"
+    transform: distill
+    branch: "feat/my-branch"
+    pr: "#456"
+    sources:
+      - path: README.md
+    outputs:
+      - path: compiled/out.md
+tasks: []
+pending: []
+`)
+	r := loadAndValidate(t, dir)
+	if !r.Valid {
+		t.Errorf("expected valid target with branch/pr, got errors: %v", r.Errors)
+	}
+}
+
 func hasError(r *Result, substr string) bool {
 	for _, e := range r.Errors {
 		if strings.Contains(e, substr) {

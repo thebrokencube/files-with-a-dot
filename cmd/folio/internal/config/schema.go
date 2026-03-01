@@ -36,6 +36,8 @@ type Target struct {
 	Instructions string   `yaml:"instructions"`
 	Transform    string   `yaml:"transform"`
 	BlockedBy    []string `yaml:"blocked_by"`
+	Branch       string   `yaml:"branch"`
+	PR           string   `yaml:"pr"`
 	Sources      []Source `yaml:"sources"`
 	Outputs      []Output `yaml:"outputs"`
 	Batch        *Batch   `yaml:"batch"`
@@ -75,6 +77,7 @@ type TreeNode struct {
 	Transform    string     `yaml:"transform"`    // optional, inherits target default
 	Instructions string     `yaml:"instructions"` // optional, per-node compilation instructions
 	Notes        string     `yaml:"notes"`        // optional, advisory notes about this node
+	Sync         string     `yaml:"sync"`         // "push", "pull", "both" (empty = default push)
 	Children     []TreeNode `yaml:"children"`     // recursive
 }
 
@@ -104,6 +107,13 @@ type CrossReference struct {
 	Fact          string   `yaml:"fact"`
 	SourceOfTruth string   `yaml:"source_of_truth"`
 	AlsoAppearsIn []string `yaml:"also_appears_in"`
+}
+
+// ValidSyncModes is the set of allowed sync values on tree nodes.
+var ValidSyncModes = map[string]bool{
+	"push": true,
+	"pull": true,
+	"both": true,
 }
 
 // ValidTransforms is the set of allowed transform values.

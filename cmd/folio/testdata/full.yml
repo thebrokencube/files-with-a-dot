@@ -40,6 +40,27 @@ targets:
         field: description
       - path: compiled/jira-update.md
 
+  feature-branch:
+    instructions: "Compile feature to PR"
+    transform: compose
+    blocked_by: [summary]
+    branch: "feat/my-feature"
+    pr: "#42"
+    sources:
+      - path: README.md
+    outputs:
+      - path: compiled/feature.md
+    tree:
+      system: jira
+      field: description
+      root:
+        id: "ACME-200"
+        label: "Feature Root"
+        sync: pull
+        children:
+          - id: "ACME-201"
+            label: "Sub-task"
+
 cross_references:
   - fact: "Key finding"
     source_of_truth: "README.md"

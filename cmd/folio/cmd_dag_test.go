@@ -149,6 +149,151 @@ targets:
 	}
 }
 
+func TestRunDagBranches(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  docs-tooling:
+    transform: compose
+    branch: "feat-tooling"
+    pr: "#100"
+    sources: []
+    outputs:
+      - path: compiled/a.md
+  docs-proposal:
+    transform: compose
+    branch: "feat-proposal"
+    pr: "#200"
+    blocked_by: [docs-tooling]
+    sources: []
+    outputs:
+      - path: compiled/b.md
+`), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runDag([]string{"--folio", yml, "--branches"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	out := buf.String()
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if !strings.Contains(out, "feat-tooling") {
+		t.Error("expected branch name 'feat-tooling' in output")
+	}
+	if !strings.Contains(out, "feat-proposal") {
+		t.Error("expected branch name 'feat-proposal' in output")
+	}
+	if !strings.Contains(out, "(base: main)") {
+		t.Error("expected '(base: main)' for root branch")
+	}
+	if !strings.Contains(out, "(base: feat-tooling)") {
+		t.Error("expected '(base: feat-tooling)' for stacked branch")
+	}
+	if !strings.Contains(out, "PR: #100") {
+		t.Error("expected 'PR: #100' in output")
+	}
+	// Tree connectors
+	if !strings.Contains(out, "├── ") && !strings.Contains(out, "└── ") {
+		t.Error("expected tree connectors in output")
+	}
+}
+
+func TestRunDagBranchesAndJsonError(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
+
+	code := runDag([]string{"--folio", yml, "--branches", "--json"})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for --branches --json, got %d", code)
+	}
+}
+
+func TestRunDagBranchesNoColor(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  my-target:
+    transform: distill
+    branch: "feat/no-color"
+    pr: "#99"
+    sources: []
+    outputs:
+      - path: compiled/out.md
+`), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runDag([]string{"--folio", yml, "--branches", "--no-color"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	out := buf.String()
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if strings.Contains(out, "\033[") {
+		t.Error("expected no ANSI codes with --no-color")
+	}
+	if !strings.Contains(out, "feat/no-color") {
+		t.Error("expected branch name in output")
+	}
+}
+
+func TestRunDagBranchesNoBranches(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  my-target:
+    transform: distill
+    sources:
+      - path: README.md
+    outputs:
+      - path: compiled/out.md
+`), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runDag([]string{"--folio", yml, "--branches"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	out := buf.String()
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if out != "" {
+		t.Errorf("expected empty output when no targets have branch, got: %q", out)
+	}
+}
+
 func TestRunDagNoColor(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")

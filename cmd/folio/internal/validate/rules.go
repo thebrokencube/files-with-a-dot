@@ -202,6 +202,11 @@ func validateTreeNode(r *Result, tid string, node *config.TreeNode, target *conf
 		r.addError("%s: invalid transform '%s'", prefix, node.Transform)
 	}
 
+	// Sync mode must be valid if present
+	if node.Sync != "" && !config.ValidSyncModes[node.Sync] {
+		r.addError("%s: invalid sync mode '%s' (must be: push, pull, both)", prefix, node.Sync)
+	}
+
 	// Recurse into children
 	for i := range node.Children {
 		validateTreeNode(r, tid, &node.Children[i], target, folioDir, seenIDs)
