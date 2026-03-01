@@ -37,10 +37,7 @@ cmd/md-to-adf:$HOME/.local/bin/md-to-adf
 # Claude Code (granular linking to allow private skills)
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
-configs/base/claude/.claude/skills/dotfiles-dev:$HOME/.claude/skills/dotfiles-dev
 configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
-configs/base/claude/.claude/skills/brew:$HOME/.claude/skills/brew
-configs/base/claude/.claude/skills/system:$HOME/.claude/skills/system
 configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
 configs/base/claude/.claude/skills/plan:$HOME/.claude/skills/plan
 configs/base/claude/.claude/skills/folio:$HOME/.claude/skills/folio

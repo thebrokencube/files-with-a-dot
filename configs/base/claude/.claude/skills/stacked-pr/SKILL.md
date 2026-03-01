@@ -1,7 +1,7 @@
 ---
 name: stacked-pr
 description: Stacked branch workflows -- propagation, fixup targeting, generated commits, rebase-onto mechanics. Use when working with branch chains, stacked PRs, propagating changes across dependent branches, or resolving rebase-onto conflicts across branch stacks.
-user-invocable: false
+user_invocable: false
 ---
 
 # Stacked PR Workflows

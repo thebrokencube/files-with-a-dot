@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Conventional commit format, message conventions, green commit rules, rebase-before-commit workflow, versioning and tags. Use when creating commits, writing commit messages, tagging releases, or deciding how to structure git history. Applies to all repositories.
-user-invocable: false
+user_invocable: false
 ---
 
 # Git Commit Conventions

@@ -28,9 +28,9 @@ My development environment, available globally across all projects.
 - When working with stacked branches, follow propagation and fixup rules (see stacked-pr skill for details)
 
 ## Cross-Repo Awareness
-- **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles-dev skill).
+- **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles skill).
 - When a task touches files in multiple repos, always commit each repo separately with appropriate conventions.
 
 ## Planning
-- Use `/plan` skill instead of built-in plan mode (EnterPlanMode) for non-trivial tasks
+- Use `/plan` for non-trivial tasks. Do not call EnterPlanMode directly.
 - For trivial changes (single file, obvious approach), skip planning entirely

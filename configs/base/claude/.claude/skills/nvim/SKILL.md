@@ -1,15 +1,9 @@
 ---
 name: nvim
-description: Neovim configuration help - plugins, keybindings, LSP setup, troubleshooting. Use when asked about nvim, vim, editor config, or plugins.
+description: Neovim configuration help - plugins, LSP setup, troubleshooting. Use when asked about nvim, vim, editor config, or plugins.
 ---
 
 # Neovim Configuration
-
-## Commands
-- `/nvim` - Show overview
-- `/nvim plugins` - List installed plugins
-- `/nvim keys` - Show key keybindings
-- `/nvim add <plugin>` - Help add a plugin
 
 ## Config Location
 `~/.config/nvim/init.lua` (symlinked from `~/.dotfiles/configs/base/nvim/.config/nvim/`)
@@ -18,14 +12,8 @@ description: Neovim configuration help - plugins, keybindings, LSP setup, troubl
 - **Base**: kickstart.nvim
 - **Plugin manager**: lazy.nvim
 
-## Key Plugins
-| Plugin | Purpose | Key Binding |
-|--------|---------|-------------|
-| nvim-tree | File explorer | `<leader>e` (toggle), `<leader>f` (find current file) |
-| telescope | Fuzzy finder | `<leader>sf` (search files), `<leader>sg` (grep) |
-| treesitter | Syntax highlighting | automatic |
-| mason + lspconfig | LSP support | automatic |
-| tokyonight | Color scheme | automatic |
+## Plugins
+Read `~/.config/nvim/init.lua` and extract plugins from the `lazy.setup()` call. Do not rely on a static list — the file is the source of truth.
 
 ## LSP Server Management
 
@@ -57,17 +45,6 @@ vim.lsp.enable('ruby_lsp')
 
 ### Cleanup
 Run `:MasonCleanup` to remove Mason packages not in the `mason_ensure` list.
-
-## To List Plugins (`/nvim plugins`)
-Read `~/.config/nvim/init.lua` and extract plugins from the `lazy.setup()` call.
-
-## To Add a Plugin (`/nvim add <plugin>`)
-1. Edit `~/.dotfiles/configs/base/nvim/.config/nvim/init.lua`
-2. Add plugin spec to the lazy.setup plugins table:
-   ```lua
-   { 'author/plugin-name', opts = {} },
-   ```
-3. Open nvim, run `:Lazy install`
 
 ## Troubleshooting
 - **Plugins not loading**: Open nvim, run `:Lazy`

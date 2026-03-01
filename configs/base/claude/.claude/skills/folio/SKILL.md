@@ -1,6 +1,6 @@
 ---
 name: folio
-description: Knowledge work lifecycle — research, plan, compile, audit. Replaces the plan skill's PLAN_MANIFEST.md with folio.yml and derived status.
+description: Knowledge work lifecycle — research, plan, compile, audit. Manages project structure via folio.yml with source-to-target compilation and derived status.
 user_invocable: true
 ---
 

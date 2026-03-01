@@ -11,7 +11,7 @@ Planning skill for non-trivial implementation tasks. Two tiers:
 - **Standard**: Single Plan agent proposes an approach. Good default.
 - **Diverge**: Two agents propose independently through different lenses, then merge + review. Use when the design space is large or stakes are high.
 
-Both tiers follow the same phases: understand → propose → (converge) → review → present → implement. Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval.
+Both tiers follow the same phases: understand → propose → (converge) → review → present → implement → review implementation → retrospective. Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval. Phase 6 implements the approved plan. Phases 7-8 run post-implementation.
 
 ## When to Use
 
@@ -38,6 +38,8 @@ Gather context before spawning any agents. This happens in the main conversation
 4. Compile a **context summary** (max 30 lines): what exists, what needs to change, key constraints
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
+
+**Bail-out**: If Phase 1 research reveals the task is actually trivial (obvious approach, few files, no real trade-offs), skip the remaining phases and implement directly. Don't force a multi-agent plan on a simple task.
 
 ### Phase 2: Propose
 
@@ -86,11 +88,26 @@ After Phases 1-4 complete, hand off to built-in plan mode for structured approva
 
 The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
 
+**Skip note**: Phase 5 can be skipped when the user is iterating live and has already seen the plan develop through conversation. Present inline and proceed to Phase 6 after verbal confirmation.
+
 **Note**: Full conversation context (Phases 1-4) is retained in plan mode — only tool access is restricted (read-only + no Agent). This is fine since the heavy lifting is done.
 
 ### Phase 6: Implement
 
 Only after user approval (ExitPlanMode accepted). Execute the plan step by step, following the specified order. If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
+
+### Phase 7: Review implementation
+
+After all changes are made but before committing, review the actual implementation:
+
+- **Standard tier**: Launch 1 review agent (reuse Phase 4 template, substituting the plan with a summary of actual changes)
+- **Diverge tier**: Launch 2 review agents with accuracy and scope lenses (same parallel pattern as Phase 2)
+
+Converge findings, fix issues, then commit. This catches implementation bugs that planning can't — typos, stale references, broken cross-references. Skip for trivial implementations (same bail-out logic as Phase 1).
+
+### Phase 8: Retrospective
+
+After committing, briefly review the planning process itself — what worked, what added friction, what to change next time. Only capture actionable findings, not session notes. Ask the user where to record them and if any warrant immediate changes. Skip for trivial plans.
 
 ## Agent Prompts
 
@@ -165,6 +182,6 @@ Keep your review under 40 lines. Only flag real issues — don't nitpick style o
 
 ## Notes
 
-- **Interaction with folio**: Folio handles project lifecycle (research, compile, audit). `/plan` handles implementation planning for code changes. They're complementary — use folio for knowledge work, `/plan` for "how should I build this."
+- **Interaction with folio**: Folio handles project lifecycle (research, compile, audit). `/plan` handles implementation planning for code changes. They're complementary — use folio for knowledge work, `/plan` for "how should I build this." When a folio project exists for the current work, it's natural context to draw on during research and a natural place to record findings. But folio is not a dependency — all phases work without it.
 - **When NOT to diverge**: If the task has an obvious single approach (e.g., "add a field to this form"), standard mode is faster and equally good. Diverge when you genuinely don't know the best approach, or when the wrong approach would be expensive to redo.
 - **Custom lenses**: Users can specify lenses after `diverge`, e.g., `/plan diverge performance vs readability`. Parse the two sides of "vs" as lens names and craft descriptions that match.
