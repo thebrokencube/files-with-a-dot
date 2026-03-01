@@ -116,27 +116,11 @@ Follow the conventions in the commit skill, plus dotfiles-specific rules:
 
 ### Versioning and Tags
 
-The dotfiles repo uses **semantic versioning** with tagged commits on main: `vMAJOR.MINOR.PATCH`
+This repo is a **tagged repo** — every commit on main gets a semver tag. The commit skill detects this automatically and handles version bumping, message prefixing, and tag creation.
 
-- **MAJOR** - Breaking changes
-- **MINOR** - New features (backwards compatible)
-- **PATCH** - Bug fixes
-
-Prepend the version to the commit message and create a matching annotated tag:
-
-```
-v0.3.20: fix(shell): correct PATH ordering
-```
-
-```bash
-git tag -a v0.3.20 -m "v0.3.20: fix(shell): correct PATH ordering"
-git push origin main v0.3.20
-```
-
-**This version prefix is a dotfiles-repo-specific convention** that layers on top of the commit skill's standard format. It does not apply to other repos.
-
-- **Tags are immutable** — once pushed, NEVER move or delete
-- **Every commit on main = tagged** — commit first, then tag, then push both
+Dotfiles-specific pre-commit checks:
+- Run `dot validate` before committing
+- Test with `dot sync --dry-run` to preview changes
 
 ### Testing Changes
 

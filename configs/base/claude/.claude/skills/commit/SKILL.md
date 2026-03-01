@@ -18,6 +18,7 @@ These conventions apply to **all repositories** unless a project-specific CLAUDE
 - [ ] Stage thoughtfully: Group related changes, don't just `git add -A`
 - [ ] Write message: Follow conventional commit format with scope
 - [ ] No trailers: Do NOT add Co-Authored-By or other trailers
+- [ ] Check tagged repo: if on default branch with semver tags, compute next version and confirm with user
 - [ ] Verify: Ensure commit leaves codebase green
 
 ## Commit Message Format
@@ -81,6 +82,7 @@ If a change requires multiple commits, structure them so each is independently v
 - **New commit** for distinct logical changes
 - **Interactive rebase** to clean up before PR (squash fixups, reorder). Unless the user requests otherwise.
 - **In a stack**: Any amend or interactive rebase requires propagating descendant branches. See stacked-pr skill, Fixup Targeting and Propagation Workflow sections.
+- **Tagged repo amend**: When amending a tagged commit, delete the local tag (`git tag -d vX.Y.Z`), amend, re-tag with the same version. Only if the commit is unpushed — pushed tags are immutable.
 
 ## Rebase Workflow
 
@@ -106,4 +108,50 @@ chore(deps): add stripe gem
 refactor(payments): extract payment processor interface
 feat(checkout): add stripe payment processor with tests
 ```
+
+## Tagged-Repo Versioning
+
+Some repos tag every commit on the default branch with a semver version. The commit skill auto-detects this and handles version bumping, message prefixing, and tag creation.
+
+### Detection (default branch only)
+
+```bash
+# Detect default branch
+git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'
+# Fallback: main
+
+# Check for semver tags
+git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1
+```
+
+If a valid semver tag exists and the current branch is the default branch, activate tagged-repo mode. **Skip entirely on non-default branches.**
+
+### Version Bump Rules
+
+Starting from the latest semver tag:
+
+- `BREAKING CHANGE:` footer or `!` suffix on type (e.g., `feat!`) → **MAJOR** (reset MINOR + PATCH)
+- `feat` → **MINOR** (reset PATCH)
+- Everything else (`fix`, `refactor`, `chore`, etc.) → **PATCH**
+
+**Always confirm the computed version with the user before committing.**
+
+### Commit Format
+
+```
+vX.Y.Z: type(scope): description
+```
+
+The version prefix prepends the standard conventional commit format.
+
+### After Commit
+
+Create an annotated tag and push both together:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z: description"
+git push origin <branch> vX.Y.Z
+```
+
+**Tags are immutable** — once pushed, NEVER move or delete them.
 
