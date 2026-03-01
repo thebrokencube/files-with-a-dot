@@ -39,7 +39,7 @@ Compose sources into targets in DAG order. Composition is creative assembly — 
 
 Previously: `/folio compile`
 
--> Read references/compose.md for full workflow (includes folio.yml schema reference).
+-> Read references/compose.md for full workflow. See references/schema.md for folio.yml structure.
 
 ### /folio review [scope]
 
@@ -120,6 +120,7 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 
 ## Reference Files
 
-- **references/compose.md** — Compose workflow: folio.yml schema, steps, tree targets, batch targets, iteration loop
+- **references/compose.md** — Compose workflow: steps, tree targets, batch targets, iteration loop
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates
+- **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
