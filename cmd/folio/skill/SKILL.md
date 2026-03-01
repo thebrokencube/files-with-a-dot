@@ -53,6 +53,14 @@ Send composed output to external systems (Jira, Google Docs, Slack). Resolves pu
 
 -> Read references/publish.md for full workflow (includes Jira push pipeline).
 
+### /folio stack [check|propagate|push]
+
+Unified stack management — morning standup view, propagation, and push in one workflow. Bridges folio topology (`dag --branches`) with stacked-pr skill mechanics.
+
+Default action is `check`. Requires targets with `branch` fields in folio.yml.
+
+-> Read references/stack.md for full workflow (includes check/propagate/push actions).
+
 ### /folio review [scope]
 
 Project health check — like `git status` for the compilation system. Reports status without fixing anything.
@@ -117,4 +125,5 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates
+- **references/stack.md** — Stack workflow: check/propagate/push actions, stacked-pr integration
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
