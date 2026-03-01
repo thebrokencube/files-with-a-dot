@@ -110,6 +110,45 @@ func TestRunInitCreatesFile(t *testing.T) {
 	}
 }
 
+func TestRunPbcopyNoArgs(t *testing.T) {
+	code := runPbcopy([]string{})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for no args, got %d", code)
+	}
+}
+
+func TestRunPbcopyTargetNotFound(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
+
+	code := runPbcopy([]string{"--folio", yml, "nonexistent"})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for missing target, got %d", code)
+	}
+}
+
+func TestRunPbcopySuccess(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("# Hello"), 0644)
+
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  my-target:
+    transform: distill
+    outputs:
+      - path: compiled/out.md
+`), 0644)
+
+	code := runPbcopy([]string{"--folio", yml, "my-target"})
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+}
+
 func TestRunSetup(t *testing.T) {
 	code := runSetup([]string{})
 	if code != 0 {

@@ -65,6 +65,8 @@ func main() {
 		}
 
 	// Top-level commands
+	case "pbcopy":
+		os.Exit(runPbcopy(os.Args[2:]))
 	case "setup":
 		os.Exit(runSetup(os.Args[2:]))
 	case "version":
@@ -97,6 +99,7 @@ Command groups:
   home       Repository-level commands (FOLIO_HOME)
 
 Top-level commands:
+  pbcopy     Copy target output to clipboard
   setup      Check folio dependencies
   version    Show version
 
