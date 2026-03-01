@@ -29,3 +29,13 @@ Read by `/folio review [scope]`. Assumes you've already read SKILL.md for orient
 ```
 
 Review only reports. It does not fix anything.
+
+## Error Handling
+
+- **External fetch fails**: Report the target as "fetch-failed" in the output table. Continue checking other targets.
+
+## Cross-References
+
+- **SKILL.md**: Review Gates taxonomy (review is gate-free — it IS the review)
+- **compose.md**: Compose-review iteration loop
+- **publish.md**: Publish workflow (review before publish is a natural checkpoint)

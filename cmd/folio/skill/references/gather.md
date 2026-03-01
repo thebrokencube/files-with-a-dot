@@ -36,10 +36,12 @@ Options:
 When invoked as a skill (not a URL), gather becomes a research workflow:
 
 1. Identify what to research from the topic
-2. Search available sources (MCP tools, web, codebase)
-3. Synthesize findings into a reference file
-4. Add the source entry to folio.yml with `derived_from` provenance
-5. Report what was gathered and where it was placed
+2. Search available sources (MCP tools, web, codebase). If no results found, report "no results for {topic}" — do not write an empty file.
+3. Synthesize findings (hold in memory, do not write yet)
+4. **Review gate (soft)**: Present proposed filename, content length, and 3 key facts from the synthesis. "Write to {path}?"
+5. Write the reference file
+6. Add the source entry to folio.yml with `derived_from` provenance
+7. Report what was gathered and where it was placed
 
 ## Knowledge Graduation
 
@@ -56,3 +58,7 @@ URL -> source entry -> reference file -> (compose takes over from here)
 | URL | Reference with content | `/folio gather <topic>` (skill mode) |
 
 > Schema reference: see references/schema.md for the source entry format.
+
+## Error Handling
+
+- **Empty search results**: Report "no results for {topic}" and stop. Do not write an empty reference file.

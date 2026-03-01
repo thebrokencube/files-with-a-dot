@@ -15,7 +15,8 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
    c. Apply the transformation
    d. **Local outputs** (`path:`): write compiled file
    e. **External outputs** (`external:`): resolve push method from tooling.yml
-5. Run `folio status` again to report final state.
+5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output.
+6. Run `folio status` again to report final state.
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.
 
@@ -51,4 +52,8 @@ Composition is rarely one-shot. The compose-review-re-compose loop handles two d
 - **New source** (changes the DAG): gather additional source material, then re-compose. Staleness tracking handles this automatically — new/updated sources make targets stale.
 - **Reframe** (same DAG, different lens): update the target's `instructions` field, then re-compose with `--force`. Instructions aren't tracked for staleness, so reframes require an explicit force flag.
 
-After composing, review the output (`/folio review local`). If the output needs work, determine which type of iteration applies and loop back.
+After composing, review the output — run `/folio review local` explicitly, not as a suggestion. If the output needs work, determine which type of iteration applies and loop back.
+
+## Error Handling
+
+- **Target fails mid-DAG**: Continue composing independent targets. Report partial results — which targets succeeded, which failed, and why.

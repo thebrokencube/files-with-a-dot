@@ -35,7 +35,8 @@ Walk topology in propagation order, rebase each child onto its new parent.
    - Verify green commits (stacked-pr: "Every commit MUST remain green after propagation")
    - Handle conflicts per stacked-pr conflict categories (mechanical → resolve, semantic → pause, generated → drop-and-rerun)
 4. After all branches propagated, run `folio stale --json --folio <path>`
-5. If stale targets remain (source files changed independently of branch propagation), suggest `/folio compose <target>`
+5. **Review gate (soft)**: Present rebased branches, conflicts resolved, and remaining stale targets. Proceed unless user objects.
+6. If stale targets remain (source files changed independently of branch propagation), suggest `/folio compose <target>`
 
 ### push
 
@@ -43,7 +44,8 @@ Push all stack branches parent-first.
 
 1. Run `folio dag --branches --json --folio <path>` to get topology
 2. Walk in propagation order (parent-first = same order as propagation)
-3. Push each branch per stacked-pr skill's **Push Strategy**:
+3. **Review gate (hard)**: Present branches to push, local vs remote tips for each, and force-with-lease status. Wait for explicit "yes" before pushing.
+4. Push each branch per stacked-pr skill's **Push Strategy**:
    - Use `--force-with-lease` (never bare `--force`)
    - Push parent before children
    - If `--force-with-lease` is rejected, stop and report — do not override
