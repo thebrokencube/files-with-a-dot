@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Diverge-converge planner for non-trivial tasks. Two tiers — standard (single agent) and diverge (2 agents + review). Replaces EnterPlanMode.
+description: Diverge-converge planner for non-trivial tasks. Two tiers — standard (single agent) and diverge (2 agents + review). Extends EnterPlanMode with upfront research and multi-agent planning.
 user_invocable: true
 ---
 
@@ -75,14 +75,18 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
 
 ### Phase 5: Present (enter plan mode)
 
-After Phases 1-4 complete, call `EnterPlanMode` to hand off to built-in plan mode. This clears context and starts fresh with the plan file — which is exactly what we want.
+After Phases 1-4 complete, hand off to built-in plan mode for structured approval:
 
-Write the plan file with:
-1. The final plan (with any review fixes applied)
-2. A summary of what the review flagged and how it was addressed
-3. If diverge: a brief note on where the two proposals differed and which was chosen
+1. Call `EnterPlanMode`. The user will be prompted to consent to entering plan mode.
+2. Once in plan mode, write the final plan to the **plan file path provided in the plan mode system message**. Include:
+   - The plan (with any review fixes applied)
+   - A summary of what the review flagged and how it was addressed
+   - If diverge: a brief note on where the two proposals differed and which was chosen
+3. Call `ExitPlanMode` with `allowedPrompts` populated from the plan — e.g., if the plan includes running tests, include `{"tool": "Bash", "prompt": "run tests"}`. This presents the plan to the user for approval.
 
-Then call `ExitPlanMode` to present the plan for user approval. The user may request changes, ask questions, or reject. Iterate until approved or abandoned.
+The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
+
+**Note**: Full conversation context (Phases 1-4) is retained in plan mode — only tool access is restricted (read-only + no Agent). This is fine since the heavy lifting is done.
 
 ### Phase 6: Implement
 
@@ -90,7 +94,26 @@ Only after user approval (ExitPlanMode accepted). Execute the plan step by step,
 
 ## Agent Prompts
 
-### Diverge Agent (Phase 2)
+### Standard Agent (Phase 2 — standard mode)
+
+Use with `subagent_type: "Plan"`. Single instance.
+
+```
+You are planning an implementation for: {task_description}
+
+## Context
+{context_summary}
+
+## Instructions
+Propose an implementation plan. Your plan should:
+- List every file to create or modify, with a description of the changes
+- Specify implementation order and dependencies between steps
+- Note any risks, assumptions, or open questions
+
+Keep your proposal under 80 lines. Be concrete — file paths, function names, specific changes. No hand-waving.
+```
+
+### Diverge Agent (Phase 2 — diverge mode)
 
 Use with `subagent_type: "Plan"`. Launch two instances in parallel with different lens values.
 
