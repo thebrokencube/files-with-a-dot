@@ -61,9 +61,8 @@ Full command reference: [cmd/dot/](cmd/dot/)
 
 Folio manages knowledge work projects — plans, references, and compiled outputs. Interact through Claude Code skills:
 
-- `/folio plan` — plan non-trivial tasks by exploring options, then converging on an approach
-- `/folio compose` — turn research and references into polished outputs
-- `/folio gather` — add sources to a project from URLs or deep research
+- `/folio gather` → `/folio plan` → `/folio compose` → `/folio publish`
+- Design decisions freeze before implementation begins (lock gate in plan phase)
 
 CLI commands and project details: [cmd/folio/](cmd/folio/)
 

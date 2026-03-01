@@ -13,6 +13,17 @@ Use these in Claude Code for planning and composition:
 | `/folio gather` | Add sources to a project — scaffold from URLs or do deep research on a topic. |
 | `/folio publish` | Push compiled outputs to external targets (Confluence, Google Docs). |
 
+## How It Works
+
+```
+/folio gather → design doc (lock) → impl plan → execute
+        per step: implement → review (gate) → commit
+        if targets: → /folio compose → /folio publish
+        retro findings feed back into future work
+```
+
+`/folio plan` runs the full pipeline: gather context, freeze architecture in a design doc (mandatory lock gate), derive the implementation plan, then execute step by step with mandatory review before each commit. When the plan has external targets (Jira, branch topology), execution feeds into compose/publish. Retrospective findings loop back as pending items for future cycles.
+
 ## CLI Commands
 
 The `folio` binary handles project management:

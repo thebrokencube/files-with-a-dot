@@ -8,6 +8,37 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
 
 **Skip planning entirely** for trivial changes: single-file fixes, obvious bugs, one-line tweaks. Just do them.
 
+## Workflow
+
+```
+  gather         design            plan             execute
+    ↓               ↓                ↓                 ↓
+ sources ──→ design doc ──→ approved plan ──→ implement per step
+(Phase 1)   (4b) LOCK      (Phase 5)        ┌─────────────────┐
+    ↑                                        │ implement       │
+    │                                        │ validate   GATE │
+    │                                        │ review     GATE │
+    │                                        │ commit          │
+    │                                        └────────┬────────┘
+    │                                                 │
+    │                                          ┌──────┴───────┐
+    │                                          │ compose →    │
+    │                                          │   publish    │
+    │                                          │ (if targets) │
+    │                                          └──────┬───────┘
+    │                                                 │
+    └──── retro findings ←─── experience ←────────────┘
+          (pending items)     (Phase 7)
+```
+
+The forward path: gather sources, freeze architecture in a design doc (Phase 4b — mandatory lock), derive the implementation plan from the frozen design (Phase 5), execute step by step (Phase 6).
+
+Phase 6 is a loop per plan step: implement → validate → review (mandatory gate) → commit. No commit without review.
+
+When the plan has external targets (Jira hierarchy, branch topology), execution feeds into compose/publish to sync outputs. This is optional — not every plan has external targets.
+
+The feedback loop: implementation experience feeds the Phase 7 retrospective, whose actionable findings become pending items that inform future cycles. Design docs persist as durable reference material, not disposable intermediates.
+
 ## Invocation
 
 - `/folio plan` — Infer topic from context, default lenses (pragmatic vs thorough)
@@ -17,7 +48,7 @@ Custom lenses are specified naturally in the topic text (e.g., `/folio plan rede
 
 ## Phases
 
-Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval. Phase 6 implements the approved plan. Phase 7 runs post-implementation.
+Phases 1-4 run in normal mode (full tool access), including the design lock at 4b. Phase 5 enters built-in plan mode for structured approval. Phase 6 implements with mandatory pre-commit review gates. Phase 7 runs the post-implementation retrospective.
 
 ### Phase 1: Understand
 
@@ -33,6 +64,13 @@ Gather context before spawning any agents. This happens in the main conversation
    relevant (the user may see a match the search missed), and ask if a new folio project
    should be created to track this work. Only proceed without folio context after explicit
    user confirmation.
+5b. **Check source freshness — MUST run if folio project matched.** For every source with a
+   `derived_from` entry, compare the `cached` date against today. If any source is >14 days
+   stale, STOP and present the list to the user: "These sources may be outdated: [list with
+   ages]. Refresh before planning?" Wait for the user's response. If yes, use the gather
+   workflow (see `references/gather.md`) per stale source. If no, note staleness in the
+   context summary so lenses can account for it. Do not auto-run gather. Do not proceed to
+   step 6 until the user has acknowledged or dismissed the staleness report.
 6. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
    (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
@@ -71,12 +109,30 @@ Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The r
 1. **Accuracy**: Does the plan reference correct file paths, function names, and APIs? Are assumptions about existing code valid?
 2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
 3. **Scope**: Is everything in the plan necessary for the task? **Meta-review: should any of this work not exist?** Flag anything that's over-engineered, gold-plated, or solving a problem the user didn't ask about.
+4. **Commit decomposition**: Does the plan decompose into clean commits? Each step should map to 1 logical commit. Flag steps that bundle unrelated concerns (refactor + feature, deps + implementation). Cross-reference against the scope target in execution conventions. See the commit skill's "Reviewable History" section.
+5. **Version impact**: If the target repo uses tagged-repo versioning (per commit skill), does the plan account for version bumps? Flag if feat/fix/refactor mix within a single step implies ambiguous version impact.
 
 Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
 
+### Phase 4b: Design Lock
+
+**Mandatory — no skip.** Freezes architectural decisions before implementation begins. Every plan produces a design doc — the doc may be lightweight for simple changes, but it always exists. Do NOT enter plan mode (Phase 5) without a committed design doc.
+
+**Steps:**
+1. Write a design doc from converge output. Template:
+   - **Problem**: What and why
+   - **Architecture**: Key decisions, type definitions, function signatures
+   - **Divergence decisions**: Table from converge phase
+   - **What's NOT included**: Explicit scope boundary
+   - **Design Provenance**: Agent count, lens names, review findings
+2. If a folio project exists: write to `reference/<topic>-design.md`, add source entry to folio.yml, commit via `folio home push`
+3. If no folio project: write to the plan file's directory, skip folio.yml update
+4. Present to user: "Design doc committed. Proceeding to implementation plan."
+5. **Lock**: Phase 5 derives the implementation plan from the committed design doc, not raw converge output. If implementation later contradicts the design doc, stop and consult the user.
+
 ### Phase 5: Present (enter plan mode)
 
-After Phases 1-4 complete, hand off to built-in plan mode for structured approval:
+After Phases 1-4b complete, hand off to built-in plan mode for structured approval:
 
 1. Call `EnterPlanMode`. The user will be prompted to consent to entering plan mode.
 2. Once in plan mode, write the final plan to the **plan file path provided in the plan mode system message**. Include:
@@ -96,25 +152,25 @@ The user sees the plan file cleanly. They may request changes, ask questions, or
 
 ### Phase 6: Implement
 
-Only after user approval (ExitPlanMode accepted). Execute the plan step by step, following the specified order. If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
+Only after user approval (ExitPlanMode accepted). If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
 
-**One logical unit per commit.** Each commit maps to one feature, fix, or refactor. If a
-plan step spans multiple concerns, split it at commit time.
+For each plan step, execute this sequence in order. Do NOT skip or reorder steps.
 
-**Verify before review.** Before launching review agents, run the validation commands from
-the plan's execution conventions: build, then test, then lint. Only proceed to review if
-all pass.
-
-**Review before each commit**: Before every commit, launch 2 review agents (subagent_type: general-purpose) — one checking accuracy, one checking scope — then converge findings and fix issues before committing. This catches implementation bugs that planning can't — typos, stale references, broken cross-references.
-
-**After review fixes**: Apply mechanical fixes (typos, missing imports, stale paths) and
-commit without re-launching review agents. Only re-review if a fix changes logic or
-introduces new code paths.
-
-**Content extraction check**: When a step moves or extracts content across files, diff the
-old content against the new locations before committing. Verify nothing was dropped,
-duplicated, or silently truncated. Do not rely solely on review agents — run an explicit
-before/after comparison.
+1. **Implement** one logical unit (one feature, fix, or refactor). If a plan step spans
+   multiple concerns, split it at commit time.
+2. **Content extraction check** (if this step moved or extracted content across files): Diff
+   old content against new locations. Verify nothing was dropped, duplicated, or silently
+   truncated. Do not rely solely on review agents — run an explicit before/after comparison.
+3. **Validate — hard gate.** Run the validation commands from execution conventions in order:
+   build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed to step 4
+   until all validation commands pass.
+4. **Review — hard gate.** Launch 2 review agents (subagent_type: general-purpose) — one
+   checking accuracy, one checking scope. Converge findings and fix issues. Do NOT run
+   `git commit` until both reviews complete and all findings are resolved. If fixes are
+   mechanical (typos, imports, paths), proceed to step 5. If fixes change logic or add code
+   paths, return to step 3.
+5. **Commit.** One logical unit per commit.
+6. **Repeat** from step 1 for the next plan step.
 
 **Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml tasks/pending, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
@@ -127,6 +183,7 @@ full session context to be useful). Cover:
 - What worked well? What added friction?
 - Were the lenses useful? Did convergence surface good trade-offs?
 - Was the folio context helpful (if used)?
+- Was the design doc useful? Did it prevent architectural drift during implementation, or was it overhead for this task?
 - What should change next time?
 - If the plan changed folio source files, flag whether targets need recompilation.
 
@@ -217,6 +274,8 @@ You are reviewing an implementation plan. Your job is to find problems before co
 1. **Accuracy**: Verify file paths, function names, and API references exist and are correct. Read the actual files.
 2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
 3. **Scope**: Is everything necessary? Meta-review: should any part of this plan NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
+4. **Commit decomposition**: Does each step map to 1 logical commit? Flag steps that bundle unrelated concerns. Cross-reference against the scope target in execution conventions.
+5. **Version impact**: If the repo uses tagged versioning, does the plan account for version bumps? Flag ambiguous version impact from mixed change types in a single step.
 
 For each issue found, state: what's wrong, where in the plan, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues — don't nitpick style or add suggestions beyond the task scope.
@@ -248,10 +307,11 @@ Keep your review under 40 lines. Only flag real issues.
 **Focus descriptions:**
 
 - **Accuracy**: "Verify the changes match the approved plan. Check for typos, stale references, incorrect file paths, broken imports, and wrong function signatures. Read the actual changed files."
-- **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the plan, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist?"
+- **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the plan, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist? Verify the commit bundles one logical unit — flag if unrelated concerns are mixed."
 
 ## Notes
 
 - **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary.
+- **Phase 4b (Design Lock)**: Always runs. Every plan produces a design doc before entering plan mode. The doc is the authoritative source for Phase 5.
 - **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
 - **Retrospective findings**: Phase 7 captures findings as pending items in the folio project, not as recursive `/folio plan` invocations.
