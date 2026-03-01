@@ -12,9 +12,15 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 )
 
+type dagNode struct {
+	ID      string   `json:"id"`
+	Sources []string `json:"sources"`
+	Outputs []string `json:"outputs"`
+}
+
 type dagJSON struct {
-	Nodes []string   `json:"nodes"`
-	Edges []dagEdge  `json:"edges"`
+	Nodes []dagNode `json:"nodes"`
+	Edges []dagEdge `json:"edges"`
 }
 
 type dagEdge struct {
@@ -26,6 +32,7 @@ func runDag(args []string) int {
 	fs := flag.NewFlagSet("dag", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
+	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
@@ -47,9 +54,26 @@ func runDag(args []string) int {
 	allTargets := maputil.SortedKeys(f.Targets)
 
 	if *jsonMode {
-		dj := dagJSON{Nodes: allTargets}
+		dj := dagJSON{}
+		for _, tid := range allTargets {
+			node := dagNode{ID: tid}
+			target := f.Targets[tid]
+			for _, s := range target.Sources {
+				node.Sources = append(node.Sources, output.SourceLabel(s))
+			}
+			for _, o := range target.Outputs {
+				node.Outputs = append(node.Outputs, output.OutputLabel(o))
+			}
+			if node.Sources == nil {
+				node.Sources = []string{}
+			}
+			if node.Outputs == nil {
+				node.Outputs = []string{}
+			}
+			dj.Nodes = append(dj.Nodes, node)
+		}
 		if dj.Nodes == nil {
-			dj.Nodes = []string{}
+			dj.Nodes = []dagNode{}
 		}
 		for _, tid := range allTargets {
 			for _, dep := range merged[tid] {
@@ -67,7 +91,7 @@ func runDag(args []string) int {
 		}
 		fmt.Println(string(data))
 	} else {
-		graph.FormatDAG(os.Stdout, merged, allTargets)
+		output.PrintDAGTerminal(os.Stdout, f.Targets, merged, allTargets, !*noColor)
 	}
 
 	return 0

@@ -3,7 +3,10 @@ package output
 import (
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
@@ -178,5 +181,90 @@ func statusColor(s string, p palette) string {
 		return p.yellow
 	default:
 		return p.reset
+	}
+}
+
+// SourceLabel returns a human-readable label for a source entry.
+func SourceLabel(s config.Source) string {
+	if s.Path != "" {
+		return s.Path
+	}
+	if s.External != "" {
+		if s.ID != "" {
+			return s.External + ":" + s.ID
+		}
+		return s.External
+	}
+	return "(unknown)"
+}
+
+// OutputLabel returns a human-readable label for an output entry.
+func OutputLabel(o config.Output) string {
+	if o.Path != "" {
+		return o.Path
+	}
+	if o.External != "" {
+		if o.ID != "" {
+			return o.External + ":" + o.ID
+		}
+		return o.External
+	}
+	return "(unknown)"
+}
+
+// PrintDAGTerminal renders the target dependency graph to a terminal.
+func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[string][]string, allTargets []string, color bool) {
+	p := newPalette(color)
+
+	// Include all targets, even those without edges
+	seen := make(map[string]bool)
+	for _, t := range allTargets {
+		seen[t] = true
+	}
+	for t := range adj {
+		seen[t] = true
+	}
+
+	sorted := make([]string, 0, len(seen))
+	for t := range seen {
+		sorted = append(sorted, t)
+	}
+	sort.Strings(sorted)
+
+	for i, tid := range sorted {
+		if i > 0 {
+			fmt.Fprintln(w)
+		}
+
+		deps := adj[tid]
+		if len(deps) == 0 {
+			fmt.Fprintf(w, "%s%s%s\n", p.bold, tid, p.reset)
+		} else {
+			sortedDeps := make([]string, len(deps))
+			copy(sortedDeps, deps)
+			sort.Strings(sortedDeps)
+			fmt.Fprintf(w, "%s%s%s -> [%s]\n", p.bold, tid, p.reset, strings.Join(sortedDeps, ", "))
+		}
+
+		target, ok := targets[tid]
+		if !ok {
+			continue
+		}
+
+		if len(target.Sources) > 0 {
+			labels := make([]string, len(target.Sources))
+			for j, s := range target.Sources {
+				labels[j] = SourceLabel(s)
+			}
+			fmt.Fprintf(w, "  %ssources:%s %s\n", p.dim, p.reset, strings.Join(labels, ", "))
+		}
+
+		if len(target.Outputs) > 0 {
+			labels := make([]string, len(target.Outputs))
+			for j, o := range target.Outputs {
+				labels[j] = OutputLabel(o)
+			}
+			fmt.Fprintf(w, "  %soutputs:%s %s\n", p.dim, p.reset, strings.Join(labels, ", "))
+		}
 	}
 }
