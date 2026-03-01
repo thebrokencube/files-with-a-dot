@@ -11,7 +11,7 @@ Planning skill for non-trivial implementation tasks. Two tiers:
 - **Standard**: Single Plan agent proposes an approach. Good default.
 - **Diverge**: Two agents propose independently through different lenses, then merge + review. Use when the design space is large or stakes are high.
 
-Both tiers follow the same phases: understand → propose → (converge) → review → present → implement.
+Both tiers follow the same phases: understand → propose → (converge) → review → present → implement. Phases 1-4 run in normal mode (full tool access). Phase 5 enters built-in plan mode for structured approval.
 
 ## When to Use
 
@@ -73,18 +73,20 @@ Launch 1 agent (subagent_type=general-purpose) to review the plan (standard: the
 
 Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
 
-### Phase 5: Present
+### Phase 5: Present (enter plan mode)
 
-Show the user:
+After Phases 1-4 complete, call `EnterPlanMode` to hand off to built-in plan mode. This clears context and starts fresh with the plan file — which is exactly what we want.
+
+Write the plan file with:
 1. The final plan (with any review fixes applied)
 2. A summary of what the review flagged and how it was addressed
 3. If diverge: a brief note on where the two proposals differed and which was chosen
 
-**Wait for explicit user approval before proceeding.** The user may request changes, ask questions, or reject the plan entirely. Iterate on the plan until the user approves, or stop if they choose a different direction.
+Then call `ExitPlanMode` to present the plan for user approval. The user may request changes, ask questions, or reject. Iterate until approved or abandoned.
 
 ### Phase 6: Implement
 
-Only after user approval. Execute the plan step by step, following the specified order. If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
+Only after user approval (ExitPlanMode accepted). Execute the plan step by step, following the specified order. If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
 
 ## Agent Prompts
 
