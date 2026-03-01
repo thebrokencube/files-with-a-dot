@@ -5,17 +5,43 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
 // ErrNothingToCommit is returned when there are no changes to commit.
 var ErrNothingToCommit = errors.New("nothing to commit")
 
+// ErrInvalidCommitMessage is returned when a commit message doesn't follow conventional commit format.
+var ErrInvalidCommitMessage = errors.New("invalid commit message")
+
+var commitMsgRe = regexp.MustCompile(`^(feat|fix|docs|refactor|test|chore|style|perf|auto)\([a-z][a-z0-9._-]*\): [a-z].+$`)
+
+// ValidateCommitMessage checks that message follows conventional commit format:
+// type(scope): description
+func ValidateCommitMessage(message string) error {
+	if message == "" {
+		return fmt.Errorf("%w: message is empty", ErrInvalidCommitMessage)
+	}
+
+	firstLine := strings.SplitN(message, "\n", 2)[0]
+
+	if !commitMsgRe.MatchString(firstLine) {
+		return fmt.Errorf("%w: must match type(scope): description\n  allowed types: feat fix docs refactor test chore style perf auto", ErrInvalidCommitMessage)
+	}
+
+	if strings.HasSuffix(firstLine, ".") {
+		return fmt.Errorf("%w: description must not end with a period", ErrInvalidCommitMessage)
+	}
+
+	return nil
+}
+
 // Push stages all changes and commits in the FOLIO_HOME directory.
 // If a remote is configured, it also pushes.
 func Push(home, message string) error {
-	if message == "" {
-		message = "folio: update"
+	if err := ValidateCommitMessage(message); err != nil {
+		return err
 	}
 
 	// git add -A

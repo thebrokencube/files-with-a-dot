@@ -135,7 +135,7 @@ Commands:
   init       Scaffold FOLIO_HOME directory
   validate   Structural checks (folio.yml in leaves, date prefixes)
   list       Show grouped summary of all folios
-  push       git add + commit (+ push if remote)
+  push       git add + commit (+ push if remote) — requires -m
   pull       git pull
   archive    Move active path to archive with date prefix
   activate   Move archive path to active, strip date prefix
@@ -408,12 +408,19 @@ func printEntryTable(entries []list.Entry, color bool) {
 
 func runHomePush(args []string) int {
 	fs := flag.NewFlagSet("home push", flag.ExitOnError)
-	msg := fs.String("m", "folio: update", "Commit message")
+	msg := fs.String("m", "", "Commit message: type(scope): description")
 	fs.Parse(args)
 
 	// Allow positional args as message for convenience: folio home push "my message"
 	if fs.NArg() > 0 {
 		*msg = strings.Join(fs.Args(), " ")
+	}
+
+	if *msg == "" {
+		fmt.Fprintf(os.Stderr, "Error: commit message required (-m or positional arg)\n")
+		fmt.Fprintf(os.Stderr, "  Format: type(scope): description\n")
+		fmt.Fprintf(os.Stderr, "  Types:  feat fix docs refactor test chore style perf auto\n")
+		return 1
 	}
 
 	dir := mustResolveHome()
@@ -422,6 +429,10 @@ func runHomePush(args []string) int {
 		if errors.Is(err, repo.ErrNothingToCommit) {
 			fmt.Println("Nothing to commit (working tree clean)")
 			return 0
+		}
+		if errors.Is(err, repo.ErrInvalidCommitMessage) {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return 1
 		}
 		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
 		return 1
