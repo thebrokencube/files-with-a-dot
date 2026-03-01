@@ -64,11 +64,11 @@ Scripts (`cmd/dot/scripts/*.sh`): `DOT_DIR` one level up from `SCRIPT_DIR`, `DOT
 | Script | Role | Sources |
 |--------|------|---------|
 | `cmd/dot/dot` | CLI entry + TTY detection + orchestration | `lib/config.sh` |
-| `cmd/dot/sync.sh` | Main sync orchestrator (~300 lines) | All lib/ |
-| `cmd/dot/cleanup.sh` | System cleanup orchestrator | `lib/{colors,logging,config,prompt,brew,private}.sh` |
-| `cmd/dot/health.sh` | Diagnostics + setup guide | `lib/{colors,logging,config,prompt}.sh` |
-| `cmd/dot/scripts/uninstall.sh` | Clean removal | `lib/{colors,logging,config,paths,backup,symlinks,shell}.sh` |
-| `cmd/dot/scripts/bootstrap.sh` | Self-contained clone script | None (repo not yet cloned) |
+| `cmd/dot/sync.sh` | Apply dotfiles state (first-time + update) | All lib/ |
+| `cmd/dot/cleanup.sh` | Cleanup packages and files (aggressive vs conservative mode) | `lib/{colors,logging,config,prompt,brew,private}.sh` |
+| `cmd/dot/health.sh` | Diagnostics — check system state | `lib/{colors,logging,config,prompt}.sh` |
+| `cmd/dot/scripts/uninstall.sh` | Remove symlinks and optionally local config | `lib/{colors,logging,config,paths,backup,symlinks,shell}.sh` |
+| `cmd/dot/scripts/bootstrap.sh` | First-time setup on a fresh machine (self-contained) | None (repo not yet cloned) |
 
 ### Non-Interactive Protocol
 
