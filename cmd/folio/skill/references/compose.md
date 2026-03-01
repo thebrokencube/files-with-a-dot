@@ -28,7 +28,7 @@ Each node composes independently from its own file. Nodes do NOT consume child o
 3. Walk bottom-up. For each stale/missing node:
    a. Read the node's `file`
    b. Apply node's `instructions` (fall back to target-level if none)
-   c. If `compiled_dir`/`compiled_ext` set: use Jira Push Pipeline (see SKILL.md)
+   c. If `compiled_dir`/`compiled_ext` set: use Jira Push Pipeline (see references/publish.md)
    d. Otherwise: compose and push via tooling.yml method for `tree.system`
    e. Skip push for non-system-ID nodes (descriptive slugs — report as "no external target")
 4. Touch the target's local `path:` output to update mtime (if one exists)
