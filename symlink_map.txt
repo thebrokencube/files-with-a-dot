@@ -33,6 +33,7 @@ configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTer
 # CLI
 cmd/dot/dot:$HOME/.local/bin/dot
 cmd/md-to-adf:$HOME/.local/bin/md-to-adf
+cmd/folio/folio:$HOME/.local/bin/folio
 
 # Claude Code (granular linking to allow private skills)
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md

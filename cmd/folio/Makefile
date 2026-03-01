@@ -1,5 +1,4 @@
 BINARY    := folio
-INSTALL   := $(HOME)/.local/bin/$(BINARY)
 GOFILES   := $(shell find . -name '*.go')
 GO        := go
 
@@ -24,9 +23,7 @@ fmt:                         ## Format all Go source
 
 check: fmt vet test          ## Full pre-commit check: format, vet, test
 
-install: build               ## Build and install to ~/.local/bin
-	@mkdir -p $(dir $(INSTALL))
-	cp $(BINARY) $(INSTALL)
+install: build               ## Build (symlink_map.txt handles ~/.local/bin)
 
 clean:                       ## Remove build artifacts
 	rm -f $(BINARY)
