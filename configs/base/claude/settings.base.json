@@ -1,5 +1,11 @@
 {
   "permissions": {
+    "additionalDirectories": [
+      "~/.dotfiles/",
+      "~/.dotfiles.private/",
+      "~/.folio/",
+      "~/workspace/"
+    ],
     "allow": [
       "Read",
       "Glob",
