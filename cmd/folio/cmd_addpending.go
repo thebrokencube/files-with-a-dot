@@ -13,8 +13,12 @@ import (
 
 func runAddPending(args []string) int {
 	fs := flag.NewFlagSet("add-pending", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if item == "" {

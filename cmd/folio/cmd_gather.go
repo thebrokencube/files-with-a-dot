@@ -15,11 +15,15 @@ import (
 
 func runGather(args []string) int {
 	fs := flag.NewFlagSet("gather", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	materialize := fs.Bool("materialize", false, "Create reference file stub and wire path")
 	name := fs.String("name", "", "Reference file name (default: derived from URL)")
 	read := fs.Bool("read", false, "Read and summarize URL (requires Claude skill)")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	if fs.NArg() == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize] [--name <name>] [--folio PATH]\n")

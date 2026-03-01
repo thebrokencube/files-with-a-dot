@@ -14,10 +14,14 @@ import (
 
 func runValidate(args []string) int {
 	fs := flag.NewFlagSet("validate", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	color := colorEnabled(*noColor)
 
@@ -58,10 +62,14 @@ func runValidate(args []string) int {
 
 func runStatus(args []string) int {
 	fs := flag.NewFlagSet("status", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	color := colorEnabled(*noColor)
 

@@ -14,8 +14,12 @@ import (
 
 func runPbcopy(args []string) int {
 	fs := flag.NewFlagSet("pbcopy", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	if fs.NArg() == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio pbcopy <target-id> [--folio PATH]\n")

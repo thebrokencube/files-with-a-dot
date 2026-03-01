@@ -15,10 +15,14 @@ import (
 
 func runStale(args []string) int {
 	fs := flag.NewFlagSet("stale", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
