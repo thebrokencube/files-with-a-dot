@@ -41,6 +41,11 @@
       "Bash(diff *)",
       "Bash(tree *)",
       "Bash(test *)",
+      "Bash(dot)",
+      "Bash(dot *)",
+      "Bash(folio)",
+      "Bash(folio *)",
+      "Bash(md-to-adf *)",
       "ListMcpResourcesTool",
       "ReadMcpResourceTool"
     ]
