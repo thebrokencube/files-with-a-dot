@@ -1,0 +1,37 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/pending"
+)
+
+func runAddPending(args []string) int {
+	fs := flag.NewFlagSet("add-pending", flag.ExitOnError)
+	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
+	fs.Parse(args)
+
+	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
+	if item == "" {
+		fmt.Fprintf(os.Stderr, "Usage: folio project add-pending <item text> [--folio PATH]\n")
+		return 1
+	}
+
+	// Validate the file parses before modifying
+	if _, err := config.Load(*folioPath); err != nil {
+		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		return 1
+	}
+
+	if err := pending.Append(*folioPath, item); err != nil {
+		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		return 1
+	}
+
+	fmt.Printf("\033[0;32m✓\033[0m Added to pending: %s\n", item)
+	return 0
+}

@@ -26,6 +26,8 @@ func main() {
 			os.Exit(runStatus(os.Args[3:]))
 		case "init":
 			os.Exit(runInit(os.Args[3:]))
+		case "add-pending":
+			os.Exit(runAddPending(os.Args[3:]))
 		case "--help", "-h", "help":
 			printProjectUsage()
 			os.Exit(0)
@@ -111,9 +113,10 @@ func printProjectUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio project <command> [flags]
 
 Commands:
-  validate   Validate folio.yml structure
-  status     Derive and display target state
-  init       Bootstrap a new folio.yml
+  validate     Validate folio.yml structure
+  status       Derive and display target state
+  init         Bootstrap a new folio.yml
+  add-pending  Append an item to the pending list
 `)
 }
 
