@@ -79,9 +79,9 @@ These slash commands run the corresponding CLI command and report results:
 | Command | Runs |
 |---|---|
 | `/folio setup` | `folio setup` |
-| `/folio status` | `folio project status` (mention `/folio compose` if stale targets exist) |
-| `/folio validate` | `folio project validate` |
-| `/folio init` | `folio project init --name "Name"` (ask for name if not provided) |
+| `/folio status` | `folio status` (mention `/folio compose` if stale targets exist) |
+| `/folio validate` | `folio validate` |
+| `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 
 If any CLI command fails, run `folio setup --check` first.

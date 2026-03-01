@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -14,6 +14,29 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	// Top-level project commands (canonical)
+	case "validate":
+		os.Exit(runValidate(os.Args[2:]))
+	case "status":
+		os.Exit(runStatus(os.Args[2:]))
+	case "init":
+		os.Exit(runInit(os.Args[2:]))
+	case "add-pending":
+		os.Exit(runAddPending(os.Args[2:]))
+
+	// Top-level utility commands
+	case "pbcopy":
+		os.Exit(runPbcopy(os.Args[2:]))
+	case "setup":
+		os.Exit(runSetup(os.Args[2:]))
+	case "version":
+		fmt.Printf("folio %s\n", version)
+		os.Exit(0)
+	case "--help", "-h", "help":
+		printUsage()
+		os.Exit(0)
+
+	// Compat: folio project <cmd> routes to the same functions
 	case "project":
 		if len(os.Args) < 3 {
 			printProjectUsage()
@@ -66,26 +89,6 @@ func main() {
 			os.Exit(1)
 		}
 
-	// Top-level commands
-	case "pbcopy":
-		os.Exit(runPbcopy(os.Args[2:]))
-	case "setup":
-		os.Exit(runSetup(os.Args[2:]))
-	case "version":
-		fmt.Printf("folio %s\n", version)
-		os.Exit(0)
-	case "--help", "-h", "help":
-		printUsage()
-		os.Exit(0)
-
-	// Backward compatibility: bare validate/status/init route to project subcommands
-	case "validate":
-		os.Exit(runValidate(os.Args[2:]))
-	case "status":
-		os.Exit(runStatus(os.Args[2:]))
-	case "init":
-		os.Exit(runInit(os.Args[2:]))
-
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
 		printUsage()
@@ -96,21 +99,29 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio <command> [flags]
 
+Project commands:
+  validate     Validate folio.yml structure
+  status       Derive and display target state
+  init         Bootstrap a new folio.yml
+  add-pending  Append an item to the pending list
+
+Utility commands:
+  pbcopy       Copy target output to clipboard
+  setup        Check folio dependencies
+  version      Show version
+
 Command groups:
-  project    Per-project commands (cwd-based)
-  home       Repository-level commands (FOLIO_HOME)
+  home         Repository-level commands (FOLIO_HOME)
+  project      Compat alias for project commands
 
-Top-level commands:
-  pbcopy     Copy target output to clipboard
-  setup      Check folio dependencies
-  version    Show version
-
-Run 'folio <group> --help' for details.
+Run 'folio <command> --help' for details.
 `)
 }
 
 func printProjectUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio project <command> [flags]
+
+Compat alias — these commands are also available at top level (folio validate, etc.).
 
 Commands:
   validate     Validate folio.yml structure
