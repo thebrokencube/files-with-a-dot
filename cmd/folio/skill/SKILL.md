@@ -4,7 +4,7 @@ description: Knowledge work lifecycle — plan, compose, review. Manages project
   structure via folio.yml with source-to-target composition and diverge-converge
   planning for non-trivial tasks.
 user_invocable: true
-argument-hint: "[gather|plan|compose|review|status|...] [args]"
+argument-hint: "[gather|plan|compose|publish|review|status|...] [args]"
 ---
 
 # Folio
@@ -46,6 +46,12 @@ Compose sources into targets in DAG order. Composition is creative assembly — 
 Previously: `/folio compile`
 
 -> Read references/compose.md for full workflow. See references/schema.md for folio.yml structure.
+
+### /folio publish [target]
+
+Send composed output to external systems (Jira, Google Docs, Slack). Resolves push method from tooling.yml.
+
+-> Read references/publish.md for full workflow (includes Jira push pipeline).
 
 ### /folio review [scope]
 
@@ -90,28 +96,7 @@ External outputs resolve their push/pull method from `tooling.yml` (co-located w
 
 **Method types**: `cli:<tool>` = shell command, `mcp:<server>` = MCP tool call, `manual` = present to user, `manual:<hint>` = manual with guidance. Unlisted systems: pull=skip, push=manual.
 
-### Jira Push Pipeline
-
-Tree targets with `system: jira` and `compiled_ext: .json` use a three-phase pipeline:
-
-```
-source .md -> lint (md-to-adf --lint) -> precompile (md-to-adf --acli) -> compiled .json -> push (acli)
-```
-
-| Placeholder | Resolves from |
-|---|---|
-| `{id}` | Tree node `id` (Jira key) |
-| `{source}` | Tree node `file` |
-| `{compiled}` | `{compiled_dir}/{id}{compiled_ext}` |
-
-Example:
-```bash
-md-to-adf --lint epic.md                                               # 1. Lint
-md-to-adf --acli BEN-48284 < epic.md > compiled/jira/BEN-48284.json   # 2. Precompile
-acli jira workitem edit --from-json compiled/jira/BEN-48284.json --yes # 3. Push
-```
-
-**md-to-adf limitations** (caught by `--lint`): no tables, no fenced code blocks, no blockquotes, no nested lists, no h3+. Flatten source files before compilation.
+> Jira push pipeline and other publish methods: see references/publish.md.
 
 ## Transform Types
 
@@ -128,6 +113,7 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 
 - **references/gather.md** — Gather workflow: URL scaffold, materialize, deep research mode
 - **references/compose.md** — Compose workflow: steps, tree targets, batch targets, iteration loop
+- **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
