@@ -84,6 +84,7 @@ After Phases 1-4 complete, hand off to built-in plan mode for structured approva
    - The plan (with any review fixes applied)
    - A summary of what the review flagged and how it was addressed
    - If diverge: a brief note on where the two proposals differed and which was chosen
+   - **The implementation order must end with explicit steps for Phase 7 (review implementation) and Phase 8 (retrospective).** These are not implicit — they must appear as numbered steps so they cannot be skipped during execution.
 3. Call `ExitPlanMode` with `allowedPrompts` populated from the plan — e.g., if the plan includes running tests, include `{"tool": "Bash", "prompt": "run tests"}`. This presents the plan to the user for approval.
 
 The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
@@ -98,16 +99,16 @@ Only after user approval (ExitPlanMode accepted). Execute the plan step by step,
 
 ### Phase 7: Review implementation
 
-After all changes are made but before committing, review the actual implementation:
+**Mandatory — no skip.** After all changes are made but before committing, review the actual implementation:
 
 - **Standard tier**: Launch 1 review agent (reuse Phase 4 template, substituting the plan with a summary of actual changes)
 - **Diverge tier**: Launch 2 review agents with accuracy and scope lenses (same parallel pattern as Phase 2)
 
-Converge findings, fix issues, then commit. This catches implementation bugs that planning can't — typos, stale references, broken cross-references. Skip for trivial implementations (same bail-out logic as Phase 1).
+Converge findings, fix issues, then commit. This catches implementation bugs that planning can't — typos, stale references, broken cross-references.
 
 ### Phase 8: Retrospective
 
-After committing, briefly review the planning process itself — what worked, what added friction, what to change next time. Only capture actionable findings, not session notes. Ask the user where to record them and if any warrant immediate changes. Skip for trivial plans.
+**Mandatory — no skip.** After committing, briefly review the planning process itself — what worked, what added friction, what to change next time. Only capture actionable findings, not session notes. Ask the user where to record them and if any warrant immediate changes.
 
 ## Agent Prompts
 
