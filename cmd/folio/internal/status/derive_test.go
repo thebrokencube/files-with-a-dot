@@ -60,6 +60,57 @@ func TestDeriveLocalStatusMissingSource(t *testing.T) {
 	}
 }
 
+func TestDeriveLocalCauseClean(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "source.md")
+	outPath := filepath.Join(dir, "compiled", "output.md")
+
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(srcPath, []byte("source"), 0644)
+	time.Sleep(50 * time.Millisecond)
+	os.WriteFile(outPath, []byte("output"), 0644)
+
+	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"source.md"})
+	if cause != "" {
+		t.Errorf("cause = %q, want empty (clean)", cause)
+	}
+}
+
+func TestDeriveLocalCauseStale(t *testing.T) {
+	dir := t.TempDir()
+	outPath := filepath.Join(dir, "compiled", "output.md")
+	srcPath := filepath.Join(dir, "source.md")
+
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(outPath, []byte("output"), 0644)
+	time.Sleep(50 * time.Millisecond)
+	os.WriteFile(srcPath, []byte("source newer"), 0644)
+
+	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"source.md"})
+	if cause != "source source.md newer than output" {
+		t.Errorf("cause = %q, want 'source source.md newer than output'", cause)
+	}
+}
+
+func TestDeriveLocalCauseMissingOutput(t *testing.T) {
+	dir := t.TempDir()
+	cause := DeriveLocalCause(dir, "compiled/nonexistent.md", []string{"source.md"})
+	if cause != "output missing" {
+		t.Errorf("cause = %q, want 'output missing'", cause)
+	}
+}
+
+func TestDeriveLocalCauseMissingSource(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "compiled", "output.md"), []byte("output"), 0644)
+
+	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"nonexistent.md"})
+	if cause != "source nonexistent.md missing" {
+		t.Errorf("cause = %q, want 'source nonexistent.md missing'", cause)
+	}
+}
+
 func TestClassifySourcePrimary(t *testing.T) {
 	src := config.Source{Path: "README.md"}
 	info := ClassifySource(src)

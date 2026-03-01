@@ -231,6 +231,31 @@ func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string
 	return "clean"
 }
 
+// DeriveLocalCause returns a human-readable reason why a local output is stale.
+// Returns "" if clean, "output missing" if the output doesn't exist, or the
+// first source path that is newer than the output.
+func DeriveLocalCause(folioDir, outputPath string, sourcePaths []string) string {
+	fullOutput := filepath.Join(folioDir, outputPath)
+	outInfo, err := os.Stat(fullOutput)
+	if err != nil {
+		return "output missing"
+	}
+	outputMtime := outInfo.ModTime()
+
+	for _, src := range sourcePaths {
+		fullSrc := filepath.Join(folioDir, src)
+		srcInfo, err := os.Stat(fullSrc)
+		if err != nil {
+			return fmt.Sprintf("source %s missing", src)
+		}
+		if srcInfo.ModTime().After(outputMtime) {
+			return fmt.Sprintf("source %s newer than output", src)
+		}
+	}
+
+	return ""
+}
+
 // ClassifySource categorizes a project-level source entry.
 func ClassifySource(src config.Source) SourceInfo {
 	if src.External != "" {
@@ -307,7 +332,8 @@ func DeriveWithDAG(f *config.Folio, folioDir string) (*ProjectStatus, map[string
 	return ps, causedBy
 }
 
-func statusRank(s string) int {
+// StatusRank returns a numeric rank for a status string (higher = worse).
+func StatusRank(s string) int {
 	switch s {
 	case "clean":
 		return 0
@@ -323,7 +349,7 @@ func statusRank(s string) int {
 }
 
 func worseStatus(a, b string) string {
-	if statusRank(b) > statusRank(a) {
+	if StatusRank(b) > StatusRank(a) {
 		return b
 	}
 	return a

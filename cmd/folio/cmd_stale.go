@@ -17,6 +17,7 @@ func runStale(args []string) int {
 	fs := flag.NewFlagSet("stale", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
+	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
@@ -31,25 +32,70 @@ func runStale(args []string) int {
 	}
 
 	folioDir := filepath.Dir(*folioPath)
-	ps, _ := status.DeriveWithDAG(f, folioDir)
+	ps, causedBy := status.DeriveWithDAG(f, folioDir)
 
-	// Collect stale/missing/unknown target IDs
-	var stale []string
+	// Build enriched entries for stale/missing/unknown targets
+	var entries []output.StaleEntry
 	for _, tid := range maputil.SortedKeys(ps.Targets) {
 		ts := ps.Targets[tid]
+		worst := "clean"
 		for _, out := range ts.Outputs {
-			if out.Status == "stale" || out.Status == "missing" || out.Status == "unknown" {
-				stale = append(stale, tid)
-				break
+			if status.StatusRank(out.Status) > status.StatusRank(worst) {
+				worst = out.Status
 			}
 		}
+		if worst == "clean" {
+			continue
+		}
+
+		entry := output.StaleEntry{
+			ID:     tid,
+			Status: worst,
+		}
+
+		// Collect output labels
+		target := f.Targets[tid]
+		for _, o := range target.Outputs {
+			entry.Outputs = append(entry.Outputs, output.OutputLabel(o))
+		}
+
+		// Determine cause
+		if cause, ok := causedBy[tid]; ok {
+			entry.Cause = fmt.Sprintf("blocked by stale target %s", cause)
+		} else {
+			// Direct cause: check local outputs against sources
+			var sourcePaths []string
+			for _, s := range target.Sources {
+				if s.Path != "" {
+					sourcePaths = append(sourcePaths, s.Path)
+				}
+			}
+			for _, out := range target.Outputs {
+				if out.Path != "" {
+					if c := status.DeriveLocalCause(folioDir, out.Path, sourcePaths); c != "" {
+						entry.Cause = c
+						break
+					}
+				} else if out.External != "" {
+					entry.Cause = "external output status unknown"
+					break
+				}
+			}
+		}
+
+		if entry.Outputs == nil {
+			entry.Outputs = []string{}
+		}
+		entries = append(entries, entry)
 	}
 
 	if *jsonMode {
-		if stale == nil {
-			stale = []string{}
+		if entries == nil {
+			entries = []output.StaleEntry{}
 		}
-		data, err := json.Marshal(map[string][]string{"stale": stale})
+		data, err := json.Marshal(struct {
+			Stale []output.StaleEntry `json:"stale"`
+		}{Stale: entries})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, `{"error":"json marshal error: %s"}`, err)
 			fmt.Fprintln(os.Stderr)
@@ -57,12 +103,10 @@ func runStale(args []string) int {
 		}
 		fmt.Println(string(data))
 	} else {
-		for _, tid := range stale {
-			fmt.Println(tid)
-		}
+		output.PrintStaleTerminal(os.Stdout, entries, !*noColor)
 	}
 
-	if len(stale) > 0 {
+	if len(entries) > 0 {
 		return 1
 	}
 	return 0

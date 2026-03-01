@@ -268,3 +268,33 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 		}
 	}
 }
+
+// StaleEntry holds display data for a single stale target.
+type StaleEntry struct {
+	ID      string   `json:"id"`
+	Status  string   `json:"status"`
+	Outputs []string `json:"outputs"`
+	Cause   string   `json:"cause"`
+}
+
+// PrintStaleTerminal renders stale targets to a terminal.
+func PrintStaleTerminal(w io.Writer, entries []StaleEntry, color bool) {
+	p := newPalette(color)
+
+	for i, e := range entries {
+		if i > 0 {
+			fmt.Fprintln(w)
+		}
+
+		c := statusColor(e.Status, p)
+		fmt.Fprintf(w, "%s%s%s  %s%s%s\n", p.bold, e.ID, p.reset, c, e.Status, p.reset)
+
+		for _, out := range e.Outputs {
+			fmt.Fprintf(w, "  %soutput:%s %s\n", p.dim, p.reset, out)
+		}
+
+		if e.Cause != "" {
+			fmt.Fprintf(w, "  %scause:%s %s\n", p.dim, p.reset, e.Cause)
+		}
+	}
+}
