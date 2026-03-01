@@ -50,6 +50,9 @@
       "ReadMcpResourceTool"
     ]
   },
+  "memory": {
+    "enabled": false
+  },
   "hooks": {
     "Notification": [
       {
