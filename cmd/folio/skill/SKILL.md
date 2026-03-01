@@ -1,17 +1,17 @@
 ---
 name: folio
-description: Knowledge work lifecycle — plan, compile, audit. Manages project
-  structure via folio.yml with source-to-target compilation and diverge-converge
+description: Knowledge work lifecycle — plan, compose, review. Manages project
+  structure via folio.yml with source-to-target composition and diverge-converge
   planning for non-trivial tasks.
 user_invocable: true
-argument-hint: "[plan|compile|review|status|...] [args]"
+argument-hint: "[plan|compose|review|status|...] [args]"
 ---
 
 # Folio
 
-Lifecycle toolkit for knowledge work. Local source files compile into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
+Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
 
-**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compile, audit, add-pending). Each workflow's full instructions live in a reference file — read only what you need.
+**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, review, add-pending). Each workflow's full instructions live in a reference file — read only what you need.
 
 ## Quick Orientation
 
@@ -20,7 +20,7 @@ Before handling any folio request, check for a folio.yml in the current director
 | What you find | What's available |
 |---|---|
 | No folio.yml | No folio infrastructure needed. |
-| folio.yml with local outputs only | Local compilation targets. |
+| folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
 ## Workflows
@@ -33,11 +33,13 @@ Custom lenses can be specified naturally in the topic text; defaults to pragmati
 
 -> Read references/plan.md for full workflow (includes agent prompt templates).
 
-### /folio compile [target]
+### /folio compose [target]
 
-Compile sources into targets in DAG order. Compilation is distillation — sources are working memory; targets are communication condensed for their audience.
+Compose sources into targets in DAG order. Composition is creative assembly — sources are working memory; targets are communication condensed for their audience.
 
--> Read references/compile.md for full workflow (includes folio.yml schema reference).
+Previously: `/folio compile`
+
+-> Read references/compose.md for full workflow (includes folio.yml schema reference).
 
 ### /folio review [scope]
 
@@ -65,7 +67,7 @@ These slash commands run the corresponding CLI command and report results:
 | Command | Runs |
 |---|---|
 | `/folio setup` | `folio setup` |
-| `/folio status` | `folio project status` (mention `/folio compile` if stale targets exist) |
+| `/folio status` | `folio project status` (mention `/folio compose` if stale targets exist) |
 | `/folio validate` | `folio project validate` |
 | `/folio init` | `folio project init --name "Name"` (ask for name if not provided) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
@@ -118,6 +120,6 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 
 ## Reference Files
 
-- **references/compile.md** — Compile workflow: folio.yml schema, steps, tree targets, batch targets
+- **references/compose.md** — Compose workflow: folio.yml schema, steps, tree targets, batch targets, iteration loop
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates

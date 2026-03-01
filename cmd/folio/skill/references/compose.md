@@ -1,6 +1,6 @@
-# Compile Workflow
+# Compose Workflow
 
-Read by `/folio compile [target]`. Assumes you've already read SKILL.md for orientation and tooling resolution.
+Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orientation and tooling resolution.
 
 ## folio.yml Schema
 
@@ -82,42 +82,51 @@ pending: []                            # Backlog items (list of strings)
 
 The `§` separator means: read file before `§`, locate section after `§`. Some cross-references may be descriptive — do best-effort comparison.
 
-## Compile Steps
+## Compose Steps
 
-1. Run `folio project validate`. Stop if invalid.
-2. Run `folio project status --json`. Identify stale/missing/unknown targets (or filter to the specific target requested).
-3. Read `blocked_by` edges from folio.yml (not in status JSON). Resolve compilation order: upstream targets first.
+1. Run `folio validate`. Stop if invalid.
+2. Run `folio status --json`. Identify stale/missing/unknown targets (or filter to the specific target requested).
+3. Read `blocked_by` edges from folio.yml (not in status JSON). Resolve composition order: upstream targets first.
 4. For each target, in DAG order:
    a. Read source files from target's `sources`
    b. Read `instructions` from folio.yml
    c. Apply the transformation
    d. **Local outputs** (`path:`): write compiled file
    e. **External outputs** (`external:`): resolve push method from tooling.yml
-5. Run `folio project status` again to report final state.
+5. Run `folio status` again to report final state.
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.
 
-## Tree Target Compilation
+## Tree Target Composition
 
-Each node compiles independently from its own file. Nodes do NOT consume child outputs. Compile bottom-up (children before parents).
+Each node composes independently from its own file. Nodes do NOT consume child outputs. Compose bottom-up (children before parents).
 
-1. Get per-node status from `folio project status --json` (the `tree` field in target)
+1. Get per-node status from `folio status --json` (the `tree` field in target)
 2. Read tree definition from folio.yml for per-node `file` and `instructions`
 3. Walk bottom-up. For each stale/missing node:
    a. Read the node's `file`
    b. Apply node's `instructions` (fall back to target-level if none)
    c. If `compiled_dir`/`compiled_ext` set: use Jira Push Pipeline (see SKILL.md)
-   d. Otherwise: compile and push via tooling.yml method for `tree.system`
+   d. Otherwise: compose and push via tooling.yml method for `tree.system`
    e. Skip push for non-system-ID nodes (descriptive slugs — report as "no external target")
 4. Touch the target's local `path:` output to update mtime (if one exists)
 
-## Batch Target Compilation
+## Batch Target Composition
 
 Multiple items sharing one set of instructions. Each item has its own source and output.
 
-1. Get per-item status from `folio project status --json` (`batch_items` field)
+1. Get per-item status from `folio status --json` (`batch_items` field)
 2. For each stale/missing item:
    a. Read item's `source` file
    b. Apply target-level `instructions`
    c. Push via tooling.yml. Output: `{external: batch.system, id: item.output.id, field: item.output.field || batch.field}`
 3. Touch the target's local `path:` output (if one exists)
+
+## Iteration
+
+Composition is rarely one-shot. The compose-review-re-compose loop handles two distinct iteration types:
+
+- **New source** (changes the DAG): gather additional source material, then re-compose. Staleness tracking handles this automatically — new/updated sources make targets stale.
+- **Reframe** (same DAG, different lens): update the target's `instructions` field, then re-compose with `--force`. Instructions aren't tracked for staleness, so reframes require an explicit force flag.
+
+After composing, review the output (`/folio review local`). If the output needs work, determine which type of iteration applies and loop back.
