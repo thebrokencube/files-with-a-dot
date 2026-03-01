@@ -212,10 +212,40 @@ Stacks assume linear (rebase) history. NEVER use merge commits within a stack.
 | Rebase aborted mid-propagation | Conflict too complex to resolve inline | Branch restored to pre-rebase state; old tips still valid. Fix the issue, re-run same `rebase --onto` |
 | Stack parent ambiguous | Fork in DAG, unclear which branch is parent | **Ask the user.** NEVER guess from commit dates or branch names |
 
+## Folio Integration
+
+When a `folio.yml` exists, use it as the source of truth for branch topology instead of parsing PR descriptions or relying on mental models.
+
+### Topology Discovery
+
+```bash
+folio dag --branches --json --folio <path-to-folio.yml>
+```
+
+Returns a `BranchTopology` JSON structure with nested roots → children. Each node has `id` (target name), `branch`, `base`, and `pr` fields. This replaces manual branch-parent tracking.
+
+### Propagation Order
+
+The JSON tree encodes propagation order implicitly: pre-order traversal (root-to-leaf) gives the correct order. Walk each root's children depth-first — parent branches always appear before their children.
+
+### Post-Propagation
+
+After propagation completes, check for stale composition targets:
+
+```bash
+folio stale --json --folio <path-to-folio.yml>
+```
+
+Stale entries include a `branch` field for direct mapping. If stale targets exist, suggest `/folio compose <target>` for recomposition.
+
+### Fallback
+
+When no `folio.yml` exists (or targets lack `branch` fields), fall back to manual branch-parent tracking: branch names in PR descriptions, user confirmation for ambiguous parent relationships.
+
 ## Terminology
 
 Quick reference for terms used throughout this skill:
 
 - **Old tip**: A branch's tip *before* a rewrite (rebase, fixup, amend)
 - **Generated commit**: Deterministic command output, prefixed `auto:` — description is the command
-- **Stack**: Chain of branches where each depends on the previous; parent relationships tracked in PR descriptions, no metadata files
+- **Stack**: Chain of branches where each depends on the previous; parent relationships tracked in folio.yml `branch`/`blocked_by` fields, or PR descriptions when no folio.yml
