@@ -82,6 +82,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio status` | `folio status` (mention `/folio compose` if stale targets exist) |
 | `/folio validate` | `folio validate` |
 | `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
+| `/folio gather <url>` | `folio gather <url>` (add `--materialize` or `--name` as needed) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 
 If any CLI command fails, run `folio setup --check` first.
