@@ -81,6 +81,31 @@ func Validate(f *config.Folio, folioDir string) *Result {
 		r.addError("Dependency cycle detected: %s", strings.Join(cycle, " -> "))
 	}
 
+	// Repositories
+	for _, name := range maputil.SortedKeys(f.Repositories) {
+		url := f.Repositories[name]
+		if url == "" {
+			r.addError("Repository '%s': URL template is empty", name)
+		} else if !strings.Contains(url, "{path}") {
+			r.addWarning("Repository '%s': URL template missing {path} placeholder", name)
+		}
+	}
+
+	// Cross-references
+	seenFacts := make(map[string]bool)
+	for i, xref := range f.CrossReferences {
+		prefix := fmt.Sprintf("Cross-reference [%d]", i)
+		if xref.Fact == "" {
+			r.addError("%s: missing required field: fact", prefix)
+		} else if seenFacts[xref.Fact] {
+			r.addWarning("%s: duplicate fact '%s'", prefix, xref.Fact)
+		}
+		seenFacts[xref.Fact] = true
+		if xref.SourceOfTruth == "" {
+			r.addError("%s: missing required field: source_of_truth", prefix)
+		}
+	}
+
 	return r
 }
 

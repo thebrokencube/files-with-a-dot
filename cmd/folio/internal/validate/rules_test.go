@@ -907,6 +907,136 @@ func TestValidateUniqueBranches(t *testing.T) {
 	}
 }
 
+func TestValidateRepositoryValid(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Repositories: map[string]string{
+			"dotfiles": "https://github.com/org/repo/blob/main/{path}",
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+	if containsWarning(r, "Repository") {
+		t.Errorf("expected no repo warnings, got: %v", r.Warnings)
+	}
+}
+
+func TestValidateRepositoryEmptyURL(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Repositories: map[string]string{
+			"dotfiles": "",
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for empty URL")
+	}
+	if !containsError(r, "URL template is empty") {
+		t.Errorf("expected empty URL error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateRepositoryMissingPlaceholder(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Repositories: map[string]string{
+			"dotfiles": "https://github.com/org/repo",
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "{path} placeholder") {
+		t.Errorf("expected placeholder warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestValidateCrossRefValid(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		CrossReferences: []config.CrossReference{
+			{Fact: "Some fact", SourceOfTruth: "path/to/source.md"},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateCrossRefMissingFact(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		CrossReferences: []config.CrossReference{
+			{Fact: "", SourceOfTruth: "path/to/source.md"},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for missing fact")
+	}
+	if !containsError(r, "missing required field: fact") {
+		t.Errorf("expected fact error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateCrossRefMissingSourceOfTruth(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		CrossReferences: []config.CrossReference{
+			{Fact: "Some fact", SourceOfTruth: ""},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for missing source_of_truth")
+	}
+	if !containsError(r, "missing required field: source_of_truth") {
+		t.Errorf("expected source_of_truth error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateCrossRefDuplicateFact(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		CrossReferences: []config.CrossReference{
+			{Fact: "Same fact", SourceOfTruth: "path/a.md"},
+			{Fact: "Same fact", SourceOfTruth: "path/b.md"},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "duplicate fact") {
+		t.Errorf("expected duplicate warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestValidateMinimalWithEmptyCollections(t *testing.T) {
+	f := &config.Folio{
+		Schema:          1,
+		Project:         "Test",
+		Repositories:    map[string]string{},
+		CrossReferences: []config.CrossReference{},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid for empty collections, got errors: %v", r.Errors)
+	}
+}
+
 func containsWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {
