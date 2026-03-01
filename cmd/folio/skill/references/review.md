@@ -1,17 +1,17 @@
-# Audit Workflow
+# Review Workflow
 
-Read by `/folio audit [scope]`. Assumes you've already read SKILL.md for orientation and tooling resolution.
+Read by `/folio review [scope]`. Assumes you've already read SKILL.md for orientation and tooling resolution.
 
 ## Scope
 
-- No arg or `local` = local only
-- `external` = also fetch and compare external targets
+- No arg or `local` = local checks only (cross-references, staleness, structural integrity)
+- `external` = also fetch and compare external targets (normalize formats before diff)
 - Specific target ID = validate just that target externally
 
 ## Steps
 
-1. Run `folio project validate`. Report errors.
-2. Run `folio project status`. Report all targets.
+1. Run `folio validate`. Report errors.
+2. Run `folio status`. Report all targets.
 3. For each `cross_references` entry: read source_of_truth and each also_appears_in, flag differences. Descriptive references: report as not machine-checkable.
 4. (External scope only) Fetch external targets via tooling.yml pull method, compare against local. For format differences (ADF vs markdown), compare structural elements not literal text.
 
@@ -28,4 +28,4 @@ Read by `/folio audit [scope]`. Assumes you've already read SKILL.md for orienta
 - [system] [id]: matches / differs
 ```
 
-Audit only reports. It does not fix anything.
+Review only reports. It does not fix anything.

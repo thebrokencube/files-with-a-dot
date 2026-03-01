@@ -4,7 +4,7 @@ description: Knowledge work lifecycle — plan, compile, audit. Manages project
   structure via folio.yml with source-to-target compilation and diverge-converge
   planning for non-trivial tasks.
 user_invocable: true
-argument-hint: "[plan|compile|audit|status|...] [args]"
+argument-hint: "[plan|compile|review|status|...] [args]"
 ---
 
 # Folio
@@ -39,13 +39,15 @@ Compile sources into targets in DAG order. Compilation is distillation — sourc
 
 -> Read references/compile.md for full workflow (includes folio.yml schema reference).
 
-### /folio audit [scope]
+### /folio review [scope]
 
 Project health check — like `git status` for the compilation system. Reports status without fixing anything.
 
-Scope: no arg or `local` = local only. `external` = also fetch and compare. Specific target ID = just that target.
+Scope: no arg or `local` = local checks only. `external` = also fetch and compare. Specific target ID = just that target.
 
--> Read references/audit.md for full workflow.
+Previously: `/folio audit`
+
+-> Read references/review.md for full workflow.
 
 ### /folio add-pending
 
@@ -117,5 +119,5 @@ The `transform` field on targets and tree nodes is a semantic hint for Claude, n
 ## Reference Files
 
 - **references/compile.md** — Compile workflow: folio.yml schema, steps, tree targets, batch targets
-- **references/audit.md** — Audit workflow: steps, output format, cross-reference checks
+- **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: 7 phases, lens system, re-run rules, agent prompt templates
