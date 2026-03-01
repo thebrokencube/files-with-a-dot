@@ -806,6 +806,107 @@ func TestValidateTreeNodeValidSyncModes(t *testing.T) {
 	}
 }
 
+func TestValidatePRWithoutBranch(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"my-target": {
+				Transform: "distill",
+				PR:        "#123",
+				Outputs:   []config.Output{{Path: "compiled/out.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for PR without branch")
+	}
+	if !containsError(r, "pr set without branch") {
+		t.Errorf("expected PR-without-branch error, got: %v", r.Errors)
+	}
+}
+
+func TestValidatePRWithBranch(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"my-target": {
+				Transform: "distill",
+				Branch:    "feat-test",
+				PR:        "#123",
+				Outputs:   []config.Output{{Path: "compiled/out.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if containsError(r, "pr set without branch") {
+		t.Errorf("should be valid with both branch and PR, got: %v", r.Errors)
+	}
+}
+
+func TestValidateDuplicateBranch(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"first": {
+				Transform: "distill",
+				Branch:    "feat-shared",
+				Outputs:   []config.Output{{Path: "compiled/a.md"}},
+			},
+			"second": {
+				Transform: "distill",
+				Branch:    "feat-shared",
+				Outputs:   []config.Output{{Path: "compiled/b.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for duplicate branch")
+	}
+	if !containsError(r, "Duplicate branch") {
+		t.Errorf("expected duplicate branch error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateUniqueBranches(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"first": {
+				Transform: "distill",
+				Branch:    "feat-a",
+				Outputs:   []config.Output{{Path: "compiled/a.md"}},
+			},
+			"second": {
+				Transform: "distill",
+				Branch:    "feat-b",
+				Outputs:   []config.Output{{Path: "compiled/b.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if containsError(r, "Duplicate branch") {
+		t.Errorf("should be valid with unique branches, got: %v", r.Errors)
+	}
+}
+
 func containsWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {

@@ -48,6 +48,21 @@ func Validate(f *config.Folio, folioDir string) *Result {
 		validateTarget(r, f, tid, &target, folioDir)
 	}
 
+	// Duplicate branch values
+	branchUsers := make(map[string][]string)
+	for _, tid := range maputil.SortedKeys(f.Targets) {
+		target := f.Targets[tid]
+		if target.Branch != "" {
+			branchUsers[target.Branch] = append(branchUsers[target.Branch], tid)
+		}
+	}
+	for _, branch := range maputil.SortedKeys(branchUsers) {
+		users := branchUsers[branch]
+		if len(users) > 1 {
+			r.addError("Duplicate branch '%s' used by targets: %s", branch, strings.Join(users, ", "))
+		}
+	}
+
 	// Output map collisions
 	outputMap := graph.BuildOutputMap(f)
 	for _, key := range maputil.SortedKeys(outputMap) {
@@ -172,6 +187,11 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	// Precompile rule: external outputs require a local path sibling
 	if hasExternal && !hasLocal {
 		r.addError("Target '%s': precompile rule — external outputs require a local path: sibling for review", tid)
+	}
+
+	// PR requires branch
+	if target.PR != "" && target.Branch == "" {
+		r.addError("Target '%s': pr set without branch — PR requires a branch mapping", tid)
 	}
 }
 
