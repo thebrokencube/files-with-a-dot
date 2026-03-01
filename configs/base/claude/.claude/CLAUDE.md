@@ -32,5 +32,5 @@ My development environment, available globally across all projects.
 - When a task touches files in multiple repos, always commit each repo separately with appropriate conventions.
 
 ## Planning
-- Use `/plan` for non-trivial tasks. Do not call EnterPlanMode directly.
+- Use `/architect` for non-trivial tasks. Do not call EnterPlanMode directly.
 - For trivial changes (single file, obvious approach), skip planning entirely
