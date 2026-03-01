@@ -36,26 +36,27 @@ while [[ $# -gt 0 ]]; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$SCRIPT_DIR"
+DOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 BACKUP_DIR="$DOTFILES_DIR/.backup"
 BACKUP_MANIFEST="$BACKUP_DIR/manifest"
 SYMLINK_MAP="$DOTFILES_DIR/symlink_map.txt"
 
 # Source libraries
-# shellcheck source=lib/colors.sh
-source "$SCRIPT_DIR/lib/colors.sh"
-# shellcheck source=lib/logging.sh
-source "$SCRIPT_DIR/lib/logging.sh"
-# shellcheck source=lib/config.sh
-source "$SCRIPT_DIR/lib/config.sh"
-# shellcheck source=lib/paths.sh
-source "$SCRIPT_DIR/lib/paths.sh"
-# shellcheck source=lib/backup.sh
-source "$SCRIPT_DIR/lib/backup.sh"
-# shellcheck source=lib/symlinks.sh
-source "$SCRIPT_DIR/lib/symlinks.sh"
-# shellcheck source=lib/shell.sh
-source "$SCRIPT_DIR/lib/shell.sh"
+# shellcheck source=../lib/colors.sh
+source "$DOT_DIR/lib/colors.sh"
+# shellcheck source=../lib/logging.sh
+source "$DOT_DIR/lib/logging.sh"
+# shellcheck source=../lib/config.sh
+source "$DOT_DIR/lib/config.sh"
+# shellcheck source=../lib/paths.sh
+source "$DOT_DIR/lib/paths.sh"
+# shellcheck source=../lib/backup.sh
+source "$DOT_DIR/lib/backup.sh"
+# shellcheck source=../lib/symlinks.sh
+source "$DOT_DIR/lib/symlinks.sh"
+# shellcheck source=../lib/shell.sh
+source "$DOT_DIR/lib/shell.sh"
 
 MACHINE_TYPE="$(read_machine_type)"
 MACHINE_TYPE="${MACHINE_TYPE:-home}"
@@ -235,4 +236,4 @@ echo -e "  ${GREEN}Uninstall complete!${NC}"
 echo "============================================"
 echo ""
 [[ ${#AVAILABLE_RESTORES[@]} -gt 0 && "$RESTORE_BACKUPS" != true ]] && echo "Backups available - run with --restore to restore original files" && echo ""
-echo "To reinstall, run: $DOTFILES_DIR/sync.sh"
+echo "To reinstall, run: $DOT_DIR/sync.sh"

@@ -12,31 +12,37 @@ This skill provides guidelines for Claude when helping maintain the dotfiles rep
 
 ```
 ~/.dotfiles/
-├── shared/              # Configs for ALL machines
-│   ├── <app>/           # One directory per app
-│   └── claude/.claude/  # Claude Code config + skills
-├── aggressive/          # Aggressive mode only
-│   └── Brewfile         # Personal/extra apps
-├── symlink_map.txt      # Defines all symlinks
-├── sync.sh              # Main: apply dotfiles state
-├── health.sh            # Pure diagnostics
-├── cleanup.sh           # Aggressive cleanup or opportunities (conservative)
-├── uninstall.sh         # Clean removal
-└── Brewfile.shared      # Core tools
+├── cmd/
+│   ├── dot/                    # dot CLI + engine
+│   │   ├── dot                 # entrypoint (shell dispatcher)
+│   │   ├── sync.sh             # dot sync/pull/links
+│   │   ├── cleanup.sh          # dot clean
+│   │   ├── health.sh           # dot health/fix
+│   │   ├── lib/                # sourced shell functions
+│   │   └── scripts/            # one-offs + helpers
+│   └── folio/                  # Go CLI
+├── configs/
+│   ├── base/                   # always-applied configs
+│   │   ├── <app>/              # One directory per app
+│   │   └── claude/.claude/     # Claude Code config + skills
+│   ├── aggressive/             # Aggressive mode only (Brewfile + shell.managed)
+│   └── templates/              # Private overlay scaffold
+├── symlink_map.txt             # Defines all symlinks
+└── Brewfile.shared             # Core tools
 ```
 
 ## Adding a New Config
 
-1. **Create directory**: `shared/<app>/` mirroring target structure
-2. **Add to symlink_map.txt**: `shared/<app>/config:$HOME/.config/<app>/config`
-3. **If needs brew package**: Add to `Brewfile.shared` or `aggressive/Brewfile`
+1. **Create directory**: `configs/base/<app>/` mirroring target structure
+2. **Add to symlink_map.txt**: `configs/base/<app>/config:$HOME/.config/<app>/config`
+3. **If needs brew package**: Add to `Brewfile.shared` or `configs/aggressive/Brewfile`
 4. **Test**: Run `dot links`
 
 Example for adding lazydocker:
 ```
-mkdir -p shared/lazydocker/.config/lazydocker
+mkdir -p configs/base/lazydocker/.config/lazydocker
 # Add config file
-echo "shared/lazydocker/.config/lazydocker:$HOME/.config/lazydocker" >> symlink_map.txt
+echo "configs/base/lazydocker/.config/lazydocker:$HOME/.config/lazydocker" >> symlink_map.txt
 ```
 
 ## Modifying Scripts
@@ -55,7 +61,7 @@ echo "shared/lazydocker/.config/lazydocker:$HOME/.config/lazydocker" >> symlink_
 
 ## Adding/Modifying Skills
 
-**Skill location**: `shared/claude/.claude/skills/<name>/SKILL.md`
+**Skill location**: `configs/base/claude/.claude/skills/<name>/SKILL.md`
 
 **Required frontmatter:**
 ```yaml
@@ -104,13 +110,13 @@ git push origin main v0.3.20
 
 1. **Validate**: `dot validate` — shellcheck, syntax, symlink sources, skill frontmatter
 2. **Quick test**: `dot health`
-3. **Full test**: `./uninstall.sh && dot sync --dry-run`
+3. **Full test**: `~/.dotfiles/cmd/dot/scripts/uninstall.sh && dot sync --dry-run`
 4. **Interactive test**: `dot setup`
 
 ## Multi-Mode Considerations
 
-- `shared/` = ALL modes
-- `aggressive/` = Aggressive mode only (check `$MACHINE_TYPE`)
+- `configs/base/` = ALL modes
+- `configs/aggressive/` = Aggressive mode only (check `$MACHINE_TYPE`)
 - Conservative mode: minimal changes, stays local
 - Claude Code auth: Required for both modes
 

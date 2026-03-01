@@ -13,7 +13,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -60,23 +61,23 @@ shellcheck_scripts() {
     local errors=0
     local files=()
 
-    # Collect all .sh files
+    # Collect core command .sh files (cmd/dot/)
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR" -maxdepth 1 -name '*.sh' -print0)
+    done < <(find "$DOT_DIR" -maxdepth 1 -name '*.sh' -print0)
 
-    # Collect scripts/ .sh files
+    # Collect scripts/ .sh files (cmd/dot/scripts/)
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR/scripts" -name '*.sh' -print0 2>/dev/null)
+    done < <(find "$DOT_DIR/scripts" -name '*.sh' -print0 2>/dev/null)
 
-    # Collect lib/ .sh files
+    # Collect lib/ .sh files (cmd/dot/lib/)
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR/lib" -name '*.sh' -print0 2>/dev/null)
+    done < <(find "$DOT_DIR/lib" -name '*.sh' -print0 2>/dev/null)
 
     # Add the dot script
-    files+=("$REPO_DIR/dot")
+    files+=("$DOT_DIR/dot")
 
     for f in "${files[@]}"; do
         local name="${f#"$REPO_DIR/"}"
@@ -105,21 +106,21 @@ syntax_check() {
     local errors=0
     local files=()
 
-    # Collect all .sh files
+    # Collect core command .sh files (cmd/dot/)
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR" -maxdepth 1 -name '*.sh' -print0)
+    done < <(find "$DOT_DIR" -maxdepth 1 -name '*.sh' -print0)
 
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR/scripts" -name '*.sh' -print0 2>/dev/null)
+    done < <(find "$DOT_DIR/scripts" -name '*.sh' -print0 2>/dev/null)
 
     while IFS= read -r -d '' f; do
         files+=("$f")
-    done < <(find "$REPO_DIR/lib" -name '*.sh' -print0 2>/dev/null)
+    done < <(find "$DOT_DIR/lib" -name '*.sh' -print0 2>/dev/null)
 
     # Add dot script
-    files+=("$REPO_DIR/dot")
+    files+=("$DOT_DIR/dot")
 
     for f in "${files[@]}"; do
         local name="${f#"$REPO_DIR/"}"

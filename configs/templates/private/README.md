@@ -23,8 +23,8 @@ This is your private dotfiles overlay. It layers on top of your public dotfiles.
 ## Merge Order
 
 Configs are applied in this order (later overrides earlier):
-1. Public `shared/`
-2. Public `aggressive/` (if aggressive mode)
+1. Public `configs/base/`
+2. Public `configs/aggressive/` (if aggressive mode)
 3. Private overlay
 
 ## Adding Skills

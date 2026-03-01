@@ -281,7 +281,7 @@ init_private_overlay() {
 
     # Copy template
     info "Creating directory structure..."
-    cp -R "$DOTFILES_DIR/templates/private" "$PRIVATE_DIR"
+    cp -R "$DOTFILES_DIR/configs/templates/private" "$PRIVATE_DIR"
 
     # Create .gitkeep for empty directories
     touch "$PRIVATE_DIR/skills/.gitkeep"

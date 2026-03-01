@@ -1,6 +1,6 @@
 #!/bin/bash
 # bootstrap.sh - First-time setup for a fresh machine
-# Run via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/bootstrap.sh)"
+# Run via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/cmd/dot/scripts/bootstrap.sh)"
 #
 # What it does:
 #   1. Checks for git (Xcode CLT or standalone)
@@ -214,7 +214,7 @@ if command -v brew &>/dev/null; then
         read -p "Run cleanup check now? [y/N] " cleanup_choice
         if [[ "$cleanup_choice" == "y" || "$cleanup_choice" == "Y" ]]; then
             echo ""
-            "$DOTFILES_DIR/cleanup.sh" --force
+            "$DOTFILES_DIR/cmd/dot/cleanup.sh" --force
             echo ""
         fi
     fi
@@ -225,7 +225,7 @@ else
     echo "Install from: https://brew.sh"
     echo ""
     echo "After installing Homebrew, run:"
-    echo "  cd ~/.dotfiles && ./sync.sh $INSTALL_ARGS"
+    echo "  ~/.dotfiles/cmd/dot/sync.sh $INSTALL_ARGS"
     echo ""
 
     if [[ "${NONINTERACTIVE:-0}" != "1" ]]; then
@@ -274,14 +274,14 @@ echo ""
 
 if [[ "$BREW_AVAILABLE" == true ]]; then
     echo "Running sync..."
-    "$DOTFILES_DIR/sync.sh" $INSTALL_ARGS
+    "$DOTFILES_DIR/cmd/dot/sync.sh" $INSTALL_ARGS
 
     echo ""
     echo "============================================"
     echo "  Bootstrap complete!"
     echo "============================================"
     echo ""
-    echo "Run ~/.dotfiles/health.sh to verify setup."
+    echo "Run 'dot health' to verify setup."
 else
     echo "============================================"
     echo "  Dotfiles Repository Cloned"
@@ -291,7 +291,7 @@ else
     echo ""
     echo "To complete setup:"
     echo "  1. Install Homebrew: https://brew.sh"
-    echo "  2. Run: cd ~/.dotfiles && ./sync.sh $INSTALL_ARGS"
+    echo "  2. Run: ~/.dotfiles/cmd/dot/sync.sh $INSTALL_ARGS"
     echo "  3. Open a new terminal (or run: exec \$SHELL -l)"
     echo ""
 fi

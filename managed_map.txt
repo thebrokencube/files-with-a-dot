@@ -3,4 +3,4 @@
 # base path relative to $DOTFILES_DIR, overlay relative to $PRIVATE_DIR
 # Merged with jq shallow merge (overlay wins on key conflicts)
 
-shared/claude/settings.base.json+claude-settings.json:$HOME/.claude/settings.json
+configs/base/claude/settings.base.json+claude-settings.json:$HOME/.claude/settings.json

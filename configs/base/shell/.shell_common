@@ -85,7 +85,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 
 # Managed shell config (aggressive mode only - repo-controlled)
 if [ -f "$DOTFILES_DIR/.machine" ] && [ "$(cat "$DOTFILES_DIR/.machine")" = "aggressive" ]; then
-    [ -f "$DOTFILES_DIR/aggressive/shell.managed" ] && . "$DOTFILES_DIR/aggressive/shell.managed"
+    [ -f "$DOTFILES_DIR/configs/aggressive/shell.managed" ] && . "$DOTFILES_DIR/configs/aggressive/shell.managed"
 fi
 
 # Private shell config (via private overlay)

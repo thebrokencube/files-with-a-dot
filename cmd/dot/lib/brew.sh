@@ -24,10 +24,10 @@ build_merged_brewfile() {
         echo "" >> "$MERGED_BREWFILE"
     fi
 
-    # 2. aggressive/Brewfile (if aggressive mode)
-    if [[ "$MACHINE_TYPE" == "aggressive" && -f "$DOTFILES_DIR/aggressive/Brewfile" ]]; then
-        echo "# From aggressive/Brewfile" >> "$MERGED_BREWFILE"
-        cat "$DOTFILES_DIR/aggressive/Brewfile" >> "$MERGED_BREWFILE"
+    # 2. configs/aggressive/Brewfile (if aggressive mode)
+    if [[ "$MACHINE_TYPE" == "aggressive" && -f "$DOTFILES_DIR/configs/aggressive/Brewfile" ]]; then
+        echo "# From configs/aggressive/Brewfile" >> "$MERGED_BREWFILE"
+        cat "$DOTFILES_DIR/configs/aggressive/Brewfile" >> "$MERGED_BREWFILE"
         echo "" >> "$MERGED_BREWFILE"
     fi
 

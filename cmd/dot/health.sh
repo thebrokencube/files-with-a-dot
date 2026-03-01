@@ -31,17 +31,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$SCRIPT_DIR"
+DOT_DIR="$SCRIPT_DIR"
+DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 
 # Source libraries
 # shellcheck source=lib/colors.sh
-source "$SCRIPT_DIR/lib/colors.sh"
+source "$DOT_DIR/lib/colors.sh"
 # shellcheck source=lib/logging.sh
-source "$SCRIPT_DIR/lib/logging.sh"
+source "$DOT_DIR/lib/logging.sh"
 # shellcheck source=lib/config.sh
-source "$SCRIPT_DIR/lib/config.sh"
+source "$DOT_DIR/lib/config.sh"
 # shellcheck source=lib/prompt.sh
-source "$SCRIPT_DIR/lib/prompt.sh"
+source "$DOT_DIR/lib/prompt.sh"
 
 MACHINE_TYPE="$(read_machine_type)"
 MACHINE_TYPE="${MACHINE_TYPE:-unknown}"

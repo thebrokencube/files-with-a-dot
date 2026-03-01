@@ -9,8 +9,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SKILLS_DIR="$REPO_DIR/shared/claude/.claude/skills"
+DOTFILES_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+SKILLS_DIR="$DOTFILES_DIR/configs/base/claude/.claude/skills"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -19,7 +19,7 @@ NC='\033[0m'
 ERRORS=0
 
 if [[ ! -d "$SKILLS_DIR" ]]; then
-    echo -e "${RED}Error:${NC} Skills directory not found at $SKILLS_DIR"
+    echo -e "${RED}Error:${NC} Skills directory not found at $DOTFILES_DIR/configs/base/claude/.claude/skills"
     exit 1
 fi
 

@@ -16,20 +16,22 @@ set -e
 
 # ── Setup ────────────────────────────────────────────────────────────────────
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOT_DIR="$SCRIPT_DIR"
+DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 
 # shellcheck source=lib/colors.sh
-source "$DOTFILES_DIR/lib/colors.sh"
+source "$DOT_DIR/lib/colors.sh"
 # shellcheck source=lib/logging.sh
-source "$DOTFILES_DIR/lib/logging.sh"
+source "$DOT_DIR/lib/logging.sh"
 # shellcheck source=lib/config.sh
-source "$DOTFILES_DIR/lib/config.sh"
+source "$DOT_DIR/lib/config.sh"
 # shellcheck source=lib/prompt.sh
-source "$DOTFILES_DIR/lib/prompt.sh"
+source "$DOT_DIR/lib/prompt.sh"
 # shellcheck source=lib/private.sh
-source "$DOTFILES_DIR/lib/private.sh"
+source "$DOT_DIR/lib/private.sh"
 # shellcheck source=lib/brew.sh
-source "$DOTFILES_DIR/lib/brew.sh"
+source "$DOT_DIR/lib/brew.sh"
 
 init_dotfiles_vars
 

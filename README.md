@@ -19,7 +19,7 @@ If this fails, [set up SSH keys first](https://docs.github.com/en/authentication
 On a fresh macOS machine, run:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/bootstrap.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/cmd/dot/scripts/bootstrap.sh)"
 ```
 
 This will:
@@ -29,34 +29,43 @@ This will:
 4. Run sync to apply dotfiles state (if Homebrew available)
 5. Prompt for machine type and git identity on first run
 
-**Note:** If Homebrew installation can't complete (sudo issues, etc.), the script will clone the repo successfully and show you how to complete setup manually by running `~/.dotfiles/sync.sh` after installing Homebrew.
+**Note:** If Homebrew installation can't complete (sudo issues, etc.), the script will clone the repo successfully and show you how to complete setup manually by running `~/.dotfiles/cmd/dot/sync.sh` after installing Homebrew.
 
 ## Repository Structure
 
 ```
 files-with-a-dot/
-├── dot                        # CLI entry point (symlinked to ~/.local/bin/dot)
-├── shared/                    # Configs for all machines
-│   ├── nvim/.config/nvim/     # Neovim (kickstart.nvim)
-│   ├── ghostty/.config/ghostty/  # Ghostty terminal
-│   ├── starship/.config/      # Starship prompt
-│   ├── bash/                  # Bash config
-│   ├── zsh/                   # Zsh config (primary shell)
-│   ├── git/                   # Git config
-│   ├── shell/                 # Shared shell config (.shell_common)
-│   ├── iterm2/                # iTerm2 profile (Nerd Font)
-│   └── claude/.claude/        # Claude Code config + skills
-│       ├── CLAUDE.md          # Global context (minimal)
-│       └── skills/            # Slash commands
-├── aggressive/                # Aggressive mode only
-│   ├── Brewfile               # Personal/extra apps
-│   └── shell.managed          # Repo-controlled shell config (mise, etc.)
-├── symlink_map.txt            # Defines where each config links
-├── sync.sh                    # Main command: apply dotfiles state
-├── health.sh                  # Pure diagnostics
-├── cleanup.sh                 # Aggressive cleanup or show opportunities (conservative)
-├── uninstall.sh               # Clean removal
-└── Brewfile.shared            # Core dev tools
+├── cmd/
+│   ├── dot/                    # dot CLI + engine
+│   │   ├── dot                 # entrypoint (symlinked to ~/.local/bin/dot)
+│   │   ├── sync.sh             # dot sync/pull/links
+│   │   ├── cleanup.sh          # dot clean
+│   │   ├── health.sh           # dot health/fix
+│   │   ├── lib/                # sourced shell functions (11 files)
+│   │   └── scripts/            # one-offs + helpers
+│   │       ├── bootstrap.sh    # standalone first-time setup
+│   │       ├── uninstall.sh    # standalone removal
+│   │       └── validate*.sh    # dot validate
+│   ├── md-to-adf               # Markdown -> ADF converter
+│   └── folio/                  # Go CLI
+├── configs/
+│   ├── base/                   # always-applied configs
+│   │   ├── nvim/.config/nvim/  # Neovim (kickstart.nvim)
+│   │   ├── ghostty/            # Ghostty terminal
+│   │   ├── starship/           # Starship prompt
+│   │   ├── bash/               # Bash config
+│   │   ├── zsh/                # Zsh config (primary shell)
+│   │   ├── git/                # Git config
+│   │   ├── shell/              # Shared shell config (.shell_common)
+│   │   ├── iterm2/             # iTerm2 profile (Nerd Font)
+│   │   └── claude/.claude/     # Claude Code config + skills
+│   ├── aggressive/             # Aggressive mode overlay (Brewfile + shell.managed)
+│   └── templates/              # Private overlay scaffold
+├── symlink_map.txt             # Defines where each config links
+├── managed_map.txt             # Base + overlay merge rules
+├── Brewfile.shared             # Core dev tools
+├── ARCHITECTURE.md
+└── README.md
 ```
 
 ## How It Works
@@ -66,18 +75,18 @@ files-with-a-dot/
 The `symlink_map.txt` file defines where each dotfile should be linked:
 
 ```
-shared/git/.gitconfig:$HOME/.gitconfig
-shared/nvim/.config/nvim:$HOME/.config/nvim
-shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
-shared/claude/.claude:$HOME/.claude
+configs/base/git/.gitconfig:$HOME/.gitconfig
+configs/base/nvim/.config/nvim:$HOME/.config/nvim
+configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
+cmd/dot/dot:$HOME/.local/bin/dot
 ```
 
 This allows linking to any location - useful for apps like iTerm2 that store configs in `~/Library`.
 
 ### Multi-Mode Support
 
-- **Shared configs** (`shared/`) are linked in all modes
-- **Aggressive mode** (`aggressive/Brewfile`) - additional packages, aggressive cleanup (repo is source of truth)
+- **Base configs** (`configs/base/`) are linked in all modes
+- **Aggressive mode** (`configs/aggressive/Brewfile`) - additional packages, aggressive cleanup (repo is source of truth)
 - **Conservative mode** - minimal changes, show cleanup opportunities only (other tools may manage packages)
 
 ### Private Overlay (`~/.dotfiles.private/`)
@@ -98,17 +107,19 @@ First-time sync offers to initialize this automatically. Manage with `dot privat
 
 The private overlay is its own git repo — push to a private remote to sync across machines.
 
-**Aggressive mode** also sources `aggressive/shell.managed` (repo-controlled, includes mise activation).
+**Aggressive mode** also sources `configs/aggressive/shell.managed` (repo-controlled, includes mise activation).
 
 ## Scripts
 
+All scripts live under `cmd/dot/`:
+
 | Script | Purpose |
 |--------|---------|
-| `bootstrap.sh` | First-time setup on a fresh machine |
-| `sync.sh` | Main command: apply dotfiles state (detects first-time vs. update) |
-| `health.sh` | Pure diagnostics - check system state |
-| `cleanup.sh` | Cleanup packages and files (aggressive vs conservative mode) |
-| `uninstall.sh` | Remove symlinks and optionally local config |
+| `cmd/dot/scripts/bootstrap.sh` | First-time setup on a fresh machine |
+| `cmd/dot/sync.sh` | Main command: apply dotfiles state (detects first-time vs. update) |
+| `cmd/dot/health.sh` | Pure diagnostics - check system state |
+| `cmd/dot/cleanup.sh` | Cleanup packages and files (aggressive vs conservative mode) |
+| `cmd/dot/scripts/uninstall.sh` | Remove symlinks and optionally local config |
 
 ### The `dot` CLI
 
@@ -199,8 +210,8 @@ This pulls the latest dotfiles, re-creates symlinks, and updates Homebrew packag
 
 ## Adding New Configs
 
-1. Create directory: `shared/<app>/`
-2. Add to `symlink_map.txt`: `shared/<app>/config:$HOME/.config/<app>`
+1. Create directory: `configs/base/<app>/`
+2. Add to `symlink_map.txt`: `configs/base/<app>/config:$HOME/.config/<app>`
 3. If needs brew package: Add to `Brewfile.shared`
 4. Run: `dot links`
 

@@ -4,44 +4,44 @@
 # Lines starting with # are comments, blank lines ignored
 
 # Git
-shared/git/.gitconfig:$HOME/.gitconfig
-shared/git/.config/git/ignore:$HOME/.config/git/ignore
+configs/base/git/.gitconfig:$HOME/.gitconfig
+configs/base/git/.config/git/ignore:$HOME/.config/git/ignore
 
 # Shell common
-shared/shell/.shell_common:$HOME/.shell_common
+configs/base/shell/.shell_common:$HOME/.shell_common
 
 # Bash
-shared/bash/.bashrc.dotfiles:$HOME/.bashrc.dotfiles
-shared/bash/.bash_profile.dotfiles:$HOME/.bash_profile.dotfiles
+configs/base/bash/.bashrc.dotfiles:$HOME/.bashrc.dotfiles
+configs/base/bash/.bash_profile.dotfiles:$HOME/.bash_profile.dotfiles
 
 # Zsh
-shared/zsh/.zshrc.dotfiles:$HOME/.zshrc.dotfiles
-shared/zsh/.zprofile.dotfiles:$HOME/.zprofile.dotfiles
+configs/base/zsh/.zshrc.dotfiles:$HOME/.zshrc.dotfiles
+configs/base/zsh/.zprofile.dotfiles:$HOME/.zprofile.dotfiles
 
 # Starship prompt
-shared/starship/.config/starship.toml:$HOME/.config/starship.toml
+configs/base/starship/.config/starship.toml:$HOME/.config/starship.toml
 
 # Neovim
-shared/nvim/.config/nvim:$HOME/.config/nvim
+configs/base/nvim/.config/nvim:$HOME/.config/nvim
 
 # Ghostty
-shared/ghostty/.config/ghostty:$HOME/.config/ghostty
+configs/base/ghostty/.config/ghostty:$HOME/.config/ghostty
 
 # iTerm2 (uses ~/Library, not ~/.config)
-shared/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
+configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
 
 # CLI
-dot:$HOME/.local/bin/dot
-shared/bin/md-to-adf:$HOME/.local/bin/md-to-adf
+cmd/dot/dot:$HOME/.local/bin/dot
+cmd/md-to-adf:$HOME/.local/bin/md-to-adf
 
 # Claude Code (granular linking to allow private skills)
-shared/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
-shared/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
-shared/claude/.claude/skills/dotfiles-dev:$HOME/.claude/skills/dotfiles-dev
-shared/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
-shared/claude/.claude/skills/brew:$HOME/.claude/skills/brew
-shared/claude/.claude/skills/system:$HOME/.claude/skills/system
-shared/claude/.claude/skills/commit:$HOME/.claude/skills/commit
-shared/claude/.claude/skills/plan:$HOME/.claude/skills/plan
-shared/claude/.claude/skills/folio:$HOME/.claude/skills/folio
-shared/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr
+configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
+configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
+configs/base/claude/.claude/skills/dotfiles-dev:$HOME/.claude/skills/dotfiles-dev
+configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
+configs/base/claude/.claude/skills/brew:$HOME/.claude/skills/brew
+configs/base/claude/.claude/skills/system:$HOME/.claude/skills/system
+configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
+configs/base/claude/.claude/skills/plan:$HOME/.claude/skills/plan
+configs/base/claude/.claude/skills/folio:$HOME/.claude/skills/folio
+configs/base/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr

@@ -84,37 +84,38 @@ GIT_NAME="${GIT_NAME_ARG:-${DOTFILES_GIT_NAME:-}}"
 GIT_EMAIL="${GIT_EMAIL_ARG:-${DOTFILES_GIT_EMAIL:-}}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOT_DIR="$SCRIPT_DIR"
+DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 DOTFILES_LINK="$HOME/.dotfiles"
-DOTFILES_DIR="$SCRIPT_DIR"
-BACKUP_DIR="$SCRIPT_DIR/.backup"
+BACKUP_DIR="$DOTFILES_DIR/.backup"
 BACKUP_MANIFEST="$BACKUP_DIR/manifest"
-SYMLINK_MAP="$SCRIPT_DIR/symlink_map.txt"
-MACHINE_FILE="$SCRIPT_DIR/.machine"
+SYMLINK_MAP="$DOTFILES_DIR/symlink_map.txt"
+MACHINE_FILE="$DOTFILES_DIR/.machine"
 PRIVATE_DIR="$HOME/.dotfiles.private"
 
 # Source libraries
 # shellcheck source=lib/colors.sh
-source "$SCRIPT_DIR/lib/colors.sh"
+source "$DOT_DIR/lib/colors.sh"
 # shellcheck source=lib/logging.sh
-source "$SCRIPT_DIR/lib/logging.sh"
+source "$DOT_DIR/lib/logging.sh"
 # shellcheck source=lib/config.sh
-source "$SCRIPT_DIR/lib/config.sh"
+source "$DOT_DIR/lib/config.sh"
 # shellcheck source=lib/prompt.sh
-source "$SCRIPT_DIR/lib/prompt.sh"
+source "$DOT_DIR/lib/prompt.sh"
 # shellcheck source=lib/paths.sh
-source "$SCRIPT_DIR/lib/paths.sh"
+source "$DOT_DIR/lib/paths.sh"
 # shellcheck source=lib/backup.sh
-source "$SCRIPT_DIR/lib/backup.sh"
+source "$DOT_DIR/lib/backup.sh"
 # shellcheck source=lib/symlinks.sh
-source "$SCRIPT_DIR/lib/symlinks.sh"
+source "$DOT_DIR/lib/symlinks.sh"
 # shellcheck source=lib/shell.sh
-source "$SCRIPT_DIR/lib/shell.sh"
+source "$DOT_DIR/lib/shell.sh"
 # shellcheck source=lib/private.sh
-source "$SCRIPT_DIR/lib/private.sh"
+source "$DOT_DIR/lib/private.sh"
 # shellcheck source=lib/brew.sh
-source "$SCRIPT_DIR/lib/brew.sh"
+source "$DOT_DIR/lib/brew.sh"
 # shellcheck source=lib/git.sh
-source "$SCRIPT_DIR/lib/git.sh"
+source "$DOT_DIR/lib/git.sh"
 
 # State arrays
 ACTIONS=()
@@ -138,8 +139,8 @@ detect_first_time() {
 analyze_state() {
     local is_first_time="$1"
 
-    cd "$SCRIPT_DIR" || {
-        echo "Error: Cannot access dotfiles directory: $SCRIPT_DIR"
+    cd "$DOTFILES_DIR" || {
+        echo "Error: Cannot access dotfiles directory: $DOTFILES_DIR"
         exit 1
     }
 
@@ -169,7 +170,7 @@ analyze_state() {
 
     # Check ~/.dotfiles
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking ~/.dotfiles..."
-    if [[ "$SCRIPT_DIR" == "$DOTFILES_LINK" ]]; then
+    if [[ "$DOTFILES_DIR" == "$DOTFILES_LINK" ]]; then
         ALREADY_DONE+=("~/.dotfiles (repo location)")
     elif [[ -L "$DOTFILES_LINK" ]]; then
         if is_ours "$DOTFILES_LINK"; then
@@ -319,10 +320,10 @@ install_brew_packages() {
     echo "Installing Homebrew packages..."
     brew bundle --file="$DOTFILES_DIR/Brewfile.shared" --verbose || echo "  (some packages may have failed)"
 
-    if [[ "$MACHINE_TYPE" == "aggressive" && -f "$DOTFILES_DIR/aggressive/Brewfile" ]]; then
+    if [[ "$MACHINE_TYPE" == "aggressive" && -f "$DOTFILES_DIR/configs/aggressive/Brewfile" ]]; then
         echo ""
         echo "Installing aggressive-mode packages..."
-        brew bundle --file="$DOTFILES_DIR/aggressive/Brewfile" --verbose || echo "  (some packages may have failed)"
+        brew bundle --file="$DOTFILES_DIR/configs/aggressive/Brewfile" --verbose || echo "  (some packages may have failed)"
     fi
 
     # Private overlay Brewfile
@@ -522,13 +523,13 @@ create_dotfiles_symlink
 [[ "$DOTFILES_DIR" != "$HOME/.dotfiles" && -L "$HOME/.dotfiles" ]] && DOTFILES_DIR="$HOME/.dotfiles"
 
 # Migrate: remove legacy profile system (profiles removed in v0.7.0)
-[[ -f "$SCRIPT_DIR/.profile" ]] && rm -f "$SCRIPT_DIR/.profile"
+[[ -f "$DOTFILES_DIR/.profile" ]] && rm -f "$DOTFILES_DIR/.profile"
 migrate_private_overlay
 
 # Migrate from ~/.claude directory symlink to granular linking
 if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
     target=$(readlink "$HOME/.claude")
-    if [[ "$target" == *"shared/claude/.claude"* || "$target" == *".dotfiles"*"/.claude"* ]]; then
+    if [[ "$target" == *"shared/claude/.claude"* || "$target" == *"configs/base/claude/.claude"* || "$target" == *".dotfiles"*"/.claude"* ]]; then
         echo "Migrating ~/.claude from directory link to granular links..."
         rm "$HOME/.claude"  # Remove symlink (not the directory it points to)
         mkdir -p "$HOME/.claude/skills"

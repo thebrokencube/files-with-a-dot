@@ -20,20 +20,20 @@ local/
 .vscode/
 
 # Neovim
-shared/nvim/.config/nvim/plugin/packer_compiled.lua
-shared/nvim/.config/nvim/lazy-lock.json
+configs/base/nvim/.config/nvim/plugin/packer_compiled.lua
+configs/base/nvim/.config/nvim/lazy-lock.json
 
 # Claude Code (runtime/cache files - keep CLAUDE.md, skills, etc.)
-shared/claude/.claude/cache/
-shared/claude/.claude/debug/
-shared/claude/.claude/file-history/
-shared/claude/.claude/paste-cache/
-shared/claude/.claude/plans/
-shared/claude/.claude/projects/
-shared/claude/.claude/session-env/
-shared/claude/.claude/shell-snapshots/
-shared/claude/.claude/statsig/
-shared/claude/.claude/tasks/
-shared/claude/.claude/todos/
-shared/claude/.claude/*.json
-shared/claude/.claude/*.jsonl
+configs/base/claude/.claude/cache/
+configs/base/claude/.claude/debug/
+configs/base/claude/.claude/file-history/
+configs/base/claude/.claude/paste-cache/
+configs/base/claude/.claude/plans/
+configs/base/claude/.claude/projects/
+configs/base/claude/.claude/session-env/
+configs/base/claude/.claude/shell-snapshots/
+configs/base/claude/.claude/statsig/
+configs/base/claude/.claude/tasks/
+configs/base/claude/.claude/todos/
+configs/base/claude/.claude/*.json
+configs/base/claude/.claude/*.jsonl

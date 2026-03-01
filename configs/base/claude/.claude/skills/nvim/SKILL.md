@@ -12,7 +12,7 @@ description: Neovim configuration help - plugins, keybindings, LSP setup, troubl
 - `/nvim add <plugin>` - Help add a plugin
 
 ## Config Location
-`~/.config/nvim/init.lua` (symlinked from `~/.dotfiles/shared/nvim/.config/nvim/`)
+`~/.config/nvim/init.lua` (symlinked from `~/.dotfiles/configs/base/nvim/.config/nvim/`)
 
 ## Stack
 - **Base**: kickstart.nvim
@@ -62,7 +62,7 @@ Run `:MasonCleanup` to remove Mason packages not in the `mason_ensure` list.
 Read `~/.config/nvim/init.lua` and extract plugins from the `lazy.setup()` call.
 
 ## To Add a Plugin (`/nvim add <plugin>`)
-1. Edit `~/.dotfiles/shared/nvim/.config/nvim/init.lua`
+1. Edit `~/.dotfiles/configs/base/nvim/.config/nvim/init.lua`
 2. Add plugin spec to the lazy.setup plugins table:
    ```lua
    { 'author/plugin-name', opts = {} },

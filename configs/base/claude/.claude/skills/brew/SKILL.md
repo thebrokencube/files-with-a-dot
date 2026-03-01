@@ -16,9 +16,8 @@ description: Homebrew package management - installing, updating, listing package
 | File | Purpose | When Installed |
 |------|---------|----------------|
 | `~/.dotfiles/Brewfile.shared` | Core dev tools | All machines |
-| `~/.dotfiles/aggressive/Brewfile` | Extra apps | Aggressive mode only |
-| `~/.dotfiles.private/Brewfile` | Shared private packages | When private overlay exists |
-| `~/.dotfiles.private/{profile}/Brewfile` | Profile-specific packages | Per profile (work/personal) |
+| `~/.dotfiles/configs/aggressive/Brewfile` | Extra apps | Aggressive mode only |
+| `~/.dotfiles.private/Brewfile` | Private packages | When private overlay exists |
 
 ## To Show Status (`/brew` or `/brew status`)
 ```bash

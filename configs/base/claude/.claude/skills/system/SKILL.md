@@ -54,8 +54,8 @@ echo $EDITOR               # should be 'nvim'
 
 ## Quick Diagnostics
 ```bash
-~/.dotfiles/health.sh        # Full check
-~/.dotfiles/health.sh --fix  # Auto-repair
+dot health        # Full check
+dot health --fix  # Auto-repair
 ```
 
 ## Terminal Setup

@@ -8,7 +8,41 @@ Three sections: **Design** (target state), **Decisions** (why), **Migration** (p
 
 ### Functional Core, Imperative Shell (FCIS)
 
-**lib/** contains reusable functions (the functional core). Scripts are thin orchestrators that source lib/ and sequence calls (the imperative shell).
+**`cmd/dot/lib/`** contains reusable functions (the functional core). Scripts are thin orchestrators that source lib/ and sequence calls (the imperative shell).
+
+### Directory Layout
+
+```
+cmd/
+├── dot/                        # dot CLI + engine
+│   ├── dot                     # entrypoint (shell dispatcher)
+│   ├── sync.sh                 # dot sync/pull/links
+│   ├── cleanup.sh              # dot clean
+│   ├── health.sh               # dot health/fix
+│   ├── lib/                    # sourced shell functions (11 files)
+│   └── scripts/                # one-offs + helpers
+│       ├── bootstrap.sh        # standalone first-time setup
+│       ├── uninstall.sh        # standalone removal
+│       ├── validate.sh         # dot validate
+│       ├── validate-symlink-map.sh
+│       └── validate-skills.sh
+├── md-to-adf                   # Markdown -> ADF converter
+└── folio/                      # Go CLI
+
+configs/
+├── base/                       # always-applied configs (was shared/)
+├── aggressive/                 # mode overlay (Brewfile + shell.managed)
+└── templates/                  # private overlay scaffold
+```
+
+### Path Variables
+
+Scripts use two path variables after the move:
+- **`DOT_DIR`** — `cmd/dot/`, for finding `lib/` (co-located)
+- **`DOTFILES_DIR`** — repo root, for finding content (maps, .machine, Brewfile, configs/)
+
+Core commands (`cmd/dot/*.sh`): `DOT_DIR="$SCRIPT_DIR"`, `DOTFILES_DIR` two levels up.
+Scripts (`cmd/dot/scripts/*.sh`): `DOT_DIR` one level up from `SCRIPT_DIR`, `DOTFILES_DIR` three levels up.
 
 ### lib/ Responsibilities
 
@@ -29,12 +63,12 @@ Three sections: **Design** (target state), **Decisions** (why), **Migration** (p
 
 | Script | Role | Sources |
 |--------|------|---------|
-| `dot` | CLI entry + TTY detection + orchestration | `lib/config.sh` |
-| `sync.sh` | Main sync orchestrator (~300 lines) | All lib/ |
-| `cleanup.sh` | System cleanup orchestrator | `lib/{colors,logging,config,prompt,brew,private}.sh` |
-| `health.sh` | Diagnostics + setup guide | `lib/{colors,logging,config,prompt}.sh` |
-| `uninstall.sh` | Clean removal | `lib/{colors,logging,config,paths,backup,symlinks,shell}.sh` |
-| `bootstrap.sh` | Self-contained clone script | None (repo not yet cloned) |
+| `cmd/dot/dot` | CLI entry + TTY detection + orchestration | `lib/config.sh` |
+| `cmd/dot/sync.sh` | Main sync orchestrator (~300 lines) | All lib/ |
+| `cmd/dot/cleanup.sh` | System cleanup orchestrator | `lib/{colors,logging,config,prompt,brew,private}.sh` |
+| `cmd/dot/health.sh` | Diagnostics + setup guide | `lib/{colors,logging,config,prompt}.sh` |
+| `cmd/dot/scripts/uninstall.sh` | Clean removal | `lib/{colors,logging,config,paths,backup,symlinks,shell}.sh` |
+| `cmd/dot/scripts/bootstrap.sh` | Self-contained clone script | None (repo not yet cloned) |
 
 ### Non-Interactive Protocol
 
@@ -63,15 +97,15 @@ confirm ${FORCE:+-f} "Continue?" "no"
 ### Target Topology
 
 ```
-dot (CLI + TTY detection + orchestration)
- ├── sync: sync.sh -> cleanup.sh  (dot sequences, not sync.sh)
- ├── clean: cleanup.sh
- ├── health: health.sh
- ├── validate: validate.sh
- └── private: lib/private.sh functions (init, sync, push, status, edit)
+cmd/dot/dot (CLI + TTY detection + orchestration)
+ ├── sync: cmd/dot/sync.sh -> cmd/dot/cleanup.sh  (dot sequences, not sync.sh)
+ ├── clean: cmd/dot/cleanup.sh
+ ├── health: cmd/dot/health.sh
+ ├── validate: cmd/dot/scripts/validate.sh
+ └── private: cmd/dot/lib/private.sh functions (init, sync, push, status, edit)
 
-bootstrap.sh (standalone, self-contained) -> sync.sh only
-uninstall.sh (standalone leaf)
+cmd/dot/scripts/bootstrap.sh (standalone, self-contained) -> cmd/dot/sync.sh only
+cmd/dot/scripts/uninstall.sh (standalone leaf)
 ```
 
 ### Conventions
