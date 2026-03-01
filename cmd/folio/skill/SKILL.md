@@ -70,6 +70,10 @@ These slash commands run the corresponding CLI command and report results:
 
 If any CLI command fails, run `folio setup --check` first.
 
+### Git Operations for ~/.folio
+
+All git operations on `~/.folio` MUST use `folio home` subcommands (`push`, `pull`, etc.) — never raw `git add`, `git commit`, or `git push`. The CLI enforces conventional commit validation and handles remote sync.
+
 ## Tooling Resolution
 
 External outputs resolve their push/pull method from `tooling.yml` (co-located with this skill file). Read `external:` from the target output, look up that system in tooling.yml, get the `pull`/`push` methods.
