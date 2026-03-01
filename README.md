@@ -4,8 +4,6 @@ Personal dotfiles with symlink-based management, supporting multiple modes (aggr
 
 ## Quick Start
 
-### Prerequisites
-
 **GitHub SSH must be configured** before running bootstrap. Test with:
 
 ```bash
@@ -14,24 +12,18 @@ ssh -T git@github.com
 
 If this fails, [set up SSH keys first](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
-### Bootstrap
-
 On a fresh macOS machine, run:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/thebrokencube/files-with-a-dot/main/cmd/dot/scripts/bootstrap.sh)"
 ```
 
-This clones the repo to `~/.dotfiles`, installs dependencies via Homebrew, and runs sync to apply dotfiles state. First run prompts for machine type and git identity.
-
-**Note:** If Homebrew can't install (sudo issues, etc.), the script clones the repo and shows how to complete setup manually.
-
-## First-Time Setup
-
-First sync automatically detects a fresh machine and prompts for:
+This clones the repo to `~/.dotfiles`, installs dependencies via Homebrew, and runs sync to apply dotfiles state. First run prompts for:
 - Mode — aggressive (repo-controlled packages + cleanup) or conservative (show opportunities only)
 - Git identity (name/email)
 - Private overlay initialization (machine-specific configs in a separate repo)
+
+**Note:** If Homebrew can't install (sudo issues, etc.), the script clones the repo and shows how to complete setup manually.
 
 After first sync:
 1. Restart shell: `exec $SHELL -l` (puts `dot` on PATH)
@@ -39,9 +31,7 @@ After first sync:
 3. Run `dot health` to verify everything
 4. (Optional) Select iTerm2 "Dotfiles Default" profile for icons
 
-## Day-to-Day Usage
-
-### dot
+## Day-to-Day
 
 ```bash
 # Keep dotfiles current
@@ -57,15 +47,6 @@ dot clean
 
 Full command reference: [cmd/dot/](cmd/dot/)
 
-### folio
-
-Folio manages knowledge work projects — plans, references, and compiled outputs. Interact through Claude Code skills:
-
-- `/folio gather` → `/folio plan` → `/folio compose` → `/folio publish`
-- Design decisions freeze before implementation begins (lock gate in plan phase)
-
-CLI commands and project details: [cmd/folio/](cmd/folio/)
-
 ## What's Included
 
 ### Shell
@@ -75,15 +56,10 @@ CLI commands and project details: [cmd/folio/](cmd/folio/)
 
 ### Development Tools
 - **mise** for language version management
-- **neovim** with kickstart.nvim
 - **lazygit** for git TUI
 - **ripgrep**, **fd**, **fzf**, **bat** for search
 
-### Terminal
-- **Ghostty** as primary terminal (Inconsolata Nerd Font)
-- **iTerm2** as fallback (with Nerd Font profile for icons)
-
-## Neovim
+### Neovim
 
 Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 
@@ -94,9 +70,13 @@ Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 | treesitter | Syntax highlighting | automatic |
 | mason + lspconfig | LSP support | automatic |
 
-## Claude Code Integration
+### Terminal
+- **Ghostty** as primary terminal (Inconsolata Nerd Font)
+- **iTerm2** as fallback (with Nerd Font profile for icons)
 
-This repo includes [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills available globally (in any project):
+### Claude Code Skills
+
+Available globally (in any project) via [Claude Code](https://docs.anthropic.com/en/docs/claude-code):
 
 | Skill | Purpose |
 |-------|---------|
@@ -106,3 +86,17 @@ This repo includes [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 | `/commit` | Git commit conventions and versioning |
 | `/stacked-pr` | Stacked branch workflows and propagation |
 
+## Tools
+
+### dot
+
+Dotfiles management CLI — sync, health checks, cleanup. See [cmd/dot/](cmd/dot/).
+
+### folio
+
+Knowledge work project manager — plans, references, and compiled outputs. Interact through Claude Code skills:
+
+- `/folio gather` → `/folio plan` → `/folio compose` → `/folio publish`
+- Design decisions freeze before implementation begins (lock gate in plan phase)
+
+CLI commands and project details: [cmd/folio/](cmd/folio/)
