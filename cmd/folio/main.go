@@ -23,6 +23,8 @@ func main() {
 		os.Exit(runInit(os.Args[2:]))
 	case "add-pending":
 		os.Exit(runAddPending(os.Args[2:]))
+	case "stale":
+		os.Exit(runStale(os.Args[2:]))
 
 	// Top-level utility commands
 	case "pbcopy":
@@ -102,6 +104,7 @@ func printUsage() {
 Project commands:
   validate     Validate folio.yml structure
   status       Derive and display target state
+  stale        List stale/missing/unknown targets
   init         Bootstrap a new folio.yml
   add-pending  Append an item to the pending list
 
