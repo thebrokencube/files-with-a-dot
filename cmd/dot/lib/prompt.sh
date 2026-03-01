@@ -7,7 +7,7 @@
 #   DOTFILES_NONINTERACTIVE=1  - env var, auto-set by dot when stdin isn't a TTY
 #   --force / -f flag to confirm() - always return yes
 #
-# See ARCHITECTURE.md for full protocol details.
+# See cmd/dot/ARCHITECTURE.md for full protocol details.
 
 # Check if we're running interactively
 _is_interactive() {

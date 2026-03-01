@@ -69,6 +69,7 @@ files-with-a-dot/
 │   │   ├── cleanup.sh          # dot clean
 │   │   ├── health.sh           # dot health/fix
 │   │   ├── lib/                # sourced shell functions (11 files)
+│   │   ├── ARCHITECTURE.md     # design decisions and internals
 │   │   └── scripts/            # one-offs + helpers
 │   │       ├── bootstrap.sh    # standalone first-time setup
 │   │       ├── uninstall.sh    # standalone removal
@@ -91,8 +92,7 @@ files-with-a-dot/
 ├── symlink_map.txt             # Defines where each config links
 ├── managed_map.txt             # Base + overlay merge rules
 ├── Brewfile.shared             # Core dev tools
-├── ARCHITECTURE.md
 └── README.md
 ```
 
-See [ARCHITECTURE.md](../../ARCHITECTURE.md) for design decisions and internals.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and internals.
