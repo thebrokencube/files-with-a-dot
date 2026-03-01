@@ -3,8 +3,8 @@ package output
 import (
 	"fmt"
 	"io"
-	"sort"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 )
@@ -79,7 +79,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 		fmt.Fprintf(w, "%sNo targets defined.%s\n", p.dim, p.reset)
 	} else {
 		fmt.Fprintln(w, "Targets:")
-		for _, tid := range sortedKeys(ps.Targets) {
+		for _, tid := range maputil.SortedKeys(ps.Targets) {
 			ts := ps.Targets[tid]
 			for _, out := range ts.Outputs {
 				s := out.Status
@@ -179,13 +179,4 @@ func statusColor(s string, p palette) string {
 	default:
 		return p.reset
 	}
-}
-
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }

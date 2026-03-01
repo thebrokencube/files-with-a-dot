@@ -26,7 +26,7 @@ func runValidate(args []string) int {
 			fmt.Printf(`{"valid":false,"errors":["folio.yml not found at %s"],"warnings":[]}`, *folioPath)
 			fmt.Println()
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m folio.yml not found at %s\n", *folioPath)
+			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
 		}
 		return 2
 	}
@@ -36,7 +36,7 @@ func runValidate(args []string) int {
 		if *jsonMode {
 			fmt.Println(`{"valid":false,"errors":["folio.yml is not valid YAML"],"warnings":[]}`)
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		}
 		return 2
 	}
@@ -66,13 +66,13 @@ func runStatus(args []string) int {
 	color := colorEnabled(*noColor)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error: folio.yml not found at %s\n", *folioPath)
+		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
 		return 1
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
@@ -94,12 +94,12 @@ func runInit(args []string) int {
 	fs.Parse(args)
 
 	if _, err := os.Stat("folio.yml"); err == nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m folio.yml already exists in %s\n", mustGetwd())
+		fmt.Fprintln(os.Stderr, output.Errf("folio.yml already exists in %s", mustGetwd()))
 		return 1
 	}
 
 	if *name == "" {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m --name is required\n")
+		fmt.Fprintln(os.Stderr, output.Errf("--name is required"))
 		return 1
 	}
 
@@ -116,10 +116,10 @@ pending: []
 `, *name)
 
 	if err := os.WriteFile("folio.yml", []byte(content), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Created folio.yml for \033[1m%s\033[0m\n", *name)
+	fmt.Println(output.Successf("Created folio.yml for %s%s%s", output.Bold, *name, output.Reset))
 	return 0
 }

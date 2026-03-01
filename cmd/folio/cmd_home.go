@@ -11,13 +11,14 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 )
 
 func mustResolveHome() string {
 	dir, err := home.Dir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		os.Exit(1)
 	}
 	return dir
@@ -27,11 +28,11 @@ func runHomeInit(args []string) int {
 	dir := mustResolveHome()
 
 	if err := home.Init(dir); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Initialized FOLIO_HOME at %s\n", dir)
+	fmt.Println(output.Successf("Initialized FOLIO_HOME at %s", dir))
 	return 0
 }
 
@@ -47,7 +48,7 @@ func runHomeValidate(args []string) int {
 
 	if len(errs) == 0 {
 		if color {
-			fmt.Printf("\033[0;32m✓\033[0m FOLIO_HOME structure is valid (%s)\n", dir)
+			fmt.Println(output.Successf("FOLIO_HOME structure is valid (%s)", dir))
 		} else {
 			fmt.Printf("FOLIO_HOME structure is valid (%s)\n", dir)
 		}
@@ -55,7 +56,7 @@ func runHomeValidate(args []string) int {
 	}
 
 	if color {
-		fmt.Fprintf(os.Stderr, "\033[0;31mErrors:\033[0m\n")
+		fmt.Fprintf(os.Stderr, "%sErrors:%s\n", output.Red, output.Reset)
 	} else {
 		fmt.Fprintf(os.Stderr, "Errors:\n")
 	}
@@ -76,7 +77,7 @@ func runHomeList(args []string) int {
 
 	entries, err := list.Scan(dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
@@ -98,7 +99,7 @@ func runHomeList(args []string) int {
 
 	if len(active) > 0 {
 		if color {
-			fmt.Printf("\033[1mActive\033[0m (%d)\n", len(active))
+			fmt.Printf("%sActive%s (%d)\n", output.Bold, output.Reset, len(active))
 		} else {
 			fmt.Printf("Active (%d)\n", len(active))
 		}
@@ -110,7 +111,7 @@ func runHomeList(args []string) int {
 			fmt.Println()
 		}
 		if color {
-			fmt.Printf("\033[1mArchived\033[0m (%d)\n", len(archived))
+			fmt.Printf("%sArchived%s (%d)\n", output.Bold, output.Reset, len(archived))
 		} else {
 			fmt.Printf("Archived (%d)\n", len(archived))
 		}
@@ -146,8 +147,8 @@ func printEntryTable(entries []list.Entry, color bool) {
 	sep := fmt.Sprintf("  %s  %s  %s  %s", strings.Repeat("-", pathW), strings.Repeat("-", projW), "-------", "-------")
 
 	if color {
-		fmt.Printf("\033[2m%s\033[0m\n", header)
-		fmt.Printf("\033[2m%s\033[0m\n", sep)
+		fmt.Printf("%s%s%s\n", output.Dim, header, output.Reset)
+		fmt.Printf("%s%s%s\n", output.Dim, sep, output.Reset)
 	} else {
 		fmt.Println(header)
 		fmt.Println(sep)
@@ -169,7 +170,7 @@ func runHomePush(args []string) int {
 	}
 
 	if *msg == "" {
-		fmt.Fprintf(os.Stderr, "Error: commit message required (-m or positional arg)\n")
+		fmt.Fprintln(os.Stderr, output.Errf("commit message required (-m or positional arg)"))
 		fmt.Fprintf(os.Stderr, "  Format: type(scope): description\n")
 		fmt.Fprintf(os.Stderr, "  Types:  feat fix docs refactor test chore style perf auto\n")
 		return 1
@@ -183,14 +184,14 @@ func runHomePush(args []string) int {
 			return 0
 		}
 		if errors.Is(err, repo.ErrInvalidCommitMessage) {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 			return 1
 		}
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Committed and pushed\n")
+	fmt.Println(output.Successf("Committed and pushed"))
 	return 0
 }
 
@@ -198,11 +199,11 @@ func runHomePull(args []string) int {
 	dir := mustResolveHome()
 
 	if err := repo.Pull(dir); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Pulled latest\n")
+	fmt.Println(output.Successf("Pulled latest"))
 	return 0
 }
 
@@ -217,11 +218,11 @@ func runHomeArchive(args []string) int {
 	relPath := args[0]
 
 	if err := move.Archive(dir, relPath); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Archived active/%s\n", relPath)
+	fmt.Println(output.Successf("Archived active/%s", relPath))
 	return 0
 }
 
@@ -236,10 +237,10 @@ func runHomeActivate(args []string) int {
 	relPath := args[0]
 
 	if err := move.Activate(dir, relPath); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Activated archive/%s\n", relPath)
+	fmt.Println(output.Successf("Activated archive/%s", relPath))
 	return 0
 }

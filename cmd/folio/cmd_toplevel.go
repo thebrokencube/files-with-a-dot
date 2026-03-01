@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 )
 
 func runSetup(args []string) int {
@@ -17,8 +19,8 @@ func runSetup(args []string) int {
 	}
 
 	if !*checkMode {
-		fmt.Printf("\033[0;32m✓\033[0m folio %s (%s)\n", version, folioBin)
-		fmt.Printf("\n\033[0;32m\033[1mAll dependencies satisfied.\033[0m\n")
+		fmt.Println(output.Successf("folio %s (%s)", version, folioBin))
+		fmt.Printf("\n%s%sAll dependencies satisfied.%s\n", output.Green, output.Bold, output.Reset)
 	}
 	return 0
 }

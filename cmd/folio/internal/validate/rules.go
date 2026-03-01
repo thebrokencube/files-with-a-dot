@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 )
 
 // Result holds the outcome of validation.
@@ -43,14 +43,14 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	}
 
 	// Targets
-	for _, tid := range sortedKeys(f.Targets) {
+	for _, tid := range maputil.SortedKeys(f.Targets) {
 		target := f.Targets[tid]
 		validateTarget(r, f, tid, &target, folioDir)
 	}
 
 	// Output map collisions
 	outputMap := graph.BuildOutputMap(f)
-	for _, key := range sortedKeys(outputMap) {
+	for _, key := range maputil.SortedKeys(outputMap) {
 		producers := outputMap[key]
 		if len(producers) > 1 {
 			r.addError("Output collision: '%s' produced by multiple targets: %s", key, strings.Join(producers, ", "))
@@ -217,11 +217,3 @@ func (r *Result) addWarning(format string, args ...interface{}) {
 	r.Warnings = append(r.Warnings, fmt.Sprintf(format, args...))
 }
 
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}

@@ -5,11 +5,11 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 )
 
 // OutputStatus represents the derived status of a single output.
@@ -78,7 +78,7 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 	}
 
 	// Derive target statuses
-	for _, tid := range sortedKeys(f.Targets) {
+	for _, tid := range maputil.SortedKeys(f.Targets) {
 		target := f.Targets[tid]
 		ts := TargetStatus{}
 
@@ -327,15 +327,6 @@ func worseStatus(a, b string) string {
 		return b
 	}
 	return a
-}
-
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 // daysSince computes the number of days since a YYYY-MM-DD date string.

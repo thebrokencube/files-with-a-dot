@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 )
 
 func runPbcopy(args []string) int {
@@ -26,13 +27,13 @@ func runPbcopy(args []string) int {
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
 	target, ok := f.Targets[targetID]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m target '%s' not found\n", targetID)
+		fmt.Fprintln(os.Stderr, output.Errf("target '%s' not found", targetID))
 		fmt.Fprintf(os.Stderr, "Available targets:")
 		for tid := range f.Targets {
 			fmt.Fprintf(os.Stderr, " %s", tid)
@@ -52,28 +53,28 @@ func runPbcopy(args []string) int {
 	}
 
 	if outputPath == "" {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m target '%s' has no local output path\n", targetID)
+		fmt.Fprintln(os.Stderr, output.Errf("target '%s' has no local output path", targetID))
 		return 1
 	}
 
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m output file not found: %s\n", outputPath)
+		fmt.Fprintln(os.Stderr, output.Errf("output file not found: %s", outputPath))
 		return 1
 	}
 
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m reading %s: %s\n", outputPath, err)
+		fmt.Fprintln(os.Stderr, output.Errf("reading %s: %s", outputPath, err))
 		return 1
 	}
 
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = bytes.NewReader(data)
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m pbcopy: %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("pbcopy: %s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Copied %s to clipboard (%d bytes)\n", outputPath, len(data))
+	fmt.Println(output.Successf("Copied %s to clipboard (%d bytes)", outputPath, len(data)))
 	return 0
 }

@@ -1,19 +1,27 @@
 package graph
 
+import "sort"
+
 // DetectCycle performs DFS cycle detection on an adjacency list.
 // Returns the full cycle path (e.g., [a, b, c, a]) or nil if no cycle exists.
+// Nodes are visited in sorted order for deterministic output.
 func DetectCycle(adj map[string][]string) []string {
 	visited := make(map[string]bool)
 	inStack := make(map[string]bool)
 
-	// Collect all nodes (both sources and destinations of edges)
-	nodes := make(map[string]bool)
+	// Collect and sort all nodes for deterministic iteration
+	nodeSet := make(map[string]bool)
 	for node, deps := range adj {
-		nodes[node] = true
+		nodeSet[node] = true
 		for _, dep := range deps {
-			nodes[dep] = true
+			nodeSet[dep] = true
 		}
 	}
+	nodes := make([]string, 0, len(nodeSet))
+	for n := range nodeSet {
+		nodes = append(nodes, n)
+	}
+	sort.Strings(nodes)
 
 	var path []string
 
@@ -47,7 +55,7 @@ func DetectCycle(adj map[string][]string) []string {
 		return nil
 	}
 
-	for node := range nodes {
+	for _, node := range nodes {
 		if !visited[node] {
 			if cycle := dfs(node); cycle != nil {
 				return cycle

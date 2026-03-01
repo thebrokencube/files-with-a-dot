@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/pending"
 )
 
@@ -23,15 +24,15 @@ func runAddPending(args []string) int {
 
 	// Validate the file parses before modifying
 	if _, err := config.Load(*folioPath); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
 	if err := pending.Append(*folioPath, item); err != nil {
-		fmt.Fprintf(os.Stderr, "\033[0;31mError:\033[0m %s\n", err)
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}
 
-	fmt.Printf("\033[0;32m✓\033[0m Added to pending: %s\n", item)
+	fmt.Println(output.Successf("Added to pending: %s", item))
 	return 0
 }
