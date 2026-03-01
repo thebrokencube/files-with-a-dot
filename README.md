@@ -97,14 +97,15 @@ Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 
 ## Claude Code Integration
 
-This repo includes Claude Code (AI coding assistant) skills available globally (in any project):
+This repo includes [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills available globally (in any project):
 
 | Skill | Purpose |
 |-------|---------|
+| `/folio` | Knowledge work lifecycle - plan, compose, gather, publish |
 | `/dotfiles` | Manage dotfiles - install, update, health, setup |
 | `/nvim` | Neovim help - plugins, config, troubleshooting |
-| `/brew` | Homebrew management - status, update, cleanup |
-| `/system` | System troubleshooting - icons, fonts, shell |
+| `/commit` | Git commit conventions and versioning |
+| `/stacked-pr` | Stacked branch workflows and propagation |
 
 ## Adding New Configs
 
