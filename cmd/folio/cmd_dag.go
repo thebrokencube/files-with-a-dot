@@ -5,11 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 )
 
 type dagNode struct {
@@ -33,11 +35,12 @@ func runDag(args []string) int {
 	folioPath := fs.String("folio", "./folio.yml", "Path to folio.yml")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	branches := fs.Bool("branches", false, "Show branch topology")
+	statusFlag := fs.Bool("status", false, "Show staleness overlay (requires --branches)")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
 	fs.Parse(args)
 
-	if *branches && *jsonMode {
-		fmt.Fprintln(os.Stderr, output.Errf("--branches and --json are mutually exclusive"))
+	if *statusFlag && !*branches {
+		fmt.Fprintln(os.Stderr, output.Errf("--status requires --branches"))
 		return 1
 	}
 
@@ -52,6 +55,23 @@ func runDag(args []string) int {
 		return 1
 	}
 
+	if *branches {
+		bt := output.BuildBranchTopology(f.Targets)
+
+		if *statusFlag {
+			folioDir := filepath.Dir(*folioPath)
+			_, causedBy := status.DeriveWithDAG(f, folioDir)
+			output.AnnotateBranchStatus(bt, f, filepath.Dir(*folioPath), causedBy)
+		}
+
+		if *jsonMode {
+			output.PrintBranchDAGJSON(os.Stdout, bt)
+		} else {
+			output.PrintBranchDAGFromTopology(os.Stdout, bt, !*noColor, *statusFlag)
+		}
+		return 0
+	}
+
 	outputMap := graph.BuildOutputMap(f)
 	producerMap := graph.SingleProducerMap(outputMap)
 	inferred := graph.InferEdges(f, producerMap)
@@ -59,10 +79,7 @@ func runDag(args []string) int {
 
 	allTargets := maputil.SortedKeys(f.Targets)
 
-	if *branches {
-		output.PrintBranchDAG(os.Stdout, f.Targets, !*noColor)
-		return 0
-	} else if *jsonMode {
+	if *jsonMode {
 		dj := dagJSON{}
 		for _, tid := range allTargets {
 			node := dagNode{ID: tid}

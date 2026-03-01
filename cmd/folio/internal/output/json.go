@@ -26,6 +26,17 @@ func PrintValidateJSON(w io.Writer, r *validate.Result) {
 	fmt.Fprintln(w, string(data))
 }
 
+// PrintBranchDAGJSON renders branch topology as JSON.
+func PrintBranchDAGJSON(w io.Writer, bt *BranchTopology) {
+	data, err := json.Marshal(bt)
+	if err != nil {
+		fmt.Fprintf(w, `{"error":"json marshal error: %s"}`, err)
+		fmt.Fprintln(w)
+		return
+	}
+	fmt.Fprintln(w, string(data))
+}
+
 // PrintStatusJSON renders project status as JSON.
 func PrintStatusJSON(w io.Writer, ps *status.ProjectStatus) {
 	// Per-target slices may still be nil (depends on target definition)

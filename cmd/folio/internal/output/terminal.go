@@ -270,8 +270,15 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 }
 
 // PrintBranchDAG renders branch topology derived from targets with Branch set.
+// Convenience wrapper that builds topology internally.
 func PrintBranchDAG(w io.Writer, targets map[string]config.Target, color bool) {
 	bt := BuildBranchTopology(targets)
+	PrintBranchDAGFromTopology(w, bt, color, false)
+}
+
+// PrintBranchDAGFromTopology renders a pre-built branch topology to a terminal.
+// When showStatus is true, status and stale_via annotations are included.
+func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, showStatus bool) {
 	if len(bt.Roots) == 0 {
 		return
 	}
@@ -284,7 +291,17 @@ func PrintBranchDAG(w io.Writer, targets map[string]config.Target, color bool) {
 		if isLast {
 			connector = "└── "
 		}
-		fmt.Fprintf(w, "%s%s%s%s%s\n", indent, connector, p.bold, node.ID, p.reset)
+
+		statusStr := ""
+		if showStatus && node.Status != "" {
+			c := statusColor(node.Status, p)
+			statusStr = fmt.Sprintf("  %s%s%s", c, node.Status, p.reset)
+			if node.StaleVia != "" {
+				statusStr += fmt.Sprintf(" %s<< %s%s", p.dim, node.StaleVia, p.reset)
+			}
+		}
+
+		fmt.Fprintf(w, "%s%s%s%s%s%s\n", indent, connector, p.bold, node.ID, p.reset, statusStr)
 
 		prStr := ""
 		if node.PR != "" {

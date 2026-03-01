@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 )
 
 // BranchNode represents a target with an associated branch in the branch topology.
@@ -126,4 +127,46 @@ func PropagationOrder(bt *BranchTopology) []string {
 		}
 	}
 	return order
+}
+
+// AnnotateBranchStatus populates Status and StaleVia fields on branch nodes
+// using the staleness computation from status.DeriveWithDAG.
+func AnnotateBranchStatus(bt *BranchTopology, f *config.Folio, folioDir string, causedBy map[string]string) {
+	ps, _ := status.DeriveWithDAG(f, folioDir)
+
+	var annotate func(node *BranchNode)
+	annotate = func(node *BranchNode) {
+		ts, ok := ps.Targets[node.ID]
+		if ok {
+			// Only consider local outputs — external outputs are always
+			// "unknown" (can't mtime-check remote systems) and would
+			// mask meaningful local staleness signals.
+			worst := "clean"
+			hasLocal := false
+			for _, out := range ts.Outputs {
+				if out.Type != "local" {
+					continue
+				}
+				hasLocal = true
+				if status.StatusRank(out.Status) > status.StatusRank(worst) {
+					worst = out.Status
+				}
+			}
+			if hasLocal {
+				node.Status = worst
+			}
+		}
+		if cause, ok := causedBy[node.ID]; ok {
+			node.StaleVia = cause
+		}
+		for _, child := range node.Children {
+			annotate(child)
+		}
+	}
+
+	for _, root := range bt.Roots {
+		for _, child := range root.Children {
+			annotate(child)
+		}
+	}
 }

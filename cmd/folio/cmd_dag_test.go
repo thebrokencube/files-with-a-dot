@@ -209,14 +209,141 @@ targets:
 	}
 }
 
-func TestRunDagBranchesAndJsonError(t *testing.T) {
+func TestRunDagBranchesAndJson(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  docs-tooling:
+    transform: compose
+    branch: "feat-tooling"
+    pr: "#100"
+    sources: []
+    outputs:
+      - path: compiled/a.md
+  docs-proposal:
+    transform: compose
+    branch: "feat-proposal"
+    pr: "#200"
+    blocked_by: [docs-tooling]
+    sources: []
+    outputs:
+      - path: compiled/b.md
+`), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runDag([]string{"--folio", yml, "--branches", "--json"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+
+	if code != 0 {
+		t.Errorf("expected exit code 0 for --branches --json, got %d", code)
+	}
+
+	var bt struct {
+		Roots []struct {
+			Base     string `json:"base"`
+			Children []struct {
+				ID       string `json:"id"`
+				Branch   string `json:"branch"`
+				Base     string `json:"base"`
+				PR       string `json:"pr"`
+				Children []struct {
+					ID     string `json:"id"`
+					Branch string `json:"branch"`
+					Base   string `json:"base"`
+				} `json:"children"`
+			} `json:"children"`
+		} `json:"roots"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &bt); err != nil {
+		t.Fatalf("failed to parse JSON: %v\noutput: %s", err, buf.String())
+	}
+	if len(bt.Roots) != 1 {
+		t.Fatalf("expected 1 root, got %d", len(bt.Roots))
+	}
+	if bt.Roots[0].Base != "main" {
+		t.Errorf("root base = %q, want main", bt.Roots[0].Base)
+	}
+	if len(bt.Roots[0].Children) != 1 {
+		t.Fatalf("expected 1 child of main, got %d", len(bt.Roots[0].Children))
+	}
+	tooling := bt.Roots[0].Children[0]
+	if tooling.ID != "docs-tooling" {
+		t.Errorf("child ID = %q, want docs-tooling", tooling.ID)
+	}
+	if tooling.Branch != "feat-tooling" {
+		t.Errorf("branch = %q, want feat-tooling", tooling.Branch)
+	}
+	if len(tooling.Children) != 1 {
+		t.Fatalf("expected 1 child of docs-tooling, got %d", len(tooling.Children))
+	}
+	if tooling.Children[0].ID != "docs-proposal" {
+		t.Errorf("grandchild ID = %q, want docs-proposal", tooling.Children[0].ID)
+	}
+}
+
+func TestRunDagStatusRequiresBranches(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runDag([]string{"--folio", yml, "--branches", "--json"})
+	code := runDag([]string{"--folio", yml, "--status"})
 	if code != 1 {
-		t.Errorf("expected exit code 1 for --branches --json, got %d", code)
+		t.Errorf("expected exit code 1 for --status without --branches, got %d", code)
+	}
+}
+
+func TestRunDagBranchesStatus(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "compiled", "a.md"), []byte("# Old"), 0644)
+
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  my-target:
+    transform: distill
+    branch: "feat-test"
+    sources:
+      - path: src.md
+    outputs:
+      - path: compiled/a.md
+`), 0644)
+
+	// Create source AFTER output to make it stale
+	os.WriteFile(filepath.Join(dir, "src.md"), []byte("# Updated"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runDag([]string{"--folio", yml, "--branches", "--status"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	out := buf.String()
+
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+	if !strings.Contains(out, "stale") {
+		t.Error("expected 'stale' status annotation in output")
+	}
+	if !strings.Contains(out, "feat-test") {
+		t.Error("expected branch name in output")
 	}
 }
 
