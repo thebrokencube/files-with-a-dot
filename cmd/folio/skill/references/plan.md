@@ -27,11 +27,17 @@ Gather context before spawning any agents. This happens in the main conversation
 2. Read relevant files — entry points, existing implementations, tests, CLAUDE.md
 3. Search for related patterns in the codebase (Grep/Glob)
 4. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and tasks/pending items.
-5. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
+5. **Present folio findings to the user.** If a project matched: summarize project name, key
+   sources pulled in, relevant pending tasks. Wait for confirmation before continuing. If no
+   project matched: list the active projects that were considered, ask if any of them are
+   relevant (the user may see a match the search missed), and ask if a new folio project
+   should be created to track this work. Only proceed without folio context after explicit
+   user confirmation.
+6. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
    (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
    of the context summary.
-6. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
+7. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
    exists, what needs to change, key trade-offs, and relevant folio context (if any)
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
@@ -53,6 +59,8 @@ Convergence criteria:
 - Implementation order is specified
 - Trade-offs between the two proposals are noted where they diverged meaningfully
 - If both proposals agreed on an approach, that's a strong signal — keep it
+
+After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
 ### Phase 4: Review
 
@@ -98,7 +106,18 @@ before/after comparison.
 
 ### Phase 7: Retrospective
 
-**Mandatory — no skip.** After all implementation commits are complete, launch 1 agent (subagent_type: general-purpose) to review the planning process itself — what worked, what added friction, what to change next time. Only capture actionable findings, not session notes. Present findings to the user and ask where to record them and if any warrant immediate changes.
+**Mandatory — no skip.** After all implementation commits are complete, review the planning
+process in the main conversation (do NOT delegate to a subagent — the retrospective needs
+full session context to be useful). Cover:
+
+- What worked well? What added friction?
+- Were the lenses useful? Did convergence surface good trade-offs?
+- Was the folio context helpful (if used)?
+- What should change next time?
+- If the plan changed folio source files, flag whether targets need recompilation.
+
+Only capture actionable findings, not session notes. Present findings to the user and ask
+where to record them and if any warrant immediate changes.
 
 ## Re-run Rule
 
@@ -211,30 +230,7 @@ Keep your review under 40 lines. Only flag real issues.
 - **Accuracy**: "Verify the changes match the approved plan. Check for typos, stale references, incorrect file paths, broken imports, and wrong function signatures. Read the actual changed files."
 - **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the plan, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist?"
 
-### Retrospective Agent (Phase 7)
-
-Use with `subagent_type: "general-purpose"`.
-
-```
-You are reviewing how a /folio plan planning process went.
-
-## Original Task
-{task_description}
-
-## Process Summary
-{process_summary}
-
-## Instructions
-Briefly review the planning process:
-- What worked well? What added friction?
-- Were the lenses useful? Did convergence surface good trade-offs?
-- Was the folio context helpful (if used)?
-- What should change next time?
-
-Only capture actionable findings, not session notes. Keep under 20 lines.
-```
-
 ## Notes
 
-- **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary. After implementation, folio targets that reference changed code may need recompilation — flag this in the retrospective.
+- **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary.
 - **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
