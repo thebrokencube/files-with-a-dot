@@ -331,6 +331,7 @@ func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, sho
 type StaleEntry struct {
 	ID      string   `json:"id"`
 	Status  string   `json:"status"`
+	Branch  string   `json:"branch,omitempty"`
 	Outputs []string `json:"outputs"`
 	Cause   string   `json:"cause"`
 }

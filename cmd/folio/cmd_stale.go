@@ -48,13 +48,14 @@ func runStale(args []string) int {
 			continue
 		}
 
+		target := f.Targets[tid]
 		entry := output.StaleEntry{
 			ID:     tid,
 			Status: worst,
+			Branch: target.Branch,
 		}
 
 		// Collect output labels
-		target := f.Targets[tid]
 		for _, o := range target.Outputs {
 			entry.Outputs = append(entry.Outputs, output.OutputLabel(o))
 		}

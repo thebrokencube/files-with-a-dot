@@ -189,6 +189,60 @@ targets:
 	}
 }
 
+func TestRunStaleJSONWithBranch(t *testing.T) {
+	dir := t.TempDir()
+
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("# Old"), 0644)
+
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+targets:
+  my-target:
+    transform: distill
+    branch: "feat-my-branch"
+    sources:
+      - path: src.md
+    outputs:
+      - path: compiled/out.md
+`), 0644)
+
+	os.WriteFile(filepath.Join(dir, "src.md"), []byte("# Updated"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runStale([]string{"--folio", yml, "--json"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+
+	if code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+
+	var sj struct {
+		Stale []struct {
+			ID     string `json:"id"`
+			Branch string `json:"branch"`
+		} `json:"stale"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &sj); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+	if len(sj.Stale) != 1 {
+		t.Fatalf("expected 1 stale entry, got %d", len(sj.Stale))
+	}
+	if sj.Stale[0].Branch != "feat-my-branch" {
+		t.Errorf("branch = %q, want feat-my-branch", sj.Stale[0].Branch)
+	}
+}
+
 func TestRunStaleNoColor(t *testing.T) {
 	dir := t.TempDir()
 
