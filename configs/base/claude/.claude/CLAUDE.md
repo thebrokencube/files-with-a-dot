@@ -11,7 +11,7 @@ My development environment, available globally across all projects.
 
 ## Key Paths
 - `~/.dotfiles/symlink_map.txt` - What's linked where
-- `~/.dotfiles/shared/` - All config files
+- `~/.dotfiles/configs/base/` - All config files
 - `~/.env.local` - API keys (ANTHROPIC_API_KEY, etc.)
 - `~/.gitconfig.local` - Git identity
 
@@ -30,3 +30,7 @@ My development environment, available globally across all projects.
 ## Cross-Repo Awareness
 - **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles-dev skill).
 - When a task touches files in multiple repos, always commit each repo separately with appropriate conventions.
+
+## Planning
+- Use `/plan` skill instead of built-in plan mode (EnterPlanMode) for non-trivial tasks
+- For trivial changes (single file, obvious approach), skip planning entirely
