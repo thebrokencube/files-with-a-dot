@@ -27,6 +27,8 @@ func main() {
 		os.Exit(runStale(os.Args[2:]))
 	case "touch":
 		os.Exit(runTouch(os.Args[2:]))
+	case "dag":
+		os.Exit(runDag(os.Args[2:]))
 
 	// Top-level utility commands
 	case "pbcopy":
@@ -108,6 +110,7 @@ Project commands:
   status       Derive and display target state
   stale        List stale/missing/unknown targets
   touch        Mark a target as current (update output mtime)
+  dag          Show target dependency graph
   init         Bootstrap a new folio.yml
   add-pending  Append an item to the pending list
 
