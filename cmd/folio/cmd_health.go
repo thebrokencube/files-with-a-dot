@@ -92,6 +92,16 @@ func printHealthReport(r *health.Report, color bool) {
 		fmt.Printf("%-40s Health: %s\n", r.Project, grade)
 	}
 
+	// Pending line (most actionable)
+	if r.Pending.Active > 0 || r.Pending.Terminal > 0 {
+		fmt.Printf("  Pending  %d active, %d resolved\n", r.Pending.Active, r.Pending.Terminal)
+	}
+
+	// Work line
+	if r.Work.Active > 0 || r.Work.Archived > 0 {
+		fmt.Printf("  Work     %d active, %d archived\n", r.Work.Active, r.Work.Archived)
+	}
+
 	// Reference line
 	totalRef := r.TotalReferenceFiles()
 	untypedCount := len(r.Untyped)
@@ -106,16 +116,6 @@ func printHealthReport(r *health.Report, color bool) {
 		if len(r.Reference) > 0 {
 			printTypeBreakdown(r.Reference)
 		}
-	}
-
-	// Work line
-	if r.Work.Active > 0 || r.Work.Archived > 0 {
-		fmt.Printf("  Work     %d active, %d archived\n", r.Work.Active, r.Work.Archived)
-	}
-
-	// Pending line
-	if r.Pending.Active > 0 || r.Pending.Terminal > 0 {
-		fmt.Printf("  Pending  %d active, %d resolved\n", r.Pending.Active, r.Pending.Terminal)
 	}
 
 	// Naming issues
