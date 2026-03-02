@@ -11,33 +11,44 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
 ## Workflow
 
 ```
-  gather         design            plan             execute
-    ↓               ↓                ↓                 ↓
- sources ──→ design doc ──→ approved plan ──→ implement per step
-(Phase 1)   (4b) LOCK      (Phase 5)        ┌─────────────────┐
-    ↑                                        │ implement       │
-    │                                        │ validate   GATE │
-    │                                        │ review     GATE │
-    │                                        │ commit          │
-    │                                        └────────┬────────┘
-    │                                                 │
-    │                                          ┌──────┴───────┐
-    │                                          │ compose →    │
-    │                                          │   publish    │
-    │                                          │ (if targets) │
-    │                                          └──────┬───────┘
-    │                                                 │
-    └──── retro findings ←─── experience ←────────────┘
-          (pending items)     (Phase 7)
+  Agent 1 (Design)       Agent 2 (Brief)        Agent 3 (Execute)
+  ─────────────────      ────────────────        ─────────────────
+  Phases 1-4             Phases 5-6              Phases 7-8
+        │                      │                       │
+        ▼                      ▼                       ▼
+  ┌───────────┐         ┌───────────┐           implement per track
+  │design doc │────────→│work brief │────────→  validate → review →
+  │ COMMITTED │         │ COMMITTED │             commit → retro
+  └───────────┘         └───────────┘
 ```
 
-The forward path: gather sources, freeze architecture in a design doc (Phase 4b — mandatory lock), derive the implementation plan from the frozen design (Phase 5), execute step by step (Phase 6).
+The forward path: gather sources (Phase 1), freeze architecture in a design doc (Phase 4), decompose into tracks by risk profile (Phase 5), write execution-level briefs per track (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
 
-Phase 6 is a loop per plan step: implement → validate → review (mandatory gate) → commit. No commit without review.
+Phase 7 is a loop per track step: implement → validate → review (mandatory gate) → commit. No commit without review.
 
 When the plan has external targets (Jira hierarchy, branch topology), execution feeds into compose/publish to sync outputs. This is optional — not every plan has external targets.
 
-The feedback loop: implementation experience feeds the Phase 7 retrospective, whose actionable findings become pending items that inform future cycles. Design docs persist as durable reference material, not disposable intermediates.
+The feedback loop: implementation experience feeds the Phase 8 retrospective, whose actionable findings become pending items that inform future cycles. Design docs and work briefs persist as durable reference material, not disposable intermediates.
+
+## Pipeline
+
+The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate session with bounded context — it reads only its input artifact, not prior conversation history.
+
+| Agent | Phases | Input | Output (committed) |
+|-------|--------|-------|-------------------|
+| Design | 1-4 | User request + codebase | Design doc |
+| Brief | 5-6 | Design doc | Work brief with tracks |
+| Execute | 7-8 | Work brief | Code + retro |
+
+**Why three agents, not one:**
+
+1. **Checkpoint principle**: When producing N artifacts with soft dependencies, commit each before starting the next. A single session that designs, briefs, and implements accumulates risk — a late failure (context overflow, wrong assumption) can lose work from all prior phases. Committed artifacts are checkpoints.
+2. **Bounded context depth**: Design decisions require different context than implementation details. The design agent reads surveys, spikes, and comparable systems. The execution agent reads function signatures and test fixtures. Mixing both in one session wastes context on information irrelevant to the current phase.
+3. **Artifact-mediated handoff**: The design doc and work brief are the contracts between agents. If an execution agent can't proceed from the brief alone, the brief is underspecified — fix the brief, don't compensate with conversation context.
+
+**Invocation**: Agent 1 is invoked by `/folio plan`. Agents 2 and 3 are separate sessions — the user starts them after reviewing the prior agent's committed output.
+
+**Collapsing the pipeline**: For simple changes where the design doc and work brief would be trivially small, Agents 1 and 2 can run in the same session. The Pipeline section defines the default — collapse deliberately, not by default.
 
 ## Invocation
 
@@ -48,7 +59,7 @@ Custom lenses are specified naturally in the topic text (e.g., `/folio plan rede
 
 ## Phases
 
-Phases 1-4 run in normal mode (full tool access), including the design lock at 4b. Phase 5 enters built-in plan mode for structured approval. Phase 6 implements with mandatory pre-commit review gates. Phase 7 runs the post-implementation retrospective.
+Phases 1-4 run in Agent 1 (Design). Phases 5-6 run in Agent 2 (Brief). Phases 7-8 run in Agent 3 (Execute). Each agent session has full tool access. See the Pipeline section for agent boundaries and handoff rules.
 
 ### Phase 1: Understand
 
@@ -64,18 +75,18 @@ Gather context before spawning any agents. This happens in the main conversation
    relevant (the user may see a match the search missed), and ask if a new folio project
    should be created to track this work. Only proceed without folio context after explicit
    user confirmation.
-5b. **Check source freshness — MUST run if folio project matched.** For every source with a
+6. **Check source freshness — MUST run if folio project matched.** For every source with a
    `derived_from` entry, compare the `cached` date against today. If any source is >14 days
    stale, STOP and present the list to the user: "These sources may be outdated: [list with
    ages]. Refresh before planning?" Wait for the user's response. If yes, use the gather
    workflow (see `references/gather.md`) per stale source. If no, note staleness in the
    context summary so lenses can account for it. Do not auto-run gather. Do not proceed to
-   step 6 until the user has acknowledged or dismissed the staleness report.
-6. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
+   step 7 until the user has acknowledged or dismissed the staleness report.
+7. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
    (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
    of the context summary.
-7. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
+8. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
    exists, what needs to change, key trade-offs, and relevant folio context (if any)
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
@@ -101,31 +112,27 @@ Convergence criteria:
 - Implementation order is specified
 - Trade-offs between the two proposals are noted where they diverged meaningfully
 - If both proposals agreed on an approach, that's a strong signal — keep it
-- The merged plan must be an executable spec: function signatures, struct definitions, and
-  edge-case handling are pre-decided — not left to the implementer
+- Architectural decisions, type definitions, and key function signatures are pre-decided —
+  implementation-level detail (test names, commit structure, validation commands) is deferred
+  to the Brief agent
 
 After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
 ### Phase 4: Review
 
-Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The review covers three checks:
+Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The review covers:
 
 1. **Accuracy**: Does the plan reference correct file paths, function names, and APIs? Are assumptions about existing code valid?
 2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
 3. **Scope**: Is everything in the plan necessary for the task? **Meta-review: should any of this work not exist?** Flag anything that's over-engineered, gold-plated, or solving a problem the user didn't ask about.
-4. **Commit decomposition**: Does the plan decompose into clean commits? Each step should map to 1 logical commit. Flag steps that bundle unrelated concerns (refactor + feature, deps + implementation). Cross-reference against the scope target in execution conventions. See the commit skill's "Reviewable History" section.
-5. **Version impact**: If the target repo uses tagged-repo versioning (per commit skill), does the plan account for version bumps? Flag if feat/fix/refactor mix within a single step implies ambiguous version impact.
 
 Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
 
-### Phase 4b: Design Lock
+**Design doc (mandatory):** After the review, commit the design doc. Every plan produces one — lightweight for simple changes, but it always exists.
 
-**Mandatory — no skip.** Freezes architectural decisions before implementation begins. Every plan produces a design doc — the doc may be lightweight for simple changes, but it always exists. Do NOT enter plan mode (Phase 5) without a committed design doc.
-
-**Steps:**
-1. Scaffold a design doc via `folio new design <topic>`. This creates the file at
+1. Scaffold via `folio new design <topic>`. This creates
    `reference/design/YYYY-MM-DD-<topic>.md` with the design template and registers it in
-   folio.yml. Fill in the template from converge output:
+   folio.yml. Fill in from converge output:
    - **Problem**: What and why
    - **Architecture**: Key decisions, type definitions, function signatures
    - **Divergence decisions**: Table from converge phase
@@ -133,63 +140,85 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
    - **Design Provenance**: Agent count, lens names, review findings
 2. If a folio project exists: commit via `folio home push`
 3. If no folio project: use `--no-register` and write to the plan file's directory instead
-4. Present to user: "Design doc committed. Proceeding to implementation plan."
-5. **Lock**: Phase 5 derives the implementation plan from the committed design doc, not raw converge output. If implementation later contradicts the design doc, stop and consult the user.
+4. Present to user: "Design doc committed."
 
-### Phase 5: Present (enter plan mode)
+The committed design doc is the contract for Agent 2. Inform the user: "Design doc committed at [path]. Start a new session to begin the Brief phase." Agent 1's session ends here.
 
-After Phases 1-4b complete, hand off to built-in plan mode for structured approval:
+### Phase 5: Decompose (Agent 2)
 
-1. Call `EnterPlanMode`. The user will be prompted to consent to entering plan mode.
-2. Once in plan mode, write the final plan to the **plan file path provided in the plan mode system message**. Include:
-   - The plan (with any review fixes applied)
-   - A summary of what the review flagged and how it was addressed
-   - A brief note on where the two proposals differed and which was chosen
-   - **The implementation order must end with an explicit step for Phase 7 (retrospective).** This is not implicit — it must appear as a numbered step so it cannot be skipped during execution.
-   - **Execution conventions** (required section): Implementation idioms locked before
-     execution begins. Required fields: commit format, scope target (max commits —
-     typically ~5), validation commands (build, test, lint), module/package path, push
-     workflow, and repo-specific patterns discovered in Phase 1.
-3. Call `ExitPlanMode` with `allowedPrompts` populated from the plan — e.g., if the plan includes running tests, include `{"tool": "Bash", "prompt": "run tests"}`. This presents the plan to the user for approval.
+**Separate session from Agent 1.** Reads the committed design doc — no prior conversation context.
 
-The user sees the plan file cleanly. They may request changes, ask questions, or reject. Iterate until approved or abandoned.
+Analyze the design doc and break it into implementation tracks:
 
-**Note**: Full conversation context (Phases 1-4) is retained in plan mode — only tool access is restricted (read-only + no Agent). This is fine since the heavy lifting is done.
+1. **Read the design doc.** This is the only input — do not rely on conversation history.
+2. **Identify tracks.** Each track is an independently executable stream of work. Tracks
+   should be scoped so an execution agent can pick up any single track without needing
+   context from other tracks.
+3. **Sequence by risk.** Order tracks so the highest-risk work runs first — failures surface
+   early rather than after low-risk work is committed. Risk factors: architectural novelty,
+   cross-file dependencies, test coverage gaps, integration surface area.
+4. **Determine track dependencies.** Mark which tracks are independent (parallelizable) vs.
+   sequential (each depends on the prior track's output).
+5. **Present the track structure to the user.** List tracks with: name, risk assessment,
+   sequencing rationale, and estimated commit count. Wait for approval before proceeding
+   to Phase 6.
 
-### Phase 6: Implement
+### Phase 6: Brief (Agent 2)
 
-Only after user approval (ExitPlanMode accepted). If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
+Populate each track with execution-level detail. The brief must be self-contained — the
+execution agent reads only the brief, not the design doc or conversation history.
 
-For each plan step, execute this sequence in order. Do NOT skip or reorder steps.
+For each track, specify:
+- Exact file changes (create, modify, delete) with paths
+- Function signatures, struct diffs, type definitions
+- Test names and what they validate
+- Commit message(s) and what each commit contains
+- Validation commands (build, test, lint)
 
-1. **Implement** one logical unit (one feature, fix, or refactor). If a plan step spans
+Include an **Execution conventions** section: commit format, scope target (max commits —
+typically ~5), validation commands, module/package path, push workflow, and repo-specific
+patterns.
+
+Scaffold the brief under `work/active/YYYY-MM-DD-<topic>/README.md`. If the brief needs
+per-track detail files (large tracks), create `track-N.md` siblings.
+
+Commit via `folio home push`. The committed work brief is the contract for Agent 3. Inform the user: "Work brief committed at [path]. Start a new session to execute." Agent 2's session ends here.
+
+### Phase 7: Execute (Agent 3)
+
+**Separate session from Agent 2.** Reads the committed work brief — no prior conversation context. If the brief has multiple tracks, each track can be executed independently (same or separate sessions).
+
+If you discover something unexpected during implementation that contradicts the brief, stop and consult the user rather than improvising.
+
+For each track step, execute this sequence in order. Do NOT skip or reorder steps.
+
+1. **Implement** one logical unit (one feature, fix, or refactor). If a step spans
    multiple concerns, split it at commit time.
 2. **Content extraction check** (if this step moved or extracted content across files): Diff
    old content against new locations. Verify nothing was dropped, duplicated, or silently
    truncated. Do not rely solely on review agents — run an explicit before/after comparison.
-3. **Validate — hard gate.** Run the validation commands from execution conventions in order:
-   build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed to step 4
-   until all validation commands pass.
+3. **Validate — hard gate.** Run the validation commands from the brief's execution conventions
+   in order: build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed
+   to step 4 until all validation commands pass.
 4. **Review — hard gate.** Launch 2 review agents (subagent_type: general-purpose) — one
    checking accuracy, one checking scope. Converge findings and fix issues. Do NOT run
    `git commit` until both reviews complete and all findings are resolved. If fixes are
    mechanical (typos, imports, paths), proceed to step 5. If fixes change logic or add code
    paths, return to step 3.
 5. **Commit.** One logical unit per commit.
-6. **Repeat** from step 1 for the next plan step.
+6. **Repeat** from step 1 for the next step.
 
 **Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml tasks/pending, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
-### Phase 7: Retrospective
+### Phase 8: Retrospective (Agent 3)
 
-**Mandatory — no skip.** After all implementation commits are complete, review the planning
-process in the main conversation (do NOT delegate to a subagent — the retrospective needs
-full session context to be useful). Cover:
+**Mandatory — no skip.** Runs in the execution agent session — it has the implementation
+context needed for meaningful retrospective. Do NOT delegate to a subagent. Cover:
 
 - What worked well? What added friction?
-- Were the lenses useful? Did convergence surface good trade-offs?
-- Was the folio context helpful (if used)?
-- Was the design doc useful? Did it prevent architectural drift during implementation, or was it overhead for this task?
+- Was the work brief sufficient? Could the execution agent proceed without reading the design doc?
+- Were track boundaries well-chosen? Did tracks interfere or require unexpected coordination?
+- Was the risk sequencing useful? Did high-risk-first ordering surface issues early?
 - What should change next time?
 - If the plan changed folio source files, flag whether targets need recompilation.
 
@@ -206,7 +235,7 @@ judgment on whether the full context warrants a retro file.
 
 ## Re-run Rule
 
-If plan feedback from the user requires rethinking (not just minor edits), re-run phases 2-4 (full diverge-converge). Do not patch the existing plan.
+If design doc feedback requires rethinking (not just minor edits), re-run Phases 2-4 within Agent 1. If work brief feedback requires restructuring tracks, re-run Phases 5-6 in a new Agent 2 session. If execution reveals a design-level flaw (not just a brief gap), escalate to the user — they may re-run from Phase 2 (new design) or Phase 5 (new brief) depending on severity. Do not patch committed artifacts inline — re-run the producing agent.
 
 ## Agent Prompts
 
@@ -229,6 +258,8 @@ Propose an implementation plan. Your plan should:
 - Specify implementation order and dependencies between steps
 - Note any risks, assumptions, or open questions
 - Stay within your lens — let it guide your trade-off decisions
+
+Focus on architecture, file-level changes, and key design trade-offs. Defer per-function implementation detail, test strategy, and commit structure to the execution brief.
 
 Keep your proposal under 80 lines. Be concrete — file paths, function names, specific changes. No hand-waving.
 ```
@@ -262,7 +293,6 @@ Merge the two proposals into a single implementation plan:
 - Every file to change must be listed with what changes and why
 - Specify implementation order
 - Pre-decide function signatures, type definitions, and edge-case handling where feasible
-- Include an "Execution conventions" section with commit format, validation commands, and scope target
 
 Keep the merged plan under 100 lines. Be concrete.
 ```
@@ -284,14 +314,12 @@ You are reviewing an implementation plan. Your job is to find problems before co
 1. **Accuracy**: Verify file paths, function names, and API references exist and are correct. Read the actual files.
 2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
 3. **Scope**: Is everything necessary? Meta-review: should any part of this plan NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
-4. **Commit decomposition**: Does each step map to 1 logical commit? Flag steps that bundle unrelated concerns. Cross-reference against the scope target in execution conventions.
-5. **Version impact**: If the repo uses tagged versioning, does the plan account for version bumps? Flag ambiguous version impact from mixed change types in a single step.
 
 For each issue found, state: what's wrong, where in the plan, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues — don't nitpick style or add suggestions beyond the task scope.
 ```
 
-### Implementation Review Agent (Phase 6)
+### Implementation Review Agent (Phase 7)
 
 Use with `subagent_type: "general-purpose"`. Launch two instances — one with accuracy focus, one with scope focus. Needs file access.
 
@@ -301,8 +329,8 @@ You are reviewing code changes before a commit. Your job is to catch implementat
 ## Original Task
 {task_description}
 
-## Approved Plan
-{plan_summary}
+## Work Brief
+{brief_summary}
 
 ## Changes to Review
 {change_description}
@@ -316,12 +344,13 @@ Keep your review under 40 lines. Only flag real issues.
 
 **Focus descriptions:**
 
-- **Accuracy**: "Verify the changes match the approved plan. Check for typos, stale references, incorrect file paths, broken imports, and wrong function signatures. Read the actual changed files."
-- **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the plan, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist? Verify the commit bundles one logical unit — flag if unrelated concerns are mixed."
+- **Accuracy**: "Verify the changes match the work brief. Check for typos, stale references, incorrect file paths, broken imports, and wrong function signatures. Read the actual changed files."
+- **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the brief, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist? Verify the commit bundles one logical unit — flag if unrelated concerns are mixed."
 
 ## Notes
 
 - **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary.
-- **Phase 4b (Design Lock)**: Always runs. Every plan produces a design doc before entering plan mode. The doc is the authoritative source for Phase 5.
+- **Design doc**: Always produced in Phase 4. The doc is the authoritative input for Agent 2.
 - **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
-- **Retrospective findings**: Phase 7 captures findings as pending items in the folio project, not as recursive `/folio plan` invocations.
+- **Retrospective findings**: Phase 8 captures findings as pending items in the folio project, not as recursive `/folio plan` invocations.
+- **Agent boundaries**: The Pipeline section defines default boundaries. When collapsing agents (running multiple phases in one session), preserve the commit checkpoints — the design doc and work brief must still be committed before execution begins.
