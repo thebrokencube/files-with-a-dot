@@ -33,6 +33,8 @@ func main() {
 		os.Exit(runGather(os.Args[2:]))
 	case "new":
 		os.Exit(runNew(os.Args[2:]))
+	case "health":
+		os.Exit(runHealth(os.Args[2:]))
 
 	// Top-level utility commands
 	case "pbcopy":
@@ -90,6 +92,8 @@ func main() {
 			os.Exit(runHomeArchive(os.Args[3:]))
 		case "activate":
 			os.Exit(runHomeActivate(os.Args[3:]))
+		case "health":
+			os.Exit(runHomeHealth(os.Args[3:]))
 		case "--help", "-h", "help":
 			printHomeUsage()
 			os.Exit(0)
@@ -117,6 +121,7 @@ Project commands:
   dag          Show target dependency graph
   gather       Add source entry from URL
   new          Scaffold a typed artifact (spike, design, brief, ...)
+  health       Project health report (types, naming, pending)
   init         Bootstrap a new folio.yml
   add-pending  Append an item to the pending list
 
@@ -157,5 +162,6 @@ Commands:
   pull       git pull
   archive    Move active path to archive with date prefix
   activate   Move archive path to active, strip date prefix
+  health     Aggregate health report across all active projects
 `)
 }
