@@ -7,10 +7,10 @@ Gathering brings sources into the folio. It spans from a simple CLI scaffold to 
 ## The Gather Spectrum
 
 ```
-folio gather <url>                    # CLI: scaffold source entry in folio.yml
-folio gather <url> --materialize      # CLI: scaffold + create reference file stub
-folio gather <url> --read             # Requires Claude skill (prints message and exits)
-/folio gather <topic>                 # Skill: parallel agent research, synthesize, materialize
+folio gather <url>                              # CLI: scaffold source entry in folio.yml
+folio gather <url> --materialize --type <type>  # CLI: scaffold + create typed reference file
+folio gather <url> --read                       # Requires Claude skill (prints message and exits)
+/folio gather <topic>                           # Skill: parallel agent research, synthesize, materialize
 ```
 
 ## CLI: URL Scaffold
@@ -19,7 +19,7 @@ folio gather <url> --read             # Requires Claude skill (prints message an
 
 ```yaml
 sources:
-  - path: reference/<name>.md          # only with --materialize
+  - path: reference/<type>/YYYY-MM-DD-<name>.md   # with --materialize --type
     derived_from:
       - external: web
         url: "https://..."
@@ -27,8 +27,9 @@ sources:
 ```
 
 Options:
+- `--type <type>`: reference type (spike, survey, design, ...) — **required with `--materialize`**
 - `--name <name>`: specify reference file name (default: derived from URL)
-- `--materialize`: also create a stub `reference/<name>.md` and add `path:` + `derived_from:` entry
+- `--materialize`: create a typed reference file and add `path:` + `derived_from:` entry
 - `--read`: print "requires /folio gather (Claude skill)" and exit — clear seam for skill layer
 
 ## Skill: Deep Gather (`/folio gather <topic>`)
@@ -38,10 +39,15 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
 1. Identify what to research from the topic
 2. Search available sources (MCP tools, web, codebase). If no results found, report "no results for {topic}" — do not write an empty file.
 3. Synthesize findings (hold in memory, do not write yet)
-4. **Review gate (soft)**: Present proposed filename, content length, and 3 key facts from the synthesis. "Write to {path}?"
-5. Write the reference file
-6. Add the source entry to folio.yml with `derived_from` provenance
-7. Report what was gathered and where it was placed
+4. **Infer type** from the research content:
+   - External system/tool summary → `survey`
+   - Time-boxed investigation findings → `spike`
+   - Multi-source distillation → `synthesis`
+   - Domain knowledge capture → `domain`
+   - Default for ambiguous content → `note`
+5. **Review gate (soft)**: Present proposed type, filename, content length, and 3 key facts. "Write to {path}?"
+6. Materialize via `folio new <inferred-type> <topic>` — never raw file write. Then fill the template with synthesized content.
+7. Report what was gathered, the inferred type, and where it was placed
 
 ## Knowledge Graduation
 
@@ -54,7 +60,7 @@ URL -> source entry -> reference file -> (compose takes over from here)
 | From | To | How |
 |------|----|-----|
 | URL | Source entry | `folio gather <url>` |
-| Source entry | Reference file | `folio gather <url> --materialize` |
+| Source entry | Reference file | `folio gather <url> --materialize --type <type>` |
 | URL | Reference with content | `/folio gather <topic>` (skill mode) |
 
 > Schema reference: see references/schema.md for the source entry format.

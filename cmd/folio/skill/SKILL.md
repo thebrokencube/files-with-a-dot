@@ -90,7 +90,9 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio status` | `folio status` (mention `/folio compose` if stale targets exist) |
 | `/folio validate` | `folio validate` |
 | `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
-| `/folio gather <url>` | `folio gather <url>` (add `--materialize` or `--name` as needed) |
+| `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
+| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path |
+| `/folio health` | `folio health` — project health report (types, naming, pending) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 
 If any CLI command fails, run `folio setup --check` first.
@@ -128,6 +130,22 @@ Two gate types, proportional to risk:
 | stack check | None | — | Read-only |
 | review | None | — | Read-only |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
+
+## Materialization Invariants
+
+Every workflow phase that produces knowledge materializes it as a typed artifact
+before the next phase begins. This is enforced by the skill, not optional.
+
+| Workflow | Phase | Artifact | Command |
+|----------|-------|----------|---------|
+| gather | deep research | reference file | `folio new <inferred-type> <topic>` |
+| plan | Phase 1 research | spike(s) | `folio new spike <topic>` |
+| plan | Phase 4b design | design doc | `folio new design <topic>` |
+| plan | Phase 7 retro | retro file | `folio new retro <topic>` |
+
+"Materialized" means: file exists on disk, registered in folio.yml, committed
+via `folio home push`. Agent memory and conversation context are ephemeral —
+they do not count as materialization.
 
 ## Transform Types
 

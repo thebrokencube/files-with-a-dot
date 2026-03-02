@@ -80,6 +80,10 @@ Gather context before spawning any agents. This happens in the main conversation
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
 
+**Materialization gate**: If Phase 1 research produces substantial findings (not just reading
+existing files), materialize them as spike files via `folio new spike <topic>` before Phase 2
+begins. Commit via `folio home push`. The spikes become sources that propose agents can reference.
+
 ### Phase 2: Propose
 
 Launch 2 Plan agents in parallel, each with the same context summary but a different lens. Each returns a proposal (max 80 lines).
@@ -119,14 +123,16 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
 **Mandatory — no skip.** Freezes architectural decisions before implementation begins. Every plan produces a design doc — the doc may be lightweight for simple changes, but it always exists. Do NOT enter plan mode (Phase 5) without a committed design doc.
 
 **Steps:**
-1. Write a design doc from converge output. Template:
+1. Scaffold a design doc via `folio new design <topic>`. This creates the file at
+   `reference/design/YYYY-MM-DD-<topic>.md` with the design template and registers it in
+   folio.yml. Fill in the template from converge output:
    - **Problem**: What and why
    - **Architecture**: Key decisions, type definitions, function signatures
    - **Divergence decisions**: Table from converge phase
    - **What's NOT included**: Explicit scope boundary
    - **Design Provenance**: Agent count, lens names, review findings
-2. If a folio project exists: write to `reference/<topic>-design.md`, add source entry to folio.yml, commit via `folio home push`
-3. If no folio project: write to the plan file's directory, skip folio.yml update
+2. If a folio project exists: commit via `folio home push`
+3. If no folio project: use `--no-register` and write to the plan file's directory instead
 4. Present to user: "Design doc committed. Proceeding to implementation plan."
 5. **Lock**: Phase 5 derives the implementation plan from the committed design doc, not raw converge output. If implementation later contradicts the design doc, stop and consult the user.
 
@@ -190,9 +196,13 @@ full session context to be useful). Cover:
 Only capture actionable findings, not session notes. Findings that aren't worth planning
 aren't actionable — note them in the retro summary and move on.
 
-**Recording findings**: Add each actionable finding to the relevant folio project's pending
-list (via `folio project add-pending` or direct edit). One line per finding. This ensures
-durable capture without over-engineering the retrospective step.
+**Recording findings**: Retro findings worth preserving MUST be materialized via
+`folio new retro <topic>` — not just added as pending items. The retro file captures the full
+context; pending items capture only the actionable follow-ups. Both are written: the retro file
+is the durable artifact, pending items are the work triggers. Commit via `folio home push`.
+
+For lightweight retros (few findings, simple context), pending items alone are sufficient — use
+judgment on whether the full context warrants a retro file.
 
 ## Re-run Rule
 
