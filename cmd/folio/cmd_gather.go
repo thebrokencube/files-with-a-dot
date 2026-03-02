@@ -11,12 +11,14 @@ import (
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
 )
 
 func runGather(args []string) int {
 	fs := flag.NewFlagSet("gather", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	materialize := fs.Bool("materialize", false, "Create reference file stub and wire path")
+	typeFlag := fs.String("type", "", "Reference type (spike, survey, design, ...)")
 	name := fs.String("name", "", "Reference file name (default: derived from URL)")
 	read := fs.Bool("read", false, "Read and summarize URL (requires Claude skill)")
 	fs.Parse(args)
@@ -26,7 +28,7 @@ func runGather(args []string) int {
 	}
 
 	if fs.NArg() == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize] [--name <name>] [--folio PATH]\n")
+		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize --type <type>] [--name <name>] [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Adds a source entry to folio.yml for the given URL.\n")
 		return 1
 	}
@@ -62,32 +64,44 @@ func runGather(args []string) int {
 	folioDir := filepath.Dir(*folioPath)
 
 	if *materialize {
-		// Create reference file stub
-		refDir := filepath.Join(folioDir, "reference")
-		if err := os.MkdirAll(refDir, 0755); err != nil {
+		// --type is required with --materialize
+		if *typeFlag == "" {
+			fmt.Fprintln(os.Stderr, output.Errf("--materialize requires --type <type> (spike, survey, design, ...)"))
+			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
+			return 1
+		}
+		if !taxonomy.IsReferenceType(*typeFlag) {
+			fmt.Fprintln(os.Stderr, output.Errf("unknown reference type %q", *typeFlag))
+			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
+			return 1
+		}
+
+		// Create reference file stub in type directory
+		refRelPath := filepath.Join("reference", *typeFlag, today+"-"+refName+".md")
+		refAbsPath := filepath.Join(folioDir, refRelPath)
+		if err := os.MkdirAll(filepath.Dir(refAbsPath), 0755); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("creating reference directory: %s", err))
 			return 1
 		}
-		refPath := filepath.Join(refDir, refName+".md")
-		if _, err := os.Stat(refPath); err == nil {
-			fmt.Fprintln(os.Stderr, output.Errf("reference file already exists: reference/%s.md", refName))
+		if _, err := os.Stat(refAbsPath); err == nil {
+			fmt.Fprintln(os.Stderr, output.Errf("reference file already exists: %s", refRelPath))
 			return 1
 		}
 
 		stub := fmt.Sprintf("# %s\n\nSource: %s\nCached: %s\n\n<!-- TODO: add content -->\n", refName, rawURL, today)
-		if err := os.WriteFile(refPath, []byte(stub), 0644); err != nil {
+		if err := os.WriteFile(refAbsPath, []byte(stub), 0644); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("writing reference file: %s", err))
 			return 1
 		}
 
 		// Add materialized source entry (path + derived_from)
-		if err := appendMaterializedSource(*folioPath, refName, rawURL, today); err != nil {
+		if err := appendMaterializedSource(*folioPath, refRelPath, rawURL, today); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 			return 1
 		}
 
 		fmt.Println(output.Successf("Gathered %s", rawURL))
-		fmt.Printf("  Created reference/%s.md\n", refName)
+		fmt.Printf("  Created %s\n", refRelPath)
 		fmt.Printf("  Added source entry to folio.yml\n")
 	} else {
 		// Add URL-only source entry (external + derived_from, no path)
@@ -149,7 +163,8 @@ func appendURLSource(path string, rawURL string, cached string) error {
 }
 
 // appendMaterializedSource adds a path + derived_from source entry to folio.yml's sources list.
-func appendMaterializedSource(path string, name string, rawURL string, cached string) error {
+// refRelPath is the relative path to the reference file (e.g., "reference/spike/2026-03-01-topic.md").
+func appendMaterializedSource(path string, refRelPath string, rawURL string, cached string) error {
 	lines, sourcesIdx, insertIdx, indent, err := findSourcesInsertPoint(path)
 	if err != nil {
 		return err
@@ -157,9 +172,8 @@ func appendMaterializedSource(path string, name string, rawURL string, cached st
 
 	_ = sourcesIdx
 
-	refPath := fmt.Sprintf("reference/%s.md", name)
 	newLines := []string{
-		fmt.Sprintf("%s- path: %s", indent, refPath),
+		fmt.Sprintf("%s- path: %s", indent, refRelPath),
 		fmt.Sprintf("%s  derived_from:", indent),
 		fmt.Sprintf("%s    - external: web", indent),
 		fmt.Sprintf("%s      url: %q", indent, rawURL),

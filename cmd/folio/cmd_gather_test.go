@@ -68,27 +68,38 @@ func TestRunGatherURLOnly(t *testing.T) {
 	}
 }
 
-func TestRunGatherMaterialize(t *testing.T) {
+func TestRunGatherMaterializeRequiresType(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
 
 	code := runGather([]string{"--folio", yml, "--materialize", "https://example.com/api-spec"})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for --materialize without --type, got %d", code)
+	}
+}
+
+func TestRunGatherMaterialize(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
+
+	code := runGather([]string{"--folio", yml, "--materialize", "--type", "survey", "https://example.com/api-spec"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
 
-	// Verify reference file was created
-	refPath := filepath.Join(dir, "reference", "api-spec.md")
-	if _, err := os.Stat(refPath); os.IsNotExist(err) {
-		t.Error("reference file was not created")
+	// Verify reference file was created in type directory with date prefix
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "survey", "*-api-spec.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file in reference/survey/, got %d", len(matches))
 	}
 
-	// Verify folio.yml has path entry
+	// Verify folio.yml has typed path entry
 	data, _ := os.ReadFile(yml)
 	content := string(data)
-	if !strings.Contains(content, "path: reference/api-spec.md") {
-		t.Error("expected path entry in folio.yml")
+	if !strings.Contains(content, "path: reference/survey/") {
+		t.Error("expected typed path entry in folio.yml")
 	}
 	if !strings.Contains(content, "derived_from:") {
 		t.Error("expected derived_from entry in folio.yml")
@@ -105,19 +116,19 @@ func TestRunGatherMaterializeWithName(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "--name", "my-ref", "https://example.com/page"})
+	code := runGather([]string{"--folio", yml, "--materialize", "--type", "spike", "--name", "my-ref", "https://example.com/page"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
 
-	refPath := filepath.Join(dir, "reference", "my-ref.md")
-	if _, err := os.Stat(refPath); os.IsNotExist(err) {
-		t.Error("reference file was not created with custom name")
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "spike", "*-my-ref.md"))
+	if len(matches) != 1 {
+		t.Fatal("reference file was not created with custom name in type directory")
 	}
 
 	data, _ := os.ReadFile(yml)
-	if !strings.Contains(string(data), "path: reference/my-ref.md") {
-		t.Error("expected custom name path in folio.yml")
+	if !strings.Contains(string(data), "path: reference/spike/") {
+		t.Error("expected typed path in folio.yml")
 	}
 }
 
