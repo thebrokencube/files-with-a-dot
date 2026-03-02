@@ -1,0 +1,150 @@
+package taxonomy
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+// ArtifactType describes a typed artifact in the taxonomy.
+type ArtifactType struct {
+	Name  string
+	Layer string // "reference" or "work"
+}
+
+// ReferenceTypes lists all valid reference-layer type names.
+var ReferenceTypes = []string{
+	"spike", "survey",
+	"design", "synthesis", "domain",
+	"pattern", "guide", "review", "retro",
+	"note",
+}
+
+// ValidTypes maps every valid type name to true.
+var ValidTypes map[string]bool
+
+func init() {
+	ValidTypes = make(map[string]bool, len(ReferenceTypes)+1)
+	for _, t := range ReferenceTypes {
+		ValidTypes[t] = true
+	}
+	ValidTypes["brief"] = true
+}
+
+// IsReferenceType returns true if t is a recognized reference-layer type.
+func IsReferenceType(t string) bool {
+	if t == "brief" {
+		return false
+	}
+	return ValidTypes[t]
+}
+
+// IsWorkType returns true if t is a recognized work-layer type.
+func IsWorkType(t string) bool {
+	return t == "brief"
+}
+
+// TypePath returns the relative path for a new artifact of the given type and topic.
+// The path is relative to the folio directory (where folio.yml lives).
+func TypePath(artifactType, topic string) string {
+	date := time.Now().Format("2006-01-02")
+	if IsReferenceType(artifactType) {
+		return filepath.Join("reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
+	}
+	if IsWorkType(artifactType) {
+		return filepath.Join("work", "active", fmt.Sprintf("%s-%s", date, topic), "README.md")
+	}
+	return ""
+}
+
+// Template returns a markdown template for the given artifact type and topic.
+func Template(artifactType, topic string) string {
+	title := strings.ReplaceAll(topic, "-", " ")
+	title = strings.Title(title) //nolint:staticcheck
+
+	switch artifactType {
+	case "design":
+		return fmt.Sprintf(`# %s
+
+## Problem
+<!-- What problem does this solve and why? -->
+
+## Architecture
+<!-- Key decisions, type definitions, function signatures -->
+
+## Divergence Decisions
+<!-- Table: Aspect | Option A | Option B | Chosen | Rationale -->
+
+## What's NOT Included
+<!-- Explicit scope boundary -->
+
+## Open Questions
+<!-- What remains unresolved? -->
+`, title)
+
+	case "spike":
+		return fmt.Sprintf(`# %s
+
+## Purpose
+<!-- What are we investigating and why? Time-boxed to: -->
+
+## Findings
+<!-- What did we learn? -->
+
+## Gaps and Ambiguities
+<!-- What couldn't be resolved? -->
+
+## Summary
+<!-- Key takeaway in 2-3 sentences -->
+`, title)
+
+	case "survey":
+		return fmt.Sprintf(`# %s
+
+## Overview
+<!-- What external system/spec/tool is being surveyed? -->
+
+## Key Features
+<!-- Notable capabilities and design choices -->
+
+## Comparison
+<!-- How does this compare to alternatives or existing approaches? -->
+
+## Relevance
+<!-- How does this apply to our project? -->
+`, title)
+
+	case "brief":
+		return fmt.Sprintf(`# %s
+
+## Objective
+<!-- What are we trying to accomplish? -->
+
+## Tracks
+<!-- Parallel work tracks with their scope -->
+
+## Execution Conventions
+<!-- Commit format, validation commands, scope target -->
+
+## Open Questions
+<!-- What remains unresolved? -->
+`, title)
+
+	default:
+		return fmt.Sprintf(`# %s
+
+## Problem
+<!-- What problem does this solve and why? -->
+
+## Approach
+<!-- Key decisions, type definitions, function signatures -->
+
+## Alternatives
+<!-- What was considered and rejected? -->
+
+## Open Questions
+<!-- What remains unresolved? -->
+`, title)
+	}
+}

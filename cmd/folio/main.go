@@ -31,6 +31,8 @@ func main() {
 		os.Exit(runDag(os.Args[2:]))
 	case "gather":
 		os.Exit(runGather(os.Args[2:]))
+	case "new":
+		os.Exit(runNew(os.Args[2:]))
 
 	// Top-level utility commands
 	case "pbcopy":
@@ -114,6 +116,7 @@ Project commands:
   touch        Mark a target as current (update output mtime)
   dag          Show target dependency graph
   gather       Add source entry from URL
+  new          Scaffold a typed artifact (spike, design, brief, ...)
   init         Bootstrap a new folio.yml
   add-pending  Append an item to the pending list
 
