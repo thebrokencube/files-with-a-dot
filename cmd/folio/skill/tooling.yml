@@ -9,6 +9,7 @@ systems:
     check: "acli --version"
     precompile: "md-to-adf --acli {id} < {source} > {compiled}"
     lint: "md-to-adf --lint {source}"
+    create: "acli jira workitem create --from-json {compiled}"
   confluence:
     pull: mcp:jira-confluence
     push: mcp:jira-confluence

@@ -79,6 +79,7 @@ If a change requires multiple commits, structure them so each is independently v
 ## Amending vs New Commits
 
 - **Amend** when fixing typos or small issues in the last unpushed commit
+- **Fixup** (default on PR branches): When making a small correction to an existing commit on a branch with an open PR, prefer `git commit --fixup=<sha>` + autosquash over a standalone commit. Only create a standalone commit if the change is a distinct logical unit. See stacked-pr skill, Fixup Targeting section for pre-check and apply commands.
 - **New commit** for distinct logical changes
 - **Interactive rebase** to clean up before PR (squash fixups, reorder). Unless the user requests otherwise.
 - **In a stack**: Any amend or interactive rebase requires propagating descendant branches. See stacked-pr skill, Fixup Targeting and Propagation Workflow sections.

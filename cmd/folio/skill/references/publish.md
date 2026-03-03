@@ -51,6 +51,47 @@ acli jira workitem edit --from-json compiled/jira/BEN-48284.json --yes # 3. Push
 
 **md-to-adf limitations** (caught by `--lint`): no tables, no fenced code blocks, no blockquotes, no nested lists, no h3+. Flatten source files before composition.
 
+## Jira Creation Pipeline
+
+> **IMPORTANT:** Always use `acli` + `md-to-adf` for all Jira write operations. Never use MCP tools (`jira-confluence`) for Jira creates or edits. Never hand-write ADF.
+
+For tree nodes that do not yet have a Jira key, use the creation pipeline instead of the push pipeline:
+
+```
+source .md -> lint (md-to-adf --lint) -> convert (md-to-adf, raw) -> build creation JSON -> create (acli) -> capture key -> rename outputs
+```
+
+| Placeholder | Resolves from |
+|---|---|
+| `{source}` | Tree node `file` |
+| `{compiled_dir}` | Tree `compiled_dir` |
+
+1. **Lint**: `md-to-adf --lint {source}` (same as push pipeline)
+2. **Convert to raw ADF**: `md-to-adf < {source}` — raw mode (no `--acli` flag) produces the ADF document object directly, suitable for embedding in the creation JSON `description` field
+3. **Build creation JSON**: Assemble the creation payload and write to `{compiled_dir}/{slug}-create.json`:
+   ```json
+   {
+     "projectKey": "BEN",
+     "type": "Story",
+     "summary": "Title from source",
+     "parentIssueId": "BEN-12345",
+     "description": { "...raw ADF from step 2..." },
+     "additionalAttributes": {
+       "components": [{ "name": "Component" }],
+       "customfield_NNNNN": "value"
+     }
+   }
+   ```
+   `parentIssueId` is optional for top-level issues. Discover required fields with `acli jira workitem create --generate-json`.
+4. **Create**: `acli jira workitem create --from-json {compiled_dir}/{slug}-create.json`
+5. **Capture key**: Parse the returned Jira key (e.g., `BEN-54321`) from acli stdout
+6. **Rename outputs**: Rename source and compiled files from descriptive slug to ticket key. Delete the intermediate `-create.json` after successful creation. Output files are always named by ticket key, not descriptive names:
+   ```bash
+   mv output/jira/{slug}.md output/jira/BEN-54321.md
+   rm {compiled_dir}/{slug}-create.json
+   ```
+7. **Generate edit JSON**: Run `md-to-adf --acli BEN-54321 < output/jira/BEN-54321.md > {compiled_dir}/BEN-54321.json` to produce the standard push-pipeline format for future edits
+
 ## Other Publish Targets
 
 | Target type | Publish approach |
