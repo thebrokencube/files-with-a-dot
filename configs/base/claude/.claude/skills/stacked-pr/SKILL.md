@@ -1,6 +1,6 @@
 ---
 name: stacked-pr
-description: Stacked branch workflows -- propagation, fixup targeting, generated commits, rebase-onto mechanics. Use when working with branch chains, stacked PRs, propagating changes across dependent branches, or resolving rebase-onto conflicts across branch stacks.
+description: Stacked branch workflows -- propagation, fixup targeting, generated commits, reset+cherry-pick mechanics. Use when working with branch chains, stacked PRs, propagating changes across dependent branches, or resolving conflicts across branch stacks.
 user_invocable: false
 ---
 
@@ -12,22 +12,24 @@ Rules for managing chains of dependent branches (stacked PRs). Covers propagatio
 
 When a branch in the stack is rewritten (rebase, fixup, amend), all descendants must be propagated. **Always propagate in parent-first DAG order.**
 
-> **Override (commit skill, Rebase Workflow):** During propagation, the "ask before rebasing" step does not apply. Propagation is mechanical — rebase each child without pausing for confirmation. Conflict-category rules below still apply.
+> **Override (commit skill, Rebase Workflow):** During propagation, the "ask before rebasing" step does not apply. Propagation is mechanical — propagate each child without pausing for confirmation. Conflict-category rules below still apply.
 
 ### Pre-flight
 
 1. Stash or commit working changes on every branch in the stack
 2. Verify the parent branch is clean and fully rebased
-3. Record old tips before rewriting:
+3. Record each child's unique commits BEFORE rewriting any branch:
 
 ```bash
-OLD_A=$(git rev-parse feature-a)
-OLD_B=$(git rev-parse feature-b)
+COMMITS_B=$(git rev-list --reverse feature-a..feature-b)
+COMMITS_C=$(git rev-list --reverse feature-b..feature-c)
 ```
+
+Commit lists MUST be recorded before rewriting because branch ranges change meaning after a parent is rebased.
 
 ### Propagate
 
-Rewrite the parent branch first, then propagate each child:
+Rewrite the parent branch first, then propagate each child via reset + cherry-pick:
 
 ```bash
 # Step 1: Rewrite feature-a (rebase, fixup, etc.)
@@ -35,13 +37,19 @@ git checkout feature-a
 git rebase origin/main   # or whatever the rewrite is
 
 # Step 2: Propagate feature-b onto the new feature-a
-git rebase --onto feature-a $OLD_A feature-b
+git checkout feature-b
+git reset --hard feature-a
+git cherry-pick $COMMITS_B
 
 # Step 3: Propagate feature-c onto the new feature-b
-git rebase --onto feature-b $OLD_B feature-c
+git checkout feature-c
+git reset --hard feature-b
+git cherry-pick $COMMITS_C
 ```
 
-The pattern is always: `git rebase --onto <new-parent-tip> <old-parent-tip> <child>`
+The pattern is always: reset to the new parent tip, then cherry-pick the child's commits.
+
+> **Why not `rebase --onto`?** Both approaches use cherry-pick internally and have identical conflict behavior. But `reset + cherry-pick` records explicit commit SHAs instead of abstract reference points, which eliminates the "wrong old-tip" failure mode and provides a simpler mental model: "these are my commits, put them on this base."
 
 ### Green Commits During Propagation
 
@@ -58,10 +66,10 @@ If something goes wrong, see Common Failure Modes at the end of this skill.
 ### Propagation Checklist
 
 - [ ] All branches have clean working trees
-- [ ] Old tips recorded for every branch that will move
+- [ ] Commit lists recorded for every child branch (BEFORE rewriting)
 - [ ] Parent rewritten first
 - [ ] Children propagated in DAG order (root-to-leaf)
-- [ ] Generated commits handled (drop-and-rerun, not rebased)
+- [ ] Generated commits handled (omit from cherry-pick, re-run after)
 - [ ] Every commit green on every branch
 - [ ] All branches pushed
 
@@ -122,12 +130,13 @@ git log --oneline main..HEAD --grep="^auto"
 
 ### Drop-and-Rerun Pattern
 
-During a rebase that encounters a generated commit:
+During propagation, generated commits should be omitted from the cherry-pick list and re-run after:
 
-1. Drop the generated commit (mark `d` in interactive rebase, or `git rebase --skip` during conflict)
-2. Read the commit message to get the command: `git log --format=%s -1 <sha>`
-3. Run the command from the commit description
-4. Recommit with the same `auto:` message
+1. Before cherry-picking, identify generated commits: `git log --oneline main..HEAD --grep="^auto"`
+2. Exclude their SHAs from the cherry-pick list
+3. After cherry-picking the non-generated commits, read each generated commit's message to get the command: `git log --format=%s -1 <sha>`
+4. Run the command from the commit description
+5. Recommit with the same `auto:` message
 
 **NEVER manually edit generated commit content.** The generator is the source of truth.
 
@@ -207,11 +216,11 @@ Stacks assume linear (rebase) history. NEVER use merge commits within a stack.
 | Symptom | Cause | Recovery |
 |---------|-------|----------|
 | Fixup landed on wrong branch | Didn't verify target commit ownership | `git cherry-pick <sha>` to correct branch, `git rebase -i` to drop from wrong one |
-| Child has duplicate/ghost commits after propagation | Used wrong old-tip SHA in `rebase --onto` | `git reflog show <branch>` to find correct old tip, re-propagate |
-| Generated commit has merge conflicts | Rebased instead of drop-and-rerun | `git rebase --abort`, start over with drop-and-rerun |
-| Child rebased before parent | Propagated in wrong order | `git reflog show <branch>` to restore, re-propagate in correct DAG order |
+| Cherry-pick conflict mid-propagation | Semantic conflict between parent and child changes | Resolve conflict, `git cherry-pick --continue`. Recorded commit list still valid for remaining picks |
+| Generated commit has merge conflicts | Cherry-picked instead of omit-and-rerun | `git cherry-pick --abort`, omit the generated SHA, re-run command after remaining picks |
+| Child propagated before parent | Propagated in wrong order | `git reflog show <branch>` to restore, re-record commit lists, re-propagate in correct DAG order |
 | `--force-with-lease` rejected | Remote updated by someone else | Fetch, inspect remote changes, decide with user |
-| Rebase aborted mid-propagation | Conflict too complex to resolve inline | Branch restored to pre-rebase state; old tips still valid. Fix the issue, re-run same `rebase --onto` |
+| Forgot to record commits before rewriting | Branch ranges invalid after parent rebase | `git reflog show <child>` to find pre-rewrite tip, then `git rev-list --reverse <old-parent-tip>..<old-child-tip>` to recover the commit list |
 | Stack parent ambiguous | Fork in DAG, unclear which branch is parent | **Ask the user.** NEVER guess from commit dates or branch names |
 
 ## Folio Integration
@@ -248,6 +257,6 @@ When no `folio.yml` exists (or targets lack `branch` fields), fall back to manua
 
 Quick reference for terms used throughout this skill:
 
-- **Old tip**: A branch's tip *before* a rewrite (rebase, fixup, amend)
+- **Commit list**: The SHAs of a child branch's unique commits (`git rev-list --reverse parent..child`), recorded before rewriting
 - **Generated commit**: Deterministic command output, prefixed `auto:` — description is the command
 - **Stack**: Chain of branches where each depends on the previous; parent relationships tracked in folio.yml `branch`/`blocked_by` fields, or PR descriptions when no folio.yml

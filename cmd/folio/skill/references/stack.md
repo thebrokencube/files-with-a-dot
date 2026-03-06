@@ -25,15 +25,15 @@ Morning standup view. Shows the branch topology with staleness overlay.
 
 ### propagate
 
-Walk topology in propagation order, rebase each child onto its new parent.
+Walk topology in propagation order, reset + cherry-pick each child onto its new parent.
 
 1. Run `folio dag --branches --json --folio <path>` to get topology
 2. Compute propagation order from the tree (pre-order traversal = root-to-leaf)
-3. For each branch in propagation order, follow the stacked-pr skill's **Propagation Workflow**:
-   - Record old tips before rewriting
-   - Rebase child onto new parent tip: `git rebase --onto <new-parent-tip> <old-parent-tip> <child>`
+3. Record commit lists for ALL child branches BEFORE rewriting any branch
+4. For each branch in propagation order, follow the stacked-pr skill's **Propagation Workflow**:
+   - Reset child to new parent tip, cherry-pick its recorded commits
    - Verify green commits (stacked-pr: "Every commit MUST remain green after propagation")
-   - Handle conflicts per stacked-pr conflict categories (mechanical → resolve, semantic → pause, generated → drop-and-rerun)
+   - Handle conflicts per stacked-pr conflict categories (mechanical → resolve, semantic → pause, generated → omit and re-run)
 4. After all branches propagated, run `folio stale --json --folio <path>`
 5. **Review gate (soft)**: Present rebased branches, conflicts resolved, and remaining stale targets. Proceed unless user objects.
 6. If stale targets remain (source files changed independently of branch propagation), suggest `/folio compose <target>`
