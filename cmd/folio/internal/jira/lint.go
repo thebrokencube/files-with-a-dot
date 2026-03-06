@@ -23,7 +23,7 @@ var (
 	reImage       = regexp.MustCompile(`!\[`)
 	reBareOpen    = regexp.MustCompile(`\[`)
 	reCodeSpan    = regexp.MustCompile("`.+?`")
-	reValidLink   = regexp.MustCompile(`\[.+?\]\(https?://[^\)]+\)`)
+	reValidLink   = regexp.MustCompile(`\[.+?\]\(https?://[^\)]{1,1000}\)`)
 )
 
 // Lint validates that markdown uses only the restricted subset supported by

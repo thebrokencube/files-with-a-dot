@@ -24,7 +24,7 @@ var (
 	reBlank       = regexp.MustCompile(`^\s*$`)
 	reBold        = regexp.MustCompile(`\*\*(.+?)\*\*`)
 	reCode        = regexp.MustCompile("`(.+?)`")
-	reLink        = regexp.MustCompile(`\[(.+?)\]\((https?://[^\)]+)\)`)
+	reLink        = regexp.MustCompile(`\[(.+?)\]\((https?://[^\)]{1,1000})\)`)
 	reLookahead   = regexp.MustCompile(`^.+?(?:\*\*|` + "`" + `|\[)`)
 	reFrontmatter = regexp.MustCompile(`^---\s*$`)
 )

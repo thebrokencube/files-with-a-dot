@@ -153,7 +153,7 @@ func runJiraCreate(args []string) int {
 		return 1
 	}
 
-	jsonPayload, err := os.ReadFile(*jsonFile)
+	jsonPayload, err := readSource(*jsonFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", *jsonFile, err))
 		return 1

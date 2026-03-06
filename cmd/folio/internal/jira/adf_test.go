@@ -294,6 +294,121 @@ func TestConvertWithFrontmatter(t *testing.T) {
 	}
 }
 
+// Edge cases from review
+
+func TestParseInlineUnclosedBold(t *testing.T) {
+	segs := ParseInline("**no close")
+	if len(segs) != 1 {
+		t.Fatalf("expected 1 segment (fallback), got %d", len(segs))
+	}
+	n := segs[0].(ADFNode)
+	if n["text"] != "**no close" {
+		t.Errorf("expected literal '**no close', got %q", n["text"])
+	}
+}
+
+func TestParseInlineUnclosedCode(t *testing.T) {
+	segs := ParseInline("`no close")
+	if len(segs) != 1 {
+		t.Fatalf("expected 1 segment (fallback), got %d", len(segs))
+	}
+	n := segs[0].(ADFNode)
+	if n["text"] != "`no close" {
+		t.Errorf("expected literal, got %q", n["text"])
+	}
+}
+
+func TestParseInlineUnclosedLink(t *testing.T) {
+	segs := ParseInline("[text](https://no-close")
+	if len(segs) == 0 {
+		t.Fatal("expected at least 1 segment")
+	}
+	// Should fall through to plain text, not crash
+}
+
+func TestParseInlineEmptyBold(t *testing.T) {
+	// **** — regex requires 1+ char, so no bold match; falls to plain text
+	segs := ParseInline("****")
+	if len(segs) == 0 {
+		t.Fatal("expected at least 1 segment")
+	}
+}
+
+func TestParseInlineAdjacentBold(t *testing.T) {
+	segs := ParseInline("**a** **b**")
+	if len(segs) != 3 {
+		t.Fatalf("expected 3 segments (bold, space, bold), got %d: %v", len(segs), segs)
+	}
+	n0 := segs[0].(ADFNode)
+	if n0["text"] != "a" {
+		t.Errorf("seg 0: expected 'a', got %q", n0["text"])
+	}
+	n2 := segs[2].(ADFNode)
+	if n2["text"] != "b" {
+		t.Errorf("seg 2: expected 'b', got %q", n2["text"])
+	}
+}
+
+func TestParseInlineMarkerAtEnd(t *testing.T) {
+	segs := ParseInline("text **bold**")
+	if len(segs) != 2 {
+		t.Fatalf("expected 2 segments, got %d: %v", len(segs), segs)
+	}
+	n0 := segs[0].(ADFNode)
+	if n0["text"] != "text " {
+		t.Errorf("seg 0: expected 'text ', got %q", n0["text"])
+	}
+	n1 := segs[1].(ADFNode)
+	if n1["text"] != "bold" {
+		t.Errorf("seg 1: expected 'bold', got %q", n1["text"])
+	}
+}
+
+func TestParseInlineLinkWithParens(t *testing.T) {
+	// URLs with balanced parentheses (common in Wikipedia, API docs)
+	segs := ParseInline("[text](https://en.wikipedia.org/wiki/Foo_(bar))")
+	if len(segs) == 0 {
+		t.Fatal("expected at least 1 segment")
+	}
+	// The regex stops at first ) — known limitation, verify graceful behavior
+	n := segs[0].(ADFNode)
+	if n["marks"] == nil {
+		t.Error("expected link mark on first segment")
+	}
+}
+
+func TestConvertEmptyInput(t *testing.T) {
+	doc, err := Convert([]byte(""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Content) != 0 {
+		t.Errorf("expected 0 nodes for empty input, got %d", len(doc.Content))
+	}
+}
+
+func TestConvertWhitespaceOnly(t *testing.T) {
+	doc, err := Convert([]byte("   \n\t\n   "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Content) != 0 {
+		t.Errorf("expected 0 nodes for whitespace, got %d", len(doc.Content))
+	}
+}
+
+func TestConvertFrontmatterOnly(t *testing.T) {
+	input := "---\ntitle: test\n---"
+	doc, err := Convert([]byte(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// After stripping frontmatter, nothing remains
+	if len(doc.Content) != 0 {
+		t.Errorf("expected 0 nodes for frontmatter-only, got %d", len(doc.Content))
+	}
+}
+
 func TestConvertProducesValidJSON(t *testing.T) {
 	input := "## Title\n\nHello **bold** and `code`\n\n- one\n- two"
 	doc, err := Convert([]byte(input))
