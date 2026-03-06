@@ -144,6 +144,8 @@ end
 
 args = ARGV.dup
 
+$stderr.puts "md-to-adf: DEPRECATED — use 'folio jira lint/compile/push' instead"
+
 if args[0] == "--lint"
   args.shift
   all_issues = []

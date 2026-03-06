@@ -1,15 +1,17 @@
 # Shared defaults — system type -> access method
 # The folio skill resolves external targets through this file.
 # Unlisted systems: pull = skip, push = manual
+# Advisory — folio jira commands internalize the Jira pipeline.
+# Entries document what each system uses for reference.
 
 systems:
   jira:
     pull: cli:acli
-    push: cli:acli
+    push: "folio jira push --id {id} --source {source}"
     check: "acli --version"
-    precompile: "md-to-adf --acli {id} < {source} > {compiled}"
-    lint: "md-to-adf --lint {source}"
-    create: "acli jira workitem create --from-json {compiled}"
+    lint: "folio jira lint {source}"
+    compile: "folio jira compile --id {id} --source {source} --output {compiled}"
+    create: "folio jira create --json {compiled} --source {source}"
   confluence:
     pull: mcp:jira-confluence
     push: mcp:jira-confluence
