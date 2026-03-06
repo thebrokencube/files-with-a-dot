@@ -34,14 +34,14 @@ func TestRunDagWithEdges(t *testing.T) {
 project: "Test"
 targets:
   downstream:
-    transform: distill
+    how: "Test"
     blocked_by: [upstream]
     sources:
       - path: compiled/up.md
     outputs:
       - path: compiled/down.md
   upstream:
-    transform: distill
+    how: "Test"
     sources:
       - path: README.md
     outputs:
@@ -92,14 +92,14 @@ func TestRunDagJSON(t *testing.T) {
 project: "Test"
 targets:
   downstream:
-    transform: distill
+    how: "Test"
     blocked_by: [upstream]
     sources:
       - path: compiled/up.md
     outputs:
       - path: compiled/down.md
   upstream:
-    transform: distill
+    how: "Test"
     sources:
       - path: README.md
     outputs:
@@ -156,14 +156,14 @@ func TestRunDagBranches(t *testing.T) {
 project: "Test"
 targets:
   docs-tooling:
-    transform: compose
+    how: "Test"
     branch: "feat-tooling"
     pr: "#100"
     sources: []
     outputs:
       - path: compiled/a.md
   docs-proposal:
-    transform: compose
+    how: "Test"
     branch: "feat-proposal"
     pr: "#200"
     blocked_by: [docs-tooling]
@@ -216,14 +216,14 @@ func TestRunDagBranchesAndJson(t *testing.T) {
 project: "Test"
 targets:
   docs-tooling:
-    transform: compose
+    how: "Test"
     branch: "feat-tooling"
     pr: "#100"
     sources: []
     outputs:
       - path: compiled/a.md
   docs-proposal:
-    transform: compose
+    how: "Test"
     branch: "feat-proposal"
     pr: "#200"
     blocked_by: [docs-tooling]
@@ -312,7 +312,7 @@ func TestRunDagBranchesStatus(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     branch: "feat-test"
     sources:
       - path: src.md
@@ -354,7 +354,7 @@ func TestRunDagBranchesNoColor(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     branch: "feat/no-color"
     pr: "#99"
     sources: []
@@ -393,7 +393,7 @@ func TestRunDagBranchesNoBranches(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: README.md
     outputs:
@@ -428,7 +428,7 @@ func TestRunDagNoColor(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: README.md
     outputs:

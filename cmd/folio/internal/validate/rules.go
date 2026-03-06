@@ -39,7 +39,27 @@ func Validate(f *config.Folio, folioDir string) *Result {
 
 	// Project-level sources
 	for i, src := range f.Sources {
-		validateSource(r, src, fmt.Sprintf("Project source [%d]", i), folioDir)
+		validateSource(r, src, fmt.Sprintf("Project source [%d]", i), folioDir, true)
+	}
+
+	// Source depends_on validation
+	sourcePaths := make(map[string]bool)
+	for _, src := range f.Sources {
+		if src.Path != "" {
+			sourcePaths[src.Path] = true
+		}
+	}
+	for _, src := range f.Sources {
+		for _, dep := range src.DependsOn {
+			if !sourcePaths[dep] {
+				r.addError("Source '%s': depends_on references non-existent source: %s", src.Path, dep)
+			}
+		}
+	}
+	if sourceDAG := graph.BuildSourceDAG(f.Sources); len(sourceDAG) > 0 {
+		if cycle := graph.DetectCycle(sourceDAG); cycle != nil {
+			r.addError("Source dependency cycle detected: %s", strings.Join(cycle, " -> "))
+		}
 	}
 
 	// Targets
@@ -109,7 +129,7 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	return r
 }
 
-func validateSource(r *Result, src config.Source, prefix string, folioDir string) {
+func validateSource(r *Result, src config.Source, prefix string, folioDir string, isProjectLevel bool) {
 	if src.External != "" && src.Path != "" {
 		r.addWarning("%s: source has both 'path' and 'external' set — path is ignored for external sources", prefix)
 	}
@@ -117,6 +137,9 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 	if src.External != "" {
 		if src.ID == "" {
 			r.addError("%s: external source '%s' missing required field: id", prefix, src.External)
+		}
+		if len(src.DependsOn) > 0 {
+			r.addError("%s: depends_on is only valid on local path sources", prefix)
 		}
 	} else if src.Path != "" {
 		fullPath := filepath.Join(folioDir, src.Path)
@@ -128,6 +151,9 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 				r.addError("%s: derived_from[%d] missing required field: external", prefix, j)
 			}
 		}
+		if !isProjectLevel && len(src.DependsOn) > 0 {
+			r.addWarning("%s: depends_on on target-level sources is ignored — move to project-level sources", prefix)
+		}
 	} else {
 		r.addError("%s: source must have either 'path' or 'external' set", prefix)
 	}
@@ -136,7 +162,7 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 func validateTarget(r *Result, f *config.Folio, tid string, target *config.Target, folioDir string) {
 	// Target sources
 	for _, src := range target.Sources {
-		validateSource(r, src, fmt.Sprintf("Target '%s'", tid), folioDir)
+		validateSource(r, src, fmt.Sprintf("Target '%s'", tid), folioDir, false)
 	}
 
 	// Output paths and external fields
@@ -202,11 +228,16 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		validateTreeNode(r, tid, &target.Tree.Root, target, folioDir, seenIDs)
 	}
 
-	// Transform field (required)
-	if target.Transform == "" {
-		r.addError("Target '%s': missing required field: transform", tid)
-	} else if !config.ValidTransforms[target.Transform] {
-		r.addError("Target '%s': invalid transform '%s' (must be: distill, extract, adapt, compose)", tid, target.Transform)
+	// How field (required, with instructions fallback)
+	if target.How == "" && target.Instructions == "" {
+		r.addError("Target '%s': missing required field: how", tid)
+	} else if target.How == "" && target.Instructions != "" {
+		r.addWarning("Target '%s': 'instructions' is deprecated, rename to 'how'", tid)
+	} else if target.How != "" && target.Instructions != "" {
+		r.addError("Target '%s': has both 'how' and 'instructions' — remove 'instructions'", tid)
+	}
+	if target.Transform != "" {
+		r.addWarning("Target '%s': 'transform' is deprecated and ignored — remove it", tid)
 	}
 
 	// Precompile rule: external outputs require a local path sibling
@@ -242,9 +273,12 @@ func validateTreeNode(r *Result, tid string, node *config.TreeNode, target *conf
 		}
 	}
 
-	// Transform override must be valid if present
-	if node.Transform != "" && !config.ValidTransforms[node.Transform] {
-		r.addError("%s: invalid transform '%s'", prefix, node.Transform)
+	// Deprecated fields
+	if node.Transform != "" {
+		r.addWarning("%s: 'transform' is deprecated and ignored — remove it", prefix)
+	}
+	if node.Instructions != "" {
+		r.addWarning("%s: 'instructions' is deprecated, rename to 'how'", prefix)
 	}
 
 	// Sync mode must be valid if present

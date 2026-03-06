@@ -21,16 +21,14 @@ repositories:
 
 targets:
   summary:
-    instructions: "Condense research into summary"
-    transform: distill
+    how: "Condense research into summary"
     sources:
       - path: README.md
     outputs:
       - path: compiled/summary.md
 
   jira-update:
-    instructions: "Push summary to Jira"
-    transform: adapt
+    how: "Push summary to Jira"
     blocked_by: [summary]
     sources:
       - path: compiled/summary.md
@@ -41,8 +39,7 @@ targets:
       - path: compiled/jira-update.md
 
   feature-branch:
-    instructions: "Compile feature to PR"
-    transform: compose
+    how: "Compile feature to PR"
     blocked_by: [summary]
     branch: "feat/my-feature"
     pr: "#42"

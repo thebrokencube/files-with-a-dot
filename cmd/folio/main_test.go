@@ -138,7 +138,7 @@ func TestRunPbcopySuccess(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     outputs:
       - path: compiled/out.md
 `), 0644)

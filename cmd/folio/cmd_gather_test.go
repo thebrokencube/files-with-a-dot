@@ -144,7 +144,7 @@ sources:
 
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: existing.md
     outputs:
@@ -181,7 +181,7 @@ pending:
 		`project: "Complex"`,
 		"path: existing.md",
 		"my-target:",
-		"transform: distill",
+		`how: "Test"`,
 		`fact: "Some fact"`,
 		`"Task one"`,
 		`"Pending one"`,

@@ -41,7 +41,7 @@ func TestRunStaleWithStaleTarget(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: src.md
     outputs:
@@ -134,7 +134,7 @@ func TestRunStaleJSONWithStaleTarget(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: src.md
     outputs:
@@ -200,7 +200,7 @@ func TestRunStaleJSONWithBranch(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     branch: "feat-my-branch"
     sources:
       - path: src.md
@@ -254,7 +254,7 @@ func TestRunStaleNoColor(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     sources:
       - path: src.md
     outputs:

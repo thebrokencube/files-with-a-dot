@@ -20,6 +20,7 @@ type Source struct {
 	ID          string        `yaml:"id"`
 	Notes       string        `yaml:"notes"`
 	DerivedFrom []DerivedFrom `yaml:"derived_from"`
+	DependsOn   []string      `yaml:"depends_on"`
 }
 
 // DerivedFrom records the provenance of a derived source.
@@ -33,8 +34,9 @@ type DerivedFrom struct {
 
 // Target represents a compilation target.
 type Target struct {
-	Instructions string   `yaml:"instructions"`
-	Transform    string   `yaml:"transform"`
+	How          string   `yaml:"how"`
+	Instructions string   `yaml:"instructions"` // deprecated: use how
+	Transform    string   `yaml:"transform"`    // deprecated: ignored
 	BlockedBy    []string `yaml:"blocked_by"`
 	Branch       string   `yaml:"branch"`
 	PR           string   `yaml:"pr"`
@@ -74,8 +76,9 @@ type TreeNode struct {
 	ID           string     `yaml:"id"`           // external system ID
 	Label        string     `yaml:"label"`        // human-readable name
 	File         string     `yaml:"file"`         // linked file path (optional for grouping nodes)
-	Transform    string     `yaml:"transform"`    // optional, inherits target default
-	Instructions string     `yaml:"instructions"` // optional, per-node compilation instructions
+	How          string     `yaml:"how"`          // optional, per-node composition instructions
+	Transform    string     `yaml:"transform"`    // deprecated: ignored
+	Instructions string     `yaml:"instructions"` // deprecated: use how
 	Notes        string     `yaml:"notes"`        // optional, advisory notes about this node
 	Sync         string     `yaml:"sync"`         // "push", "pull", "both" (empty = default push)
 	Children     []TreeNode `yaml:"children"`     // recursive
@@ -116,12 +119,3 @@ var ValidSyncModes = map[string]bool{
 	"both": true,
 }
 
-// ValidTransforms is the set of allowed transform values.
-// These are semantic hints for Claude — the CLI validates the enum but does not
-// branch on transform type.
-var ValidTransforms = map[string]bool{
-	"distill": true,
-	"extract": true,
-	"adapt":   true,
-	"compose": true,
-}

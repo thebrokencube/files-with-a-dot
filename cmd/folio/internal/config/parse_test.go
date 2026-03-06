@@ -77,8 +77,8 @@ func TestParseFull(t *testing.T) {
 	if !ok {
 		t.Fatal("missing target 'summary'")
 	}
-	if summary.Transform != "distill" {
-		t.Errorf("summary.transform = %q", summary.Transform)
+	if summary.How != "Condense research into summary" {
+		t.Errorf("summary.how = %q", summary.How)
 	}
 	if len(summary.Sources) != 1 {
 		t.Errorf("summary sources len = %d", len(summary.Sources))
@@ -191,7 +191,7 @@ schema: 1
 project: "Test"
 targetz:
   my-target:
-    transform: distill
+    how: "Test"
 `)
 	_, err := Parse(data)
 	if err == nil {
@@ -221,8 +221,7 @@ project: "Batch Test"
 sources: []
 targets:
   batch-target:
-    instructions: "Batch items"
-    transform: distill
+    how: "Batch items"
     sources: []
     outputs: []
     batch:
@@ -260,8 +259,7 @@ project: "Batch Defaults"
 sources: []
 targets:
   jira-epics:
-    instructions: "Jira epics"
-    transform: adapt
+    how: "Jira epics"
     sources: []
     outputs:
       - path: compiled/epics-manifest.md
@@ -297,8 +295,7 @@ project: "Tree Test"
 sources: []
 targets:
   initiative:
-    instructions: "Jira initiative hierarchy"
-    transform: compose
+    how: "Jira initiative hierarchy"
     sources: []
     outputs:
       - path: compiled/initiative-manifest.md
@@ -309,7 +306,7 @@ targets:
         id: "PROJ-1"
         label: "Initiative"
         file: initiative.md
-        instructions: "Overview and plan tables"
+        how: "Overview and plan tables"
         children:
           - id: "PROJ-10"
             label: "Project A"
@@ -321,7 +318,6 @@ targets:
           - id: "PROJ-20"
             label: "Project B"
             file: projects/b.md
-            transform: adapt
 tasks: []
 pending: []
 `)
@@ -350,8 +346,8 @@ pending: []
 	if root.File != "initiative.md" {
 		t.Errorf("root.file = %q, want initiative.md", root.File)
 	}
-	if root.Instructions != "Overview and plan tables" {
-		t.Errorf("root.instructions = %q, want %q", root.Instructions, "Overview and plan tables")
+	if root.How != "Overview and plan tables" {
+		t.Errorf("root.how = %q, want %q", root.How, "Overview and plan tables")
 	}
 	if len(root.Children) != 2 {
 		t.Fatalf("root children len = %d, want 2", len(root.Children))
@@ -369,15 +365,9 @@ pending: []
 		t.Errorf("grandchild.id = %q, want PROJ-100", projA.Children[0].ID)
 	}
 
-	// Child without instructions should have empty string
-	if projA.Instructions != "" {
-		t.Errorf("child[0].instructions = %q, want empty", projA.Instructions)
-	}
-
-	// Second child with transform override
-	projB := root.Children[1]
-	if projB.Transform != "adapt" {
-		t.Errorf("child[1].transform = %q, want adapt", projB.Transform)
+	// Child without how should have empty string
+	if projA.How != "" {
+		t.Errorf("child[0].how = %q, want empty", projA.How)
 	}
 }
 
@@ -388,8 +378,7 @@ project: "Sync Test"
 sources: []
 targets:
   tree-target:
-    instructions: "Tree with sync"
-    transform: compose
+    how: "Tree with sync"
     sources: []
     outputs: []
     tree:
@@ -432,8 +421,7 @@ project: "Branch Test"
 sources: []
 targets:
   my-target:
-    instructions: "Target with branch"
-    transform: distill
+    how: "Target with branch"
     branch: "feat/my-branch"
     pr: "#123"
     sources: []

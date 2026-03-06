@@ -12,10 +12,10 @@ func TestScan_Mixed(t *testing.T) {
 project: "State Retirement Mandates"
 targets:
   tech-spec:
-    transform: extract
+    how: "Test"
     sources: []
   gdoc:
-    transform: adapt
+    how: "Test"
     sources: []
 pending:
   - "item one"

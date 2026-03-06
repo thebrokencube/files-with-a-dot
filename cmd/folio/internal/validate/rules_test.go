@@ -134,7 +134,7 @@ func TestValidateDerivedSourceMissingExternal(t *testing.T) {
 	}
 }
 
-func TestValidateTargetMissingTransform(t *testing.T) {
+func TestValidateTargetMissingHow(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 
@@ -143,21 +143,20 @@ func TestValidateTargetMissingTransform(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Instructions: "Test",
-				Outputs:      []config.Output{{Path: "compiled/out.md"}},
+				Outputs: []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
 	}
 	r := Validate(f, dir)
 	if r.Valid {
-		t.Error("expected invalid for missing transform")
+		t.Error("expected invalid for missing how")
 	}
-	if !containsError(r, "missing required field: transform") {
-		t.Errorf("expected transform error, got: %v", r.Errors)
+	if !containsError(r, "missing required field: how") {
+		t.Errorf("expected how error, got: %v", r.Errors)
 	}
 }
 
-func TestValidateTargetInvalidTransform(t *testing.T) {
+func TestValidateTargetDeprecatedInstructions(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 
@@ -166,18 +165,65 @@ func TestValidateTargetInvalidTransform(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Instructions: "Test",
-				Transform:    "bogus",
+				Instructions: "Test via deprecated field",
+				Outputs:      []config.Output{{Path: "compiled/out.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "'instructions' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestValidateTargetBothHowAndInstructions(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"my-target": {
+				How:          "New field",
+				Instructions: "Old field",
 				Outputs:      []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
 	}
 	r := Validate(f, dir)
 	if r.Valid {
-		t.Error("expected invalid for bad transform")
+		t.Error("expected invalid for both how and instructions")
 	}
-	if !containsError(r, "invalid transform") {
-		t.Errorf("expected transform error, got: %v", r.Errors)
+	if !containsError(r, "has both 'how' and 'instructions'") {
+		t.Errorf("expected conflict error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateTargetDeprecatedTransform(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"my-target": {
+				How:       "Test",
+				Transform: "distill",
+				Outputs:   []config.Output{{Path: "compiled/out.md"}},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "'transform' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
 	}
 }
 
@@ -187,8 +233,7 @@ func TestValidatePrecompileRule(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"ext-only": {
-				Instructions: "External only",
-				Transform:    "distill",
+				How: "External only",
 				Outputs: []config.Output{
 					{External: "jira", ID: "PROJ-123", Field: "description"},
 				},
@@ -213,9 +258,8 @@ func TestValidateBlockedByNonexistent(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Instructions: "Test",
-				Transform:    "distill",
-				BlockedBy:    []string{"nonexistent"},
+				How:       "Test",
+				BlockedBy: []string{"nonexistent"},
 				Outputs:      []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
@@ -237,8 +281,7 @@ func TestValidateExternalOutputMissingID(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Instructions: "Test",
-				Transform:    "distill",
+				How: "Test",
 				Outputs: []config.Output{
 					{External: "jira"},
 					{Path: "compiled/out.md"},
@@ -264,14 +307,12 @@ func TestValidateOutputCollision(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"first": {
-				Instructions: "First",
-				Transform:    "distill",
-				Outputs:      []config.Output{{Path: "compiled/same.md"}},
+				How:     "First",
+				Outputs: []config.Output{{Path: "compiled/same.md"}},
 			},
 			"second": {
-				Instructions: "Second",
-				Transform:    "distill",
-				Outputs:      []config.Output{{Path: "compiled/same.md"}},
+				How:     "Second",
+				Outputs: []config.Output{{Path: "compiled/same.md"}},
 			},
 		},
 	}
@@ -293,12 +334,12 @@ func TestValidateCycleDetection(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"a": {
-				Transform: "distill",
+				How:       "Test A",
 				BlockedBy: []string{"b"},
 				Outputs:   []config.Output{{Path: "compiled/a.md"}},
 			},
 			"b": {
-				Transform: "distill",
+				How:       "Test B",
 				BlockedBy: []string{"a"},
 				Outputs:   []config.Output{{Path: "compiled/b.md"}},
 			},
@@ -313,26 +354,81 @@ func TestValidateCycleDetection(t *testing.T) {
 	}
 }
 
-func TestValidateAllTransforms(t *testing.T) {
-	transforms := []string{"distill", "extract", "adapt", "compose"}
-	for _, tr := range transforms {
-		dir := t.TempDir()
-		os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+func TestValidateDependsOnValid(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "spike.md"), []byte("# Spike"), 0644)
+	os.WriteFile(filepath.Join(dir, "design.md"), []byte("# Design"), 0644)
 
-		f := &config.Folio{
-			Schema:  1,
-			Project: "Test",
-			Targets: map[string]config.Target{
-				"target": {
-					Transform: tr,
-					Outputs:   []config.Output{{Path: "compiled/out.md"}},
-				},
-			},
-		}
-		r := Validate(f, dir)
-		if containsError(r, "transform") {
-			t.Errorf("transform %q should be valid, got errors: %v", tr, r.Errors)
-		}
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "spike.md"},
+			{Path: "design.md", DependsOn: []string{"spike.md"}},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateDependsOnExternalGuard(t *testing.T) {
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{External: "jira", ID: "PROJ-1", DependsOn: []string{"spike.md"}},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for external source with depends_on")
+	}
+	if !containsError(r, "depends_on is only valid on local path sources") {
+		t.Errorf("expected external guard error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateDependsOnUnresolved(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "design.md"), []byte("# Design"), 0644)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "design.md", DependsOn: []string{"nonexistent.md"}},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for unresolved depends_on")
+	}
+	if !containsError(r, "depends_on references non-existent source") {
+		t.Errorf("expected unresolved error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateDependsOnCycle(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a.md"), []byte("# A"), 0644)
+	os.WriteFile(filepath.Join(dir, "b.md"), []byte("# B"), 0644)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "a.md", DependsOn: []string{"b.md"}},
+			{Path: "b.md", DependsOn: []string{"a.md"}},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for source dependency cycle")
+	}
+	if !containsError(r, "Source dependency cycle") {
+		t.Errorf("expected cycle error, got: %v", r.Errors)
 	}
 }
 
@@ -346,8 +442,8 @@ func TestValidateTreeMissingSystem(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					Root: config.TreeNode{
 						ID:   "ROOT-1",
@@ -376,8 +472,8 @@ func TestValidateTreeNodeMissingID(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -405,8 +501,8 @@ func TestValidateTreeNodeOptionalSource(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -432,7 +528,7 @@ func TestValidateTreeNodeWithDescription(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
+				How: "Test tree",
 				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
@@ -460,7 +556,7 @@ func TestValidateTreeNodeSourceNotFound(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
+				How: "Test tree",
 				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
@@ -492,7 +588,7 @@ func TestValidateTreeDuplicateNodeID(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
+				How: "Test tree",
 				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
@@ -516,7 +612,7 @@ func TestValidateTreeDuplicateNodeID(t *testing.T) {
 	}
 }
 
-func TestValidateTreeNodeInvalidTransform(t *testing.T) {
+func TestValidateTreeNodeDeprecatedTransform(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 	os.WriteFile(filepath.Join(dir, "root.md"), []byte("# Root"), 0644)
@@ -526,25 +622,57 @@ func TestValidateTreeNodeInvalidTransform(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
 						ID:        "ROOT-1",
 						File:      "root.md",
-						Transform: "bogus",
+						Transform: "distill",
 					},
 				},
 			},
 		},
 	}
 	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for bad tree node transform")
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
-	if !containsError(r, "invalid transform") {
-		t.Errorf("expected transform error, got: %v", r.Errors)
+	if !containsWarning(r, "'transform' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestValidateTreeNodeDeprecatedInstructions(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
+	os.WriteFile(filepath.Join(dir, "root.md"), []byte("# Root"), 0644)
+
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Test",
+		Targets: map[string]config.Target{
+			"tree-target": {
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
+				Tree: &config.Tree{
+					System: "jira",
+					Root: config.TreeNode{
+						ID:           "ROOT-1",
+						File:         "root.md",
+						Instructions: "old field",
+					},
+				},
+			},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "'instructions' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
 	}
 }
 
@@ -558,8 +686,8 @@ func TestValidateTreeBatchMutualExclusion(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"both": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test both",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -595,8 +723,8 @@ func TestValidateTreeValid(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -626,8 +754,8 @@ func TestValidateBatchItemMissingID(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"batch-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test batch",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Batch: &config.Batch{
 					System: "gdocs",
 					Items: []config.BatchItem{
@@ -656,8 +784,8 @@ func TestValidateBatchItemResolvedOutput(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"batch-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test batch",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Batch: &config.Batch{
 					System: "gdocs",
 					Field:  "body",
@@ -684,8 +812,8 @@ func TestValidateBatchItemNoSystemAnywhere(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"batch-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test batch",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Batch: &config.Batch{
 					// No system at batch level
 					Items: []config.BatchItem{
@@ -752,8 +880,8 @@ func TestValidateTreeNodeInvalidSync(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				Transform: "compose",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -786,8 +914,8 @@ func TestValidateTreeNodeValidSyncModes(t *testing.T) {
 			Project: "Test",
 			Targets: map[string]config.Target{
 				"tree-target": {
-					Transform: "compose",
-					Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+					How:     "Test tree",
+					Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 					Tree: &config.Tree{
 						System: "jira",
 						Root: config.TreeNode{
@@ -815,8 +943,8 @@ func TestValidatePRWithoutBranch(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Transform: "distill",
-				PR:        "#123",
+				How: "Test",
+				PR:  "#123",
 				Outputs:   []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
@@ -839,9 +967,9 @@ func TestValidatePRWithBranch(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				Transform: "distill",
-				Branch:    "feat-test",
-				PR:        "#123",
+				How:    "Test",
+				Branch: "feat-test",
+				PR:     "#123",
 				Outputs:   []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
@@ -861,13 +989,13 @@ func TestValidateDuplicateBranch(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"first": {
-				Transform: "distill",
-				Branch:    "feat-shared",
-				Outputs:   []config.Output{{Path: "compiled/a.md"}},
+				How:     "Test first",
+				Branch:  "feat-shared",
+				Outputs: []config.Output{{Path: "compiled/a.md"}},
 			},
 			"second": {
-				Transform: "distill",
-				Branch:    "feat-shared",
+				How:    "Test second",
+				Branch: "feat-shared",
 				Outputs:   []config.Output{{Path: "compiled/b.md"}},
 			},
 		},
@@ -890,13 +1018,13 @@ func TestValidateUniqueBranches(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"first": {
-				Transform: "distill",
-				Branch:    "feat-a",
-				Outputs:   []config.Output{{Path: "compiled/a.md"}},
+				How:     "Test first",
+				Branch:  "feat-a",
+				Outputs: []config.Output{{Path: "compiled/a.md"}},
 			},
 			"second": {
-				Transform: "distill",
-				Branch:    "feat-b",
+				How:    "Test second",
+				Branch: "feat-b",
 				Outputs:   []config.Output{{Path: "compiled/b.md"}},
 			},
 		},

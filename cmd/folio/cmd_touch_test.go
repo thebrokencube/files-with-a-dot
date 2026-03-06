@@ -32,7 +32,7 @@ func TestRunTouchNoLocalOutput(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     outputs:
       - external: jira
         id: "PROJ-123"
@@ -60,7 +60,7 @@ func TestRunTouchSuccess(t *testing.T) {
 project: "Test"
 targets:
   my-target:
-    transform: distill
+    how: "Test"
     outputs:
       - path: compiled/out.md
 `), 0644)

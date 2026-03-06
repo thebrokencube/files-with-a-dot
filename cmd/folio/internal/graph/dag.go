@@ -139,6 +139,20 @@ func MergeEdges(f *config.Folio, inferred map[string][]string) map[string][]stri
 	return merged
 }
 
+// BuildSourceDAG builds an adjacency list from depends_on fields on sources.
+// Skips sources without a path or without depends_on entries.
+// Returns a map consumable by DetectCycle.
+func BuildSourceDAG(sources []config.Source) map[string][]string {
+	adj := make(map[string][]string)
+	for _, src := range sources {
+		if src.Path == "" || len(src.DependsOn) == 0 {
+			continue
+		}
+		adj[src.Path] = append(adj[src.Path], src.DependsOn...)
+	}
+	return adj
+}
+
 func dedupe(ss []string) []string {
 	seen := make(map[string]bool)
 	var result []string

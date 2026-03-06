@@ -61,8 +61,7 @@ sources:
     id: "ACME-123"
 targets:
   summary:
-    instructions: "Condense"
-    transform: distill
+    how: "Condense"
     sources:
       - path: README.md
     outputs:
@@ -118,15 +117,13 @@ project: "Cycle"
 sources: []
 targets:
   a:
-    instructions: "A"
-    transform: distill
+    how: "A"
     blocked_by: [b]
     sources: []
     outputs:
       - path: compiled/a.md
   b:
-    instructions: "B"
-    transform: distill
+    how: "B"
     blocked_by: [a]
     sources: []
     outputs:
@@ -150,14 +147,12 @@ project: "Collision"
 sources: []
 targets:
   first:
-    instructions: "First"
-    transform: distill
+    how: "First"
     sources: []
     outputs:
       - path: compiled/same.md
   second:
-    instructions: "Second"
-    transform: distill
+    how: "Second"
     sources: []
     outputs:
       - path: compiled/same.md
@@ -179,8 +174,7 @@ project: "Precompile"
 sources: []
 targets:
   external-only:
-    instructions: "No local sibling"
-    transform: distill
+    how: "No local sibling"
     sources: []
     outputs:
       - external: jira
@@ -226,15 +220,13 @@ project: "Edge Inference"
 sources: []
 targets:
   upstream:
-    instructions: "Produces summary"
-    transform: distill
+    how: "Produces summary"
     sources:
       - path: README.md
     outputs:
       - path: compiled/summary.md
   downstream:
-    instructions: "Consumes summary"
-    transform: adapt
+    how: "Consumes summary"
     sources:
       - path: compiled/summary.md
     outputs:
@@ -258,15 +250,13 @@ project: "Inferred Cycle"
 sources: []
 targets:
   a:
-    instructions: "A consumes B's output"
-    transform: distill
+    how: "A consumes B's output"
     sources:
       - path: compiled/b.md
     outputs:
       - path: compiled/a.md
   b:
-    instructions: "B consumes A's output"
-    transform: distill
+    how: "B consumes A's output"
     sources:
       - path: compiled/a.md
     outputs:
@@ -281,50 +271,95 @@ targets:
 	}
 }
 
-func TestIntegrationMissingTransform(t *testing.T) {
+func TestIntegrationMissingHow(t *testing.T) {
 	dir := t.TempDir()
 	writeFixture(t, dir, "compiled/.gitkeep", "")
 	writeFixture(t, dir, "folio.yml", `
 schema: 1
-project: "No Transform"
+project: "No How"
 sources: []
 targets:
   oops:
-    instructions: "Forgot transform"
     sources: []
     outputs:
       - path: compiled/out.md
 `)
 	r := loadAndValidate(t, dir)
 	if r.Valid {
-		t.Error("expected invalid for missing transform")
+		t.Error("expected invalid for missing how")
 	}
-	if !hasError(r, "missing required field: transform") {
-		t.Errorf("expected transform error, got: %v", r.Errors)
+	if !hasError(r, "missing required field: how") {
+		t.Errorf("expected how error, got: %v", r.Errors)
 	}
 }
 
-func TestIntegrationInvalidTransform(t *testing.T) {
+func TestIntegrationDeprecatedInstructions(t *testing.T) {
 	dir := t.TempDir()
 	writeFixture(t, dir, "compiled/.gitkeep", "")
 	writeFixture(t, dir, "folio.yml", `
 schema: 1
-project: "Bad Transform"
+project: "Deprecated Instructions"
 sources: []
 targets:
-  oops:
-    instructions: "Bad transform value"
-    transform: summarize
+  target:
+    instructions: "Using old field"
     sources: []
     outputs:
       - path: compiled/out.md
 `)
 	r := loadAndValidate(t, dir)
-	if r.Valid {
-		t.Error("expected invalid for bad transform")
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
-	if !hasError(r, "invalid transform") {
-		t.Errorf("expected transform error, got: %v", r.Errors)
+	if !hasWarning(r, "'instructions' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestIntegrationDeprecatedTransform(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "compiled/.gitkeep", "")
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Deprecated Transform"
+sources: []
+targets:
+  target:
+    how: "Test"
+    transform: distill
+    sources: []
+    outputs:
+      - path: compiled/out.md
+`)
+	r := loadAndValidate(t, dir)
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !hasWarning(r, "'transform' is deprecated") {
+		t.Errorf("expected deprecation warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestIntegrationSourceDependsOnCycle(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "a.md", "# A")
+	writeFixture(t, dir, "b.md", "# B")
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Source Cycle"
+sources:
+  - path: a.md
+    depends_on: [b.md]
+  - path: b.md
+    depends_on: [a.md]
+targets: {}
+`)
+	r := loadAndValidate(t, dir)
+	if r.Valid {
+		t.Error("expected invalid for source dependency cycle")
+	}
+	if !hasError(r, "Source dependency cycle") {
+		t.Errorf("expected cycle error, got: %v", r.Errors)
 	}
 }
 
@@ -340,8 +375,7 @@ project: "Tree Integration"
 sources: []
 targets:
   initiative:
-    instructions: "Jira hierarchy"
-    transform: compose
+    how: "Jira hierarchy"
     sources: []
     outputs:
       - path: compiled/initiative-manifest.md
@@ -379,8 +413,7 @@ project: "Tree No System"
 sources: []
 targets:
   tree-target:
-    instructions: "Missing system"
-    transform: compose
+    how: "Missing system"
     sources: []
     outputs:
       - path: compiled/manifest.md
@@ -410,8 +443,7 @@ project: "Tree+Batch"
 sources: []
 targets:
   both:
-    instructions: "Both tree and batch"
-    transform: compose
+    how: "Both tree and batch"
     sources: []
     outputs:
       - path: compiled/manifest.md
@@ -447,8 +479,7 @@ project: "Sync Integration"
 sources: []
 targets:
   tree-target:
-    instructions: "Tree with sync modes"
-    transform: compose
+    how: "Tree with sync modes"
     sources: []
     outputs:
       - path: compiled/manifest.md
@@ -482,8 +513,7 @@ project: "Branch Integration"
 sources: []
 targets:
   my-target:
-    instructions: "Target with branch metadata"
-    transform: distill
+    how: "Target with branch metadata"
     branch: "feat/my-branch"
     pr: "#456"
     sources:
@@ -497,6 +527,15 @@ pending: []
 	if !r.Valid {
 		t.Errorf("expected valid target with branch/pr, got errors: %v", r.Errors)
 	}
+}
+
+func hasWarning(r *Result, substr string) bool {
+	for _, w := range r.Warnings {
+		if strings.Contains(w, substr) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasError(r *Result, substr string) bool {
