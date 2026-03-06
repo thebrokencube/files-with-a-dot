@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const version = "0.5.0"
+const version = "0.6.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -72,6 +72,33 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "jira":
+		if len(os.Args) < 3 {
+			printJiraUsage()
+			os.Exit(1)
+		}
+		switch os.Args[2] {
+		case "lint":
+			os.Exit(runJiraLint(os.Args[3:]))
+		case "compile":
+			os.Exit(runJiraCompile(os.Args[3:]))
+		case "push":
+			os.Exit(runJiraPush(os.Args[3:]))
+		case "create":
+			os.Exit(runJiraCreate(os.Args[3:]))
+		case "view":
+			os.Exit(runJiraView(os.Args[3:]))
+		case "search":
+			os.Exit(runJiraSearch(os.Args[3:]))
+		case "--help", "-h", "help":
+			printJiraUsage()
+			os.Exit(0)
+		default:
+			fmt.Fprintf(os.Stderr, "Unknown jira command: %s\n", os.Args[2])
+			printJiraUsage()
+			os.Exit(1)
+		}
+
 	case "home":
 		if len(os.Args) < 3 {
 			printHomeUsage()
@@ -131,6 +158,7 @@ Utility commands:
   version      Show version
 
 Command groups:
+  jira         Jira pipeline commands (lint, push, create, view, search)
   home         Repository-level commands (FOLIO_HOME)
   project      Compat alias for project commands
 
