@@ -31,6 +31,9 @@ My development environment, available globally across all projects.
 - **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles skill).
 - When a task touches files in multiple repos, always commit each repo separately with appropriate conventions.
 
+## Tool Use
+- **One operation per tool call.** Never chain commands with `&&`, `;`, or `||`. Use separate parallel tool calls for independent operations and sequential calls for dependent ones. This keeps each call matching the permissions allow-list.
+
 ## Planning
 - Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly.
 - For trivial changes (single file, obvious approach), skip planning entirely
