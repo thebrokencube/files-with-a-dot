@@ -11,47 +11,30 @@
 #   md-to-adf --lint file.md              → validate markdown uses supported subset only
 
 require "json"
+require "strscan"
+require "timeout"
+
+TIMEOUT_SECONDS = 30
+trap("PIPE", "SYSTEM_DEFAULT")
 
 def parse_inline(text)
   return [] if text.nil? || text.strip.empty?
 
   segments = []
-  remaining = text
+  ss = StringScanner.new(text)
 
-  until remaining.empty?
-    prev_length = remaining.length
-
-    case remaining
-    when /\A\*\*(.+?)\*\*/
-      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "strong" }] }
-      remaining = $'
-    when /\A`(.+?)`/
-      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "code" }] }
-      remaining = $'
-    when %r{\A\[(.+?)\]\((https?://[^\)]+)\)}
-      segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "link", "attrs" => { "href" => $2 } }] }
-      remaining = $'
-    when /\A(.*?)(?=\*\*|`|\[)/
-      if $1.empty?
-        # Lookahead matched at position 0 (e.g. bare "[" that isn't a link).
-        # Consume the character as literal text to avoid an infinite loop.
-        segments << { "type" => "text", "text" => remaining[0] }
-        remaining = remaining[1..-1]
-      else
-        segments << { "type" => "text", "text" => $1 }
-        remaining = $'
-      end
+  until ss.eos?
+    if ss.scan(/\*\*(.+?)\*\*/)
+      segments << { "type" => "text", "text" => ss[1], "marks" => [{ "type" => "strong" }] }
+    elsif ss.scan(/`(.+?)`/)
+      segments << { "type" => "text", "text" => ss[1], "marks" => [{ "type" => "code" }] }
+    elsif ss.scan(%r{\[(.+?)\]\((https?://[^\)]+)\)})
+      segments << { "type" => "text", "text" => ss[1], "marks" => [{ "type" => "link", "attrs" => { "href" => ss[2] } }] }
+    elsif ss.scan(/.+?(?=\*\*|`|\[)/)
+      segments << { "type" => "text", "text" => ss.matched }
     else
-      segments << { "type" => "text", "text" => remaining }
-      remaining = ""
-    end
-
-    # Safety invariant: every iteration must consume at least one character.
-    # If a regex change introduces a new zero-length match, degrade gracefully
-    # instead of hanging as a zombie process.
-    if remaining.length >= prev_length
-      segments << { "type" => "text", "text" => remaining }
-      break
+      segments << { "type" => "text", "text" => ss.rest }
+      ss.terminate
     end
   end
 
@@ -143,10 +126,12 @@ def lint(input, filename)
     end
 
     # Check inline: images, relative links, and bare [ not part of a valid [text](https://...) link
-    if stripped =~ /!\[/
+    # Strip code spans first so `![img](url)` inside backticks doesn't trigger false positives
+    inline = stripped.gsub(/`.+?`/, "")
+    if inline =~ /!\[/
       issues << [lineno, "image syntax not supported (![alt](url) produces a plain link, not an image)"]
     end
-    inline = stripped.gsub(%r{\[.+?\]\(https?://[^\)]+\)}, "")
+    inline = inline.gsub(%r{\[.+?\]\(https?://[^\)]+\)}, "")
     if inline =~ /\[/
       issues << [lineno, "bare [ or relative link not supported (only [text](https://...) links)"]
     end
@@ -164,7 +149,10 @@ if args[0] == "--lint"
   all_issues = []
 
   if args.empty?
-    # stdin
+    if $stdin.tty?
+      $stderr.puts "md-to-adf: --lint: no input file and stdin is a terminal"
+      exit 1
+    end
     input = $stdin.read
     lint(input, "<stdin>").each do |lineno, msg|
       all_issues << "<stdin>:#{lineno}: #{msg}"
@@ -191,8 +179,21 @@ if args[0] == "--acli"
   acli_key = args.shift
 end
 
-input = args[0] ? File.read(args[0]) : $stdin.read
-adf = parse_markdown(input)
+if args[0]
+  input = File.read(args[0])
+elsif $stdin.tty?
+  $stderr.puts "md-to-adf: no input file and stdin is a terminal (pipe a file or pass a filename)"
+  exit 1
+else
+  input = $stdin.read
+end
+
+begin
+  adf = Timeout.timeout(TIMEOUT_SECONDS) { parse_markdown(input) }
+rescue Timeout::Error
+  $stderr.puts "md-to-adf: timed out after #{TIMEOUT_SECONDS}s (possible parser bug)"
+  exit 124
+end
 
 if acli_key
   puts JSON.pretty_generate({ "issues" => [acli_key], "description" => adf })
