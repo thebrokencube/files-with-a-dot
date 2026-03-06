@@ -157,10 +157,12 @@ Conflicts in `auto:` commits — lockfiles, codegen output, schema files.
 
 - Follow commit skill's force-push rules (`--force-with-lease`, NEVER force push main)
 - **Push parent before children** (same DAG order as propagation)
-- Push all stack branches together when possible:
+- **Push one branch at a time**, in DAG order (parent before children). Some repos enforce per-push branch limits, and serial pushes avoid hitting them:
 
 ```bash
-git push --force-with-lease origin feature-a feature-b feature-c
+git push --force-with-lease origin feature-a
+git push --force-with-lease origin feature-b
+git push --force-with-lease origin feature-c
 ```
 
 ### Rejected Force Push
