@@ -19,6 +19,8 @@ def parse_inline(text)
   remaining = text
 
   until remaining.empty?
+    prev_length = remaining.length
+
     case remaining
     when /\A\*\*(.+?)\*\*/
       segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "strong" }] }
@@ -30,11 +32,26 @@ def parse_inline(text)
       segments << { "type" => "text", "text" => $1, "marks" => [{ "type" => "link", "attrs" => { "href" => $2 } }] }
       remaining = $'
     when /\A(.*?)(?=\*\*|`|\[)/
-      segments << { "type" => "text", "text" => $1 } unless $1.empty?
-      remaining = $'
+      if $1.empty?
+        # Lookahead matched at position 0 (e.g. bare "[" that isn't a link).
+        # Consume the character as literal text to avoid an infinite loop.
+        segments << { "type" => "text", "text" => remaining[0] }
+        remaining = remaining[1..-1]
+      else
+        segments << { "type" => "text", "text" => $1 }
+        remaining = $'
+      end
     else
       segments << { "type" => "text", "text" => remaining }
       remaining = ""
+    end
+
+    # Safety invariant: every iteration must consume at least one character.
+    # If a regex change introduces a new zero-length match, degrade gracefully
+    # instead of hanging as a zombie process.
+    if remaining.length >= prev_length
+      segments << { "type" => "text", "text" => remaining }
+      break
     end
   end
 
@@ -109,7 +126,9 @@ def lint(input, filename)
     end
     next if in_code_block
 
-    if stripped =~ /\A###+ /
+    if stripped =~ /\A# [^#]/
+      issues << [lineno, "h1 heading not supported (only ## supported)"]
+    elsif stripped =~ /\A###+ /
       issues << [lineno, "level 3+ heading not supported (only ## supported)"]
     elsif stripped =~ /\A\|.+\|/
       issues << [lineno, "table syntax not supported"]
@@ -119,6 +138,17 @@ def lint(input, filename)
       issues << [lineno, "nested list not supported"]
     elsif stripped =~ /\A  +\d+\. / || stripped =~ /\A\t+\d+\. /
       issues << [lineno, "nested list not supported"]
+    elsif stripped =~ /- \[[ x]\]/
+      issues << [lineno, "checkbox not supported"]
+    end
+
+    # Check inline: images, relative links, and bare [ not part of a valid [text](https://...) link
+    if stripped =~ /!\[/
+      issues << [lineno, "image syntax not supported (![alt](url) produces a plain link, not an image)"]
+    end
+    inline = stripped.gsub(%r{\[.+?\]\(https?://[^\)]+\)}, "")
+    if inline =~ /\[/
+      issues << [lineno, "bare [ or relative link not supported (only [text](https://...) links)"]
     end
   end
 
