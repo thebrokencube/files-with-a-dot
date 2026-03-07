@@ -12,7 +12,7 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
 4. For each target, in DAG order:
    a. Read source files from target's `sources`
    b. Read `how` from folio.yml
-   c. Apply the transformation
+   c. Compose per the target's `how` field
    d. **Local outputs** (`path:`): write compiled file
    e. **External outputs** (`external:`): resolve push method from tooling.yml
 5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output.
@@ -36,7 +36,7 @@ Each node composes independently from its own file. Nodes do NOT consume child o
 
 ## Batch Target Composition
 
-Multiple items sharing one set of `how` instructions. Each item has its own source and output.
+Multiple items sharing one `how` directive. Each item has its own source and output.
 
 1. Get per-item status from `folio status --json` (`batch_items` field)
 2. For each stale/missing item:
