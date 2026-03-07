@@ -13,6 +13,7 @@ project: "Name"                        # Required. Human-readable.
 sources:                               # Optional. Project-level sources.
   # Primary: local file you wrote
   - path: file.md
+    depends_on: [other-source.md]    # Optional. Declares source ordering.
 
   # External: remote system resource
   - external: jira
@@ -35,8 +36,7 @@ repositories:                          # Optional. URL templates for code links.
 
 targets:
   target-id:
-    instructions: "What/how to transform"
-    transform: distill                 # Required: distill|extract|adapt|compose
+    how: "What/how to compose"
     blocked_by: [other-id]             # Optional DAG edges
     sources:
       - path: relative/file.md
@@ -65,7 +65,7 @@ targets:
         id: "PROJ-100"
         label: "Initiative"
         file: README.md
-        instructions: "Per-node compilation instructions"
+        how: "Per-node composition instructions"
         children:
           - id: "PROJ-200"
             label: "Project"

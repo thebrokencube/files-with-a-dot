@@ -44,7 +44,7 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
    - Time-boxed investigation findings → `spike`
    - Multi-source distillation → `synthesis`
    - Domain knowledge capture → `domain`
-   - Default for ambiguous content → `note`
+   - Default for ambiguous content → `spike`
 5. **Review gate (soft)**: Present proposed type, filename, content length, and 3 key facts. "Write to {path}?"
 6. Materialize via `folio new <inferred-type> <topic>` — never raw file write. Then fill the template with synthesized content.
 7. Report what was gathered, the inferred type, and where it was placed

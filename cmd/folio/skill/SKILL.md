@@ -143,23 +143,12 @@ before the next phase begins. This is enforced by the skill, not optional.
 |----------|-------|----------|---------|
 | gather | deep research | reference file | `folio new <inferred-type> <topic>` |
 | plan | Phase 1 research | spike(s) | `folio new spike <topic>` |
-| plan | Phase 4b design | design doc | `folio new design <topic>` |
-| plan | Phase 7 retro | retro file | `folio new retro <topic>` |
+| plan | Phase 4b design | design doc | `folio new design <topic>` (colocates with work dir if topic matches) |
+| plan | Phase 7 retro | retro file | `folio new retro <topic>` (colocates with work dir if topic matches) |
 
 "Materialized" means: file exists on disk, registered in folio.yml, committed
 via `folio home push`. Agent memory and conversation context are ephemeral —
 they do not count as materialization.
-
-## Transform Types
-
-The `transform` field on targets and tree nodes is a semantic hint for Claude, not a code branch. The CLI validates that the value is one of the allowed types but does not alter behavior based on which type is used.
-
-| Type | Intent | Example |
-|------|--------|---------|
-| `distill` | Condense sources into a shorter, focused output | Thread analysis -> workflow guide |
-| `extract` | Pull specific information out of broader sources | Spec -> API reference table |
-| `adapt` | Reshape content for a different audience or format | Internal plan -> Jira epic description |
-| `compose` | Combine multiple sources into a unified whole | Multiple plans -> initiative overview |
 
 ## Reference Files
 
