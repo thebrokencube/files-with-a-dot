@@ -91,9 +91,19 @@ Gather context before spawning any agents. This happens in the main conversation
 
 This summary is passed to all downstream agents. Diversity comes from lenses, not information asymmetry.
 
+**Context checkpoint**: If Phase 1 involved substantial research (multiple file reads, web
+fetches, folio source review), summarize and compact the findings into the context summary
+before spawning Phase 2 agents. Propose agents operate within bounded context — they should
+receive a distilled summary, not raw research transcripts. For research-heavy tasks, consider
+splitting Phases 1-4 across sub-agents when Phase 1 alone consumes significant context.
+
 **Materialization gate**: If Phase 1 research produces substantial findings (not just reading
 existing files), materialize them as spike files via `folio new spike <topic>` before Phase 2
 begins. Commit via `folio home push`. The spikes become sources that propose agents can reference.
+
+**Live data**: When research requires live data (npm versions, API docs, external specs), use
+WebFetch to verify — do not rely on training data for version numbers or API surfaces. Flag
+any facts that couldn't be live-verified so the review phase can catch staleness.
 
 ### Phase 2: Propose
 
@@ -115,6 +125,10 @@ Convergence criteria:
 - Architectural decisions, type definitions, and key function signatures are pre-decided —
   implementation-level detail (test names, commit structure, validation commands) is deferred
   to the Brief agent
+- **Option-value interactions**: When rejecting an option from either proposal, note what
+  conditions would reinstate it. This preserves the reasoning — if assumptions change later,
+  the team knows which rejected options become viable again without re-running the full
+  diverge-converge
 
 After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
@@ -138,11 +152,20 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
    - **Divergence decisions**: Table from converge phase
    - **What's NOT included**: Explicit scope boundary
    - **Design Provenance**: Agent count, lens names, review findings
-2. If a folio project exists: commit via `folio home push`
-3. If no folio project: use `--no-register` and write to the plan file's directory instead
-4. Present to user: "Design doc committed."
+2. **Scope approval gate (hard):** Present the **What's NOT Included** section to the user
+   for explicit sign-off before committing. This is scope negotiation, not just documentation —
+   gaps here cause re-runs. Wait for "yes" before proceeding.
+3. If a folio project exists: commit via `folio home push`
+4. If no folio project: use `--no-register` and write to the plan file's directory instead
+5. Present to user: "Design doc committed."
 
 The committed design doc is the contract for Agent 2. Inform the user: "Design doc committed at [path]. Start a new session to begin the Brief phase." Agent 1's session ends here.
+
+**Multi-perspective review variant** (`/folio plan --pe-review`): When specified, replace the
+single Phase 4 review agent with 5 parallel agents, each with a distinct perspective: API
+surface, blast radius, migration risk, test coverage, and UX. Converge their findings before
+the design doc commit. This is heavier but catches issues the single-perspective review misses —
+use for high-stakes or cross-cutting changes.
 
 ### Phase 5: Decompose (Agent 2)
 
@@ -179,8 +202,17 @@ Include an **Execution conventions** section: commit format, scope target (max c
 typically ~5), validation commands, module/package path, push workflow, and repo-specific
 patterns.
 
+Include a **Folio integration** section in the brief: targets to add for branches, pending
+items to resolve on completion, `folio home push` checkpoints at milestones. Execution agents
+should maintain folio state as they go — not as a final cleanup step.
+
 Scaffold the brief under `work/active/YYYY-MM-DD-<topic>/README.md`. If the brief needs
 per-track detail files (large tracks), create `track-N.md` siblings.
+
+**Brief verification gate (hard):** Before committing, launch verification agents to confirm
+all referenced file paths, line numbers, and function signatures are accurate. Approximate
+references cause mid-execution corrections — verify them upfront. Fix any inaccuracies, then
+commit.
 
 Commit via `folio home push`. The committed work brief is the contract for Agent 3. Inform the user: "Work brief committed at [path]. Start a new session to execute." Agent 2's session ends here.
 
@@ -200,6 +232,10 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 3. **Validate — hard gate.** Run the validation commands from the brief's execution conventions
    in order: build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed
    to step 4 until all validation commands pass.
+   **Skill file drift check**: If this step changed CLI behavior, command names, schema fields,
+   or flag semantics, grep the skill files (`~/.claude/skills/`) for stale references before
+   proceeding. Skill docs that reference old field names or removed commands cause downstream
+   confusion — fix them in the same commit or as a follow-up commit in the same track.
 4. **Review — hard gate.** Launch 2 review agents (subagent_type: general-purpose) — one
    checking accuracy, one checking scope. Converge findings and fix issues. Do NOT run
    `git commit` until both reviews complete and all findings are resolved. If fixes are
@@ -236,6 +272,13 @@ judgment on whether the full context warrants a retro file.
 ## Re-run Rule
 
 If design doc feedback requires rethinking (not just minor edits), re-run Phases 2-4 within Agent 1. If work brief feedback requires restructuring tracks, re-run Phases 5-6 in a new Agent 2 session. If execution reveals a design-level flaw (not just a brief gap), escalate to the user — they may re-run from Phase 2 (new design) or Phase 5 (new brief) depending on severity. Do not patch committed artifacts inline — re-run the producing agent.
+
+**Amend-design path**: For additive scope changes where the core architecture is settled (adding
+a track, extending a type, covering an edge case), a full diverge-converge re-run is overkill.
+Instead: (1) describe the amendment to the user, (2) get explicit approval, (3) edit the design
+doc directly, (4) re-run Phase 4 review only against the amended section, (5) commit the update.
+Use this path only when the change is additive — if it contradicts existing decisions, re-run
+from Phase 2.
 
 ## Agent Prompts
 
