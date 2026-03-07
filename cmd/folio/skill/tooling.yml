@@ -3,6 +3,11 @@
 # Unlisted systems: pull = skip, push = manual
 # Advisory — folio jira commands internalize the Jira pipeline.
 # Entries document what each system uses for reference.
+#
+# Fallback pattern (Jira): acli is the primary tool for all write operations.
+# When acli can't discover custom fields (e.g., Components, Ownership Area),
+# use MCP getJiraIssueTypeMetaWithFields for metadata discovery, then acli
+# for execution. MCP Jira tools are read-only in the publish workflow.
 
 systems:
   jira:

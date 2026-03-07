@@ -28,6 +28,25 @@ Resolved from tooling.yml (co-located with this skill file). Read `external:` fr
 
 Unlisted systems: push = manual (present to user).
 
+## Jira Conventions
+
+**Ticket naming**: Encode hierarchy in the summary field:
+- **Tasks/Stories**: `type(scope): description` — e.g., `feat(resolver): add fallback heuristic`
+- **Epics**: `[PREFIX] Name` — e.g., `[SRM] Resolver Hardening`
+- **Initiatives**: Plain name — e.g., `State Retirement Mandates`
+
+**Description structure** by hierarchy level:
+- **Tasks/Stories**: `## Context`, `## Goal`, `## Scope` (h2 sections)
+- **Epics**: `## Context`, `## Goal` (no Scope — scope lives in child tickets)
+- **Initiatives**: Minimal — context and goal only, children carry detail
+
+**Content rules**: Inline links (not reference-style). No footer sections (references, changelog). No downward duplication — parent descriptions should not repeat child content. Each ticket stands alone for its level.
+
+**Source file purity**: Jira tree node source files must be pure precompile input — no metadata
+headers (title, status, type). Metadata belongs in folio.yml `notes` fields. `folio jira compile`
+strips YAML frontmatter automatically (`StripFrontmatter`), but non-YAML headers leak through.
+Source files should start directly at content (e.g., `## Goal`).
+
 ## Jira Push Pipeline
 
 Tree targets with `system: jira` use `folio jira` commands. A single command handles lint, conversion, and push:
@@ -77,11 +96,21 @@ Write to `/tmp/{slug}-create.json`. `parentIssueId` is optional for top-level is
 
 After creation, rename the source file from slug to the new ticket key and clean up the creation JSON.
 
+## Post-Push
+
+After a successful push, run `folio touch <target>` to update the target's local output mtime.
+This clears staleness so `folio status` reflects the push. For manual pushes (Google Docs,
+clipboard), remind the user to run `folio touch` after they've pasted.
+
+**Batch orchestration**: For tree and batch targets with multiple nodes/items, iterate through
+each node in order (bottom-up for trees). One review gate per node. Report progress as
+`[N/total] pushed: {id}`. On failure mid-batch, report which succeeded and which remain.
+
 ## Other Publish Targets
 
 | Target type | Publish approach |
 |------------|-----------------|
-| Google Docs | `manual:paste-from-markdown` — copy compiled output, paste into doc |
+| Google Docs | `manual:paste-from-markdown` — copy compiled output, paste into doc. **Review normalization**: when pulling Google Docs content for diff, strip escaped chars and normalize whitespace before comparing. |
 | Slack | `mcp:slack` — send message via Slack MCP tool |
 | Clipboard | `folio pbcopy <target>` — copies first local output to clipboard for manual paste |
 | Confluence | `mcp:jira-confluence` — update page via Confluence MCP tool |
