@@ -134,10 +134,10 @@ func printHealthReport(r *health.Report, color bool) {
 	}
 	if len(r.Unrecognized) > 0 {
 		if color {
-			fmt.Printf("  %s⚠ Unrecognized directories in reference/: %s%s\n",
+			fmt.Printf("  %s⚠ Unrecognized directories in reference/: %s (rename to a recognized type)%s\n",
 				output.Yellow, strings.Join(r.Unrecognized, ", "), output.Reset)
 		} else {
-			fmt.Printf("  ! Unrecognized directories in reference/: %s\n",
+			fmt.Printf("  ! Unrecognized directories in reference/: %s (rename to a recognized type)\n",
 				strings.Join(r.Unrecognized, ", "))
 		}
 	}

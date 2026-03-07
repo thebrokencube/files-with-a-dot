@@ -117,3 +117,18 @@ func TestTemplateBriefHasExpectedSections(t *testing.T) {
 		}
 	}
 }
+
+func TestNoteNotInValidTypes(t *testing.T) {
+	if ValidTypes["note"] {
+		t.Error("note should not be in ValidTypes")
+	}
+}
+
+func TestTemplateRetroHasExpectedSections(t *testing.T) {
+	tmpl := Template("retro", "test")
+	for _, section := range []string{"Context", "What Happened", "What Worked", "What Didn't", "Action Items"} {
+		if !strings.Contains(tmpl, section) {
+			t.Errorf("retro template missing section %q", section)
+		}
+	}
+}

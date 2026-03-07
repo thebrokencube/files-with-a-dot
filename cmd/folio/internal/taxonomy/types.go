@@ -18,7 +18,6 @@ var ReferenceTypes = []string{
 	"spike", "survey",
 	"design", "synthesis", "domain",
 	"pattern", "guide", "review", "retro",
-	"note",
 }
 
 // ValidTypes maps every valid type name to true.
@@ -129,6 +128,25 @@ func Template(artifactType, topic string) string {
 
 ## Open Questions
 <!-- What remains unresolved? -->
+`, title)
+
+	case "retro":
+		return fmt.Sprintf(`# %s
+
+## Context
+<!-- What was done and in what setting? -->
+
+## What Happened
+<!-- Factual account of events and outcomes -->
+
+## What Worked
+<!-- Practices, tools, or decisions that went well -->
+
+## What Didn't
+<!-- Pain points, surprises, or failures -->
+
+## Action Items
+<!-- Concrete next steps with owners if applicable -->
 `, title)
 
 	default:

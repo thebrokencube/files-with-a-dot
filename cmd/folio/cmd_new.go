@@ -31,6 +31,12 @@ func runNew(args []string) int {
 	artifactType := fs.Arg(0)
 	topic := fs.Arg(1)
 
+	// Deprecation check
+	if artifactType == "note" {
+		fmt.Fprintln(os.Stderr, output.Errf("\"note\" was removed — use \"spike\" for exploratory content, or a specific type (domain, guide, retro)"))
+		return 1
+	}
+
 	// Validate type
 	if !taxonomy.ValidTypes[artifactType] {
 		fmt.Fprintln(os.Stderr, output.Errf("unknown type %q", artifactType))
@@ -39,13 +45,23 @@ func runNew(args []string) int {
 	}
 
 	// Resolve path
+	folioDir := filepath.Dir(*folioPath)
+
 	relPath := taxonomy.TypePath(artifactType, topic)
 	if relPath == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("cannot resolve path for type %q", artifactType))
 		return 1
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	colocated := false
+	if isColocatable(artifactType) {
+		if workDir := findWorkDir(folioDir, topic); workDir != "" {
+			rel, _ := filepath.Rel(folioDir, workDir)
+			relPath = filepath.Join(rel, artifactType+".md")
+			colocated = true
+		}
+	}
+
 	absPath := filepath.Join(folioDir, relPath)
 
 	// Check file doesn't already exist
@@ -82,6 +98,9 @@ func runNew(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Created %s", relPath))
+	if colocated {
+		fmt.Printf("  → colocated with %s/\n", filepath.Dir(relPath))
+	}
 	if !*noRegister {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
@@ -117,11 +136,30 @@ func printNewUsage() {
 Scaffold a typed artifact at the correct path.
 
 Types:
-  Reference: %s
-  Work:      brief
+  Reference:  %s
+  Work:       brief
+  Dual-layer: design, retro (colocate with work dir if one matches topic)
 
 Options:
   --folio PATH      Path or shortname (default: ./folio.yml)
   --no-register     Skip adding source entry to folio.yml
 `, strings.Join(taxonomy.ReferenceTypes, ", "))
+}
+
+func isColocatable(t string) bool {
+	return t == "design" || t == "retro"
+}
+
+func findWorkDir(folioDir, topic string) string {
+	if folioDir == "" {
+		return ""
+	}
+	for _, layer := range []string{"active", "archive"} {
+		pattern := filepath.Join(folioDir, "work", layer, "*-"+topic)
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) > 0 {
+			return matches[0]
+		}
+	}
+	return ""
 }

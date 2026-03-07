@@ -164,7 +164,7 @@ func TestRunNewPreservesExistingSources(t *testing.T) {
 	original := "schema: 1\nproject: \"Test\"\n\nsources:\n  - path: existing.md\n\ntargets: {}\npending: []\n"
 	os.WriteFile(yml, []byte(original), 0644)
 
-	code := runNew([]string{"--folio", yml, "note", "my-note"})
+	code := runNew([]string{"--folio", yml, "spike", "my-spike"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -174,7 +174,7 @@ func TestRunNewPreservesExistingSources(t *testing.T) {
 	if !strings.Contains(content, "path: existing.md") {
 		t.Error("existing source entry was lost")
 	}
-	if !strings.Contains(content, "reference/note/") {
+	if !strings.Contains(content, "reference/spike/") {
 		t.Error("new source entry not added")
 	}
 
@@ -184,5 +184,112 @@ func TestRunNewPreservesExistingSources(t *testing.T) {
 	}
 	if len(f.Sources) != 2 {
 		t.Errorf("expected 2 sources, got %d", len(f.Sources))
+	}
+}
+
+func TestRunNewNoteDeprecation(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "note", "topic"})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for deprecated note type, got %d", code)
+	}
+}
+
+func TestRunNewRetroColocated(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	// Create a work dir matching the topic
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-mytopic")
+	os.MkdirAll(workDir, 0755)
+	os.WriteFile(filepath.Join(workDir, "README.md"), []byte("# Brief\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "retro", "mytopic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	// Verify file at colocated path
+	retroPath := filepath.Join(workDir, "retro.md")
+	if _, err := os.Stat(retroPath); err != nil {
+		t.Fatalf("expected retro.md at colocated path %s: %v", retroPath, err)
+	}
+
+	data, _ := os.ReadFile(retroPath)
+	if !strings.Contains(string(data), "## Context") {
+		t.Error("retro file missing Context section")
+	}
+
+	// folio.yml source entry should contain work/active/
+	ymlData, _ := os.ReadFile(yml)
+	if !strings.Contains(string(ymlData), "work/active/") {
+		t.Error("folio.yml source entry should reference colocated work path")
+	}
+}
+
+func TestRunNewRetroStandalone(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "retro", "standalone-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "retro", "*-standalone-topic.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file in reference/retro/, got %d", len(matches))
+	}
+}
+
+func TestRunNewDesignColocated(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-mydesign")
+	os.MkdirAll(workDir, 0755)
+	os.WriteFile(filepath.Join(workDir, "README.md"), []byte("# Brief\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "design", "mydesign"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	designPath := filepath.Join(workDir, "design.md")
+	if _, err := os.Stat(designPath); err != nil {
+		t.Fatalf("expected design.md at colocated path %s: %v", designPath, err)
+	}
+
+	data, _ := os.ReadFile(designPath)
+	if !strings.Contains(string(data), "## Problem") {
+		t.Error("design file missing Problem section")
+	}
+
+	// folio.yml source entry should contain work/active/
+	ymlData, _ := os.ReadFile(yml)
+	if !strings.Contains(string(ymlData), "work/active/") {
+		t.Error("folio.yml source entry should reference colocated work path")
+	}
+}
+
+func TestRunNewDesignStandalone(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "design", "standalone-design"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "design", "*-standalone-design.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file in reference/design/, got %d", len(matches))
 	}
 }
