@@ -25,6 +25,27 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
+## Bare Invocation
+
+When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just freeform discussion):
+
+1. Run `folio home list` to get the project dashboard
+2. Present active projects as a compact numbered list:
+   ```
+   Active projects:
+     1. files-with-a-dot          (1 target, 29 pending)
+     2. app-benefits Structure    (7 targets, 1 pending)
+     ...
+   ```
+   Highlight projects with high pending counts or many targets.
+3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`)"**
+4. When the user picks a project:
+   - `cd` to that project's folio directory
+   - Run `folio status` there
+   - Suggest next actions based on what's stale, pending, or ready to compose/publish
+
+If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, treat it as freeform discussion about the folio system — answer the question directly.
+
 ## Workflows
 
 ### /folio gather [url|topic]
