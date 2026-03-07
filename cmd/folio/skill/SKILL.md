@@ -39,9 +39,10 @@ When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just
    ```
    Highlight projects with high pending counts or many targets.
 3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`)"**
-4. When the user picks a project:
-   - `cd` to that project's folio directory
-   - Run `folio status` there
+4. When the user picks a project, use the **Path** column from `folio home list` output to resolve the folio.yml location:
+   - Active projects live at `~/.folio/active/<path>/folio.yml`
+   - Archived projects live at `~/.folio/archive/<path>/folio.yml`
+   - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
    - Suggest next actions based on what's stale, pending, or ready to compose/publish
 
 If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, treat it as freeform discussion about the folio system — answer the question directly.
