@@ -112,6 +112,7 @@ description: When to use this skill (for Claude's context)
 
 Follow the conventions in the commit skill, plus dotfiles-specific rules:
 - Use conventional commits with scope: `fix(shell): correct PATH ordering`
+- Final commit message format is `v<version>: type(scope): description` — the version prefix is added automatically by the commit skill's tag detection
 - Test with `dot sync --dry-run` before committing
 
 ### Versioning and Tags
