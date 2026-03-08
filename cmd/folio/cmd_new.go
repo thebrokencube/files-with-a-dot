@@ -146,20 +146,8 @@ Options:
 `, strings.Join(taxonomy.ReferenceTypes, ", "))
 }
 
-func isColocatable(t string) bool {
-	return t == "design" || t == "retro"
-}
+func isColocatable(t string) bool { return taxonomy.WorkTypes[t] }
 
 func findWorkDir(folioDir, topic string) string {
-	if folioDir == "" {
-		return ""
-	}
-	for _, layer := range []string{"active", "archive"} {
-		pattern := filepath.Join(folioDir, "work", layer, "*-"+topic)
-		matches, err := filepath.Glob(pattern)
-		if err == nil && len(matches) > 0 {
-			return matches[0]
-		}
-	}
-	return ""
+	return taxonomy.FindWorkDir(folioDir, topic)
 }

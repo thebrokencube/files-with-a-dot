@@ -1,6 +1,8 @@
 package taxonomy
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -115,6 +117,42 @@ func TestTemplateBriefHasExpectedSections(t *testing.T) {
 		if !strings.Contains(tmpl, section) {
 			t.Errorf("brief template missing section %q", section)
 		}
+	}
+}
+
+func TestWorkTypesContainsDesignAndRetro(t *testing.T) {
+	if !WorkTypes["design"] {
+		t.Error("WorkTypes[design] = false, want true")
+	}
+	if !WorkTypes["retro"] {
+		t.Error("WorkTypes[retro] = false, want true")
+	}
+}
+
+func TestWorkTypesExcludesBrief(t *testing.T) {
+	if WorkTypes["brief"] {
+		t.Error("WorkTypes[brief] = true, want false")
+	}
+}
+
+func TestFindWorkDirMatchesActive(t *testing.T) {
+	dir := t.TempDir()
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-foo")
+	os.MkdirAll(workDir, 0755)
+
+	got := FindWorkDir(dir, "foo")
+	if got != workDir {
+		t.Errorf("FindWorkDir = %q, want %q", got, workDir)
+	}
+}
+
+func TestFindWorkDirReturnsEmptyOnNoMatch(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "work", "active"), 0755)
+
+	got := FindWorkDir(dir, "nonexistent")
+	if got != "" {
+		t.Errorf("FindWorkDir = %q, want empty", got)
 	}
 }
 

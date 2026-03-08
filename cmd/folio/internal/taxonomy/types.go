@@ -39,9 +39,32 @@ func IsReferenceType(t string) bool {
 	return ValidTypes[t]
 }
 
+// WorkTypes lists types that colocate with a matching work directory.
+var WorkTypes = map[string]bool{
+	"design": true,
+	"retro":  true,
+}
+
 // IsWorkType returns true if t is a recognized work-layer type.
 func IsWorkType(t string) bool {
 	return t == "brief"
+}
+
+// FindWorkDir returns the path to a work directory matching the given topic,
+// searching active/ then archive/ under folioDir/work/.
+// Returns "" if no match is found.
+func FindWorkDir(folioDir, topic string) string {
+	if folioDir == "" {
+		return ""
+	}
+	for _, layer := range []string{"active", "archive"} {
+		pattern := filepath.Join(folioDir, "work", layer, "*-"+topic)
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) > 0 {
+			return matches[0]
+		}
+	}
+	return ""
 }
 
 // TypePath returns the relative path for a new artifact of the given type and topic.
