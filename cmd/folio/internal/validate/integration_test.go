@@ -529,6 +529,34 @@ pending: []
 	}
 }
 
+func TestCompiledExtMismatchWarning(t *testing.T) {
+	dir := t.TempDir()
+	writeFixture(t, dir, "compiled/.gitkeep", "")
+	writeFixture(t, dir, "foo.txt", "some content")
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Ext Mismatch"
+sources: []
+targets:
+  my-tree:
+    how: "Test compiled_ext mismatch"
+    outputs:
+      - path: compiled/out.md
+    tree:
+      system: jira
+      compiled_ext: ".md"
+      root:
+        id: "ROOT-1"
+        file: foo.txt
+tasks: []
+pending: []
+`)
+	r := loadAndValidate(t, dir)
+	if !hasWarning(r, "doesn't match tree compiled_ext") {
+		t.Errorf("expected compiled_ext mismatch warning, got warnings: %v", r.Warnings)
+	}
+}
+
 func hasWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {

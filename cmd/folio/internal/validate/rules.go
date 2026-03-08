@@ -281,6 +281,14 @@ func validateTreeNode(r *Result, tid string, node *config.TreeNode, target *conf
 		r.addWarning("%s: 'instructions' is deprecated, rename to 'how'", prefix)
 	}
 
+	// compiled_ext mismatch: if tree has compiled_ext, check node files match
+	if target.Tree != nil && target.Tree.CompiledExt != "" && node.File != "" {
+		ext := filepath.Ext(node.File)
+		if ext != "" && ext != target.Tree.CompiledExt {
+			r.addWarning("%s: file extension %q doesn't match tree compiled_ext %q", prefix, ext, target.Tree.CompiledExt)
+		}
+	}
+
 	// Sync mode must be valid if present
 	if node.Sync != "" && !config.ValidSyncModes[node.Sync] {
 		r.addError("%s: invalid sync mode '%s' (must be: push, pull, both)", prefix, node.Sync)
