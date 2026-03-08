@@ -70,7 +70,7 @@ func runGather(args []string) int {
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
 			return 1
 		}
-		if !taxonomy.IsReferenceType(*typeFlag) && *typeFlag != "design" {
+		if !taxonomy.IsReferenceDir(*typeFlag) {
 			fmt.Fprintln(os.Stderr, output.Errf("unknown reference type %q", *typeFlag))
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
 			return 1

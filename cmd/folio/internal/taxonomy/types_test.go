@@ -123,18 +123,35 @@ func TestTemplateBriefHasExpectedSections(t *testing.T) {
 	}
 }
 
-func TestWorkTypesContainsDesignAndRetro(t *testing.T) {
-	if !WorkTypes["design"] {
-		t.Error("WorkTypes[design] = false, want true")
+func TestColocatableTypesContainsDesignAndRetro(t *testing.T) {
+	if !ColocatableTypes["design"] {
+		t.Error("ColocatableTypes[design] = false, want true")
 	}
-	if !WorkTypes["retro"] {
-		t.Error("WorkTypes[retro] = false, want true")
+	if !ColocatableTypes["retro"] {
+		t.Error("ColocatableTypes[retro] = false, want true")
 	}
 }
 
-func TestWorkTypesExcludesBrief(t *testing.T) {
-	if WorkTypes["brief"] {
-		t.Error("WorkTypes[brief] = true, want false")
+func TestColocatableTypesExcludesBrief(t *testing.T) {
+	if ColocatableTypes["brief"] {
+		t.Error("ColocatableTypes[brief] = true, want false")
+	}
+}
+
+func TestIsReferenceDirDesign(t *testing.T) {
+	if !IsReferenceDir("design") {
+		t.Error("IsReferenceDir(design) = false, want true")
+	}
+	for _, rt := range ReferenceTypes {
+		if !IsReferenceDir(rt) {
+			t.Errorf("IsReferenceDir(%q) = false, want true", rt)
+		}
+	}
+	if IsReferenceDir("brief") {
+		t.Error("IsReferenceDir(brief) = true, want false")
+	}
+	if IsReferenceDir("unknown") {
+		t.Error("IsReferenceDir(unknown) = true, want false")
 	}
 }
 

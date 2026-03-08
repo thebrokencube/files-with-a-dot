@@ -76,7 +76,7 @@ func analyzeReference(r *Report, folioDir string) {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			name := entry.Name()
-			if taxonomy.IsReferenceType(name) || name == "design" {
+			if taxonomy.IsReferenceDir(name) {
 				// Count files in this type directory
 				typeDir := filepath.Join(refDir, name)
 				count := countFiles(typeDir)
@@ -200,13 +200,16 @@ func analyzeNaming(r *Report, folioDir string) {
 	}
 
 	// Check files in type subdirectories for date prefix
-	// Include "design" which is no longer in ReferenceTypes but still lives in reference/
-	typeDirs := append([]string{"design"}, taxonomy.ReferenceTypes...)
-	for _, t := range typeDirs {
-		typeDir := filepath.Join(refDir, t)
-		if _, err := os.Stat(typeDir); os.IsNotExist(err) {
+	entries, err := os.ReadDir(refDir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || !taxonomy.IsReferenceDir(entry.Name()) {
 			continue
 		}
+		t := entry.Name()
+		typeDir := filepath.Join(refDir, t)
 		entries, err := os.ReadDir(typeDir)
 		if err != nil {
 			continue

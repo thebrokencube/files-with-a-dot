@@ -40,8 +40,15 @@ func IsReferenceType(t string) bool {
 	return ValidTypes[t]
 }
 
-// WorkTypes lists types that colocate with a matching work directory.
-var WorkTypes = map[string]bool{
+// IsReferenceDir returns true if t should have a directory under reference/.
+// This includes all ReferenceTypes plus "design" (which was removed from
+// ReferenceTypes but still lives in reference/).
+func IsReferenceDir(t string) bool {
+	return IsReferenceType(t) || t == "design"
+}
+
+// ColocatableTypes lists types that colocate with a matching work directory.
+var ColocatableTypes = map[string]bool{
 	"design": true,
 	"retro":  true,
 }

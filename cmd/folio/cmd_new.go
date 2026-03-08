@@ -138,7 +138,7 @@ Scaffold a typed artifact at the correct path.
 Types:
   Reference:  %s
   Work:       brief
-  Dual-layer: retro (colocate with work dir if one matches topic)
+  Dual-layer: design, retro (colocate with work dir if one matches topic)
 
 Options:
   --folio PATH      Path or shortname (default: ./folio.yml)
@@ -146,7 +146,7 @@ Options:
 `, strings.Join(taxonomy.ReferenceTypes, ", "))
 }
 
-func isColocatable(t string) bool { return taxonomy.WorkTypes[t] }
+func isColocatable(t string) bool { return taxonomy.ColocatableTypes[t] }
 
 func findWorkDir(folioDir, topic string) string {
 	return taxonomy.FindWorkDir(folioDir, topic)
