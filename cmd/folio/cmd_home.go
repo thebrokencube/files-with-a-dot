@@ -162,6 +162,8 @@ func printEntryTable(entries []list.Entry, color bool) {
 func runHomePush(args []string) int {
 	fs := flag.NewFlagSet("home push", flag.ExitOnError)
 	msg := fs.String("m", "", "Commit message: type(scope): description")
+	folioName := fs.String("folio", "", "Scope commit to a single folio (shortname or path)")
+	all := fs.Bool("all", false, "Stage all changes (current behavior, default)")
 	fs.Parse(args)
 
 	// Allow positional args as message for convenience: folio home push "my message"
@@ -176,18 +178,46 @@ func runHomePush(args []string) int {
 		return 1
 	}
 
+	if *folioName != "" && *all {
+		fmt.Fprintln(os.Stderr, output.Errf("--folio and --all are mutually exclusive"))
+		return 1
+	}
+
 	dir := mustResolveHome()
 
-	if err := repo.Push(dir, *msg); err != nil {
-		if errors.Is(err, repo.ErrNothingToCommit) {
-			fmt.Println("Nothing to commit (working tree clean)")
-			return 0
-		}
-		if errors.Is(err, repo.ErrInvalidCommitMessage) {
+	var pushErr error
+	if *folioName != "" {
+		entries, err := list.Scan(dir)
+		if err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 			return 1
 		}
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		var match *list.Entry
+		for i, e := range entries {
+			if e.Path == *folioName || e.Project == *folioName {
+				match = &entries[i]
+				break
+			}
+		}
+		if match == nil {
+			fmt.Fprintln(os.Stderr, output.Errf("folio %q not found", *folioName))
+			return 1
+		}
+		pushErr = repo.PushScoped(dir, *msg, []string{match.Section + "/" + match.Path})
+	} else {
+		pushErr = repo.Push(dir, *msg)
+	}
+
+	if pushErr != nil {
+		if errors.Is(pushErr, repo.ErrNothingToCommit) {
+			fmt.Println("Nothing to commit (working tree clean)")
+			return 0
+		}
+		if errors.Is(pushErr, repo.ErrInvalidCommitMessage) {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
+			return 1
+		}
+		fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
 		return 1
 	}
 
