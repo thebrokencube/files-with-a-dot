@@ -35,6 +35,8 @@ func main() {
 		os.Exit(runNew(os.Args[2:]))
 	case "health":
 		os.Exit(runHealth(os.Args[2:]))
+	case "archive":
+		os.Exit(runArchive(os.Args[2:]))
 
 	// Top-level utility commands
 	case "pbcopy":
@@ -149,6 +151,7 @@ Project commands:
   gather       Add source entry from URL
   new          Scaffold a typed artifact (spike, design, brief, ...)
   health       Project health report (types, naming, pending)
+  archive      Move work track from active to archive + rewrite paths
   init         Bootstrap a new folio.yml
   add-pending  Append an item to the pending list
 
