@@ -111,7 +111,7 @@ func TestTemplateSurveyHasExpectedSections(t *testing.T) {
 
 func TestTemplateBriefHasExpectedSections(t *testing.T) {
 	tmpl := Template("brief", "test")
-	for _, section := range []string{"Objective", "Tracks", "Execution Conventions", "Open Questions"} {
+	for _, section := range []string{"Objective", "Context", "Agent Setup", "Tracks", "Execution Conventions", "Open Questions"} {
 		if !strings.Contains(tmpl, section) {
 			t.Errorf("brief template missing section %q", section)
 		}

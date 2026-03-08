@@ -65,9 +65,9 @@ type Batch struct {
 // Tree represents a hierarchical target structure (e.g., Jira initiative → projects → epics).
 type Tree struct {
 	System      string   `yaml:"system"`       // default external system for all nodes
-	Field       string   `yaml:"field"`         // default output field for all nodes
-	CompiledDir string   `yaml:"compiled_dir"`  // output directory for compiled node files
-	CompiledExt string   `yaml:"compiled_ext"`  // file extension for compiled node files
+	Field       string   `yaml:"field"`        // default output field for all nodes
+	CompiledDir string   `yaml:"compiled_dir"` // output directory for compiled node files
+	CompiledExt string   `yaml:"compiled_ext"` // file extension for compiled node files
 	Root        TreeNode `yaml:"root"`
 }
 
@@ -87,7 +87,7 @@ type TreeNode struct {
 // BatchItem represents a single item in a batch target.
 type BatchItem struct {
 	ID     string `yaml:"id"`
-	Label  string `yaml:"label"`  // optional human-readable name
+	Label  string `yaml:"label"` // optional human-readable name
 	Source string `yaml:"source"`
 	Output Output `yaml:"output"`
 }
@@ -118,4 +118,3 @@ var ValidSyncModes = map[string]bool{
 	"pull": true,
 	"both": true,
 }
-

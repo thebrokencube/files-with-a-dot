@@ -12,18 +12,18 @@ type Issue struct {
 }
 
 var (
-	reH1          = regexp.MustCompile(`^# [^#]`)
-	reH3Plus      = regexp.MustCompile(`^###+ `)
-	reCodeFence   = regexp.MustCompile("^```")
-	reTable       = regexp.MustCompile(`^\|.+\|`)
-	reBlockquote  = regexp.MustCompile(`^>`)
-	reNestedDash  = regexp.MustCompile(`^[ \t]+- `)
-	reNestedNum   = regexp.MustCompile(`^[ \t]+\d+\. `)
-	reCheckbox    = regexp.MustCompile(`- \[[ x]\]`)
-	reImage       = regexp.MustCompile(`!\[`)
-	reBareOpen    = regexp.MustCompile(`\[`)
-	reCodeSpan    = regexp.MustCompile("`.+?`")
-	reValidLink   = regexp.MustCompile(`\[.+?\]\(https?://[^\)]{1,1000}\)`)
+	reH1         = regexp.MustCompile(`^# [^#]`)
+	reH3Plus     = regexp.MustCompile(`^###+ `)
+	reCodeFence  = regexp.MustCompile("^```")
+	reTable      = regexp.MustCompile(`^\|.+\|`)
+	reBlockquote = regexp.MustCompile(`^>`)
+	reNestedDash = regexp.MustCompile(`^[ \t]+- `)
+	reNestedNum  = regexp.MustCompile(`^[ \t]+\d+\. `)
+	reCheckbox   = regexp.MustCompile(`- \[[ x]\]`)
+	reImage      = regexp.MustCompile(`!\[`)
+	reBareOpen   = regexp.MustCompile(`\[`)
+	reCodeSpan   = regexp.MustCompile("`.+?`")
+	reValidLink  = regexp.MustCompile(`\[.+?\]\(https?://[^\)]{1,1000}\)`)
 )
 
 // Lint validates that markdown uses only the restricted subset supported by

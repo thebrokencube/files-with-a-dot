@@ -300,4 +300,3 @@ func (r *Result) addError(format string, args ...interface{}) {
 func (r *Result) addWarning(format string, args ...interface{}) {
 	r.Warnings = append(r.Warnings, fmt.Sprintf(format, args...))
 }
-

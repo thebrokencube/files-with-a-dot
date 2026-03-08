@@ -260,7 +260,7 @@ func TestValidateBlockedByNonexistent(t *testing.T) {
 			"my-target": {
 				How:       "Test",
 				BlockedBy: []string{"nonexistent"},
-				Outputs:      []config.Output{{Path: "compiled/out.md"}},
+				Outputs:   []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
 	}
@@ -528,8 +528,8 @@ func TestValidateTreeNodeWithDescription(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				How: "Test tree",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -556,8 +556,8 @@ func TestValidateTreeNodeSourceNotFound(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				How: "Test tree",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -588,8 +588,8 @@ func TestValidateTreeDuplicateNodeID(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"tree-target": {
-				How: "Test tree",
-				Outputs:   []config.Output{{Path: "compiled/manifest.md"}},
+				How:     "Test tree",
+				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Tree: &config.Tree{
 					System: "jira",
 					Root: config.TreeNode{
@@ -943,9 +943,9 @@ func TestValidatePRWithoutBranch(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				How: "Test",
-				PR:  "#123",
-				Outputs:   []config.Output{{Path: "compiled/out.md"}},
+				How:     "Test",
+				PR:      "#123",
+				Outputs: []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
 	}
@@ -967,10 +967,10 @@ func TestValidatePRWithBranch(t *testing.T) {
 		Project: "Test",
 		Targets: map[string]config.Target{
 			"my-target": {
-				How:    "Test",
-				Branch: "feat-test",
-				PR:     "#123",
-				Outputs:   []config.Output{{Path: "compiled/out.md"}},
+				How:     "Test",
+				Branch:  "feat-test",
+				PR:      "#123",
+				Outputs: []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
 	}
@@ -994,9 +994,9 @@ func TestValidateDuplicateBranch(t *testing.T) {
 				Outputs: []config.Output{{Path: "compiled/a.md"}},
 			},
 			"second": {
-				How:    "Test second",
-				Branch: "feat-shared",
-				Outputs:   []config.Output{{Path: "compiled/b.md"}},
+				How:     "Test second",
+				Branch:  "feat-shared",
+				Outputs: []config.Output{{Path: "compiled/b.md"}},
 			},
 		},
 	}
@@ -1023,9 +1023,9 @@ func TestValidateUniqueBranches(t *testing.T) {
 				Outputs: []config.Output{{Path: "compiled/a.md"}},
 			},
 			"second": {
-				How:    "Test second",
-				Branch: "feat-b",
-				Outputs:   []config.Output{{Path: "compiled/b.md"}},
+				How:     "Test second",
+				Branch:  "feat-b",
+				Outputs: []config.Output{{Path: "compiled/b.md"}},
 			},
 		},
 	}

@@ -120,11 +120,22 @@ func Template(artifactType, topic string) string {
 ## Objective
 <!-- What are we trying to accomplish? -->
 
+## Context
+<!-- Distill from design doc: what this work is, key design decisions (non-negotiable),
+     scope boundary (what's NOT included, framed as stop signals).
+     Target: 10-15 lines. Every line should change how the execution agent behaves. -->
+
+## Agent Setup
+<!-- Skill loading, repo mapping, escalation triggers.
+     1. Which skills to invoke (/folio status, /commit, etc.) and key rules
+     2. Which tracks operate in which repos
+     3. When should the agent stop and ask instead of improvising? -->
+
 ## Tracks
 <!-- Parallel work tracks with their scope -->
 
 ## Execution Conventions
-<!-- Commit format, validation commands, scope target -->
+<!-- Commit format, validation commands, scope target, folio integration -->
 
 ## Open Questions
 <!-- What remains unresolved? -->

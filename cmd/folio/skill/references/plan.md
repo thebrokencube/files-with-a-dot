@@ -191,6 +191,49 @@ Analyze the design doc and break it into implementation tracks:
 Populate each track with execution-level detail. The brief must be self-contained — the
 execution agent reads only the brief, not the design doc or conversation history.
 
+Every brief has four required sections, in order:
+
+#### Context section (required)
+
+Distill the design doc into the minimum context an execution agent needs to make judgment
+calls when implementation deviates from the plan. This replaces "go read the design doc."
+
+Include:
+- **What this work is** (2-3 sentences): the problem, the goal, what repo(s) are involved
+- **Key design decisions** (bulleted, non-negotiable): architectural choices the execution
+  agent must not revisit. Sourced from the design doc's Architecture and Divergence Decisions
+  sections. Frame as constraints: "Do X" / "Do NOT do Y" / "X stays because Y."
+- **Scope boundary** (bulleted): what is NOT included, framed as stop signals. Sourced from
+  the design doc's What's NOT Included section. The execution agent should recognize when
+  it's drifting out of scope.
+
+Target: 10-15 lines. Dense, not conversational. Every line should change how the agent
+behaves — if a line doesn't affect execution decisions, cut it.
+
+#### Agent Setup section (required)
+
+Tell the execution agent how to prepare before touching any code. Three parts:
+
+1. **Skill loading**: Which skills to invoke and why. Standard set:
+   - `/folio status` (or any `/folio` subcommand) — loads folio conventions. Call out the
+     key rule: `~/.folio` commits use `folio home push`, never raw git.
+   - `/commit` — loads commit format. Note repo-specific conventions (e.g., dotfiles use
+     versioned tags, ~/.folio uses plain conventional commits).
+   - Additional skills as needed (e.g., `/stacked-pr` if the work involves branch stacks).
+
+2. **Repo mapping**: Which tracks operate in which repos. Execution agents work in one repo
+   at a time — make the mapping unambiguous.
+
+3. **Escalation triggers**: Specific to this work — when should the agent stop and ask the
+   user instead of improvising? Common triggers:
+   - Validation failures after migration steps
+   - File paths or signatures that don't match the brief (implies codebase changed since
+     briefing)
+   - Temptation to add code not described in the track
+   - Commits flagged as high-complexity in the track description
+
+#### Tracks section (required)
+
 For each track, specify:
 - Exact file changes (create, modify, delete) with paths
 - Function signatures, struct diffs, type definitions
@@ -198,13 +241,16 @@ For each track, specify:
 - Commit message(s) and what each commit contains
 - Validation commands (build, test, lint)
 
-Include an **Execution conventions** section: commit format, scope target (max commits —
-typically ~5), validation commands, module/package path, push workflow, and repo-specific
-patterns.
+#### Execution Conventions section (required)
 
-Include a **Folio integration** section in the brief: targets to add for branches, pending
+Commit format, scope target (max commits — typically ~5), validation commands,
+module/package path, push workflow, and repo-specific patterns.
+
+Include a **Folio integration** subsection: targets to add for branches, pending
 items to resolve on completion, `folio home push` checkpoints at milestones. Execution agents
 should maintain folio state as they go — not as a final cleanup step.
+
+---
 
 Scaffold the brief under `work/active/YYYY-MM-DD-<topic>/README.md`. If the brief needs
 per-track detail files (large tracks), create `track-N.md` siblings.
