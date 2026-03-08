@@ -98,6 +98,55 @@ func TestHasRemoteFalseOnLocal(t *testing.T) {
 	}
 }
 
+func TestPushScopedStagesOnlySpecifiedPaths(t *testing.T) {
+	dir := initTestRepo(t)
+
+	// Create an initial commit so repo isn't empty
+	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("init"), 0644)
+	if err := Push(dir, "test(repo): initial"); err != nil {
+		t.Fatalf("initial Push: %v", err)
+	}
+
+	// Create files in two directories
+	dirA := filepath.Join(dir, "a")
+	dirB := filepath.Join(dir, "b")
+	os.MkdirAll(dirA, 0755)
+	os.MkdirAll(dirB, 0755)
+	os.WriteFile(filepath.Join(dirA, "file.txt"), []byte("a"), 0644)
+	os.WriteFile(filepath.Join(dirB, "file.txt"), []byte("b"), 0644)
+
+	// Scope to dir "a" only
+	if err := PushScoped(dir, "test(repo): scoped add", []string{"a"}); err != nil {
+		t.Fatalf("PushScoped: %v", err)
+	}
+
+	// Verify dir b file is still untracked
+	out, err := exec.Command("git", "-C", dir, "status", "--porcelain").CombinedOutput()
+	if err != nil {
+		t.Fatalf("git status: %s", out)
+	}
+	if !strings.Contains(string(out), "b/") {
+		t.Errorf("expected b/ to be untracked, git status:\n%s", out)
+	}
+}
+
+func TestPushScopedNothingToCommit(t *testing.T) {
+	dir := initTestRepo(t)
+
+	// Create an initial commit
+	os.WriteFile(filepath.Join(dir, "init.txt"), []byte("init"), 0644)
+	if err := Push(dir, "test(repo): initial"); err != nil {
+		t.Fatalf("initial Push: %v", err)
+	}
+
+	// Scope to a dir with no changes
+	os.MkdirAll(filepath.Join(dir, "empty"), 0755)
+	err := PushScoped(dir, "test(repo): empty scope", []string{"empty"})
+	if !errors.Is(err, ErrNothingToCommit) {
+		t.Errorf("err = %v, want ErrNothingToCommit", err)
+	}
+}
+
 func TestValidateCommitMessage(t *testing.T) {
 	tests := []struct {
 		name    string
