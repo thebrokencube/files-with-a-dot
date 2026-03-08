@@ -16,7 +16,7 @@ type ArtifactType struct {
 // ReferenceTypes lists all valid reference-layer type names.
 var ReferenceTypes = []string{
 	"spike", "survey",
-	"design", "synthesis", "domain",
+	"synthesis", "domain",
 	"pattern", "guide", "review", "retro",
 }
 
@@ -29,11 +29,12 @@ func init() {
 		ValidTypes[t] = true
 	}
 	ValidTypes["brief"] = true
+	ValidTypes["design"] = true
 }
 
 // IsReferenceType returns true if t is a recognized reference-layer type.
 func IsReferenceType(t string) bool {
-	if t == "brief" {
+	if t == "brief" || t == "design" {
 		return false
 	}
 	return ValidTypes[t]
@@ -71,6 +72,9 @@ func FindWorkDir(folioDir, topic string) string {
 // The path is relative to the folio directory (where folio.yml lives).
 func TypePath(artifactType, topic string) string {
 	date := time.Now().Format("2006-01-02")
+	if artifactType == "design" {
+		return filepath.Join("reference", "design", fmt.Sprintf("%s-%s.md", date, topic))
+	}
 	if IsReferenceType(artifactType) {
 		return filepath.Join("reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
 	}

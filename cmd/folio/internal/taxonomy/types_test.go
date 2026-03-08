@@ -30,6 +30,9 @@ func TestIsReferenceType(t *testing.T) {
 	if IsReferenceType("brief") {
 		t.Error("IsReferenceType(brief) = true, want false")
 	}
+	if IsReferenceType("design") {
+		t.Error("IsReferenceType(design) = true, want false (design removed from ReferenceTypes)")
+	}
 	if IsReferenceType("unknown") {
 		t.Error("IsReferenceType(unknown) = true, want false")
 	}
@@ -153,6 +156,22 @@ func TestFindWorkDirReturnsEmptyOnNoMatch(t *testing.T) {
 	got := FindWorkDir(dir, "nonexistent")
 	if got != "" {
 		t.Errorf("FindWorkDir = %q, want empty", got)
+	}
+}
+
+func TestValidTypesIncludesDesign(t *testing.T) {
+	if !ValidTypes["design"] {
+		t.Error("ValidTypes[design] = false, want true (design still valid even though not a ReferenceType)")
+	}
+}
+
+func TestTypePathDesign(t *testing.T) {
+	path := TypePath("design", "test-topic")
+	if !strings.HasPrefix(path, "reference/design/") {
+		t.Errorf("TypePath(design) = %s, want prefix reference/design/", path)
+	}
+	if !strings.HasSuffix(path, "-test-topic.md") {
+		t.Errorf("TypePath(design) = %s, want suffix -test-topic.md", path)
 	}
 }
 
