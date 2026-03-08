@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 )
 
 func runTouch(args []string) int {
@@ -41,23 +41,10 @@ func runTouch(args []string) int {
 	}
 
 	folioDir := filepath.Dir(*folioPath)
-	now := time.Now()
-	touched := 0
-
-	for _, out := range target.Outputs {
-		if out.Path == "" {
-			continue
-		}
-		fullPath := filepath.Join(folioDir, out.Path)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			fmt.Fprintln(os.Stderr, output.Errf("output file not found: %s", out.Path))
-			return 1
-		}
-		if err := os.Chtimes(fullPath, now, now); err != nil {
-			fmt.Fprintln(os.Stderr, output.Errf("touching %s: %s", out.Path, err))
-			return 1
-		}
-		touched++
+	touched, err := touch.Target(folioDir, &target)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		return 1
 	}
 
 	if touched == 0 {

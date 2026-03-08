@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"sort"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/jira"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 )
 
 func runJiraLint(args []string) int {
@@ -132,6 +136,9 @@ func runJiraPush(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Pushed description for %s", *id))
+	if touched, err := autoTouch(*source); err == nil && touched > 0 {
+		fmt.Printf("  Auto-touched %d output(s)\n", touched)
+	}
 	return 0
 }
 
@@ -191,6 +198,9 @@ func runJiraCreate(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Created %s and pushed description", key))
+	if touched, err := autoTouch(*source); err == nil && touched > 0 {
+		fmt.Printf("  Auto-touched %d output(s)\n", touched)
+	}
 	return 0
 }
 
@@ -240,6 +250,76 @@ func runJiraSearch(args []string) int {
 
 	fmt.Print(string(out))
 	return 0
+}
+
+// autoTouch finds the folio.yml containing sourcePath, locates the target
+// whose tree node references it, and touches that target's outputs.
+func autoTouch(sourcePath string) (int, error) {
+	abs, err := filepath.Abs(sourcePath)
+	if err != nil {
+		return 0, err
+	}
+
+	// Walk up to find folio.yml
+	dir := filepath.Dir(abs)
+	var folioPath string
+	for {
+		candidate := filepath.Join(dir, "folio.yml")
+		if _, err := os.Stat(candidate); err == nil {
+			folioPath = candidate
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return 0, fmt.Errorf("no folio.yml found above %s", sourcePath)
+		}
+		dir = parent
+	}
+
+	folioDir := filepath.Dir(folioPath)
+	f, err := config.Load(folioPath)
+	if err != nil {
+		return 0, err
+	}
+
+	// Make sourcePath relative to folioDir for matching
+	rel, err := filepath.Rel(folioDir, abs)
+	if err != nil {
+		return 0, err
+	}
+
+	// Find the target with a tree node referencing this source
+	for _, tid := range sortedTargetKeys(f.Targets) {
+		target := f.Targets[tid]
+		if target.Tree != nil && treeNodeMatches(&target.Tree.Root, rel) {
+			return touch.Target(folioDir, &target)
+		}
+	}
+
+	return 0, fmt.Errorf("no tree target references %s", rel)
+}
+
+// treeNodeMatches returns true if any node in the tree has a File matching relPath.
+func treeNodeMatches(node *config.TreeNode, relPath string) bool {
+	if node.File != "" && node.File == relPath {
+		return true
+	}
+	for i := range node.Children {
+		if treeNodeMatches(&node.Children[i], relPath) {
+			return true
+		}
+	}
+	return false
+}
+
+// sortedTargetKeys returns target IDs in deterministic order.
+func sortedTargetKeys(targets map[string]config.Target) []string {
+	keys := make([]string, 0, len(targets))
+	for k := range targets {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func readSource(path string) ([]byte, error) {
