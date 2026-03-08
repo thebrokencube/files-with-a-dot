@@ -118,6 +118,11 @@ func printHealthReport(r *health.Report, color bool) {
 		}
 	}
 
+	// Retro line
+	if r.Retro.Total > 0 {
+		fmt.Printf("  Retros    %d total, %d colocated, %d orphaned\n", r.Retro.Total, r.Retro.Colocated, r.Retro.Orphaned)
+	}
+
 	// Naming issues
 	if len(r.Naming) > 0 {
 		fmt.Printf("  Naming   %d files without date prefix\n", len(r.Naming))

@@ -19,8 +19,16 @@ type Report struct {
 	Untyped      []string       // files in flat reference/ (not in type subdir)
 	Work         WorkReport
 	Pending      PendingReport
+	Retro        RetroReport
 	Naming       []string // files without date prefix
 	Grade        string   // "Good", "Needs Attention", "Stale"
+}
+
+// RetroReport summarizes retro file colocation status.
+type RetroReport struct {
+	Total     int // total retro files
+	Colocated int // retros inside a work dir
+	Orphaned  int // retros in reference/retro/ with a matching work dir they could move to
 }
 
 // WorkReport summarizes the work layer.
@@ -47,6 +55,7 @@ func Analyze(f *config.Folio, folioDir string) *Report {
 	analyzeReference(r, folioDir)
 	analyzeWork(r, folioDir)
 	analyzePending(r, f)
+	analyzeRetro(r, folioDir)
 	analyzeNaming(r, folioDir)
 	r.Grade = computeGrade(r)
 
@@ -129,6 +138,57 @@ func analyzePending(r *Report, f *config.Folio) {
 			r.Pending.Terminal++
 		} else {
 			r.Pending.Active++
+		}
+	}
+}
+
+func analyzeRetro(r *Report, folioDir string) {
+	// Count retros in reference/retro/
+	retroDir := filepath.Join(folioDir, "reference", "retro")
+	if entries, err := os.ReadDir(retroDir); err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			r.Retro.Total++
+			// Extract topic from YYYY-MM-DD-<topic>.md
+			name := strings.TrimSuffix(e.Name(), ".md")
+			parts := strings.SplitN(name, "-", 4)
+			if len(parts) >= 4 {
+				topic := parts[3]
+				if taxonomy.FindWorkDir(folioDir, topic) != "" {
+					r.Retro.Orphaned++
+				}
+			}
+		}
+	}
+
+	// Count colocated retros in work dirs
+	for _, layer := range []string{"active", "archive"} {
+		layerDir := filepath.Join(folioDir, "work", layer)
+		workDirs, err := os.ReadDir(layerDir)
+		if err != nil {
+			continue
+		}
+		for _, wd := range workDirs {
+			if !wd.IsDir() {
+				continue
+			}
+			retroSubDir := filepath.Join(layerDir, wd.Name(), "reference", "retro")
+			if entries, err := os.ReadDir(retroSubDir); err == nil {
+				for _, e := range entries {
+					if !e.IsDir() {
+						r.Retro.Total++
+						r.Retro.Colocated++
+					}
+				}
+			}
+			// Also check for retro.md directly in work dir
+			retroFile := filepath.Join(layerDir, wd.Name(), "retro.md")
+			if _, err := os.Stat(retroFile); err == nil {
+				r.Retro.Total++
+				r.Retro.Colocated++
+			}
 		}
 	}
 }

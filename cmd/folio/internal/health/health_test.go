@@ -157,3 +157,34 @@ func TestAnalyzeWorkLayer(t *testing.T) {
 		t.Errorf("work archived = %d, want 1", r.Work.Archived)
 	}
 }
+
+func TestAnalyzeRetroReport(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a work dir that matches topic "skill-rewrite"
+	os.MkdirAll(filepath.Join(dir, "work", "active", "2026-03-01-skill-rewrite"), 0755)
+
+	// Orphaned retro in reference/retro/ (has matching work dir)
+	os.MkdirAll(filepath.Join(dir, "reference", "retro"), 0755)
+	os.WriteFile(filepath.Join(dir, "reference", "retro", "2026-03-01-skill-rewrite.md"), []byte("# Retro"), 0644)
+
+	// Non-orphaned retro in reference/retro/ (no matching work dir)
+	os.WriteFile(filepath.Join(dir, "reference", "retro", "2026-03-01-no-match.md"), []byte("# Retro"), 0644)
+
+	// Colocated retro inside work dir
+	os.MkdirAll(filepath.Join(dir, "work", "active", "2026-03-01-skill-rewrite", "reference", "retro"), 0755)
+	os.WriteFile(filepath.Join(dir, "work", "active", "2026-03-01-skill-rewrite", "reference", "retro", "retro.md"), []byte("# Retro"), 0644)
+
+	f := &config.Folio{Project: "retro-test"}
+	r := Analyze(f, dir)
+
+	if r.Retro.Total != 3 {
+		t.Errorf("retro total = %d, want 3", r.Retro.Total)
+	}
+	if r.Retro.Colocated != 1 {
+		t.Errorf("retro colocated = %d, want 1", r.Retro.Colocated)
+	}
+	if r.Retro.Orphaned != 1 {
+		t.Errorf("retro orphaned = %d, want 1", r.Retro.Orphaned)
+	}
+}
