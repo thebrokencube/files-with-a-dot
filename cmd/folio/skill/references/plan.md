@@ -159,7 +159,21 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
 4. If no folio project: use `--no-register` and write to the plan file's directory instead
 5. Present to user: "Design doc committed."
 
-The committed design doc is the contract for Agent 2. Inform the user: "Design doc committed at [path]. Start a new session to begin the Brief phase." Agent 1's session ends here.
+The committed design doc is the contract for Agent 2.
+
+**Session exit sequence (mandatory at every agent boundary):**
+1. **Retro prompt**: Ask "Anything worth retroing on before we move to the next phase?"
+   Capture findings as pending items or a retro file (see Phase 8 for recording rules).
+2. **Handoff gate**: Present the next phase and offer two options:
+   - **Continue** (default): Spawn the next agent via the Agent tool with fresh context.
+     The agent receives only the committed artifact path and the standard setup instructions
+     — no conversation history leaks across the boundary. This consumes parent context budget
+     but avoids manual session switching.
+   - **New session**: Provide a paste-able prompt for the user to start a fresh session.
+     Use this when the parent context is already heavy or the user prefers manual control.
+
+   Format: "Design doc committed at [path]. **Continue to Brief phase, or hand off to a
+   new session?**"
 
 **Multi-perspective review variant** (`/folio plan --pe-review`): When specified, replace the
 single Phase 4 review agent with 5 parallel agents, each with a distinct perspective: API
@@ -260,7 +274,12 @@ all referenced file paths, line numbers, and function signatures are accurate. A
 references cause mid-execution corrections — verify them upfront. Fix any inaccuracies, then
 commit.
 
-Commit via `folio home push`. The committed work brief is the contract for Agent 3. Inform the user: "Work brief committed at [path]. Start a new session to execute." Agent 2's session ends here.
+Commit via `folio home push`. The committed work brief is the contract for Agent 3.
+
+**Session exit sequence** (same as Phase 4 — retro prompt, then handoff gate):
+1. Ask "Anything worth retroing on before we move to execution?"
+2. "Work brief committed at [path]. **Continue to Execute phase, or hand off to a new
+   session?**"
 
 ### Phase 7: Execute (Agent 3)
 
@@ -292,10 +311,12 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 
 **Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml tasks/pending, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
-### Phase 8: Retrospective (Agent 3)
+### Phase 8: Retrospective (every agent)
 
-**Mandatory — no skip.** Runs in the execution agent session — it has the implementation
-context needed for meaningful retrospective. Do NOT delegate to a subagent. Cover:
+**Mandatory — no skip.** Every agent session ends with a retro prompt (see session exit
+sequence in Phases 4 and 6). The execution agent (Agent 3) does the most thorough retro
+since it has implementation context. Design and Brief agents do lightweight retros focused
+on process friction and artifact quality. Do NOT delegate retros to a subagent. Cover:
 
 - What worked well? What added friction?
 - Was the work brief sufficient? Could the execution agent proceed without reading the design doc?
