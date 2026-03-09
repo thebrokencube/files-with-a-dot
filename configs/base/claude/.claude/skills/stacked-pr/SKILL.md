@@ -220,8 +220,55 @@ Stacks assume linear (rebase) history. NEVER use merge commits within a stack.
 | Generated commit has merge conflicts | Cherry-picked instead of omit-and-rerun | `git cherry-pick --abort`, omit the generated SHA, re-run command after remaining picks |
 | Child propagated before parent | Propagated in wrong order | `git reflog show <branch>` to restore, re-record commit lists, re-propagate in correct DAG order |
 | `--force-with-lease` rejected | Remote updated by someone else | Fetch, inspect remote changes, decide with user |
+| `--force-with-lease` rejected with "stale info" | Branch was recreated via `checkout -B` during propagation | `git fetch origin <branch>` then retry. If remote ref is gone (new branch), use `--force` |
 | Forgot to record commits before rewriting | Branch ranges invalid after parent rebase | `git reflog show <child>` to find pre-rewrite tip, then `git rev-list --reverse <old-parent-tip>..<old-child-tip>` to recover the commit list |
+| Two commits merged into one after rebase | Used `git commit --amend` at a **conflict** stop instead of `git rebase --continue` | See Edit vs Conflict Stops below. Recover: `git rebase --abort`, re-run rebase |
 | Stack parent ambiguous | Fork in DAG, unclear which branch is parent | **Ask the user.** NEVER guess from commit dates or branch names |
+
+## Edit vs Conflict Stops During Rebase
+
+**CRITICAL**: `edit` stops and conflict stops during `git rebase -i` require different workflows. Mixing them up silently merges commits.
+
+### Edit stop (you requested `edit` in the todo list)
+
+The commit HAS been applied. You're amending it.
+
+```bash
+# Make changes to files
+git add <files>
+git commit --amend --no-edit
+git rebase --continue
+```
+
+### Conflict stop (rebase hit a merge conflict)
+
+The commit has NOT been created yet. `git rebase --continue` will create it.
+
+```bash
+# Resolve conflicts
+git add <files>
+git rebase --continue        # creates the commit
+```
+
+**NEVER `git commit --amend` at a conflict stop.** It amends the *previous* commit, silently merging two commits into one. This is extremely hard to notice and painful to recover from.
+
+### How to tell which stop you're at
+
+- **Edit stop**: message says "Stopped at <sha>... You can amend the commit now"
+- **Conflict stop**: message says "CONFLICT" and files have merge markers
+
+## Retroactive Edits Across a Stack
+
+When you need to apply a change retroactively across multiple commits (e.g. renaming a pattern introduced in commit 8 and used in commits 10, 14, 17), a single `rebase -i` with targeted `edit` stops is the fastest approach:
+
+```bash
+# Mark specific commits as edit using sed on the todo list
+GIT_SEQUENCE_EDITOR="sed -i '' -e '/^pick <sha1>/s/^pick/edit/' -e '/^pick <sha2>/s/^pick/edit/'" git rebase -i <base>
+```
+
+At each stop: make the change, `git add`, `git commit --amend --no-edit`, `git rebase --continue`.
+
+After the rebase completes, update child branch pointers (`git branch -f <child> <new-tip>`) and propagate descendants.
 
 ## Folio Integration
 
