@@ -5,4 +5,4 @@
 
 configs/base/claude/settings.base.json+claude-settings.json:$HOME/.claude/settings.json
 configs/base/claude/known_marketplaces.base.json+claude-plugins-marketplaces.json:$HOME/.claude/plugins/known_marketplaces.json
-configs/base/claude/installed_plugins.base.json:$HOME/.claude/plugins/installed_plugins.json
+configs/base/claude/installed_plugins.base.json+claude-plugins-installed.json:$HOME/.claude/plugins/installed_plugins.json
