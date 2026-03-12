@@ -8,6 +8,12 @@
 # When acli can't discover custom fields (e.g., Components, Ownership Area),
 # use MCP getJiraIssueTypeMetaWithFields for metadata discovery, then acli
 # for execution. MCP Jira tools are read-only in the publish workflow.
+#
+# Token budget (Jira MCP reads): Always pass the fields parameter.
+# Standard: summary,status,assignee,description,priority,issuetype,parent,subtasks,issuelinks,labels,comment
+# Minimal: summary,status (for dashboards/batch checks)
+# Extended: add changelog (for history/transition tracking)
+# A bare getJiraIssue returns ~100KB (~25-30K tokens), 91% waste.
 
 systems:
   jira:

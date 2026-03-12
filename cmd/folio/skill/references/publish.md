@@ -67,7 +67,7 @@ folio jira compile --id BEN-48284 --source epic.md --output compiled/jira/BEN-48
 
 ## Jira Creation Pipeline
 
-> **IMPORTANT:** Always use `folio jira` for all Jira write operations. MCP Jira tools are read-only in this workflow (permitted for field discovery where acli has no equivalent).
+> **IMPORTANT:** Always use `folio jira` for all Jira write operations. MCP Jira tools are read-only in this workflow (permitted for field discovery where acli has no equivalent). When using MCP for reads, always pass the `fields` parameter — see tooling.yml for standard/minimal/extended field sets.
 
 For tree nodes that do not yet have a Jira key, use the two-phase creation command. It creates a barebones ticket (no description), captures the key, then pushes the description separately. This two-phase approach is more reliable than embedding ADF in the creation payload.
 
