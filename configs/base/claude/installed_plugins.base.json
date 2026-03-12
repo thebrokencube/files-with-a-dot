@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "plugins": {
+    "superpowers@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sapan.upadhyay/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.1",
+        "version": "5.0.1",
+        "installedAt": "2026-03-11T20:29:22.573Z",
+        "lastUpdated": "2026-03-11T20:29:22.573Z",
+        "gitCommitSha": "5ef73d25b71e69e63a74eae359fb26c7a6ac8fc0"
+      }
+    ]
+  }
+}

@@ -4,3 +4,5 @@
 # Merged with jq shallow merge (overlay wins on key conflicts)
 
 configs/base/claude/settings.base.json+claude-settings.json:$HOME/.claude/settings.json
+configs/base/claude/known_marketplaces.base.json+claude-plugins-marketplaces.json:$HOME/.claude/plugins/known_marketplaces.json
+configs/base/claude/installed_plugins.base.json:$HOME/.claude/plugins/installed_plugins.json
