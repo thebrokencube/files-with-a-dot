@@ -79,6 +79,14 @@
     "enabled": false
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          { "type": "command", "command": "echo '--- Staged changes ---' && git diff --cached --stat" }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "",
