@@ -50,6 +50,8 @@
       "Bash(diff *)",
       "Bash(tree *)",
       "Bash(test *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
       "Bash(jq *)",
 
       "Bash(rm *)",
