@@ -11,11 +11,12 @@ import (
 
 // Entry represents a discovered folio in the repository.
 type Entry struct {
-	Section string // "active" or "archive"
-	Path    string // relative path within section (e.g., "ben/state-retirement-mandates")
-	Project string // project name from folio.yml
-	Targets int    // number of targets
-	Pending int    // number of pending items
+	Section      string // "active" or "archive"
+	Path         string // relative path within section (e.g., "ben/state-retirement-mandates")
+	Project      string // project name from folio.yml
+	Targets      int    // number of targets
+	Pending      int    // number of pending items (compat)
+	Observations int    // number of observations
 }
 
 // Scan walks active/ and archive/ under home, finds all folio.yml files,
@@ -45,11 +46,12 @@ func Scan(home string) ([]Entry, error) {
 			rel, _ := filepath.Rel(sectionDir, filepath.Dir(path))
 
 			entries = append(entries, Entry{
-				Section: section,
-				Path:    rel,
-				Project: f.Project,
-				Targets: len(f.Targets),
-				Pending: len(f.Pending),
+				Section:      section,
+				Path:         rel,
+				Project:      f.Project,
+				Targets:      len(f.Targets),
+				Pending:      len(f.Pending),
+				Observations: len(f.Observations),
 			})
 
 			return nil

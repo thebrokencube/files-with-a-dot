@@ -141,10 +141,9 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 		}
 	}
 
-	// Tasks and pending
+	// Observations (combines tasks + pending for display)
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Tasks: %s%d%s open\n", p.bold, ps.Tasks, p.reset)
-	fmt.Fprintf(w, "Pending: %s%d%s notes\n", p.bold, ps.Pending, p.reset)
+	fmt.Fprintf(w, "Observations: %s%d%s\n", p.bold, ps.Lifecycle.Observations, p.reset)
 }
 
 func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p palette, indent string, isLast bool) {

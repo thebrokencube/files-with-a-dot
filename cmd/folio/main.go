@@ -179,7 +179,7 @@ Commands:
   validate     Validate folio.yml structure
   status       Derive and display target state
   init         Bootstrap a new folio.yml
-  add-pending  Append an item to the pending list
+  observe      Append an observation (alias: add-pending)
 `)
 }
 

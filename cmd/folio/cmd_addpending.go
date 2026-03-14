@@ -22,8 +22,8 @@ func runAddPending(args []string) int {
 
 	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if item == "" {
-		fmt.Fprintf(os.Stderr, "Usage: folio add-pending <item text> [--folio PATH]\n")
-		fmt.Fprintf(os.Stderr, "       folio observe <item text> [--folio PATH]\n")
+		fmt.Fprintf(os.Stderr, "Usage: folio observe <item text> [--folio PATH]\n")
+		fmt.Fprintf(os.Stderr, "       folio add-pending <item text> [--folio PATH]  (compat alias)\n")
 		return 1
 	}
 

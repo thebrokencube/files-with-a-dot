@@ -143,8 +143,8 @@ func printEntryTable(entries []list.Entry, color bool) {
 		}
 	}
 
-	header := fmt.Sprintf("  %-*s  %-*s  %s  %s", pathW, "Path", projW, "Project", "Targets", "Pending")
-	sep := fmt.Sprintf("  %s  %s  %s  %s", strings.Repeat("-", pathW), strings.Repeat("-", projW), "-------", "-------")
+	header := fmt.Sprintf("  %-*s  %-*s  %s  %s", pathW, "Path", projW, "Project", "Targets", "Observations")
+	sep := fmt.Sprintf("  %s  %s  %s  %s", strings.Repeat("-", pathW), strings.Repeat("-", projW), "-------", "------------")
 
 	if color {
 		fmt.Printf("%s%s%s\n", output.Dim, header, output.Reset)
@@ -155,7 +155,7 @@ func printEntryTable(entries []list.Entry, color bool) {
 	}
 
 	for _, e := range entries {
-		fmt.Printf("  %-*s  %-*s  %7d  %7d\n", pathW, e.Path, projW, e.Project, e.Targets, e.Pending)
+		fmt.Printf("  %-*s  %-*s  %7d  %12d\n", pathW, e.Path, projW, e.Project, e.Targets, e.Observations)
 	}
 }
 
