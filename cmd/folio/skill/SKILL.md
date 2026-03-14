@@ -122,11 +122,16 @@ Previously: `/folio audit`
 
 ### /folio observe
 
-Add item to `observations:` in folio.yml.
+Manage observations in folio.yml. **Do NOT edit the `observations:` list in folio.yml by hand** — not to add, remove, reorder, or reformat entries. All mutations go through CLI commands, which enforce format validation. `folio home push` runs lint as a gate and will reject malformed observations.
 
-1. If text provided with command, use it. Otherwise ask.
-2. CLI appends to the `observations:` list
-3. Write with targeted editing (don't reformat the whole file)
+Workflow:
+1. `folio observe types` — get valid types and descriptions
+2. `folio observe list --json` — check existing scopes (avoid near-duplicates)
+3. `folio observe 'type(scope): description'` — append (validates format)
+4. `folio observe resolve <#N|substring>` — delete resolved items
+5. `folio observe lint` — check format + inline path refs
+
+If no text provided with the command, ask the user for the observation.
 
 ### CLI Pass-Throughs
 
