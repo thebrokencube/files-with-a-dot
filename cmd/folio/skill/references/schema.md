@@ -7,7 +7,7 @@ Shared across workflows. Contains YAML structure reference for Claude. Go code o
 All paths relative to the directory containing folio.yml.
 
 ```yaml
-schema: 1                              # Required. Must be 1.
+schema: 1                              # Required. 1 or 2.
 project: "Name"                        # Required. Human-readable.
 
 sources:                               # Optional. Project-level sources.
@@ -76,8 +76,20 @@ cross_references:
     source_of_truth: "path/to/file.md § Section Name"
     also_appears_in: ["other/file.md § Section Name"]
 
-tasks: []                              # Open work items (list of strings)
-pending: []                            # Backlog items (list of strings)
+tasks: []                              # Deprecated in schema 2. Use observations.
+pending: []                            # Deprecated in schema 2. Use observations.
+observations: []                       # Schema 2. Replaces tasks + pending.
 ```
 
 The `§` separator means: read file before `§`, locate section after `§`. Some cross-references may be descriptive — do best-effort comparison.
+
+## Schema 2 Changes
+
+Schema 2 (`schema: 2`) introduces:
+
+- **`observations:`** replaces `pending:` + `tasks:`. Single list for all captured items.
+- **`plan` type** (alias: `brief`). `folio new plan <topic>` scaffolds `work/active/<date>-<topic>/README.md`.
+- **Reference labels**: research, insight, guide, domain, review. Mapped from old names (survey→research, synthesis→research, pattern→insight).
+- **`how:` optional**: Missing `how` produces a warning (data-declaration target), not an error.
+
+`folio init` generates schema 2 by default. Schema 1 files continue to work — `tasks` auto-upgrade to `observations` at parse time.

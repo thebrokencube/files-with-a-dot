@@ -25,6 +25,31 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
+## Lifecycle Model
+
+Folio tracks a knowledge lifecycle:
+
+```
+observation -> spike -> design -> plan[tracks] -> implementation -> retro
+     ^                                                                |
+     '---------------------- findings feed back ----------------------'
+```
+
+**Lifecycle types** progress through stages: observation, spike, design, plan, track, retro.
+**References** (labels: research, insight, guide, domain, review) feed in at any stage.
+**Outputs** are composed artifacts for external systems.
+
+`folio status` shows a lifecycle summary header with counts per stage.
+
+| From | To | Trigger |
+|------|------|---------|
+| observation | spike | "I should investigate this" |
+| spike | design | Findings warrant a solution |
+| design | plan | Design approved, ready to execute |
+| plan | implementation | Tracks created from plan |
+| implementation | retro | Work complete or paused |
+| retro | observation | Findings feed back into new observations |
+
 ## Bare Invocation
 
 When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just freeform discussion):
@@ -95,12 +120,12 @@ Previously: `/folio audit`
 
 -> Read references/review.md for full workflow.
 
-### /folio add-pending
+### /folio add-pending (alias: /folio observe)
 
-Add item to the `pending` list in folio.yml.
+Add item to `observations:` (schema 2) or `pending:` (schema 1) in folio.yml.
 
 1. If text provided with command, use it. Otherwise ask.
-2. Read folio.yml, locate or create `pending:` list
+2. CLI searches for `observations:` first, falls back to `pending:`
 3. Append new item string
 4. Write with targeted editing (don't reformat the whole file)
 
