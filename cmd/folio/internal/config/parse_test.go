@@ -183,6 +183,74 @@ project: "Bare"
 	if f.Repositories == nil {
 		t.Error("Repositories should be initialized, got nil")
 	}
+	if f.Observations == nil {
+		t.Error("Observations should be initialized, got nil")
+	}
+}
+
+func TestParseObservationsField(t *testing.T) {
+	data := []byte(`
+schema: 2
+project: "Test"
+sources: []
+targets: {}
+observations:
+  - "idea 1"
+  - "idea 2"
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Observations) != 2 {
+		t.Errorf("observations len = %d, want 2", len(f.Observations))
+	}
+}
+
+func TestNormalizeTasksToObservations(t *testing.T) {
+	data := []byte(`
+schema: 1
+project: "Test"
+sources: []
+targets: {}
+tasks:
+  - "task 1"
+  - "task 2"
+pending: []
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Observations) != 2 {
+		t.Errorf("observations len = %d, want 2 (auto-upgraded from tasks)", len(f.Observations))
+	}
+	if f.Observations[0] != "task 1" {
+		t.Errorf("observations[0] = %q, want %q", f.Observations[0], "task 1")
+	}
+}
+
+func TestNormalizeObservationsNotOverwritten(t *testing.T) {
+	data := []byte(`
+schema: 2
+project: "Test"
+sources: []
+targets: {}
+tasks:
+  - "old task"
+observations:
+  - "explicit obs"
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Observations) != 1 {
+		t.Errorf("observations len = %d, want 1 (should not merge tasks when observations present)", len(f.Observations))
+	}
+	if f.Observations[0] != "explicit obs" {
+		t.Errorf("observations[0] = %q, want %q", f.Observations[0], "explicit obs")
+	}
 }
 
 func TestParseRejectsUnknownTopLevelKeys(t *testing.T) {

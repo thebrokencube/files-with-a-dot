@@ -10,6 +10,7 @@ type Folio struct {
 	CrossReferences []CrossReference  `yaml:"cross_references"`
 	Tasks           []string          `yaml:"tasks"`
 	Pending         []string          `yaml:"pending"`
+	Observations    []string          `yaml:"observations"`
 	ContextSources  interface{}       `yaml:"context_sources"` // deprecated detection
 }
 
