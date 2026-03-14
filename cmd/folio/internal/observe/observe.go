@@ -3,6 +3,7 @@ package observe
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -195,4 +196,71 @@ func Remove(path string, matches []string) ([]string, error) {
 	}
 
 	return removed, os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
+}
+
+// LintIssue describes a single lint finding for an observation.
+type LintIssue struct {
+	Index  int
+	Item   string
+	Reason string
+}
+
+var (
+	parenPathRe = regexp.MustCompile(`\(([^)]+)\)`)
+	seePathRe   = regexp.MustCompile(`(?:See|see) ([^\s,]+)`)
+)
+
+// Lint checks observations for format errors and broken inline path references.
+func Lint(folioDir string, items []string) []LintIssue {
+	var issues []LintIssue
+	for i, item := range items {
+		if err := Validate(item); err != nil {
+			issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: "malformed format"})
+			continue
+		}
+
+		// Extract and check inline path references
+		paths := extractPaths(item)
+		for _, p := range paths {
+			full := filepath.Join(folioDir, p)
+			if _, err := os.Stat(full); os.IsNotExist(err) {
+				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("broken path: %s", p)})
+			}
+		}
+	}
+	return issues
+}
+
+func extractPaths(item string) []string {
+	var paths []string
+	seen := map[string]bool{}
+
+	add := func(candidate string) {
+		// Strip trailing punctuation
+		candidate = strings.TrimRight(candidate, ".,)")
+		// Skip URLs
+		if strings.Contains(candidate, "://") {
+			return
+		}
+		// Path-likeness: must contain / or .
+		if !strings.Contains(candidate, "/") && !strings.Contains(candidate, ".") {
+			return
+		}
+		if !seen[candidate] {
+			seen[candidate] = true
+			paths = append(paths, candidate)
+		}
+	}
+
+	// Parenthetical references
+	for _, m := range parenPathRe.FindAllStringSubmatch(item, -1) {
+		add(m[1])
+	}
+
+	// "See path" references
+	for _, m := range seePathRe.FindAllStringSubmatch(item, -1) {
+		add(m[1])
+	}
+
+	return paths
 }

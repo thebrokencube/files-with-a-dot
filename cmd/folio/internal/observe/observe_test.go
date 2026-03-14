@@ -290,3 +290,72 @@ func TestRemoveNotFound(t *testing.T) {
 		t.Error("expected not-found error")
 	}
 }
+
+func TestLintValid(t *testing.T) {
+	dir := t.TempDir()
+	items := []string{
+		"bug(cli): something broken",
+		"task(plan): action item",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 0 {
+		t.Errorf("expected no issues, got %d: %v", len(issues), issues)
+	}
+}
+
+func TestLintMalformed(t *testing.T) {
+	dir := t.TempDir()
+	items := []string{
+		"freeform text",
+		"bug(cli): valid item",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue, got %d", len(issues))
+	}
+	if issues[0].Index != 1 {
+		t.Errorf("issue index = %d, want 1", issues[0].Index)
+	}
+	if issues[0].Reason != "malformed format" {
+		t.Errorf("reason = %q, want malformed format", issues[0].Reason)
+	}
+}
+
+func TestLintBrokenPath(t *testing.T) {
+	dir := t.TempDir()
+	items := []string{
+		"bug(cli): broken ref (reference/missing.md)",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue, got %d", len(issues))
+	}
+	if !strings.Contains(issues[0].Reason, "broken path") {
+		t.Errorf("reason = %q, want broken path", issues[0].Reason)
+	}
+}
+
+func TestLintSkipsURLs(t *testing.T) {
+	dir := t.TempDir()
+	items := []string{
+		"idea(cli): see docs (https://example.com/path)",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for URL, got %d: %v", len(issues), issues)
+	}
+}
+
+func TestLintSeePath(t *testing.T) {
+	dir := t.TempDir()
+	items := []string{
+		"task(plan): needs work. See reference/design/missing.md",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue, got %d", len(issues))
+	}
+	if !strings.Contains(issues[0].Reason, "broken path") {
+		t.Errorf("reason = %q, want broken path", issues[0].Reason)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -187,7 +188,30 @@ func runObserveTypes(args []string) int {
 }
 
 func runObserveLint(args []string) int {
-	// Placeholder — implemented in Track 4
-	fmt.Fprintf(os.Stderr, "observe lint: not yet implemented\n")
+	fs := flag.NewFlagSet("observe lint", flag.ExitOnError)
+	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
+	fs.Parse(args)
+
+	if !resolveOrDie(folioPath) {
+		return 1
+	}
+
+	f, err := config.Load(*folioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		return 1
+	}
+
+	folioDir := filepath.Dir(*folioPath)
+	issues := observe.Lint(folioDir, f.Observations)
+
+	if len(issues) == 0 {
+		fmt.Println(output.Successf("All observations valid"))
+		return 0
+	}
+
+	for _, issue := range issues {
+		fmt.Fprintf(os.Stderr, "  #%d: %s\n", issue.Index, issue.Reason)
+	}
 	return 1
 }
