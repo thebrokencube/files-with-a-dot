@@ -22,15 +22,26 @@ func TestValidateMinimal(t *testing.T) {
 
 func TestValidateBadSchema(t *testing.T) {
 	f := &config.Folio{
-		Schema:  2,
+		Schema:  99,
 		Project: "Test",
 	}
 	r := Validate(f, t.TempDir())
 	if r.Valid {
-		t.Error("expected invalid for schema 2")
+		t.Error("expected invalid for schema 99")
 	}
 	if !containsError(r, "schema version") {
 		t.Errorf("expected schema error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateSchema2Valid(t *testing.T) {
+	f := &config.Folio{
+		Schema:  2,
+		Project: "Test",
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid for schema 2, got errors: %v", r.Errors)
 	}
 }
 
@@ -134,7 +145,7 @@ func TestValidateDerivedSourceMissingExternal(t *testing.T) {
 	}
 }
 
-func TestValidateTargetMissingHow(t *testing.T) {
+func TestValidateMissingHowWarnsNotErrors(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 
@@ -148,11 +159,11 @@ func TestValidateTargetMissingHow(t *testing.T) {
 		},
 	}
 	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for missing how")
+	if !r.Valid {
+		t.Errorf("expected valid (warning only for missing how), got errors: %v", r.Errors)
 	}
-	if !containsError(r, "missing required field: how") {
-		t.Errorf("expected how error, got: %v", r.Errors)
+	if !containsWarning(r, "missing 'how' field") {
+		t.Errorf("expected how warning, got warnings: %v", r.Warnings)
 	}
 }
 
@@ -1149,6 +1160,21 @@ func TestValidateCrossRefDuplicateFact(t *testing.T) {
 	}
 	if !containsWarning(r, "duplicate fact") {
 		t.Errorf("expected duplicate warning, got warnings: %v", r.Warnings)
+	}
+}
+
+func TestValidateTasksDeprecationWarning(t *testing.T) {
+	f := &config.Folio{
+		Schema:  2,
+		Project: "Test",
+		Tasks:   []string{"old task"},
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
+	}
+	if !containsWarning(r, "'tasks' is deprecated") {
+		t.Errorf("expected tasks deprecation warning, got warnings: %v", r.Warnings)
 	}
 }
 

@@ -78,14 +78,14 @@ pending: []
 func TestIntegrationBadSchema(t *testing.T) {
 	dir := t.TempDir()
 	writeFixture(t, dir, "folio.yml", `
-schema: 2
+schema: 99
 project: "Bad"
 sources: []
 targets: {}
 `)
 	r := loadAndValidate(t, dir)
 	if r.Valid {
-		t.Error("expected invalid for schema 2")
+		t.Error("expected invalid for schema 99")
 	}
 	if !hasError(r, "schema version") {
 		t.Errorf("expected schema error, got: %v", r.Errors)
@@ -285,11 +285,11 @@ targets:
       - path: compiled/out.md
 `)
 	r := loadAndValidate(t, dir)
-	if r.Valid {
-		t.Error("expected invalid for missing how")
+	if !r.Valid {
+		t.Errorf("expected valid (warning only for missing how), got errors: %v", r.Errors)
 	}
-	if !hasError(r, "missing required field: how") {
-		t.Errorf("expected how error, got: %v", r.Errors)
+	if !hasWarning(r, "missing 'how' field") {
+		t.Errorf("expected how warning, got warnings: %v", r.Warnings)
 	}
 }
 

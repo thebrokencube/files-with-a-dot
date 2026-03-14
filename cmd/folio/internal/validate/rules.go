@@ -23,8 +23,8 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	r := &Result{Valid: true}
 
 	// Schema version
-	if f.Schema != 1 {
-		r.addError("Missing or invalid schema version (expected: 1, got: %d)", f.Schema)
+	if f.Schema != 1 && f.Schema != 2 {
+		r.addError("Missing or invalid schema version (expected: 1 or 2, got: %d)", f.Schema)
 	}
 
 	// Project name
@@ -35,6 +35,14 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	// Deprecated context_sources
 	if f.ContextSources != nil {
 		r.addWarning("Deprecated key 'context_sources' found — migrate to 'sources'")
+	}
+
+	// Schema 2 deprecation warnings
+	if f.Schema == 2 && len(f.Tasks) > 0 {
+		r.addWarning("Schema 2: 'tasks' is deprecated — merge items into 'observations'")
+	}
+	if f.Schema == 2 && len(f.Pending) > 0 {
+		r.addWarning("Schema 2: 'pending' is deprecated — use 'observations'")
 	}
 
 	// Project-level sources
@@ -228,9 +236,9 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		validateTreeNode(r, tid, &target.Tree.Root, target, folioDir, seenIDs)
 	}
 
-	// How field (required, with instructions fallback)
+	// How field (optional with warning, instructions fallback)
 	if target.How == "" && target.Instructions == "" {
-		r.addError("Target '%s': missing required field: how", tid)
+		r.addWarning("[workflow] Target '%s': missing 'how' field — target is a data declaration only (cannot be composed)", tid)
 	} else if target.How == "" && target.Instructions != "" {
 		r.addWarning("Target '%s': 'instructions' is deprecated, rename to 'how'", tid)
 	} else if target.How != "" && target.Instructions != "" {
