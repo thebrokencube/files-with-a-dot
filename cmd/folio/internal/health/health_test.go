@@ -88,39 +88,15 @@ func TestAnalyzeObservations(t *testing.T) {
 		Observations: []string{
 			"Active item one",
 			"Active item two",
-			"[DONE:resolved] Old item",
-			"[SPLIT→a,b] Split item",
-			"[DROPPED:reason] Dropped",
+			"Active item three",
 		},
 	}
 
 	dir := t.TempDir()
 	r := Analyze(f, dir)
 
-	if r.Observations.Active != 2 {
-		t.Errorf("observations active = %d, want 2", r.Observations.Active)
-	}
-	if r.Observations.Terminal != 3 {
-		t.Errorf("observations terminal = %d, want 3", r.Observations.Terminal)
-	}
-}
-
-func TestIsTerminal(t *testing.T) {
-	tests := []struct {
-		item string
-		want bool
-	}{
-		{"Active item", false},
-		{"[DONE:reason] Item", true},
-		{"[SPLIT→a,b] Item", true},
-		{"[SPLIT->a,b] Item", true},
-		{"[DROPPED:reason] Item", true},
-		{"Some [DONE:] not at start", false},
-	}
-	for _, tt := range tests {
-		if got := IsTerminal(tt.item); got != tt.want {
-			t.Errorf("IsTerminal(%q) = %v, want %v", tt.item, got, tt.want)
-		}
+	if r.Observations.Active != 3 {
+		t.Errorf("observations active = %d, want 3", r.Observations.Active)
 	}
 }
 

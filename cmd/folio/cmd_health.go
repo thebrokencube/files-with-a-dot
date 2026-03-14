@@ -93,8 +93,8 @@ func printHealthReport(r *health.Report, color bool) {
 	}
 
 	// Observations line (most actionable)
-	if r.Observations.Active > 0 || r.Observations.Terminal > 0 {
-		fmt.Printf("  Observations  %d active, %d resolved\n", r.Observations.Active, r.Observations.Terminal)
+	if r.Observations.Active > 0 {
+		fmt.Printf("  Observations  %d active\n", r.Observations.Active)
 	}
 
 	// Work line

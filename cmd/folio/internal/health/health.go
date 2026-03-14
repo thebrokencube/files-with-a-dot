@@ -39,8 +39,7 @@ type WorkReport struct {
 
 // ObservationReport summarizes observation items.
 type ObservationReport struct {
-	Active   int
-	Terminal int
+	Active int
 }
 
 var datePrefix = regexp.MustCompile(`^\d{4}-`)
@@ -133,13 +132,7 @@ func analyzeWork(r *Report, folioDir string) {
 }
 
 func analyzeObservations(r *Report, f *config.Folio) {
-	for _, item := range f.Observations {
-		if IsTerminal(item) {
-			r.Observations.Terminal++
-		} else {
-			r.Observations.Active++
-		}
-	}
+	r.Observations.Active = len(f.Observations)
 }
 
 func analyzeRetro(r *Report, folioDir string) {
@@ -223,14 +216,6 @@ func analyzeNaming(r *Report, folioDir string) {
 			}
 		}
 	}
-}
-
-// IsTerminal returns true if the observation item has a terminal-state prefix.
-func IsTerminal(item string) bool {
-	return strings.HasPrefix(item, "[DONE:") ||
-		strings.HasPrefix(item, "[SPLIT→") ||
-		strings.HasPrefix(item, "[SPLIT->") ||
-		strings.HasPrefix(item, "[DROPPED:")
 }
 
 func computeGrade(r *Report) string {
