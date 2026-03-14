@@ -8,11 +8,15 @@ import (
 	"os"
 	"strings"
 
+	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 )
 
 func mustResolveHome() string {
@@ -185,6 +189,15 @@ func runHomePush(args []string) int {
 
 	dir := mustResolveHome()
 
+	// Validate all active folio.yml files before committing
+	if errs := validateActiveProjects(dir); len(errs) > 0 {
+		fmt.Fprintln(os.Stderr, output.Errf("validation failed — fix before pushing:"))
+		for _, e := range errs {
+			fmt.Fprintf(os.Stderr, "  - %s\n", e)
+		}
+		return 1
+	}
+
 	var pushErr error
 	if *folioName != "" {
 		entries, err := list.Scan(dir)
@@ -273,4 +286,31 @@ func runHomeActivate(args []string) int {
 
 	fmt.Println(output.Successf("Activated archive/%s", relPath))
 	return 0
+}
+
+// validateActiveProjects loads and validates every folio.yml in active/.
+// Returns a list of human-readable errors (empty on success).
+func validateActiveProjects(homeDir string) []string {
+	entries, err := list.Scan(homeDir)
+	if err != nil {
+		return []string{fmt.Sprintf("scan: %s", err)}
+	}
+
+	var errs []string
+	for _, e := range entries {
+		if e.Section != "active" {
+			continue
+		}
+		ymlPath := filepath.Join(homeDir, "active", e.Path, "folio.yml")
+		f, err := config.Load(ymlPath)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, err))
+			continue
+		}
+		result := validate.Validate(f, filepath.Dir(ymlPath))
+		for _, ve := range result.Errors {
+			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, ve))
+		}
+	}
+	return errs
 }
