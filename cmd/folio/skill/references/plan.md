@@ -28,7 +28,7 @@ Phase 7 is a loop per track step: implement → validate → review (mandatory g
 
 When the plan has external targets (Jira hierarchy, branch topology), execution feeds into compose/publish to sync outputs. This is optional — not every plan has external targets.
 
-The feedback loop: implementation experience feeds the Phase 8 retrospective, whose actionable findings become pending items that inform future cycles. Design docs and work briefs persist as durable reference material, not disposable intermediates.
+The feedback loop: implementation experience feeds the Phase 8 retrospective, whose actionable findings become observation items that inform future cycles. Design docs and work briefs persist as durable reference material, not disposable intermediates.
 
 ## Pipeline
 
@@ -68,9 +68,9 @@ Gather context before spawning any agents. This happens in the main conversation
 1. Identify the task scope from the user's request (or `<topic>` argument)
 2. Read relevant files — entry points, existing implementations, tests, CLAUDE.md
 3. Search for related patterns in the codebase (Grep/Glob)
-4. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and tasks/pending items.
+4. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and observations.
 5. **Present folio findings to the user.** If a project matched: summarize project name, key
-   sources pulled in, relevant pending tasks. Wait for confirmation before continuing. If no
+   sources pulled in, relevant observations. Wait for confirmation before continuing. If no
    project matched: list the active projects that were considered, ask if any of them are
    relevant (the user may see a match the search missed), and ask if a new folio project
    should be created to track this work. Only proceed without folio context after explicit
@@ -163,7 +163,7 @@ The committed design doc is the contract for Agent 2.
 
 **Session exit sequence (mandatory at every agent boundary):**
 1. **Retro prompt**: Ask "Anything worth retroing on before we move to the next phase?"
-   Capture findings as pending items or a retro file (see Phase 8 for recording rules).
+   Capture findings as observation items or a retro file (see Phase 8 for recording rules).
 2. **Handoff gate**: Present the next phase and offer two options:
    - **Continue** (default): Spawn the next agent via the Agent tool with fresh context.
      The agent receives only the committed artifact path and the standard setup instructions
@@ -260,7 +260,7 @@ For each track, specify:
 Commit format, scope target (max commits — typically ~5), validation commands,
 module/package path, push workflow, and repo-specific patterns.
 
-Include a **Folio integration** subsection: targets to add for branches, pending
+Include a **Folio integration** subsection: targets to add for branches, observation
 items to resolve on completion, `folio home push` checkpoints at milestones. Execution agents
 should maintain folio state as they go — not as a final cleanup step.
 
@@ -309,7 +309,7 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 5. **Commit.** One logical unit per commit.
 6. **Repeat** from step 1 for the next step.
 
-**Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml tasks/pending, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
+**Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml observations, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
 ### Phase 8: Retrospective (every agent)
 
@@ -329,11 +329,11 @@ Only capture actionable findings, not session notes. Findings that aren't worth 
 aren't actionable — note them in the retro summary and move on.
 
 **Recording findings**: Retro findings worth preserving MUST be materialized via
-`folio new retro <topic>` — not just added as pending items. The retro file captures the full
-context; pending items capture only the actionable follow-ups. Both are written: the retro file
-is the durable artifact, pending items are the work triggers. Commit via `folio home push`.
+`folio new retro <topic>` — not just added as observation items. The retro file captures the full
+context; observation items capture only the actionable follow-ups. Both are written: the retro file
+is the durable artifact, observation items are the work triggers. Commit via `folio home push`.
 
-For lightweight retros (few findings, simple context), pending items alone are sufficient — use
+For lightweight retros (few findings, simple context), observation items alone are sufficient — use
 judgment on whether the full context warrants a retro file.
 
 ## Re-run Rule
@@ -462,5 +462,5 @@ Keep your review under 40 lines. Only flag real issues.
 - **Interaction with folio**: Phase 1 checks for active folio projects. If one is relevant, its sources and cross-references inform the context summary.
 - **Design doc**: Always produced in Phase 4. The doc is the authoritative input for Agent 2.
 - **Custom lenses**: Users can specify lenses naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). Parse the user's intent and craft lens descriptions accordingly.
-- **Retrospective findings**: Phase 8 captures findings as pending items in the folio project, not as recursive `/folio plan` invocations.
+- **Retrospective findings**: Phase 8 captures findings as observation items in the folio project, not as recursive `/folio plan` invocations.
 - **Agent boundaries**: The Pipeline section defines default boundaries. When collapsing agents (running multiple phases in one session), preserve the commit checkpoints — the design doc and work brief must still be committed before execution begins.

@@ -11,7 +11,7 @@ argument-hint: "[gather|plan|compose|publish|review|status|...] [args]"
 
 Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
 
-**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, review, add-pending). Each workflow's full instructions live in a reference file — read only what you need.
+**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, review, observe). Each workflow's full instructions live in a reference file — read only what you need.
 
 **Process narration**: Before starting any multi-step workflow or phase transition, state what you're about to do and why. Example: "Starting Phase 2 — spawning two propose agents with pragmatic and thorough lenses." This prevents ambiguity about which phase you're in and lets the user course-correct before work begins, not after.
 
@@ -58,17 +58,17 @@ When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just
 2. Present active projects as a compact numbered list:
    ```
    Active projects:
-     1. files-with-a-dot          (1 target, 29 pending)
-     2. app-benefits Structure    (7 targets, 1 pending)
+     1. files-with-a-dot          (1 target, 29 observations)
+     2. app-benefits Structure    (7 targets, 1 observation)
      ...
    ```
-   Highlight projects with high pending counts or many targets.
+   Highlight projects with high observation counts or many targets.
 3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`)"**
 4. When the user picks a project, use the **Path** column from `folio home list` output to resolve the folio.yml location:
    - Active projects live at `~/.folio/active/<path>/folio.yml`
    - Archived projects live at `~/.folio/archive/<path>/folio.yml`
    - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
-   - Suggest next actions based on what's stale, pending, or ready to compose/publish
+   - Suggest next actions based on what's stale, has observations, or is ready to compose/publish
 
 If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, treat it as freeform discussion about the folio system — answer the question directly.
 
@@ -120,14 +120,13 @@ Previously: `/folio audit`
 
 -> Read references/review.md for full workflow.
 
-### /folio add-pending (alias: /folio observe)
+### /folio observe
 
-Add item to `observations:` (schema 2) or `pending:` (schema 1) in folio.yml.
+Add item to `observations:` in folio.yml.
 
 1. If text provided with command, use it. Otherwise ask.
-2. CLI searches for `observations:` first, falls back to `pending:`
-3. Append new item string
-4. Write with targeted editing (don't reformat the whole file)
+2. CLI appends to the `observations:` list
+3. Write with targeted editing (don't reformat the whole file)
 
 ### CLI Pass-Throughs
 
@@ -141,7 +140,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
 | `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
 | `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path |
-| `/folio health` | `folio health` — project health report (types, naming, pending) |
+| `/folio health` | `folio health` — project health report (types, naming, observations) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 | `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: lint, compile, push, create, view, search |
 

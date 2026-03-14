@@ -76,9 +76,7 @@ cross_references:
     source_of_truth: "path/to/file.md § Section Name"
     also_appears_in: ["other/file.md § Section Name"]
 
-tasks: []                              # Deprecated in schema 2. Use observations.
-pending: []                            # Deprecated in schema 2. Use observations.
-observations: []                       # Schema 2. Replaces tasks + pending.
+observations: []                       # All captured items — replaces former tasks + pending.
 ```
 
 The `§` separator means: read file before `§`, locate section after `§`. Some cross-references may be descriptive — do best-effort comparison.
@@ -87,9 +85,9 @@ The `§` separator means: read file before `§`, locate section after `§`. Some
 
 Schema 2 (`schema: 2`) introduces:
 
-- **`observations:`** replaces `pending:` + `tasks:`. Single list for all captured items.
+- **`observations:`** single list for all captured items (replaced former `pending:` + `tasks:`).
 - **`plan` type** (alias: `brief`). `folio new plan <topic>` scaffolds `work/active/<date>-<topic>/README.md`.
 - **Reference labels**: research, insight, guide, domain, review. Mapped from old names (survey→research, synthesis→research, pattern→insight).
 - **`how:` optional**: Missing `how` produces a warning (data-declaration target), not an error.
 
-`folio init` generates schema 2 by default. Schema 1 files continue to work — `tasks` auto-upgrade to `observations` at parse time.
+`folio init` generates schema 2 by default. All projects now use `observations:` directly.
