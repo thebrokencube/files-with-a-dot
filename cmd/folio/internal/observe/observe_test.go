@@ -207,3 +207,86 @@ func TestAppendPreservesFollowingKeys(t *testing.T) {
 		t.Error("cross_references item should be preserved")
 	}
 }
+
+func makeRemoveTestFile(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "folio.yml")
+	os.WriteFile(path, []byte(`schema: 2
+project: "Test"
+observations:
+  - "bug(cli): first item"
+  - "task(plan): second item"
+  - "idea(cli): third item"
+`), 0644)
+	return path
+}
+
+func TestRemoveByIndex(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	removed, err := Remove(path, []string{"#2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(removed) != 1 || removed[0] != "task(plan): second item" {
+		t.Errorf("removed = %v, want [task(plan): second item]", removed)
+	}
+	data, _ := os.ReadFile(path)
+	content := string(data)
+	if strings.Contains(content, "second item") {
+		t.Error("second item should be removed from file")
+	}
+	if !strings.Contains(content, "first item") || !strings.Contains(content, "third item") {
+		t.Error("other items should be preserved")
+	}
+}
+
+func TestRemoveBySubstring(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	removed, err := Remove(path, []string{"second"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(removed) != 1 || removed[0] != "task(plan): second item" {
+		t.Errorf("removed = %v, want [task(plan): second item]", removed)
+	}
+}
+
+func TestRemoveAmbiguous(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	// "cli" matches both first and third items
+	_, err := Remove(path, []string{"cli"})
+	if err == nil {
+		t.Error("expected ambiguity error")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Errorf("error should mention ambiguity: %v", err)
+	}
+}
+
+func TestRemoveMultiple(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	removed, err := Remove(path, []string{"#1", "#3"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(removed) != 2 {
+		t.Fatalf("removed %d items, want 2", len(removed))
+	}
+	data, _ := os.ReadFile(path)
+	content := string(data)
+	if !strings.Contains(content, "second item") {
+		t.Error("second item should be preserved")
+	}
+	if strings.Contains(content, "first item") || strings.Contains(content, "third item") {
+		t.Error("first and third items should be removed")
+	}
+}
+
+func TestRemoveNotFound(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	_, err := Remove(path, []string{"nonexistent"})
+	if err == nil {
+		t.Error("expected not-found error")
+	}
+}

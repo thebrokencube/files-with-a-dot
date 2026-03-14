@@ -153,7 +153,7 @@ Composition:
   new          Scaffold a typed artifact (spike, design, plan, ...)
   gather       Add source entry from URL
   touch        Mark a target as current
-  observe      Append an observation
+  observe      Observation management (add, list, resolve, lint, types)
   archive      Move work track from active to archive
   pbcopy       Copy target output to clipboard
 
@@ -179,7 +179,7 @@ Commands:
   validate     Validate folio.yml structure
   status       Derive and display target state
   init         Bootstrap a new folio.yml
-  observe      Append an observation
+  observe      Observation management (add, list, resolve, lint, types)
 `)
 }
 

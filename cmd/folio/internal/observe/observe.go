@@ -106,3 +106,93 @@ func Append(path string, item string) error {
 
 	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
 }
+
+// Remove deletes observations from a folio.yml file by index (#N) or substring match.
+// Returns the list of removed item texts. Errors on ambiguity or not-found.
+func Remove(path string, matches []string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+
+	// Collect observation line indices and their unquoted text
+	type obsLine struct {
+		lineIdx int
+		text    string
+	}
+	var obs []obsLine
+	inObs := false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "observations:" || trimmed == "observations: []" {
+			inObs = true
+			continue
+		}
+		if inObs {
+			if strings.HasPrefix(line, "  - ") {
+				// Extract unquoted text
+				raw := strings.TrimPrefix(line, "  - ")
+				text := strings.Trim(raw, "\"")
+				obs = append(obs, obsLine{i, text})
+			} else if strings.HasPrefix(line, "  #") || trimmed == "" {
+				continue
+			} else {
+				break
+			}
+		}
+	}
+
+	// Resolve each match to observation indices
+	toRemove := map[int]bool{}
+	var removed []string
+	for _, m := range matches {
+		if strings.HasPrefix(m, "#") {
+			// Index-based: #N (1-indexed)
+			var n int
+			if _, err := fmt.Sscanf(m, "#%d", &n); err != nil || n < 1 || n > len(obs) {
+				return nil, fmt.Errorf("invalid index %q (have %d observations)", m, len(obs))
+			}
+			idx := n - 1
+			toRemove[idx] = true
+			removed = append(removed, obs[idx].text)
+		} else {
+			// Substring match
+			var candidates []int
+			for j, o := range obs {
+				if strings.Contains(o.text, m) {
+					candidates = append(candidates, j)
+				}
+			}
+			if len(candidates) == 0 {
+				return nil, fmt.Errorf("no match for %q", m)
+			}
+			if len(candidates) > 1 {
+				lines := make([]string, len(candidates))
+				for k, c := range candidates {
+					lines[k] = fmt.Sprintf("  #%d: %s", c+1, obs[c].text)
+				}
+				return nil, fmt.Errorf("ambiguous match %q — matches %d items:\n%s", m, len(candidates), strings.Join(lines, "\n"))
+			}
+			toRemove[candidates[0]] = true
+			removed = append(removed, obs[candidates[0]].text)
+		}
+	}
+
+	// Collect line indices to delete
+	deleteLines := map[int]bool{}
+	for idx := range toRemove {
+		deleteLines[obs[idx].lineIdx] = true
+	}
+
+	// Rebuild file without deleted lines
+	var result []string
+	for i, line := range lines {
+		if !deleteLines[i] {
+			result = append(result, line)
+		}
+	}
+
+	return removed, os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
+}
