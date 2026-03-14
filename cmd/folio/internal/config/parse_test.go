@@ -11,8 +11,7 @@ schema: 1
 project: "Test"
 sources: []
 targets: {}
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {
@@ -120,12 +119,9 @@ func TestParseFull(t *testing.T) {
 		t.Errorf("cross_references len = %d", len(f.CrossReferences))
 	}
 
-	// Tasks and pending
-	if len(f.Tasks) != 1 {
-		t.Errorf("tasks len = %d", len(f.Tasks))
-	}
-	if len(f.Pending) != 1 {
-		t.Errorf("pending len = %d", len(f.Pending))
+	// Observations
+	if len(f.Observations) != 2 {
+		t.Errorf("observations len = %d, want 2", len(f.Observations))
 	}
 
 	// Repositories
@@ -171,12 +167,6 @@ project: "Bare"
 	if f.Targets == nil {
 		t.Error("Targets should be initialized, got nil")
 	}
-	if f.Tasks == nil {
-		t.Error("Tasks should be initialized, got nil")
-	}
-	if f.Pending == nil {
-		t.Error("Pending should be initialized, got nil")
-	}
 	if f.CrossReferences == nil {
 		t.Error("CrossReferences should be initialized, got nil")
 	}
@@ -204,52 +194,6 @@ observations:
 	}
 	if len(f.Observations) != 2 {
 		t.Errorf("observations len = %d, want 2", len(f.Observations))
-	}
-}
-
-func TestNormalizeTasksToObservations(t *testing.T) {
-	data := []byte(`
-schema: 1
-project: "Test"
-sources: []
-targets: {}
-tasks:
-  - "task 1"
-  - "task 2"
-pending: []
-`)
-	f, err := Parse(data)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(f.Observations) != 2 {
-		t.Errorf("observations len = %d, want 2 (auto-upgraded from tasks)", len(f.Observations))
-	}
-	if f.Observations[0] != "task 1" {
-		t.Errorf("observations[0] = %q, want %q", f.Observations[0], "task 1")
-	}
-}
-
-func TestNormalizeObservationsNotOverwritten(t *testing.T) {
-	data := []byte(`
-schema: 2
-project: "Test"
-sources: []
-targets: {}
-tasks:
-  - "old task"
-observations:
-  - "explicit obs"
-`)
-	f, err := Parse(data)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(f.Observations) != 1 {
-		t.Errorf("observations len = %d, want 1 (should not merge tasks when observations present)", len(f.Observations))
-	}
-	if f.Observations[0] != "explicit obs" {
-		t.Errorf("observations[0] = %q, want %q", f.Observations[0], "explicit obs")
 	}
 }
 
@@ -301,8 +245,7 @@ targets:
             external: jira
             id: "PROJ-1"
             field: description
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {
@@ -337,8 +280,7 @@ targets:
       items:
         - id: "PROJ-100"
           source: epics/first.md
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {
@@ -386,8 +328,7 @@ targets:
           - id: "PROJ-20"
             label: "Project B"
             file: projects/b.md
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {
@@ -460,8 +401,7 @@ targets:
           - id: "CHILD-1"
             label: "Child"
             sync: both
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {
@@ -494,8 +434,7 @@ targets:
     pr: "#123"
     sources: []
     outputs: []
-tasks: []
-pending: []
+observations: []
 `)
 	f, err := Parse(data)
 	if err != nil {

@@ -18,7 +18,7 @@ type Report struct {
 	Unrecognized []string       // dirs in reference/ not in taxonomy
 	Untyped      []string       // files in flat reference/ (not in type subdir)
 	Work         WorkReport
-	Pending      PendingReport
+	Observations ObservationReport
 	Retro        RetroReport
 	Naming       []string // files without date prefix
 	Grade        string   // "Good", "Needs Attention", "Stale"
@@ -37,8 +37,8 @@ type WorkReport struct {
 	Archived int
 }
 
-// PendingReport summarizes pending items.
-type PendingReport struct {
+// ObservationReport summarizes observation items.
+type ObservationReport struct {
 	Active   int
 	Terminal int
 }
@@ -54,7 +54,7 @@ func Analyze(f *config.Folio, folioDir string) *Report {
 
 	analyzeReference(r, folioDir)
 	analyzeWork(r, folioDir)
-	analyzePending(r, f)
+	analyzeObservations(r, f)
 	analyzeRetro(r, folioDir)
 	analyzeNaming(r, folioDir)
 	r.Grade = computeGrade(r)
@@ -132,12 +132,12 @@ func analyzeWork(r *Report, folioDir string) {
 	}
 }
 
-func analyzePending(r *Report, f *config.Folio) {
-	for _, item := range f.Pending {
-		if IsPendingTerminal(item) {
-			r.Pending.Terminal++
+func analyzeObservations(r *Report, f *config.Folio) {
+	for _, item := range f.Observations {
+		if IsTerminal(item) {
+			r.Observations.Terminal++
 		} else {
-			r.Pending.Active++
+			r.Observations.Active++
 		}
 	}
 }
@@ -225,8 +225,8 @@ func analyzeNaming(r *Report, folioDir string) {
 	}
 }
 
-// IsPendingTerminal returns true if the pending item has a terminal-state prefix.
-func IsPendingTerminal(item string) bool {
+// IsTerminal returns true if the observation item has a terminal-state prefix.
+func IsTerminal(item string) bool {
 	return strings.HasPrefix(item, "[DONE:") ||
 		strings.HasPrefix(item, "[SPLIT→") ||
 		strings.HasPrefix(item, "[SPLIT->") ||
@@ -244,7 +244,7 @@ func computeGrade(r *Report) string {
 	for _, c := range r.Reference {
 		totalRef += c
 	}
-	if totalRef == 0 && r.Work.Active == 0 && r.Pending.Active == 0 {
+	if totalRef == 0 && r.Work.Active == 0 && r.Observations.Active == 0 {
 		return "Good" // empty project is fine
 	}
 	return "Good"

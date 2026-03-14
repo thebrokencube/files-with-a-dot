@@ -141,7 +141,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 		}
 	}
 
-	// Observations (combines tasks + pending for display)
+	// Observations
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Observations: %s%d%s\n", p.bold, ps.Lifecycle.Observations, p.reset)
 }

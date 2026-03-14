@@ -37,14 +37,6 @@ func Validate(f *config.Folio, folioDir string) *Result {
 		r.addWarning("Deprecated key 'context_sources' found — migrate to 'sources'")
 	}
 
-	// Schema 2 deprecation warnings
-	if f.Schema == 2 && len(f.Tasks) > 0 {
-		r.addWarning("Schema 2: 'tasks' is deprecated — merge items into 'observations'")
-	}
-	if f.Schema == 2 && len(f.Pending) > 0 {
-		r.addWarning("Schema 2: 'pending' is deprecated — use 'observations'")
-	}
-
 	// Project-level sources
 	for i, src := range f.Sources {
 		validateSource(r, src, fmt.Sprintf("Project source [%d]", i), folioDir, true)

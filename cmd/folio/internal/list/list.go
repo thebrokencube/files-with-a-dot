@@ -15,7 +15,6 @@ type Entry struct {
 	Path         string // relative path within section (e.g., "ben/state-retirement-mandates")
 	Project      string // project name from folio.yml
 	Targets      int    // number of targets
-	Pending      int    // number of pending items (compat)
 	Observations int    // number of observations
 }
 
@@ -50,7 +49,6 @@ func Scan(home string) ([]Entry, error) {
 				Path:         rel,
 				Project:      f.Project,
 				Targets:      len(f.Targets),
-				Pending:      len(f.Pending),
 				Observations: len(f.Observations),
 			})
 

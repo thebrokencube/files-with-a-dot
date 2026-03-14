@@ -18,7 +18,7 @@ func setupTestHome(t *testing.T, paths ...string) string {
 	for _, p := range paths {
 		full := filepath.Join(dir, "active", p, "folio.yml")
 		os.MkdirAll(filepath.Dir(full), 0755)
-		os.WriteFile(full, []byte("schema: 1\nproject: test\nsources: []\ntargets: {}\npending: []\n"), 0644)
+		os.WriteFile(full, []byte("schema: 1\nproject: test\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 	}
 	return dir
 }

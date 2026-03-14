@@ -39,8 +39,7 @@ schema: 1
 project: "Test"
 sources: []
 targets: {}
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !r.Valid {
@@ -66,8 +65,7 @@ targets:
       - path: README.md
     outputs:
       - path: compiled/summary.md
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !r.Valid {
@@ -394,8 +392,7 @@ targets:
               - id: "PROJ-100"
                 label: "Epic 1"
                 file: epics/e1.md
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !r.Valid {
@@ -421,8 +418,7 @@ targets:
       root:
         id: "ROOT-1"
         file: root.md
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if r.Valid {
@@ -456,8 +452,7 @@ targets:
       items:
         - id: "item-1"
           source: root.md
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if r.Valid {
@@ -494,8 +489,7 @@ targets:
           - id: "CHILD-1"
             file: child.md
             sync: both
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !r.Valid {
@@ -520,8 +514,7 @@ targets:
       - path: README.md
     outputs:
       - path: compiled/out.md
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !r.Valid {
@@ -548,8 +541,7 @@ targets:
       root:
         id: "ROOT-1"
         file: foo.txt
-tasks: []
-pending: []
+observations: []
 `)
 	r := loadAndValidate(t, dir)
 	if !hasWarning(r, "doesn't match tree compiled_ext") {

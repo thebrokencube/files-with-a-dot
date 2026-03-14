@@ -221,8 +221,6 @@ func TestDeriveFullProject(t *testing.T) {
 				Outputs: []config.Output{{Path: "compiled/out.md"}},
 			},
 		},
-		Tasks:   []string{"task1"},
-		Pending: []string{"note1", "note2"},
 	}
 
 	ps := Derive(f, dir)
@@ -231,12 +229,6 @@ func TestDeriveFullProject(t *testing.T) {
 	}
 	if len(ps.Sources) != 1 {
 		t.Errorf("sources len = %d", len(ps.Sources))
-	}
-	if ps.Tasks != 1 {
-		t.Errorf("tasks = %d, want 1", ps.Tasks)
-	}
-	if ps.Pending != 2 {
-		t.Errorf("pending = %d, want 2", ps.Pending)
 	}
 
 	ts := ps.Targets["summary"]

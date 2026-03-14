@@ -71,8 +71,6 @@ type ProjectStatus struct {
 	Lifecycle LifecycleSummary        `json:"lifecycle"`
 	Sources   []SourceInfo            `json:"sources"`
 	Targets   map[string]TargetStatus `json:"targets"`
-	Tasks     int                     `json:"tasks"`
-	Pending   int                     `json:"pending"`
 }
 
 // DeriveLifecycleSummary counts sources by lifecycle stage.
@@ -107,8 +105,6 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 		Project:   f.Project,
 		Lifecycle: DeriveLifecycleSummary(f),
 		Targets:   make(map[string]TargetStatus),
-		Tasks:     len(f.Tasks),
-		Pending:   len(f.Pending),
 	}
 
 	// Classify project-level sources

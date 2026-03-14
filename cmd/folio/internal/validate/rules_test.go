@@ -1163,21 +1163,6 @@ func TestValidateCrossRefDuplicateFact(t *testing.T) {
 	}
 }
 
-func TestValidateTasksDeprecationWarning(t *testing.T) {
-	f := &config.Folio{
-		Schema:  2,
-		Project: "Test",
-		Tasks:   []string{"old task"},
-	}
-	r := Validate(f, t.TempDir())
-	if !r.Valid {
-		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
-	}
-	if !containsWarning(r, "'tasks' is deprecated") {
-		t.Errorf("expected tasks deprecation warning, got warnings: %v", r.Warnings)
-	}
-}
-
 func TestValidateMinimalWithEmptyCollections(t *testing.T) {
 	f := &config.Folio{
 		Schema:          1,

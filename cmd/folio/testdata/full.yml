@@ -64,8 +64,6 @@ cross_references:
     also_appears_in:
       - "reference/cached.md"
 
-tasks:
+observations:
   - "Review findings"
-
-pending:
   - "Waiting on stakeholder feedback"

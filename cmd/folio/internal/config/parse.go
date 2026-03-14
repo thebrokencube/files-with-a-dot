@@ -42,18 +42,8 @@ func Normalize(f *Folio) {
 	if f.CrossReferences == nil {
 		f.CrossReferences = []CrossReference{}
 	}
-	if f.Tasks == nil {
-		f.Tasks = []string{}
-	}
-	if f.Pending == nil {
-		f.Pending = []string{}
-	}
 	if f.Observations == nil {
 		f.Observations = []string{}
-		// Auto-upgrade: merge Tasks into Observations for schema 1 files
-		if len(f.Tasks) > 0 {
-			f.Observations = append(f.Observations, f.Tasks...)
-		}
 	}
 	if f.Repositories == nil {
 		f.Repositories = make(map[string]string)

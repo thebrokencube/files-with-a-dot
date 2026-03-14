@@ -82,10 +82,10 @@ func TestAnalyzeUnrecognizedDirs(t *testing.T) {
 	}
 }
 
-func TestAnalyzePending(t *testing.T) {
+func TestAnalyzeObservations(t *testing.T) {
 	f := &config.Folio{
-		Project: "pending",
-		Pending: []string{
+		Project: "observations",
+		Observations: []string{
 			"Active item one",
 			"Active item two",
 			"[DONE:resolved] Old item",
@@ -97,15 +97,15 @@ func TestAnalyzePending(t *testing.T) {
 	dir := t.TempDir()
 	r := Analyze(f, dir)
 
-	if r.Pending.Active != 2 {
-		t.Errorf("pending active = %d, want 2", r.Pending.Active)
+	if r.Observations.Active != 2 {
+		t.Errorf("observations active = %d, want 2", r.Observations.Active)
 	}
-	if r.Pending.Terminal != 3 {
-		t.Errorf("pending terminal = %d, want 3", r.Pending.Terminal)
+	if r.Observations.Terminal != 3 {
+		t.Errorf("observations terminal = %d, want 3", r.Observations.Terminal)
 	}
 }
 
-func TestIsPendingTerminal(t *testing.T) {
+func TestIsTerminal(t *testing.T) {
 	tests := []struct {
 		item string
 		want bool
@@ -118,8 +118,8 @@ func TestIsPendingTerminal(t *testing.T) {
 		{"Some [DONE:] not at start", false},
 	}
 	for _, tt := range tests {
-		if got := IsPendingTerminal(tt.item); got != tt.want {
-			t.Errorf("IsPendingTerminal(%q) = %v, want %v", tt.item, got, tt.want)
+		if got := IsTerminal(tt.item); got != tt.want {
+			t.Errorf("IsTerminal(%q) = %v, want %v", tt.item, got, tt.want)
 		}
 	}
 }

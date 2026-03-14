@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/pending"
 )
 
-func runAddPending(args []string) int {
-	fs := flag.NewFlagSet("add-pending", flag.ExitOnError)
+func runObserve(args []string) int {
+	fs := flag.NewFlagSet("observe", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	fs.Parse(args)
 
@@ -23,7 +23,6 @@ func runAddPending(args []string) int {
 	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if item == "" {
 		fmt.Fprintf(os.Stderr, "Usage: folio observe <item text> [--folio PATH]\n")
-		fmt.Fprintf(os.Stderr, "       folio add-pending <item text> [--folio PATH]  (compat alias)\n")
 		return 1
 	}
 
@@ -33,7 +32,7 @@ func runAddPending(args []string) int {
 		return 1
 	}
 
-	if err := pending.Append(*folioPath, item); err != nil {
+	if err := observe.Append(*folioPath, item); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		return 1
 	}

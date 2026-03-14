@@ -35,8 +35,6 @@ func TestPrintStatusTerminalWithTree(t *testing.T) {
 				},
 			},
 		},
-		Tasks:   2,
-		Pending: 1,
 	}
 
 	var buf bytes.Buffer
@@ -86,8 +84,6 @@ func TestPrintStatusTerminalNoTree(t *testing.T) {
 				},
 			},
 		},
-		Tasks:   0,
-		Pending: 0,
 	}
 
 	var buf bytes.Buffer
@@ -121,8 +117,6 @@ func TestPrintStatusTerminalWithBatch(t *testing.T) {
 				},
 			},
 		},
-		Tasks:   0,
-		Pending: 0,
 	}
 
 	var buf bytes.Buffer
@@ -197,8 +191,6 @@ func TestPrintStatusTerminalColor(t *testing.T) {
 				},
 			},
 		},
-		Tasks:   0,
-		Pending: 0,
 	}
 
 	var buf bytes.Buffer

@@ -21,8 +21,8 @@ func main() {
 		os.Exit(runStatus(os.Args[2:]))
 	case "init":
 		os.Exit(runInit(os.Args[2:]))
-	case "add-pending", "observe":
-		os.Exit(runAddPending(os.Args[2:]))
+	case "observe":
+		os.Exit(runObserve(os.Args[2:]))
 	case "stale":
 		os.Exit(runStale(os.Args[2:]))
 	case "touch":
@@ -63,8 +63,8 @@ func main() {
 			os.Exit(runStatus(os.Args[3:]))
 		case "init":
 			os.Exit(runInit(os.Args[3:]))
-		case "add-pending", "observe":
-			os.Exit(runAddPending(os.Args[3:]))
+		case "observe":
+			os.Exit(runObserve(os.Args[3:]))
 		case "--help", "-h", "help":
 			printProjectUsage()
 			os.Exit(0)
@@ -153,7 +153,7 @@ Composition:
   new          Scaffold a typed artifact (spike, design, plan, ...)
   gather       Add source entry from URL
   touch        Mark a target as current
-  observe      Append an observation (alias: add-pending)
+  observe      Append an observation
   archive      Move work track from active to archive
   pbcopy       Copy target output to clipboard
 
@@ -179,7 +179,7 @@ Commands:
   validate     Validate folio.yml structure
   status       Derive and display target state
   init         Bootstrap a new folio.yml
-  observe      Append an observation (alias: add-pending)
+  observe      Append an observation
 `)
 }
 

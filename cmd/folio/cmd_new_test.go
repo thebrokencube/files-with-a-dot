@@ -161,7 +161,7 @@ func TestRunNewNoRegister(t *testing.T) {
 func TestRunNewPreservesExistingSources(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
-	original := "schema: 1\nproject: \"Test\"\n\nsources:\n  - path: existing.md\n\ntargets: {}\npending: []\n"
+	original := "schema: 1\nproject: \"Test\"\n\nsources:\n  - path: existing.md\n\ntargets: {}\nobservations: []\n"
 	os.WriteFile(yml, []byte(original), 0644)
 
 	code := runNew([]string{"--folio", yml, "spike", "my-spike"})

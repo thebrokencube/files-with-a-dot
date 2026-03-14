@@ -42,7 +42,7 @@ func TestRunGatherReadFlag(t *testing.T) {
 func TestRunGatherURLOnly(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
-	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
 	code := runGather([]string{"--folio", yml, "https://example.com/guide.html"})
 	if code != 0 {
@@ -71,7 +71,7 @@ func TestRunGatherURLOnly(t *testing.T) {
 func TestRunGatherMaterializeRequiresType(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
-	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
 	code := runGather([]string{"--folio", yml, "--materialize", "https://example.com/api-spec"})
 	if code != 1 {
@@ -82,7 +82,7 @@ func TestRunGatherMaterializeRequiresType(t *testing.T) {
 func TestRunGatherMaterialize(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
-	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
 	code := runGather([]string{"--folio", yml, "--materialize", "--type", "survey", "https://example.com/api-spec"})
 	if code != 0 {
@@ -114,7 +114,7 @@ func TestRunGatherMaterialize(t *testing.T) {
 func TestRunGatherMaterializeWithName(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
-	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\ntasks: []\npending: []\n"), 0644)
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
 	code := runGather([]string{"--folio", yml, "--materialize", "--type", "spike", "--name", "my-ref", "https://example.com/page"})
 	if code != 0 {
@@ -155,10 +155,7 @@ cross_references:
     source_of_truth: "existing.md"
     also_appears_in: ["other.md"]
 
-tasks:
-  - "Task one"
-
-pending:
+observations:
   - "Pending one"
 `
 	os.WriteFile(yml, []byte(original), 0644)
@@ -183,7 +180,6 @@ pending:
 		"my-target:",
 		`how: "Test"`,
 		`fact: "Some fact"`,
-		`"Task one"`,
 		`"Pending one"`,
 	}
 	for _, check := range checks {

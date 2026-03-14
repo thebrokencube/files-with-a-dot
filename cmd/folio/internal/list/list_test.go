@@ -17,7 +17,7 @@ targets:
   gdoc:
     how: "Test"
     sources: []
-pending:
+observations:
   - "item one"
 `,
 		"active/career-tracking/folio.yml": `schema: 1
@@ -44,8 +44,8 @@ project: "HSA Ghost Policies"
 	if entries[0].Targets != 2 {
 		t.Errorf("entry 0: expected 2 targets, got %d", entries[0].Targets)
 	}
-	if entries[0].Pending != 1 {
-		t.Errorf("entry 0: expected 1 pending, got %d", entries[0].Pending)
+	if entries[0].Observations != 1 {
+		t.Errorf("entry 0: expected 1 observation, got %d", entries[0].Observations)
 	}
 
 	if entries[1].Section != "active" || entries[1].Path != "career-tracking" {

@@ -1,4 +1,4 @@
-package pending
+package observe
 
 import (
 	"os"
@@ -10,9 +10,9 @@ import (
 func TestAppendToEmptyList(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
+	os.WriteFile(path, []byte(`schema: 2
 project: "Test"
-pending: []
+observations: []
 `), 0644)
 
 	if err := Append(path, "new item"); err != nil {
@@ -22,19 +22,19 @@ pending: []
 	data, _ := os.ReadFile(path)
 	content := string(data)
 	if !strings.Contains(content, `- "new item"`) {
-		t.Errorf("expected new item in pending, got:\n%s", content)
+		t.Errorf("expected new item in observations, got:\n%s", content)
 	}
-	if strings.Contains(content, "pending: []") {
-		t.Error("pending: [] should have been replaced with pending:")
+	if strings.Contains(content, "observations: []") {
+		t.Error("observations: [] should have been replaced with observations:")
 	}
 }
 
 func TestAppendToExistingList(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
+	os.WriteFile(path, []byte(`schema: 2
 project: "Test"
-pending:
+observations:
   - "existing item"
 `), 0644)
 
@@ -55,9 +55,9 @@ pending:
 func TestAppendWithComments(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
+	os.WriteFile(path, []byte(`schema: 2
 project: "Test"
-pending:
+observations:
   # Category A
   - "item a"
   # Category B
@@ -70,7 +70,7 @@ pending:
 
 	data, _ := os.ReadFile(path)
 	content := string(data)
-	// New item should be after item b (the last pending entry)
+	// New item should be after item b (the last entry)
 	bIdx := strings.Index(content, `"item b"`)
 	cIdx := strings.Index(content, `"item c"`)
 	if cIdx < bIdx {
@@ -78,16 +78,16 @@ pending:
 	}
 }
 
-func TestAppendNoPendingKey(t *testing.T) {
+func TestAppendNoObservationsKey(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
+	os.WriteFile(path, []byte(`schema: 2
 project: "Test"
 `), 0644)
 
 	err := Append(path, "item")
 	if err == nil {
-		t.Error("expected error for missing pending key")
+		t.Error("expected error for missing observations key")
 	}
 }
 
@@ -111,65 +111,15 @@ observations:
 	}
 }
 
-func TestAppendFallbackToPending(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
-project: "Test"
-pending:
-  - "existing"
-`), 0644)
-
-	if err := Append(path, "new item"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	data, _ := os.ReadFile(path)
-	content := string(data)
-	if !strings.Contains(content, `"new item"`) {
-		t.Errorf("expected new item in pending, got:\n%s", content)
-	}
-}
-
-func TestAppendPreferObservationsOverPending(t *testing.T) {
+func TestAppendPreservesFollowingKeys(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "folio.yml")
 	os.WriteFile(path, []byte(`schema: 2
 project: "Test"
-pending:
-  - "old item"
 observations:
-  - "obs item"
-`), 0644)
-
-	if err := Append(path, "new obs"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	data, _ := os.ReadFile(path)
-	content := string(data)
-	// Should be appended to observations section, after "obs item"
-	obsIdx := strings.Index(content, `"obs item"`)
-	newIdx := strings.Index(content, `"new obs"`)
-	if newIdx < obsIdx {
-		t.Errorf("new item should appear after obs item:\n%s", content)
-	}
-	// Should NOT be right after "old item"
-	oldIdx := strings.Index(content, `"old item"`)
-	if newIdx == oldIdx+len(`"old item"`)+1 {
-		t.Errorf("new item should not be in pending section:\n%s", content)
-	}
-}
-
-func TestAppendPreservesFollowingKeys(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "folio.yml")
-	os.WriteFile(path, []byte(`schema: 1
-project: "Test"
-pending:
   - "existing"
-tasks:
-  - "task 1"
+cross_references:
+  - fact: "test"
 `), 0644)
 
 	if err := Append(path, "new item"); err != nil {
@@ -178,10 +128,10 @@ tasks:
 
 	data, _ := os.ReadFile(path)
 	content := string(data)
-	if !strings.Contains(content, "tasks:") {
-		t.Error("tasks key should be preserved")
+	if !strings.Contains(content, "cross_references:") {
+		t.Error("cross_references key should be preserved")
 	}
-	if !strings.Contains(content, `"task 1"`) {
-		t.Error("task item should be preserved")
+	if !strings.Contains(content, `"test"`) {
+		t.Error("cross_references item should be preserved")
 	}
 }
