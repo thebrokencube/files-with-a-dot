@@ -254,6 +254,30 @@ func TestValidTypesIncludesPlan(t *testing.T) {
 	}
 }
 
+func TestIsWorkTypePlan(t *testing.T) {
+	if !IsWorkType("plan") {
+		t.Error("IsWorkType(plan) = false, want true")
+	}
+}
+
+func TestTypePathPlan(t *testing.T) {
+	p := TypePath("plan", "topic")
+	if !strings.Contains(p, "work/active") || !strings.HasSuffix(p, "topic/README.md") {
+		t.Errorf("TypePath(plan, topic) = %q, want work/active/...-topic/README.md", p)
+	}
+}
+
+func TestTemplatePlanMatchesBrief(t *testing.T) {
+	planTmpl := Template("plan", "test")
+	briefTmpl := Template("brief", "test")
+	if planTmpl != briefTmpl {
+		t.Error("Template(plan) and Template(brief) should produce identical output")
+	}
+	if !strings.Contains(planTmpl, "Objective") {
+		t.Error("plan template missing Objective section")
+	}
+}
+
 func TestTemplateRetroHasExpectedSections(t *testing.T) {
 	tmpl := Template("retro", "test")
 	for _, section := range []string{"Context", "What Happened", "What Worked", "What Didn't", "Action Items"} {

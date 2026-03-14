@@ -110,7 +110,7 @@ func init() {
 
 // IsReferenceType returns true if t is a recognized reference-layer type.
 func IsReferenceType(t string) bool {
-	if t == "brief" || t == "design" {
+	if t == "brief" || t == "plan" || t == "design" {
 		return false
 	}
 	return ValidTypes[t]
@@ -131,7 +131,7 @@ var ColocatableTypes = map[string]bool{
 
 // IsWorkType returns true if t is a recognized work-layer type.
 func IsWorkType(t string) bool {
-	return t == "brief"
+	return t == "brief" || t == "plan"
 }
 
 // FindWorkDir returns the path to a work directory matching the given topic,
@@ -161,7 +161,7 @@ func TypePath(artifactType, topic string) string {
 	if IsReferenceType(artifactType) {
 		return filepath.Join("reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
 	}
-	if IsWorkType(artifactType) {
+	if artifactType == "plan" || artifactType == "brief" {
 		return filepath.Join("work", "active", fmt.Sprintf("%s-%s", date, topic), "README.md")
 	}
 	return ""
@@ -224,7 +224,7 @@ func Template(artifactType, topic string) string {
 <!-- How does this apply to our project? -->
 `, title)
 
-	case "brief":
+	case "plan", "brief":
 		return fmt.Sprintf(`# %s
 
 ## Objective

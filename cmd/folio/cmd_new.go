@@ -136,9 +136,10 @@ func printNewUsage() {
 Scaffold a typed artifact at the correct path.
 
 Types:
-  Reference:  %s
-  Work:       brief
-  Dual-layer: design, retro (colocate with work dir if one matches topic)
+  Lifecycle:   spike, design, plan, retro
+  Reference:   %s
+  Alias:       brief (-> plan)
+  Dual-layer:  design, retro (colocate with work dir if one matches topic)
 
 Options:
   --folio PATH      Path or shortname (default: ./folio.yml)
