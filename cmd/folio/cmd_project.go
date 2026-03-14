@@ -111,16 +111,14 @@ func runInit(args []string) int {
 		return 1
 	}
 
-	content := fmt.Sprintf(`schema: 1
+	content := fmt.Sprintf(`schema: 2
 project: "%s"
 
 sources: []
 
 targets: {}
 
-tasks: []
-
-pending: []
+observations: []
 `, *name)
 
 	if err := os.WriteFile("folio.yml", []byte(content), 0644); err != nil {

@@ -22,7 +22,8 @@ func runAddPending(args []string) int {
 
 	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
 	if item == "" {
-		fmt.Fprintf(os.Stderr, "Usage: folio project add-pending <item text> [--folio PATH]\n")
+		fmt.Fprintf(os.Stderr, "Usage: folio add-pending <item text> [--folio PATH]\n")
+		fmt.Fprintf(os.Stderr, "       folio observe <item text> [--folio PATH]\n")
 		return 1
 	}
 
@@ -37,6 +38,6 @@ func runAddPending(args []string) int {
 		return 1
 	}
 
-	fmt.Println(output.Successf("Added to pending: %s", item))
+	fmt.Println(output.Successf("Added: %s", item))
 	return 0
 }

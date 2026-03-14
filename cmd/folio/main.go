@@ -21,7 +21,7 @@ func main() {
 		os.Exit(runStatus(os.Args[2:]))
 	case "init":
 		os.Exit(runInit(os.Args[2:]))
-	case "add-pending":
+	case "add-pending", "observe":
 		os.Exit(runAddPending(os.Args[2:]))
 	case "stale":
 		os.Exit(runStale(os.Args[2:]))
@@ -63,7 +63,7 @@ func main() {
 			os.Exit(runStatus(os.Args[3:]))
 		case "init":
 			os.Exit(runInit(os.Args[3:]))
-		case "add-pending":
+		case "add-pending", "observe":
 			os.Exit(runAddPending(os.Args[3:]))
 		case "--help", "-h", "help":
 			printProjectUsage()
@@ -142,28 +142,29 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio <command> [flags]
 
-Project commands:
+Data commands:
   validate     Validate folio.yml structure
   status       Derive and display target state
   stale        List stale/missing/unknown targets
-  touch        Mark a target as current (update output mtime)
   dag          Show target dependency graph
-  gather       Add source entry from URL
-  new          Scaffold a typed artifact (spike, design, brief, ...)
-  health       Project health report (types, naming, pending)
-  archive      Move work track from active to archive + rewrite paths
-  init         Bootstrap a new folio.yml
-  add-pending  Append an item to the pending list
+  health       Project health report
 
-Utility commands:
+Composition:
+  new          Scaffold a typed artifact (spike, design, plan, ...)
+  gather       Add source entry from URL
+  touch        Mark a target as current
+  observe      Append an observation (alias: add-pending)
+  archive      Move work track from active to archive
   pbcopy       Copy target output to clipboard
+
+Integrations:
+  jira         Jira pipeline (lint, compile, push, create, view, search)
+
+Management:
+  home         FOLIO_HOME commands (list, push, pull, archive, activate, health)
+  init         Bootstrap a new folio.yml
   setup        Check folio dependencies
   version      Show version
-
-Command groups:
-  jira         Jira pipeline commands (lint, push, create, view, search)
-  home         Repository-level commands (FOLIO_HOME)
-  project      Compat alias for project commands
 
 Run 'folio <command> --help' for details.
 `)
