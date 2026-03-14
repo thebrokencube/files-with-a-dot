@@ -10,6 +10,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
 )
 
 // OutputStatus represents the derived status of a single output.
@@ -54,22 +55,60 @@ type SourceInfo struct {
 	Label string `json:"label"`
 }
 
+// LifecycleSummary counts artifacts by lifecycle stage.
+type LifecycleSummary struct {
+	Observations int `json:"observations"`
+	Spikes       int `json:"spikes"`
+	Designs      int `json:"designs"`
+	Plans        int `json:"plans"`
+	Retros       int `json:"retros"`
+	References   int `json:"references"`
+}
+
 // ProjectStatus holds the complete derived status for a folio project.
 type ProjectStatus struct {
-	Project string                  `json:"project"`
-	Sources []SourceInfo            `json:"sources"`
-	Targets map[string]TargetStatus `json:"targets"`
-	Tasks   int                     `json:"tasks"`
-	Pending int                     `json:"pending"`
+	Project   string                  `json:"project"`
+	Lifecycle LifecycleSummary        `json:"lifecycle"`
+	Sources   []SourceInfo            `json:"sources"`
+	Targets   map[string]TargetStatus `json:"targets"`
+	Tasks     int                     `json:"tasks"`
+	Pending   int                     `json:"pending"`
+}
+
+// DeriveLifecycleSummary counts sources by lifecycle stage.
+func DeriveLifecycleSummary(f *config.Folio) LifecycleSummary {
+	ls := LifecycleSummary{
+		Observations: len(f.Observations),
+	}
+	for _, src := range f.Sources {
+		if src.Path == "" {
+			continue
+		}
+		t := taxonomy.InferType(src.Path)
+		switch taxonomy.StageForType(t) {
+		case taxonomy.StageSpike:
+			ls.Spikes++
+		case taxonomy.StageDesign:
+			ls.Designs++
+		case taxonomy.StagePlan:
+			ls.Plans++
+		case taxonomy.StageRetro:
+			ls.Retros++
+		case taxonomy.StageReference:
+			ls.References++
+		}
+	}
+	return ls
 }
 
 // Derive computes the full status of a folio project.
 func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 	ps := &ProjectStatus{
-		Project: f.Project,
-		Targets: make(map[string]TargetStatus),
-		Tasks:   len(f.Tasks),
-		Pending: len(f.Pending),
+		Project:   f.Project,
+		Lifecycle: DeriveLifecycleSummary(f),
+		Targets:   make(map[string]TargetStatus),
+		Tasks:     len(f.Tasks),
+		Pending:   len(f.Pending),
 	}
 
 	// Classify project-level sources

@@ -9,6 +9,41 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
 
+func TestDeriveLifecycleSummary(t *testing.T) {
+	f := &config.Folio{
+		Observations: []string{"idea 1", "idea 2"},
+		Sources: []config.Source{
+			{Path: "reference/spike/s1.md"},
+			{Path: "reference/spike/s2.md"},
+			{Path: "reference/design/d1.md"},
+			{Path: "work/active/2026-01-01-plan/README.md"},
+			{Path: "reference/retro/r1.md"},
+			{Path: "reference/research/survey1.md"},
+			{Path: "reference/guide/g1.md"},
+			{Path: "README.md"},
+		},
+	}
+	ls := DeriveLifecycleSummary(f)
+	if ls.Observations != 2 {
+		t.Errorf("observations = %d, want 2", ls.Observations)
+	}
+	if ls.Spikes != 2 {
+		t.Errorf("spikes = %d, want 2", ls.Spikes)
+	}
+	if ls.Designs != 1 {
+		t.Errorf("designs = %d, want 1", ls.Designs)
+	}
+	if ls.Plans != 1 {
+		t.Errorf("plans = %d, want 1", ls.Plans)
+	}
+	if ls.Retros != 1 {
+		t.Errorf("retros = %d, want 1", ls.Retros)
+	}
+	if ls.References != 3 {
+		t.Errorf("references = %d, want 3", ls.References)
+	}
+}
+
 func TestDeriveLocalStatusClean(t *testing.T) {
 	dir := t.TempDir()
 	srcPath := filepath.Join(dir, "source.md")
