@@ -25,7 +25,6 @@
       "Bash(git config --get*)",
       "Bash(git ls-files*)",
       "Bash(git add *)",
-      "Bash(git commit *)",
       "Bash(git checkout *)",
       "Bash(git fetch*)",
       "Bash(git rebase *)",
