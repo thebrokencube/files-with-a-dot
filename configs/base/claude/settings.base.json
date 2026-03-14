@@ -83,7 +83,7 @@
       {
         "matcher": "Bash(git commit*)",
         "hooks": [
-          { "type": "command", "command": "echo '--- Staged changes ---' && git diff --cached --stat" }
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/pre-commit-review.sh" }
         ]
       }
     ],
