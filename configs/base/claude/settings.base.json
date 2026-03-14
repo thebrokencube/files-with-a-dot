@@ -81,6 +81,12 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/no-command-chaining.sh" }
+        ]
+      },
+      {
         "matcher": "Bash(git commit*)",
         "hooks": [
           { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/pre-commit-review.sh" }
