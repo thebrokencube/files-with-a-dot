@@ -14,6 +14,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
@@ -307,9 +308,14 @@ func validateActiveProjects(homeDir string) []string {
 			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, err))
 			continue
 		}
-		result := validate.Validate(f, filepath.Dir(ymlPath))
+		folioDir := filepath.Dir(ymlPath)
+		result := validate.Validate(f, folioDir)
 		for _, ve := range result.Errors {
 			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, ve))
+		}
+		issues := observe.Lint(folioDir, f.Observations)
+		for _, issue := range issues {
+			errs = append(errs, fmt.Sprintf("%s: observation #%d: %s", e.Path, issue.Index, issue.Reason))
 		}
 	}
 	return errs

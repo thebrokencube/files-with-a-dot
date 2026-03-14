@@ -100,6 +100,29 @@ func TestAnalyzeObservations(t *testing.T) {
 	}
 }
 
+func TestAnalyzeObservationsLintWarnings(t *testing.T) {
+	f := &config.Folio{
+		Project: "lint-test",
+		Observations: []string{
+			"bug(cli): valid item",
+			"freeform text that fails validation",
+		},
+	}
+
+	dir := t.TempDir()
+	r := Analyze(f, dir)
+
+	if r.Observations.Active != 2 {
+		t.Errorf("observations active = %d, want 2", r.Observations.Active)
+	}
+	if len(r.Observations.LintWarnings) != 1 {
+		t.Fatalf("lint warnings = %d, want 1", len(r.Observations.LintWarnings))
+	}
+	if r.Observations.LintWarnings[0] != "#2: malformed format" {
+		t.Errorf("warning = %q, want #2: malformed format", r.Observations.LintWarnings[0])
+	}
+}
+
 func TestAnalyzeNaming(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "reference", "spike"), 0755)

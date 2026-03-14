@@ -1,6 +1,7 @@
 package health
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
 )
 
@@ -39,7 +41,8 @@ type WorkReport struct {
 
 // ObservationReport summarizes observation items.
 type ObservationReport struct {
-	Active int
+	Active       int
+	LintWarnings []string
 }
 
 var datePrefix = regexp.MustCompile(`^\d{4}-`)
@@ -53,7 +56,7 @@ func Analyze(f *config.Folio, folioDir string) *Report {
 
 	analyzeReference(r, folioDir)
 	analyzeWork(r, folioDir)
-	analyzeObservations(r, f)
+	analyzeObservations(r, f, folioDir)
 	analyzeRetro(r, folioDir)
 	analyzeNaming(r, folioDir)
 	r.Grade = computeGrade(r)
@@ -131,8 +134,13 @@ func analyzeWork(r *Report, folioDir string) {
 	}
 }
 
-func analyzeObservations(r *Report, f *config.Folio) {
+func analyzeObservations(r *Report, f *config.Folio, folioDir string) {
 	r.Observations.Active = len(f.Observations)
+	issues := observe.Lint(folioDir, f.Observations)
+	for _, issue := range issues {
+		r.Observations.LintWarnings = append(r.Observations.LintWarnings,
+			fmt.Sprintf("#%d: %s", issue.Index, issue.Reason))
+	}
 }
 
 func analyzeRetro(r *Report, folioDir string) {

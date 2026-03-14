@@ -96,6 +96,13 @@ func printHealthReport(r *health.Report, color bool) {
 	if r.Observations.Active > 0 {
 		fmt.Printf("  Observations  %d active\n", r.Observations.Active)
 	}
+	for _, w := range r.Observations.LintWarnings {
+		if color {
+			fmt.Printf("  %s⚠ %s%s\n", output.Yellow, w, output.Reset)
+		} else {
+			fmt.Printf("  ! %s\n", w)
+		}
+	}
 
 	// Work line
 	if r.Work.Active > 0 || r.Work.Archived > 0 {
