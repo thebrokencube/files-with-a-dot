@@ -22,7 +22,7 @@ Use these in Claude Code for planning and composition:
         retro findings feed back into future work
 ```
 
-`/folio plan` runs the full pipeline: gather context, freeze architecture in a design doc (mandatory lock gate), derive the implementation plan, then execute step by step with mandatory review before each commit. When the plan has external targets (Jira, branch topology), execution feeds into compose/publish. Retrospective findings loop back as pending items for future cycles.
+`/folio plan` runs the full pipeline: gather context, freeze architecture in a design doc (mandatory lock gate), derive the implementation plan, then execute step by step with mandatory review before each commit. When the plan has external targets (Jira, branch topology), execution feeds into compose/publish. Retrospective findings loop back as observations for future cycles.
 
 ## CLI Commands
 
