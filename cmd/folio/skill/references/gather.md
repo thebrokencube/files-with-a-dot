@@ -40,9 +40,9 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
 2. Search available sources (MCP tools, web, codebase). If no results found, report "no results for {topic}" — do not write an empty file.
 3. Synthesize findings (hold in memory, do not write yet)
 4. **Infer type** from the research content:
-   - External system/tool summary → `survey`
+   - External system/tool summary → `research`
    - Time-boxed investigation findings → `spike`
-   - Multi-source distillation → `synthesis`
+   - Multi-source distillation → `research`
    - Domain knowledge capture → `domain`
    - Default for ambiguous content → `spike`
 5. **Review gate (soft)**: Present proposed type, filename, content length, and 3 key facts. "Write to {path}?"

@@ -38,6 +38,8 @@ targets:
   target-id:
     how: "What/how to compose"
     blocked_by: [other-id]             # Optional DAG edges
+    branch: "feature/my-branch"        # Optional. Used by stack workflow.
+    pr: "123"                          # Optional. PR number for branch.
     sources:
       - path: relative/file.md
     outputs:
