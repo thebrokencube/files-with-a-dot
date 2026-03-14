@@ -120,6 +120,8 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 | `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: lint, compile, push, create, view, search |
 
+**Flag ordering**: The folio CLI uses Go's `flag` package, which requires flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` silently ignores `--folio`. This applies to all commands.
+
 If any CLI command fails, run `folio setup --check` first.
 
 ### Git Operations for ~/.folio
