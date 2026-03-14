@@ -13,6 +13,81 @@ type ArtifactType struct {
 	Layer string // "reference" or "work"
 }
 
+// LifecycleStage represents a stage in the knowledge lifecycle.
+type LifecycleStage int
+
+const (
+	StageObservation LifecycleStage = iota
+	StageSpike
+	StageDesign
+	StagePlan
+	StageImplementation
+	StageRetro
+	StageReference // not a lifecycle stage — accumulates over time
+)
+
+// ReferenceLabels lists valid labels for the "reference" meta-type.
+var ReferenceLabels = map[string]bool{
+	"research": true,
+	"insight":  true,
+	"guide":    true,
+	"domain":   true,
+	"review":   true,
+}
+
+// TypeAlias maps old type names to (canonical, label) pairs.
+// Used for backward-compatible type resolution.
+var TypeAlias = map[string][2]string{
+	"survey":    {"reference", "research"},
+	"synthesis": {"reference", "research"},
+	"pattern":   {"reference", "insight"},
+	"domain":    {"reference", "domain"},
+	"guide":     {"reference", "guide"},
+	"review":    {"reference", "review"},
+}
+
+// ResolveAlias resolves an old type name to its canonical form and label.
+// Returns (canonical, label, true) if an alias exists, or ("", "", false).
+func ResolveAlias(t string) (string, string, bool) {
+	if pair, ok := TypeAlias[t]; ok {
+		return pair[0], pair[1], true
+	}
+	return "", "", false
+}
+
+// StageForType returns the lifecycle stage for a given type.
+func StageForType(t string) LifecycleStage {
+	switch t {
+	case "observation":
+		return StageObservation
+	case "spike":
+		return StageSpike
+	case "design":
+		return StageDesign
+	case "plan", "brief":
+		return StagePlan
+	case "track":
+		return StageImplementation
+	case "retro":
+		return StageRetro
+	default:
+		return StageReference
+	}
+}
+
+// InferType extracts the artifact type from a source path's directory component.
+// Examples: "reference/spike/foo.md" -> "spike", "work/active/bar/README.md" -> "brief"
+func InferType(path string) string {
+	parts := strings.Split(filepath.ToSlash(path), "/")
+	if len(parts) >= 2 && parts[0] == "reference" {
+		return parts[1]
+	}
+	if len(parts) >= 2 && parts[0] == "work" {
+		return "brief"
+	}
+	return ""
+}
+
 // ReferenceTypes lists all valid reference-layer type names.
 var ReferenceTypes = []string{
 	"spike", "survey",
@@ -30,6 +105,7 @@ func init() {
 	}
 	ValidTypes["brief"] = true
 	ValidTypes["design"] = true
+	ValidTypes["plan"] = true
 }
 
 // IsReferenceType returns true if t is a recognized reference-layer type.
@@ -44,7 +120,7 @@ func IsReferenceType(t string) bool {
 // This includes all ReferenceTypes plus "design" (which was removed from
 // ReferenceTypes but still lives in reference/).
 func IsReferenceDir(t string) bool {
-	return IsReferenceType(t) || t == "design"
+	return IsReferenceType(t) || t == "design" || t == "research" || t == "insight"
 }
 
 // ColocatableTypes lists types that colocate with a matching work directory.

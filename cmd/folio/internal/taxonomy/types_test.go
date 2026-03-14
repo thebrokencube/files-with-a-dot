@@ -198,6 +198,62 @@ func TestNoteNotInValidTypes(t *testing.T) {
 	}
 }
 
+func TestResolveAlias(t *testing.T) {
+	canon, label, ok := ResolveAlias("survey")
+	if !ok || canon != "reference" || label != "research" {
+		t.Errorf("ResolveAlias(survey) = (%q, %q, %v), want (reference, research, true)", canon, label, ok)
+	}
+	_, _, ok = ResolveAlias("spike")
+	if ok {
+		t.Error("ResolveAlias(spike) should return false")
+	}
+}
+
+func TestStageForType(t *testing.T) {
+	cases := map[string]LifecycleStage{
+		"spike":   StageSpike,
+		"plan":    StagePlan,
+		"brief":   StagePlan,
+		"design":  StageDesign,
+		"retro":   StageRetro,
+		"survey":  StageReference,
+		"unknown": StageReference,
+	}
+	for typ, want := range cases {
+		if got := StageForType(typ); got != want {
+			t.Errorf("StageForType(%q) = %d, want %d", typ, got, want)
+		}
+	}
+}
+
+func TestInferType(t *testing.T) {
+	cases := map[string]string{
+		"reference/spike/foo.md":               "spike",
+		"work/active/2026-01-01-bar/README.md": "brief",
+		"README.md":                            "",
+	}
+	for path, want := range cases {
+		if got := InferType(path); got != want {
+			t.Errorf("InferType(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
+
+func TestIsReferenceDirNewNames(t *testing.T) {
+	if !IsReferenceDir("research") {
+		t.Error("IsReferenceDir(research) = false, want true")
+	}
+	if !IsReferenceDir("insight") {
+		t.Error("IsReferenceDir(insight) = false, want true")
+	}
+}
+
+func TestValidTypesIncludesPlan(t *testing.T) {
+	if !ValidTypes["plan"] {
+		t.Error("plan not in ValidTypes")
+	}
+}
+
 func TestTemplateRetroHasExpectedSections(t *testing.T) {
 	tmpl := Template("retro", "test")
 	for _, section := range []string{"Context", "What Happened", "What Worked", "What Didn't", "Action Items"} {
