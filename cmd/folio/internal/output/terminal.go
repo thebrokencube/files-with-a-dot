@@ -66,7 +66,14 @@ func PrintValidateTerminal(w io.Writer, r *validate.Result, folioPath string, co
 func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[string]string, color bool) {
 	p := newPalette(color)
 
-	fmt.Fprintf(w, "%s%s%s\n\n", p.bold, ps.Project, p.reset)
+	fmt.Fprintf(w, "%s%s%s\n", p.bold, ps.Project, p.reset)
+
+	// Lifecycle summary
+	ls := ps.Lifecycle
+	fmt.Fprintf(w, "%sLifecycle:%s %d observations | %d spikes | %d designs | %d plans | %d retros | %d references\n",
+		p.dim, p.reset,
+		ls.Observations, ls.Spikes, ls.Designs, ls.Plans, ls.Retros, ls.References)
+	fmt.Fprintln(w)
 
 	// Project-level sources
 	if len(ps.Sources) > 0 {

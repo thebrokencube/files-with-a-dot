@@ -154,6 +154,35 @@ func TestPrintStatusTerminalWithBatch(t *testing.T) {
 	}
 }
 
+func TestPrintStatusTerminalLifecycleHeader(t *testing.T) {
+	ps := &status.ProjectStatus{
+		Project: "Lifecycle Test",
+		Lifecycle: status.LifecycleSummary{
+			Observations: 3,
+			Spikes:       2,
+			Designs:      1,
+			Plans:        1,
+			Retros:       4,
+			References:   5,
+		},
+		Targets: map[string]status.TargetStatus{},
+	}
+
+	var buf bytes.Buffer
+	PrintStatusTerminal(&buf, ps, nil, false)
+	out := buf.String()
+
+	if !strings.Contains(out, "Lifecycle:") {
+		t.Error("expected Lifecycle: header in output")
+	}
+	if !strings.Contains(out, "3 observations") {
+		t.Errorf("expected '3 observations' in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "2 spikes") {
+		t.Errorf("expected '2 spikes' in output")
+	}
+}
+
 func TestPrintStatusTerminalColor(t *testing.T) {
 	ps := &status.ProjectStatus{
 		Project: "Color Test",
