@@ -209,6 +209,6 @@ they do not count as materialization.
 - **references/compose.md** — Compose workflow: steps, tree targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
-- **references/plan.md** — Plan workflow: 8 phases, design gate, pre-commit review gate, lens system, re-run rules, agent prompt templates
+- **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/stack.md** — Stack workflow: check/propagate/push actions, stacked-pr integration
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
