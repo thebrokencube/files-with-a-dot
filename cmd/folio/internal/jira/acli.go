@@ -91,7 +91,7 @@ func (p *Pipeline) Create(payload []byte) (string, error) {
 
 // View fetches issue details via acli.
 func (p *Pipeline) View(id string, fields string, jsonOut bool) ([]byte, error) {
-	args := []string{"jira", "workitem", "view", "--workitem", id}
+	args := []string{"jira", "workitem", "view", id}
 	if fields != "" {
 		args = append(args, "--fields", fields)
 	}

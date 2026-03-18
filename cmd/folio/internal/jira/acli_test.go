@@ -180,7 +180,7 @@ func TestViewBuildsArgs(t *testing.T) {
 		jsonOut bool
 		wantAll []string
 	}{
-		{"basic", "BEN-123", "", false, []string{"jira", "workitem", "view", "--workitem", "BEN-123"}},
+		{"basic", "BEN-123", "", false, []string{"jira", "workitem", "view", "BEN-123"}},
 		{"with fields", "BEN-123", "summary,status", false, []string{"--fields", "summary,status"}},
 		{"with json", "BEN-123", "", true, []string{"--json"}},
 		{"all flags", "BEN-123", "key", true, []string{"--fields", "key", "--json"}},
