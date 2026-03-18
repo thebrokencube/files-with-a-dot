@@ -19,6 +19,9 @@
 # User local binaries
 [ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
 
+# Obsidian CLI (bundled with Obsidian.app 1.12+)
+[ -d "/Applications/Obsidian.app/Contents/MacOS" ] && export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+
 # ============================================================================
 # Environment Variables
 # ============================================================================

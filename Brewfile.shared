@@ -43,5 +43,8 @@ brew "docker"                   # Docker CLI
 cask "ghostty"                  # Modern terminal emulator
 cask "iterm2"                   # Fallback terminal
 
+# Knowledge management
+cask "obsidian"                 # Vault browser for ~/.folio
+
 # Fonts
 cask "font-inconsolata-nerd-font"
