@@ -54,13 +54,25 @@ not rely on training data. Flag facts that couldn't be live-verified.
 
 Launch 2 Plan agents in parallel, each with the same context summary but a different lens. Each returns a proposal (max 80 lines).
 
+### Model Routing
+
+Subagents use explicit model selection to balance cost and capability:
+
+| Role | model | Rationale |
+|------|-------|-----------|
+| Propose | sonnet | Breadth exploration, constrained output |
+| Converge | session default | Synthesis needs depth |
+| Review | sonnet | Checklist verification |
+
+When `model` is omitted, the agent inherits the session default.
+
 Default lenses:
 - **Pragmatic**: Minimize changes, reuse existing code, prefer the simplest approach that works
 - **Thorough**: Consider edge cases, maintainability, architectural fit, future extensibility
 
 ### Propose Agent Prompt
 
-Use with `subagent_type: "Plan"`. Launch two instances in parallel with different lens values.
+Use with `subagent_type: "Plan"` and `model: "sonnet"`. Launch two instances in parallel with different lens values.
 
 ```
 You are planning an implementation for: {task_description}
@@ -92,7 +104,7 @@ Keep your proposal under 80 lines. Be concrete — file paths, function names, s
 
 ## Phase 3: Converge
 
-Launch 1 agent (subagent_type: general-purpose) to merge the two proposals into a single plan (max 100 lines).
+Launch 1 agent (subagent_type: general-purpose, model: session default) to merge the two proposals into a single plan (max 100 lines).
 
 Convergence criteria:
 - Every file to be changed is listed with what changes and why
@@ -161,7 +173,7 @@ The committed design doc is the contract for Agent 2.
 
 ### Review Agent Prompt
 
-Use with `subagent_type: "general-purpose"`. Needs file access to verify claims.
+Use with `subagent_type: "general-purpose"` and `model: "sonnet"`. Needs file access to verify claims.
 
 ```
 You are reviewing an implementation plan. Your job is to find problems before code is written.

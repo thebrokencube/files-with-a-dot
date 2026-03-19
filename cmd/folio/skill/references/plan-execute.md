@@ -33,7 +33,7 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 
 ### Implementation Review Prompt
 
-Use with `subagent_type: "general-purpose"`. Launch two instances — one accuracy, one scope. Needs file access.
+Use with `subagent_type: "general-purpose"` and `model: "sonnet"`. Launch two instances — one accuracy, one scope. Needs file access.
 
 ```
 You are reviewing code changes before a commit. Your job is to catch implementation bugs.
