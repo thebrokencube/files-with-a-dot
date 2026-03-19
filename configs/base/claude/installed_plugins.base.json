@@ -10,6 +10,16 @@
         "lastUpdated": "2026-03-11T20:29:22.573Z",
         "gitCommitSha": "5ef73d25b71e69e63a74eae359fb26c7a6ac8fc0"
       }
+    ],
+    "playground@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sapan.upadhyuy/.claude/plugins/cache/claude-plugins-official/playground/d53f6ca4cdb0",
+        "version": "d53f6ca4cdb0",
+        "installedAt": "2026-03-19T04:56:40.391Z",
+        "lastUpdated": "2026-03-19T04:56:40.391Z",
+        "gitCommitSha": "d53f6ca4cdb000c671dfdc1c181b021e97c25505"
+      }
     ]
   }
 }
