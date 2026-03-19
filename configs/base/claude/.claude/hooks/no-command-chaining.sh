@@ -4,7 +4,9 @@
 #
 # Blocks:
 # 1. Command chaining (&&, ||, ;) — each command needs its own tool call
-# 2. git -C — breaks Bash(git <cmd>*) prefix matching in allow list and hooks
+# 2. Command substitution ($(...), `...`) — executes arbitrary commands inside an allowed prefix
+# 3. Pipes (|) — chains arbitrary commands after an allowed prefix
+# 4. git -C / --git-dir / --work-tree — changes which repo git operates on
 
 INPUT=$(cat /dev/stdin)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -25,6 +27,30 @@ if echo "$COMMAND" | grep -qE '&&|\|\||;'; then
   exit 0
 fi
 
+# Block command substitution ($(...) and backticks)
+if echo "$COMMAND" | grep -qE '\$\(|`'; then
+  jq -n '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "Don'\''t use command substitution ($(...) or backticks).\n\nCommand substitution executes arbitrary commands inside an allowed prefix,\nbypassing permission matching. Use separate tool calls instead."
+    }
+  }'
+  exit 0
+fi
+
+# Block pipes (chains arbitrary commands after an allowed prefix)
+if echo "$COMMAND" | grep -qE '\|'; then
+  jq -n '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "Don'\''t use pipes.\n\nPipes chain arbitrary commands after an allowed prefix,\nbypassing permission matching. Use separate tool calls instead."
+    }
+  }'
+  exit 0
+fi
+
 # Block git -C (bypasses all Bash(git ...*) prefix matching in allow list and hooks)
 if echo "$COMMAND" | grep -qE '^git\s+-C\s'; then
   jq -n '{
@@ -32,6 +58,18 @@ if echo "$COMMAND" | grep -qE '^git\s+-C\s'; then
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
       permissionDecisionReason: "Don'\''t use git -C.\n\ngit -C <path> <cmd> bypasses Bash(git <cmd>*) prefix matching in the allow list and hooks.\nRun git commands from the repo working directory instead."
+    }
+  }'
+  exit 0
+fi
+
+# Block git --git-dir / --work-tree (same class as git -C)
+if echo "$COMMAND" | grep -qE '^git\s+--?(git-dir|work-tree)\b'; then
+  jq -n '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "Don'\''t use git --git-dir or --work-tree.\n\nThese flags change which repo git operates on, bypassing permission matching.\nRun git commands from the repo working directory instead."
     }
   }'
   exit 0
