@@ -76,6 +76,9 @@
       "ReadMcpResourceTool"
     ]
   },
+  "enabledPlugins": {
+    "playground@claude-plugins-official": true
+  },
   "memory": {
     "enabled": false
   },
