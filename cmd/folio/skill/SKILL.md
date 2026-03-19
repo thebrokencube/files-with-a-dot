@@ -163,7 +163,7 @@ External outputs resolve their push/pull method from `tooling.yml` (co-located w
 
 **Method types**: `cli:<tool>` = shell command, `mcp:<server>` = MCP tool call, `manual` = present to user, `manual:<hint>` = manual with guidance. Unlisted systems: pull=skip, push=manual.
 
-**Jira routing**: Use `folio jira` for all writes. MCP is read-only — always pass `fields` to avoid 97% token waste (see `tooling.yml` for tiers). Jira push pipeline and other publish methods: see references/publish.md.
+**Jira routing**: Use `folio jira` for ALL Jira operations — reads, writes, searches, everything. Never call MCP Jira tools directly. If `folio jira` cannot accomplish an operation, hard-stop and ask the user before falling back to MCP. Jira push pipeline and other publish methods: see references/publish.md.
 
 ## Review Gates
 
