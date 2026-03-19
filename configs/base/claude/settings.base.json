@@ -101,6 +101,14 @@
           { "type": "command", "command": "printf '\\a' > /dev/tty" }
         ]
       }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/post-compact.sh" }
+        ]
+      }
     ]
   }
 }
