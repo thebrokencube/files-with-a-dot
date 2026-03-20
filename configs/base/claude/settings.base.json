@@ -72,6 +72,8 @@
       "Bash(folio *)",
       "Bash(md-to-adf *)",
 
+      "WebFetch",
+
       "ListMcpResourcesTool",
       "ReadMcpResourceTool"
     ]
