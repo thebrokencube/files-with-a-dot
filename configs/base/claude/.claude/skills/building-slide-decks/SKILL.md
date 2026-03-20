@@ -75,6 +75,16 @@ Previous decks used: navy/amber, teal/coral. Pick colors that fit the topic.
 
 Add links where they provide value — repo URLs, documentation, Slack channels, specific files referenced. Style with `a.deck-link` (underline in highlight color). The JS engine must skip `<a>` clicks for slide navigation.
 
+## Narrative and tone
+
+When iterating on narrative-driven decks (not just informational), read `references/narrative-patterns.md` for:
+
+- **Pause beat pattern** — punchlines go after content, never between related visual elements
+- **Slide cohesiveness** — when to split, how to avoid competing elements
+- **Grounding examples** — real projects need enough context without domain lectures
+- **Cross-team portrayal** — partners contributing expertise, not obstacles
+- **Personal infrastructure framing** — "built from friction, not foresight"
+
 ## Common mistakes
 
 - **SVG viewBox too tight** — add 10-20px padding beyond content bounds
@@ -82,6 +92,7 @@ Add links where they provide value — repo URLs, documentation, Slack channels,
 - **Missing links** — if you reference a repo, doc, or channel, link it
 - **Too much text** — slides are visual anchors, not documents
 - **Inconsistent slide density** — one slide with 2 items, next with 8. Redistribute.
+- **Beat between visuals** — self-deprecating aside between SVG and code block breaks flow. Move to end.
 - **Closing slide undercooked** — closing slides need the most iteration. Budget for it.
 
 ## Reference files
