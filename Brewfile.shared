@@ -46,9 +46,7 @@ cask "iterm2"                   # Fallback terminal
 # Knowledge management
 cask "obsidian"                 # Vault browser for ~/.folio
 
-# Presentations and diagrams
-brew "marp-cli"                 # Markdown → HTML/PDF/PPTX slide decks
-brew "d2"                       # Text → diagram (better styling than Mermaid)
+# Diagrams
 brew "mermaid-cli"              # Mermaid diagram CLI (mmdc)
 
 # Fonts
