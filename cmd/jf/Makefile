@@ -20,9 +20,11 @@ fmt:                         ## Format all Go source
 
 check: fmt vet test          ## Full pre-commit check: format, vet, test
 
-bundle:                      ## Rebuild marklassian bundle (requires npm)
+bundle:                      ## Rebuild JS bundles (requires npm)
 	cd scripts && npm install && npx esbuild md2adf.mjs --bundle --format=esm --platform=node --outfile=md2adf.bundle.mjs
 	cp scripts/md2adf.bundle.mjs internal/pipeline/md2adf.bundle.mjs
+	cd scripts && npx esbuild adf2md.mjs --bundle --format=esm --platform=node --outfile=adf2md.bundle.mjs
+	cp scripts/adf2md.bundle.mjs internal/pipeline/adf2md.bundle.mjs
 
 clean:                       ## Remove build artifacts
 	rm -f $(BINARY)

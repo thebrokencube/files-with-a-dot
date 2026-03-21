@@ -4,6 +4,7 @@
   "private": true,
   "type": "commonjs",
   "dependencies": {
+    "extended-markdown-adf-parser": "^2.4.0",
     "marklassian": "^1.2.0"
   }
 }
