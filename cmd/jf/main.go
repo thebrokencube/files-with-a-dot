@@ -32,17 +32,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Prereq guard for all other commands
-	if msg := setup.QuickCheck(setup.DefaultChecker); msg != "" {
-		fmt.Fprintln(os.Stderr, msg)
-		os.Exit(1)
-	}
-
+	// Local-only commands (no Jira auth needed)
 	switch cmd {
-	case "push":
-		os.Exit(runPush(os.Args[2:]))
-	case "pull":
-		os.Exit(runPull(os.Args[2:]))
 	case "discover":
 		os.Exit(runDiscover(os.Args[2:]))
 	case "tree":
@@ -55,6 +46,19 @@ func main() {
 		os.Exit(runStatus(os.Args[2:]))
 	case "show":
 		os.Exit(runShow(os.Args[2:]))
+	}
+
+	// Prereq guard for Jira-touching commands
+	if msg := setup.QuickCheck(setup.DefaultChecker); msg != "" {
+		fmt.Fprintln(os.Stderr, msg)
+		os.Exit(1)
+	}
+
+	switch cmd {
+	case "push":
+		os.Exit(runPush(os.Args[2:]))
+	case "pull":
+		os.Exit(runPull(os.Args[2:]))
 	case "sync":
 		os.Exit(runSync(os.Args[2:]))
 	case "create-missing":
