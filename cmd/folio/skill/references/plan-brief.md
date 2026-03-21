@@ -136,3 +136,6 @@ contract for Agent 3.
    - **New session**: Provide a paste-able prompt for the user to start fresh.
    Format: "Work brief committed at [path]. **Continue to Execute phase, or hand off to a
    new session?**"
+3. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
+   temp file and `pbcopy < /tmp/handoff-prompt.txt`. The prompt exists in the doc for
+   durability, but clipboard is how the user actually starts the next session.
