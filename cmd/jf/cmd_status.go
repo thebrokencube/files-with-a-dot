@@ -30,7 +30,7 @@ func runStatus(args []string) int {
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
-	var pushTotal, pushStale, pullTotal, tbdTotal int
+	var pushTotal, pushStale, pullTotal, pullStale, tbdTotal int
 
 	for _, n := range all {
 		if forest.IsTBD(n.Key) {
@@ -41,6 +41,9 @@ func runStatus(args []string) int {
 		switch n.Sync {
 		case "pull":
 			pullTotal++
+			if state.IsPullStale(n.Key) {
+				pullStale++
+			}
 		default:
 			pushTotal++
 			filePath := filepath.Join(f.Dir, n.File)
@@ -63,6 +66,7 @@ func runStatus(args []string) int {
 			PushTotal: pushTotal,
 			PushStale: pushStale,
 			PullTotal: pullTotal,
+			PullStale: pullStale,
 		})
 		return 0
 	}
@@ -74,7 +78,7 @@ func runStatus(args []string) int {
 	}
 	fmt.Println()
 	fmt.Printf("Push:   %d nodes, %d stale\n", pushTotal, pushStale)
-	fmt.Printf("Pull:   %d nodes\n", pullTotal)
+	fmt.Printf("Pull:   %d nodes, %d stale\n", pullTotal, pullStale)
 
 	return 0
 }

@@ -32,15 +32,20 @@ func runPull(args []string) int {
 }
 
 // richPull extracts ADF from View JSON output and converts to markdown.
-func richPull(viewJSON []byte) ([]byte, error) {
+// Returns (markdown, rawADF, error). rawADF is needed for state tracking.
+func richPull(viewJSON []byte) (md []byte, rawADF []byte, err error) {
 	adf, err := pipeline.ExtractDescriptionADF(viewJSON)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if adf == nil {
-		return []byte(""), nil // empty description
+		return []byte(""), nil, nil
 	}
-	return pipeline.ConvertADF(adf)
+	converted, err := pipeline.ConvertADF(adf)
+	if err != nil {
+		return nil, nil, err
+	}
+	return converted, adf, nil
 }
 
 func pullSingle(key, filePath string) int {
@@ -53,7 +58,7 @@ func pullSingle(key, filePath string) int {
 		return 2
 	}
 
-	md, err := richPull(out)
+	md, _, err := richPull(out)
 	if err != nil {
 		// Fallback: plain text pull
 		fmt.Fprintf(os.Stderr, "⚠ %s: ADF conversion failed (%s), falling back to plain text\n", key, err)
@@ -106,6 +111,11 @@ func pullForest(dir string, positional []string, failFast bool) int {
 		return 0
 	}
 
+	state, err := forest.LoadState(f.Dir)
+	if err != nil {
+		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
+	}
+
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 	succeeded := 0
 	failed := 0
@@ -123,7 +133,7 @@ func pullForest(dir string, positional []string, failFast bool) int {
 			continue
 		}
 
-		md, richErr := richPull(out)
+		md, adfJSON, richErr := richPull(out)
 		if richErr != nil {
 			fmt.Fprintf(os.Stderr, "⚠ %s: ADF conversion failed (%s), falling back to plain text\n", n.Key, richErr)
 			out, err = p.View(n.Key, "description", false)
@@ -136,6 +146,7 @@ func pullForest(dir string, positional []string, failFast bool) int {
 				continue
 			}
 			md = out
+			adfJSON = nil
 		}
 
 		// Preserve frontmatter if file exists
@@ -158,8 +169,20 @@ func pullForest(dir string, positional []string, failFast bool) int {
 			continue
 		}
 
+		// Record pull state
+		if adfJSON != nil {
+			localHash := forest.ComputeHash(pipeline.StripFrontmatter(content))
+			remoteHash := forest.ComputeHash(adfJSON)
+			state.RecordPull(n.Key, localHash, remoteHash)
+		}
+
 		fmt.Printf("✓ %s -> %s\n", n.Key, n.File)
 		succeeded++
+	}
+
+	// Save state
+	if err := forest.SaveState(f.Dir, state); err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ state save failed: %s\n", err)
 	}
 
 	fmt.Printf("\nPulled %d/%d nodes", succeeded, succeeded+failed)

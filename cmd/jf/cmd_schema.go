@@ -97,6 +97,7 @@ func printOutputSchemas() int {
 					"push_total": map[string]any{"type": "integer"},
 					"push_stale": map[string]any{"type": "integer"},
 					"pull_total": map[string]any{"type": "integer"},
+					"pull_stale": map[string]any{"type": "integer"},
 				},
 			},
 			"ValidateResult": map[string]any{

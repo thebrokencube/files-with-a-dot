@@ -59,6 +59,7 @@ type StatusResult struct {
 	PushTotal int    `json:"push_total"`
 	PushStale int    `json:"push_stale"`
 	PullTotal int    `json:"pull_total"`
+	PullStale int    `json:"pull_stale"`
 }
 
 // ValidateResult is the JSON output for jf validate.
