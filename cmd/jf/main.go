@@ -24,6 +24,8 @@ func main() {
 		os.Exit(runTree(os.Args[2:]))
 	case "list":
 		os.Exit(runList(os.Args[2:]))
+	case "validate":
+		os.Exit(runValidate(os.Args[2:]))
 	case "version":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
@@ -48,6 +50,7 @@ Level 1 (forest):
   discover             Detect and display forest tree (dry run)
   tree                 Show forest hierarchy
   list                 Flat list of all nodes
+  validate             Check forest integrity
 
 Utility:
   version              Show version
