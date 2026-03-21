@@ -44,7 +44,7 @@ func checkKeyUniqueness(nodes []*Node) []ValidationIssue {
 	seen := make(map[string]string) // key -> first file
 
 	for _, n := range nodes {
-		if strings.ToUpper(n.Key) == "TBD" {
+		if IsTBD(n.Key) {
 			continue
 		}
 		upper := strings.ToUpper(n.Key)
@@ -67,7 +67,7 @@ func checkTBDNodes(nodes []*Node) []ValidationIssue {
 	var issues []ValidationIssue
 
 	for _, n := range nodes {
-		if strings.ToUpper(n.Key) != "TBD" {
+		if !IsTBD(n.Key) {
 			continue
 		}
 		if n.Type == "" {

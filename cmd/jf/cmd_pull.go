@@ -50,20 +50,10 @@ func pullSingle(key, filePath string) int {
 }
 
 func pullForest(dir string, positional []string, failFast bool) int {
-	f, err := forest.FindForest(dir)
+	f, roots, err := loadForest(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 1
-	}
-	if f == nil {
-		fmt.Fprintf(os.Stderr, "✗ No forest.yml found\n")
 		fmt.Fprintf(os.Stderr, "  For Level 0: jf pull <KEY> <FILE>\n")
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
 		return 1
 	}
 
@@ -80,7 +70,7 @@ func pullForest(dir string, positional []string, failFast bool) int {
 		// Collect all sync:pull nodes
 		all := forest.Flatten(roots)
 		for _, n := range all {
-			if n.Sync == "pull" && strings.ToUpper(n.Key) != "TBD" {
+			if n.Sync == "pull" && !forest.IsTBD(n.Key) {
 				toPull = append(toPull, n)
 			}
 		}

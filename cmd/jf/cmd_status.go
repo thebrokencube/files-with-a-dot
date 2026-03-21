@@ -7,7 +7,6 @@ import (
 	"jf/internal/output"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func runStatus(args []string) int {
@@ -19,32 +18,9 @@ func runStatus(args []string) int {
 		return 1
 	}
 
-	f, err := forest.FindForest(*dir)
-	if err != nil {
-		if *jsonOut {
-			output.Error(err.Error(), "")
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		}
-		return 1
-	}
-	if f == nil {
-		if *jsonOut {
-			output.Error("No forest.yml found", *dir)
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ No forest.yml found (searched up from %s)\n", *dir)
-		}
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		if *jsonOut {
-			output.Error("Discovery failed", err.Error())
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
-		}
-		return 1
+	f, roots, code := loadForestOrFail(*dir, *jsonOut)
+	if code != 0 {
+		return code
 	}
 
 	all := forest.Flatten(roots)
@@ -57,7 +33,7 @@ func runStatus(args []string) int {
 	var pushTotal, pushStale, pullTotal, tbdTotal int
 
 	for _, n := range all {
-		if strings.ToUpper(n.Key) == "TBD" {
+		if forest.IsTBD(n.Key) {
 			tbdTotal++
 			continue
 		}

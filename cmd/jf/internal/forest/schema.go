@@ -11,6 +11,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// IsTBD returns true if the key is a TBD placeholder (case-insensitive).
+func IsTBD(key string) bool {
+	return strings.EqualFold(key, "TBD")
+}
+
 // Forest represents a parsed forest.yml configuration.
 type Forest struct {
 	Schema   int            `yaml:"schema"`

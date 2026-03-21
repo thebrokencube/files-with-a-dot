@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
-	"os"
 )
 
 func runList(args []string) int {
@@ -17,32 +16,9 @@ func runList(args []string) int {
 		return 1
 	}
 
-	f, err := forest.FindForest(*dir)
-	if err != nil {
-		if *jsonOut {
-			output.Error(err.Error(), "")
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		}
-		return 1
-	}
-	if f == nil {
-		if *jsonOut {
-			output.Error("No forest.yml found", *dir)
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ No forest.yml found (searched up from %s)\n", *dir)
-		}
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		if *jsonOut {
-			output.Error("Discovery failed", err.Error())
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
-		}
-		return 1
+	_, roots, code := loadForestOrFail(*dir, *jsonOut)
+	if code != 0 {
+		return code
 	}
 
 	all := forest.Flatten(roots)

@@ -7,7 +7,6 @@ import (
 	"jf/internal/output"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func runShow(args []string) int {
@@ -25,20 +24,9 @@ func runShow(args []string) int {
 		return 1
 	}
 
-	f, err := forest.FindForest(*dir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 1
-	}
-	if f == nil {
-		fmt.Fprintf(os.Stderr, "✗ No forest.yml found (searched up from %s)\n", *dir)
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
-		return 1
+	f, roots, code := loadForestOrFail(*dir, false)
+	if code != 0 {
+		return code
 	}
 
 	node, err := forest.Resolve(roots, positional[0])
@@ -90,7 +78,7 @@ func syncDisplay(sync string) string {
 }
 
 func nodeStatus(node *forest.Node, f *forest.Forest, state *forest.State) string {
-	if strings.ToUpper(node.Key) == "TBD" {
+	if forest.IsTBD(node.Key) {
 		return "unknown"
 	}
 	filePath := filepath.Join(f.Dir, node.File)

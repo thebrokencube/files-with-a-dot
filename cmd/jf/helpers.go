@@ -1,0 +1,43 @@
+package main
+
+import (
+	"fmt"
+	"jf/internal/forest"
+	"jf/internal/output"
+	"os"
+)
+
+// loadForest finds and discovers a forest from the given directory.
+// Returns the forest config, discovered roots, or a descriptive error.
+func loadForest(dir string) (*forest.Forest, []*forest.Node, error) {
+	f, err := forest.FindForest(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	if f == nil {
+		return nil, nil, fmt.Errorf("No forest.yml found (searched up from %s)", dir)
+	}
+
+	roots, err := forest.Discover(f)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Discovery failed: %s", err)
+	}
+
+	return f, roots, nil
+}
+
+// loadForestOrFail calls loadForest and reports the error.
+// If jsonOut is true, errors go to stdout as JSON; otherwise stderr.
+// Returns exit code 1 on failure, 0 on success.
+func loadForestOrFail(dir string, jsonOut bool) (*forest.Forest, []*forest.Node, int) {
+	f, roots, err := loadForest(dir)
+	if err != nil {
+		if jsonOut {
+			output.Error(err.Error(), dir)
+		} else {
+			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+		}
+		return nil, nil, 1
+	}
+	return f, roots, 0
+}

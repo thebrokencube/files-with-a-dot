@@ -21,20 +21,9 @@ func runCreateMissing(args []string) int {
 		return 1
 	}
 
-	f, err := forest.FindForest(*dir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 1
-	}
-	if f == nil {
-		fmt.Fprintf(os.Stderr, "✗ No forest.yml found\n")
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
-		return 1
+	f, roots, code := loadForestOrFail(*dir, false)
+	if code != 0 {
+		return code
 	}
 
 	issues := forest.Validate(roots, f)
@@ -53,7 +42,7 @@ func runCreateMissing(args []string) int {
 	ordered := forest.PreOrder(roots)
 	var tbdNodes []*forest.Node
 	for _, n := range ordered {
-		if strings.ToUpper(n.Key) == "TBD" {
+		if forest.IsTBD(n.Key) {
 			tbdNodes = append(tbdNodes, n)
 		}
 	}
@@ -74,7 +63,7 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 	fmt.Printf("Would create %d ticket(s):\n\n", len(nodes))
 	for i, n := range nodes {
 		parentKey := "(root)"
-		if n.Parent != nil && strings.ToUpper(n.Parent.Key) != "TBD" {
+		if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {
 			parentKey = n.Parent.Key
 		}
 		fmt.Printf("  %d. %s\n", i+1, n.Label)
@@ -189,7 +178,7 @@ func buildCreatePayload(n *forest.Node, f *forest.Forest) []byte {
 	payload := fmt.Sprintf(`{"project":%q,"type":%q,"summary":%q`, f.Defaults.Project, n.Type, n.Label)
 
 	// Add parent link if parent has a real key
-	if n.Parent != nil && strings.ToUpper(n.Parent.Key) != "TBD" {
+	if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {
 		payload += fmt.Sprintf(`,"parent":{"key":%q}`, n.Parent.Key)
 	}
 

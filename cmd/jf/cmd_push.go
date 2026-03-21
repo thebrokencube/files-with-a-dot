@@ -7,7 +7,6 @@ import (
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func runPush(args []string) int {
@@ -62,20 +61,10 @@ func pushSingle(key, filePath string, force bool) int {
 }
 
 func pushForest(dir string, positional []string, subtreeTarget string, force, failFast bool) int {
-	f, err := forest.FindForest(dir)
+	f, roots, err := loadForest(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 1
-	}
-	if f == nil {
-		fmt.Fprintf(os.Stderr, "✗ No forest.yml found\n")
 		fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
-		return 1
-	}
-
-	roots, err := forest.Discover(f)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
 		return 1
 	}
 
@@ -116,7 +105,7 @@ func pushForest(dir string, positional []string, subtreeTarget string, force, fa
 	// Filter to sync:push nodes (skip TBD and sync:pull)
 	var toPush []*forest.Node
 	for _, n := range ordered {
-		if strings.ToUpper(n.Key) == "TBD" {
+		if forest.IsTBD(n.Key) {
 			continue
 		}
 		if n.Sync == "pull" {
