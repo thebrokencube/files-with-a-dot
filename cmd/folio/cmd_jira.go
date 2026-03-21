@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 
@@ -18,38 +19,19 @@ func runJiraCompile(args []string) int {
 	fs := flag.NewFlagSet("jira compile", flag.ExitOnError)
 	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
 	source := fs.String("source", "", "Markdown source file (- for stdin)")
-	outFile := fs.String("output", "", "Output file (default: stdout)")
+	_ = fs.String("output", "", "Deprecated: output file")
 	fs.Parse(args)
 
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
-		fmt.Fprintf(os.Stderr, "Usage: folio jira compile --id KEY --source FILE [--output FILE]\n")
+		fmt.Fprintf(os.Stderr, "Usage: folio jira compile --id KEY --source FILE\n")
 		return 1
 	}
 
-	input, err := readSource(*source)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
-	}
+	fmt.Fprintln(os.Stderr, "⚠ folio jira compile is deprecated — use: jf push <KEY> <FILE>")
 
-	p := &jira.Pipeline{Run: jira.DefaultRunner}
-	compiled, err := p.Compile(*id, input)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("compile: %s", err))
-		return 1
-	}
-
-	if *outFile != "" {
-		if err := os.WriteFile(*outFile, compiled, 0644); err != nil {
-			fmt.Fprintln(os.Stderr, output.Errf("write %s: %s", *outFile, err))
-			return 1
-		}
-	} else {
-		fmt.Println(string(compiled))
-	}
-
-	return 0
+	// Delegate to jf push (which compiles + pushes; compile-only not available)
+	return runJf("push", *id, *source)
 }
 
 func runJiraPush(args []string) int {
@@ -64,30 +46,13 @@ func runJiraPush(args []string) int {
 		return 1
 	}
 
-	input, err := readSource(*source)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+	code := runJf("push", *id, *source)
+	if code == 0 {
+		if touched, err := autoTouch(*source); err == nil && touched > 0 {
+			fmt.Printf("  Auto-touched %d output(s)\n", touched)
+		}
 	}
-
-	p := &jira.Pipeline{Run: jira.DefaultRunner}
-
-	compiled, err := p.Compile(*id, input)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("compile: %s", err))
-		return 1
-	}
-
-	if err := p.Push(compiled); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("push: %s", err))
-		return 1
-	}
-
-	fmt.Println(output.Successf("Pushed description for %s", *id))
-	if touched, err := autoTouch(*source); err == nil && touched > 0 {
-		fmt.Printf("  Auto-touched %d output(s)\n", touched)
-	}
-	return 0
+	return code
 }
 
 func runJiraCreate(args []string) int {
@@ -102,36 +67,24 @@ func runJiraCreate(args []string) int {
 		return 1
 	}
 
-	srcInput, err := readSource(*source)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
-	}
-
 	jsonPayload, err := readSource(*jsonFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", *jsonFile, err))
 		return 1
 	}
 
+	// Create ticket via acli (folio still owns this for now)
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
-
-	// Create ticket (barebones, no description)
 	key, err := p.Create(jsonPayload)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("create: %s", err))
 		return 1
 	}
 
-	// Compile and push description using the new key
-	compiled, err := p.Compile(key, srcInput)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("compile: %s", err))
-		return 1
-	}
-
-	if err := p.Push(compiled); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("push description for %s: %s", key, err))
+	// Delegate compile+push to jf
+	code := runJf("push", key, *source)
+	if code != 0 {
+		fmt.Fprintln(os.Stderr, output.Errf("push description for %s failed (ticket created)", key))
 		return 1
 	}
 
@@ -187,6 +140,21 @@ func runJiraSearch(args []string) int {
 	}
 
 	fmt.Print(string(out))
+	return 0
+}
+
+// runJf delegates to the jf binary with stdout/stderr passthrough.
+func runJf(args ...string) int {
+	cmd := exec.Command("jf", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		fmt.Fprintf(os.Stderr, "jf: %s\n", err)
+		return 2
+	}
 	return 0
 }
 
@@ -271,9 +239,9 @@ func printJiraUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio jira <command> [flags]
 
 Write commands:
-  compile    Convert markdown to acli-edit JSON
-  push       Compile + push description to Jira
-  create     Create ticket + push description
+  compile    Deprecated — use: jf push <KEY> <FILE>
+  push       Compile + push description to Jira (delegates to jf)
+  create     Create ticket + push description (delegates to jf for push)
 
 Read commands:
   view       Fetch issue details

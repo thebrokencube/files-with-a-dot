@@ -1,7 +1,6 @@
 package jira
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,43 +21,6 @@ func DefaultRunner(name string, args ...string) ([]byte, error) {
 // Pipeline wraps acli operations with an injectable Runner for testability.
 type Pipeline struct {
 	Run Runner
-}
-
-// Compile converts markdown source into an acli-edit JSON payload.
-// Shells out to Node via embedded marklassian bundle.
-func (p *Pipeline) Compile(id string, source []byte) ([]byte, error) {
-	adf, err := CompileMarkdown(source)
-	if err != nil {
-		return nil, fmt.Errorf("compile: %w", err)
-	}
-
-	payload := map[string]any{
-		"issues":      []string{id},
-		"description": json.RawMessage(adf),
-	}
-
-	return json.MarshalIndent(payload, "", "  ")
-}
-
-// Push sends a compiled JSON payload to Jira via acli edit.
-func (p *Pipeline) Push(compiled []byte) error {
-	tmpFile, err := os.CreateTemp("", "folio-jira-push-*.json")
-	if err != nil {
-		return fmt.Errorf("create temp file: %w", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
-	if _, err := tmpFile.Write(compiled); err != nil {
-		tmpFile.Close()
-		return fmt.Errorf("write temp file: %w", err)
-	}
-	tmpFile.Close()
-
-	out, err := p.Run("acli", "jira", "workitem", "edit", "--from-json", tmpFile.Name(), "--yes")
-	if err != nil {
-		return fmt.Errorf("acli edit: %s\n%s", err, string(out))
-	}
-	return nil
 }
 
 var reJiraKey = regexp.MustCompile(`[A-Z]+-\d+`)
