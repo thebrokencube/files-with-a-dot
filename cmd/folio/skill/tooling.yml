@@ -14,13 +14,17 @@
 # Minimal: summary,status (for dashboards/batch checks)
 # Extended: add changelog (for history/transition tracking)
 # A bare getJiraIssue returns ~100KB (~25-30K tokens), 91% waste.
+#
+# Response format (Jira MCP reads): Use responseContentFormat: "markdown"
+# on getJiraIssue, searchJiraIssuesUsingJql, editJiraIssue.
+# Est. 60-70% token reduction over default ADF responses.
+# Combine with fields parameter for maximum reduction.
 
 systems:
   jira:
     pull: cli:acli
     push: "folio jira push --id {id} --source {source}"
     check: "acli --version"
-    lint: "folio jira lint {source}"
     compile: "folio jira compile --id {id} --source {source} --output {compiled}"
     create: "folio jira create --json {compiled} --source {source}"
   confluence:
