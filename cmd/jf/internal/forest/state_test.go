@@ -128,3 +128,79 @@ func TestRecordPush(t *testing.T) {
 		t.Error("expected LastPush to be recent")
 	}
 }
+
+func TestRecordPushPreservesFields(t *testing.T) {
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {
+			LastPull:   time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC),
+			RemoteHash: "abc123",
+			LocalHash:  "def456",
+		},
+	}}
+	s.RecordPush("BEN-1")
+
+	ns := s.Nodes["BEN-1"]
+	if ns.LastPull.IsZero() {
+		t.Error("RecordPush should preserve LastPull")
+	}
+	if ns.RemoteHash != "abc123" {
+		t.Error("RecordPush should preserve RemoteHash")
+	}
+	if ns.LocalHash != "def456" {
+		t.Error("RecordPush should preserve LocalHash")
+	}
+	if time.Since(ns.LastPush) > time.Second {
+		t.Error("expected LastPush to be recent")
+	}
+}
+
+func TestRecordPull(t *testing.T) {
+	s := &State{Nodes: make(map[string]NodeState)}
+	s.RecordPull("BEN-1", "localhash", "remotehash")
+
+	ns, ok := s.Nodes["BEN-1"]
+	if !ok {
+		t.Fatal("expected node state after RecordPull")
+	}
+	if time.Since(ns.LastPull) > time.Second {
+		t.Error("expected LastPull to be recent")
+	}
+	if ns.LocalHash != "localhash" {
+		t.Errorf("expected LocalHash 'localhash', got %q", ns.LocalHash)
+	}
+	if ns.RemoteHash != "remotehash" {
+		t.Errorf("expected RemoteHash 'remotehash', got %q", ns.RemoteHash)
+	}
+}
+
+func TestComputeHash(t *testing.T) {
+	h := ComputeHash([]byte("hello world"))
+	if len(h) != 64 {
+		t.Errorf("expected 64-char hex string, got %d chars", len(h))
+	}
+	// Deterministic
+	if ComputeHash([]byte("hello world")) != h {
+		t.Error("expected deterministic hash")
+	}
+	// Different content → different hash
+	if ComputeHash([]byte("hello world!")) == h {
+		t.Error("expected different hash for different content")
+	}
+}
+
+func TestIsPullStale(t *testing.T) {
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LastPull: time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)},
+		"BEN-2": {LastPush: time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)},
+	}}
+
+	if s.IsPullStale("BEN-1") {
+		t.Error("expected not stale for pulled node")
+	}
+	if !s.IsPullStale("BEN-2") {
+		t.Error("expected stale for never-pulled node")
+	}
+	if !s.IsPullStale("BEN-3") {
+		t.Error("expected stale for unknown node")
+	}
+}

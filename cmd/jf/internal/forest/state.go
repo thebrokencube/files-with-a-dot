@@ -1,6 +1,8 @@
 package forest
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,8 +17,10 @@ type State struct {
 
 // NodeState tracks per-node push/pull state.
 type NodeState struct {
-	LastPush time.Time `json:"last_push,omitempty"`
-	FileHash string    `json:"file_hash,omitempty"`
+	LastPush   time.Time `json:"last_push,omitempty"`
+	LastPull   time.Time `json:"last_pull,omitempty"`
+	LocalHash  string    `json:"local_hash,omitempty"`  // sha256 of content below frontmatter
+	RemoteHash string    `json:"remote_hash,omitempty"` // sha256 of ADF JSON from Jira
 }
 
 // LoadState reads .jf/state.json from the forest directory.
@@ -89,7 +93,31 @@ func (s *State) IsStale(key string, fileMtime time.Time) bool {
 
 // RecordPush updates the state for a node after a successful push.
 func (s *State) RecordPush(key string) {
-	s.Nodes[key] = NodeState{
-		LastPush: time.Now(),
+	ns := s.Nodes[key]
+	ns.LastPush = time.Now()
+	s.Nodes[key] = ns
+}
+
+// RecordPull updates the state for a node after a successful pull.
+func (s *State) RecordPull(key string, localHash, remoteHash string) {
+	ns := s.Nodes[key]
+	ns.LastPull = time.Now()
+	ns.LocalHash = localHash
+	ns.RemoteHash = remoteHash
+	s.Nodes[key] = ns
+}
+
+// ComputeHash returns the sha256 hex digest of the given content.
+func ComputeHash(content []byte) string {
+	h := sha256.Sum256(content)
+	return hex.EncodeToString(h[:])
+}
+
+// IsPullStale returns true if the node has never been pulled.
+func (s *State) IsPullStale(key string) bool {
+	ns, ok := s.Nodes[key]
+	if !ok {
+		return true
 	}
+	return ns.LastPull.IsZero()
 }
