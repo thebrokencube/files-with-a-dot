@@ -39,7 +39,8 @@ func preOrderWalk(n *Node, result *[]*Node) {
 	}
 }
 
-// Subtree returns the node matching target and all its descendants.
+// Subtree returns the node matching target, intended for subtree operations
+// where callers will iterate the node's children (e.g., --subtree flag).
 // Matches by key (case-insensitive) or filename stem.
 func Subtree(roots []*Node, target string) (*Node, error) {
 	node := resolve(roots, target)
@@ -50,6 +51,8 @@ func Subtree(roots []*Node, target string) (*Node, error) {
 }
 
 // Resolve returns a single node matching target by key or filename stem.
+// Same lookup as Subtree but semantically for single-node operations
+// (e.g., show, single push/pull).
 func Resolve(roots []*Node, target string) (*Node, error) {
 	node := resolve(roots, target)
 	if node == nil {

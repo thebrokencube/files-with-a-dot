@@ -101,6 +101,13 @@ func checkFieldValues(nodes []*Node) []ValidationIssue {
 				Message: fmt.Sprintf("invalid sync value %q (must be push or pull)", n.Sync),
 			})
 		}
+		if n.Order < 0 {
+			issues = append(issues, ValidationIssue{
+				Level:   "error",
+				File:    n.File,
+				Message: fmt.Sprintf("invalid order %d (must be >= 0)", n.Order),
+			})
+		}
 	}
 
 	return issues

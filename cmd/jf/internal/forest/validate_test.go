@@ -130,6 +130,34 @@ func TestValidateNestedDuplicate(t *testing.T) {
 	}
 }
 
+func TestValidateNegativeOrder(t *testing.T) {
+	roots := []*Node{
+		{Key: "BEN-1", Label: "Bad", Type: "Story", Sync: "push", Order: -1, File: "bad.md"},
+	}
+	issues := Validate(roots, &Forest{})
+	hasError := false
+	for _, iss := range issues {
+		if iss.Level == "error" && strings.Contains(iss.Message, "invalid order") {
+			hasError = true
+		}
+	}
+	if !hasError {
+		t.Error("expected invalid order error for negative order")
+	}
+}
+
+func TestValidateZeroOrderValid(t *testing.T) {
+	roots := []*Node{
+		{Key: "BEN-1", Label: "Ok", Type: "Story", Sync: "push", Order: 0, File: "ok.md"},
+	}
+	issues := Validate(roots, &Forest{})
+	for _, iss := range issues {
+		if strings.Contains(iss.Message, "invalid order") {
+			t.Errorf("unexpected order error for Order=0: %s", iss.Message)
+		}
+	}
+}
+
 func TestValidateIssueString(t *testing.T) {
 	iss := ValidationIssue{Level: "error", File: "test.md", Message: "bad thing"}
 	s := iss.String()

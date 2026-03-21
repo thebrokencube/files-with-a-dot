@@ -76,6 +76,9 @@ func SaveState(forestDir string, state *State) error {
 }
 
 // IsStale returns true if the file has been modified since last push.
+// Comparison uses time.After with nanosecond precision. On filesystems
+// with coarser mtime granularity (e.g., HFS+ at 1s), a file modified
+// within the same second as a push may appear clean.
 func (s *State) IsStale(key string, fileMtime time.Time) bool {
 	ns, ok := s.Nodes[key]
 	if !ok {

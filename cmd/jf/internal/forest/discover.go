@@ -53,7 +53,9 @@ func Discover(forest *Forest) ([]*Node, error) {
 			return err
 		}
 
-		// Skip hidden directories and files
+		// Skip hidden directories (e.g., .jf/, .git/).
+		// Hidden *files* (e.g., .secret.md) are intentionally discovered
+		// if they have jira: frontmatter — only directories are skipped.
 		if info.IsDir() && strings.HasPrefix(info.Name(), ".") {
 			return filepath.SkipDir
 		}
