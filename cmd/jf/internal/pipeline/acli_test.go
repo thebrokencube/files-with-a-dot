@@ -221,19 +221,20 @@ func TestSearchBuildsArgs(t *testing.T) {
 		jql     string
 		fields  string
 		limit   int
+		jsonOut bool
 		wantAll []string
 	}{
-		{"basic", "project=BEN", "", 0, []string{"--jql", "project=BEN"}},
-		{"with fields", "project=BEN", "key,summary", 0, []string{"--fields", "key,summary"}},
-		{"with limit", "project=BEN", "", 25, []string{"--limit", "25"}},
-		{"all flags", "status=Open", "key", 10, []string{"--jql", "status=Open", "--fields", "key", "--limit", "10"}},
+		{"basic", "project=BEN", "", 0, false, []string{"--jql", "project=BEN"}},
+		{"with fields", "project=BEN", "key,summary", 0, false, []string{"--fields", "key,summary"}},
+		{"with limit", "project=BEN", "", 25, false, []string{"--limit", "25"}},
+		{"all flags", "status=Open", "key", 10, true, []string{"--jql", "status=Open", "--fields", "key", "--limit", "10", "--json"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &mockRunner{output: []byte("result")}
 			p := &Pipeline{Run: m.run}
 
-			_, err := p.Search(tt.jql, tt.fields, tt.limit)
+			_, err := p.Search(tt.jql, tt.fields, tt.limit, tt.jsonOut)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -162,7 +162,7 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
 // dedupCheck searches Jira for an existing ticket matching the JQL.
 // Returns the key if found, empty string if not.
 func dedupCheck(p *pipeline.Pipeline, jql string) (string, error) {
-	out, err := p.Search(jql, "summary", 1)
+	out, err := p.Search(jql, "summary", 1, false)
 	if err != nil {
 		return "", err
 	}

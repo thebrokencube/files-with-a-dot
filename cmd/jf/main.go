@@ -63,6 +63,10 @@ func main() {
 		os.Exit(runSync(os.Args[2:]))
 	case "create-missing":
 		os.Exit(runCreateMissing(os.Args[2:]))
+	case "search":
+		os.Exit(runSearch(os.Args[2:]))
+	case "clone":
+		os.Exit(runClone(os.Args[2:]))
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", cmd)
 		printUsage()
@@ -86,6 +90,8 @@ Level 1 (forest):
   show <target>        Single-node detail view
   sync                 Push all + pull all
   create-missing       Create Jira tickets for TBD nodes
+  search <text>        Find Jira tickets by text/project/type
+  clone <KEY>          Scaffold local forest from Jira hierarchy
 
 Setup:
   setup                Check and install prerequisites

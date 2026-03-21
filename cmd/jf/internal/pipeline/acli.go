@@ -113,13 +113,16 @@ func (p *Pipeline) View(id string, fields string, jsonOut bool) ([]byte, error) 
 }
 
 // Search queries Jira issues by JQL via acli.
-func (p *Pipeline) Search(jql string, fields string, limit int) ([]byte, error) {
+func (p *Pipeline) Search(jql string, fields string, limit int, jsonOut bool) ([]byte, error) {
 	args := []string{"jira", "workitem", "search", "--jql", jql}
 	if fields != "" {
 		args = append(args, "--fields", fields)
 	}
 	if limit > 0 {
 		args = append(args, "--limit", strconv.Itoa(limit))
+	}
+	if jsonOut {
+		args = append(args, "--json")
 	}
 
 	out, err := p.Run("acli", args...)
