@@ -74,7 +74,6 @@ files-with-a-dot/
 │   │       ├── bootstrap.sh    # standalone first-time setup
 │   │       ├── uninstall.sh    # standalone removal
 │   │       └── validate*.sh    # dot validate
-│   ├── md-to-adf               # Markdown → Atlassian Document Format
 │   └── folio/                  # Go CLI
 ├── configs/
 │   ├── base/                   # always-applied configs

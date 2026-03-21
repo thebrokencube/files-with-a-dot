@@ -80,8 +80,6 @@ func main() {
 			os.Exit(1)
 		}
 		switch os.Args[2] {
-		case "lint":
-			os.Exit(runJiraLint(os.Args[3:]))
 		case "compile":
 			os.Exit(runJiraCompile(os.Args[3:]))
 		case "push":

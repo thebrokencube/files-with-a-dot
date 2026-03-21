@@ -108,6 +108,10 @@ description: When to use this skill (for Claude's context)
 
 **Keep skills focused**: One topic per skill, detailed docs in supporting files.
 
+### Build Artifacts
+
+This repo is deployment-via-clone — `dot sync` does NOT run build steps. Build artifacts (binaries, JS bundles) must be checked into git so they work immediately after clone/pull. Only gitignore transient dev state like `node_modules/`. When changing code that produces a build artifact, always rebuild and commit the artifact in the same commit.
+
 ### Commit Conventions
 
 Follow the conventions in the commit skill, plus dotfiles-specific rules:

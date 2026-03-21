@@ -25,16 +25,16 @@ type Pipeline struct {
 }
 
 // Compile converts markdown source into an acli-edit JSON payload.
-// Pure function — does NOT call Lint, does NOT shell out.
+// Shells out to Node via embedded marklassian bundle.
 func (p *Pipeline) Compile(id string, source []byte) ([]byte, error) {
-	doc, err := Convert(source)
+	adf, err := CompileMarkdown(source)
 	if err != nil {
-		return nil, fmt.Errorf("convert: %w", err)
+		return nil, fmt.Errorf("compile: %w", err)
 	}
 
 	payload := map[string]any{
 		"issues":      []string{id},
-		"description": doc,
+		"description": json.RawMessage(adf),
 	}
 
 	return json.MarshalIndent(payload, "", "  ")

@@ -3,6 +3,7 @@ package jira
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -21,6 +22,9 @@ func (m *mockRunner) run(name string, args ...string) ([]byte, error) {
 }
 
 func TestCompileProducesValidJSON(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not found, skipping integration test")
+	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
 	out, err := p.Compile("TEST-1", []byte("## Hello"))
 	if err != nil {
@@ -40,7 +44,10 @@ func TestCompileProducesValidJSON(t *testing.T) {
 	}
 }
 
-func TestCompileCallsConvert(t *testing.T) {
+func TestCompileProducesADF(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not found, skipping integration test")
+	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
 	out, err := p.Compile("KEY-1", []byte("## Heading\n\nParagraph"))
 	if err != nil {
@@ -63,6 +70,9 @@ func TestCompileCallsConvert(t *testing.T) {
 }
 
 func TestCompileStripsFrontmatter(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not found, skipping integration test")
+	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
 	input := "---\ntitle: test\n---\n## Content"
 	out, err := p.Compile("KEY-1", []byte(input))

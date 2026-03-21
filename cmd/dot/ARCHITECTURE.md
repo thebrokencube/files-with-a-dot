@@ -26,7 +26,6 @@ cmd/
 │       ├── validate.sh         # dot validate
 │       ├── validate-symlink-map.sh
 │       └── validate-skills.sh
-├── md-to-adf                   # Markdown -> ADF converter
 └── folio/                      # Go CLI
 
 configs/

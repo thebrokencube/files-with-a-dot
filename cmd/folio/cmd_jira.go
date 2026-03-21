@@ -14,48 +14,6 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 )
 
-func runJiraLint(args []string) int {
-	fs := flag.NewFlagSet("jira lint", flag.ExitOnError)
-	fs.Parse(args)
-
-	files := fs.Args()
-	if len(files) == 0 {
-		fmt.Fprintln(os.Stderr, output.Errf("no files specified"))
-		fmt.Fprintf(os.Stderr, "Usage: folio jira lint <file...>\n")
-		fmt.Fprintf(os.Stderr, "  Use - to read from stdin\n")
-		return 1
-	}
-
-	hasIssues := false
-	for _, file := range files {
-		var input []byte
-		var err error
-		name := file
-
-		if file == "-" {
-			input, err = io.ReadAll(os.Stdin)
-			name = "<stdin>"
-		} else {
-			input, err = os.ReadFile(file)
-		}
-		if err != nil {
-			fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", name, err))
-			return 1
-		}
-
-		issues := jira.Lint(input, name)
-		for _, iss := range issues {
-			fmt.Fprintf(os.Stderr, "%s:%d: %s\n", name, iss.Line, iss.Message)
-			hasIssues = true
-		}
-	}
-
-	if hasIssues {
-		return 1
-	}
-	return 0
-}
-
 func runJiraCompile(args []string) int {
 	fs := flag.NewFlagSet("jira compile", flag.ExitOnError)
 	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
@@ -112,16 +70,6 @@ func runJiraPush(args []string) int {
 		return 1
 	}
 
-	// Lint gate
-	issues := jira.Lint(input, *source)
-	if len(issues) > 0 {
-		for _, iss := range issues {
-			fmt.Fprintf(os.Stderr, "%s:%d: %s\n", *source, iss.Line, iss.Message)
-		}
-		fmt.Fprintln(os.Stderr, output.Errf("lint failed — fix issues before pushing"))
-		return 1
-	}
-
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 
 	compiled, err := p.Compile(*id, input)
@@ -163,16 +111,6 @@ func runJiraCreate(args []string) int {
 	jsonPayload, err := readSource(*jsonFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", *jsonFile, err))
-		return 1
-	}
-
-	// Lint gate
-	issues := jira.Lint(srcInput, *source)
-	if len(issues) > 0 {
-		for _, iss := range issues {
-			fmt.Fprintf(os.Stderr, "%s:%d: %s\n", *source, iss.Line, iss.Message)
-		}
-		fmt.Fprintln(os.Stderr, output.Errf("lint failed — fix issues before creating"))
 		return 1
 	}
 
@@ -333,9 +271,8 @@ func printJiraUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: folio jira <command> [flags]
 
 Write commands:
-  lint       Validate markdown uses supported ADF subset
   compile    Convert markdown to acli-edit JSON
-  push       Lint + convert + push description to Jira
+  push       Compile + push description to Jira
   create     Create ticket + push description
 
 Read commands:
