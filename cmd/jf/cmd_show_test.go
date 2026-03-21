@@ -114,6 +114,41 @@ func TestRunShowOutputFormat(t *testing.T) {
 	}
 }
 
+func TestRunShowTBDNode(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "tbd.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# Upcoming\n"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runShow([]string{"-dir", dir, "tbd"})
+
+	w.Close()
+	os.Stdout = old
+
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d", code)
+	}
+
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	output := string(buf[:n])
+
+	if !contains(output, "Status:   unknown") {
+		t.Errorf("expected unknown status for TBD node\nGot:\n%s", output)
+	}
+}
+
+func TestRunShowNoForest(t *testing.T) {
+	dir := t.TempDir()
+	code := runShow([]string{"-dir", dir, "TEST-1"})
+	if code != 1 {
+		t.Fatalf("expected exit 1 for no forest, got %d", code)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

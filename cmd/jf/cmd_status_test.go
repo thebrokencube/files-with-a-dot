@@ -56,6 +56,52 @@ func TestRunStatusWithState(t *testing.T) {
 	// TEST-1 is clean (pushed in future), TEST-2 is stale (never pushed)
 }
 
+func TestRunStatusCorruptState(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+
+	// Write corrupt state — should degrade gracefully
+	jfDir := filepath.Join(dir, ".jf")
+	os.MkdirAll(jfDir, 0755)
+	os.WriteFile(filepath.Join(jfDir, "state.json"), []byte("{bad json"), 0644)
+
+	code := runStatus([]string{"-dir", dir})
+	if code != 0 {
+		t.Fatalf("expected exit 0 with corrupt state (graceful degradation), got %d", code)
+	}
+}
+
+func TestRunStatusJSON(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runStatus([]string{"-dir", dir, "-json"})
+
+	w.Close()
+	os.Stdout = old
+
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d", code)
+	}
+
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+
+	var result map[string]any
+	if err := json.Unmarshal(buf[:n], &result); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	if result["total"] != float64(1) {
+		t.Errorf("expected total=1, got %v", result["total"])
+	}
+}
+
 func TestRunStatusNoForest(t *testing.T) {
 	dir := t.TempDir()
 	code := runStatus([]string{"-dir", dir})
