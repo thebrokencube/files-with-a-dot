@@ -62,7 +62,7 @@ Subagents use explicit model selection to balance cost and capability:
 |------|-------|-----------|
 | Propose | sonnet | Breadth exploration, constrained output |
 | Converge | session default | Synthesis needs depth |
-| Review | sonnet | Checklist verification |
+| Review | opus | Complex architectural reviews need depth (obs #42) |
 
 When `model` is omitted, the agent inherits the session default.
 
@@ -155,6 +155,9 @@ Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The r
 
 Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
 
+Loop until the review returns zero issues. Cap at 3 iterations — if issues persist after 3
+rounds, present remaining issues to the user for judgment.
+
 **Design doc (mandatory):** After the review, commit the design doc. Every plan produces one — lightweight for simple changes, but it always exists.
 
 1. Scaffold via `folio new design <topic>`. This creates
@@ -173,7 +176,7 @@ The committed design doc is the contract for Agent 2.
 
 ### Review Agent Prompt
 
-Use with `subagent_type: "general-purpose"` and `model: "sonnet"`. Needs file access to verify claims.
+Use with `subagent_type: "general-purpose"` and `model: "opus"`. Needs file access to verify claims.
 
 ```
 You are reviewing an implementation plan. Your job is to find problems before code is written.
