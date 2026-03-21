@@ -73,6 +73,49 @@ func TestIsStaleAfterModification(t *testing.T) {
 	}
 }
 
+func TestLoadStateCorrupt(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".jf")
+	os.MkdirAll(stateDir, 0755)
+	os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("{invalid json"), 0644)
+
+	s, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("expected no error for corrupt state, got %v", err)
+	}
+	if len(s.Nodes) != 0 {
+		t.Errorf("expected empty nodes for corrupt state, got %d", len(s.Nodes))
+	}
+}
+
+func TestSaveStateAtomic(t *testing.T) {
+	dir := t.TempDir()
+
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LastPush: time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)},
+	}}
+	if err := SaveState(dir, s); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify no temp files left behind
+	entries, _ := os.ReadDir(filepath.Join(dir, ".jf"))
+	for _, e := range entries {
+		if e.Name() != "state.json" {
+			t.Errorf("unexpected file in .jf/: %s", e.Name())
+		}
+	}
+
+	// Verify content is valid
+	loaded, err := LoadState(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(loaded.Nodes))
+	}
+}
+
 func TestRecordPush(t *testing.T) {
 	s := &State{Nodes: make(map[string]NodeState)}
 	s.RecordPush("BEN-1")
