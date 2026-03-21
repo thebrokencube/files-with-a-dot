@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"jf/internal/forest"
+	"jf/internal/output"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 func runShow(args []string) int {
 	fs := flag.NewFlagSet("show", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
+	jsonOut := fs.Bool("json", false, "Output as JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return 1
@@ -47,25 +49,18 @@ func runShow(args []string) int {
 
 	state, err := forest.LoadState(f.Dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ Could not load state: %s\n", err)
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
-	// Staleness
-	staleStr := "unknown"
-	if strings.ToUpper(node.Key) != "TBD" {
-		filePath := filepath.Join(f.Dir, node.File)
-		info, err := os.Stat(filePath)
-		if err == nil {
-			if state.IsStale(node.Key, info.ModTime()) {
-				staleStr = "stale"
-			} else {
-				staleStr = "clean"
-			}
-		}
+	staleStr := nodeStatus(node, f, state)
+
+	if *jsonOut {
+		info := nodeToInfo(node)
+		info.Status = staleStr
+		output.Result(info)
+		return 0
 	}
 
-	// Parent info
 	parentStr := "(root)"
 	if node.Parent != nil {
 		parentStr = node.Parent.Key
@@ -80,7 +75,6 @@ func runShow(args []string) int {
 	fmt.Printf("Children: %d\n", len(node.Children))
 	fmt.Printf("Status:   %s\n", staleStr)
 
-	// Show last push time if available
 	if ns, ok := state.Nodes[node.Key]; ok && !ns.LastPush.IsZero() {
 		fmt.Printf("Pushed:   %s\n", ns.LastPush.Format("2006-01-02 15:04:05"))
 	}
@@ -93,4 +87,19 @@ func syncDisplay(sync string) string {
 		return "pull ↓"
 	}
 	return "push ↑"
+}
+
+func nodeStatus(node *forest.Node, f *forest.Forest, state *forest.State) string {
+	if strings.ToUpper(node.Key) == "TBD" {
+		return "unknown"
+	}
+	filePath := filepath.Join(f.Dir, node.File)
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return "unknown"
+	}
+	if state.IsStale(node.Key, info.ModTime()) {
+		return "stale"
+	}
+	return "clean"
 }

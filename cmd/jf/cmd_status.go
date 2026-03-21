@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"jf/internal/forest"
+	"jf/internal/output"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 func runStatus(args []string) int {
 	fs := flag.NewFlagSet("status", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
+	jsonOut := fs.Bool("json", false, "Output as JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return 1
@@ -19,29 +21,36 @@ func runStatus(args []string) int {
 
 	f, err := forest.FindForest(*dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+		if *jsonOut {
+			output.Error(err.Error(), "")
+		} else {
+			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+		}
 		return 1
 	}
 	if f == nil {
-		fmt.Fprintf(os.Stderr, "✗ No forest.yml found (searched up from %s)\n", *dir)
+		if *jsonOut {
+			output.Error("No forest.yml found", *dir)
+		} else {
+			fmt.Fprintf(os.Stderr, "✗ No forest.yml found (searched up from %s)\n", *dir)
+		}
 		return 1
 	}
 
 	roots, err := forest.Discover(f)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
+		if *jsonOut {
+			output.Error("Discovery failed", err.Error())
+		} else {
+			fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
+		}
 		return 1
 	}
 
 	all := forest.Flatten(roots)
-	if len(all) == 0 {
-		fmt.Println("No jira: nodes found.")
-		return 0
-	}
 
 	state, err := forest.LoadState(f.Dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ Could not load state: %s\n", err)
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
@@ -61,13 +70,25 @@ func runStatus(args []string) int {
 			filePath := filepath.Join(f.Dir, n.File)
 			info, err := os.Stat(filePath)
 			if err != nil {
-				pushStale++ // can't stat = treat as stale
+				pushStale++
 				continue
 			}
 			if state.IsStale(n.Key, info.ModTime()) {
 				pushStale++
 			}
 		}
+	}
+
+	if *jsonOut {
+		output.Result(output.StatusResult{
+			Forest:    f.Dir,
+			Total:     len(all),
+			TBD:       tbdTotal,
+			PushTotal: pushTotal,
+			PushStale: pushStale,
+			PullTotal: pullTotal,
+		})
+		return 0
 	}
 
 	fmt.Printf("Forest: %s\n", f.Dir)

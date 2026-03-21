@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"jf/internal/forest"
+	"jf/internal/output"
 	"os"
 	"strings"
 )
@@ -11,6 +12,7 @@ import (
 func runDiscover(args []string) int {
 	fs := flag.NewFlagSet("discover", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan (default: current directory)")
+	jsonOut := fs.Bool("json", false, "Output as JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return 1
@@ -30,6 +32,16 @@ func runDiscover(args []string) int {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ Discovery failed: %s\n", err)
 		return 1
+	}
+
+	if *jsonOut {
+		all := forest.Flatten(roots)
+		var items []output.NodeInfo
+		for _, n := range all {
+			items = append(items, nodeToInfo(n))
+		}
+		output.Result(items)
+		return 0
 	}
 
 	if len(roots) == 0 {

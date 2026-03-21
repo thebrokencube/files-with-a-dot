@@ -22,6 +22,8 @@ func main() {
 		os.Exit(runSetup(os.Args[2:]))
 	case "init":
 		os.Exit(runInit(os.Args[2:]))
+	case "schema":
+		os.Exit(runSchema(os.Args[2:]))
 	case "version":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
@@ -84,6 +86,7 @@ Level 1 (forest):
 Setup:
   setup                Check and install prerequisites
   init                 Scaffold forest.yml in current directory
+  schema               Emit JSON Schema for forest.yml and frontmatter
 
 Utility:
   version              Show version
