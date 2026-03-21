@@ -48,7 +48,9 @@ func runJiraPush(args []string) int {
 
 	code := runJf("push", *id, *source)
 	if code == 0 {
-		if touched, err := autoTouch(*source); err == nil && touched > 0 {
+		if touched, err := autoTouch(*source); err != nil {
+			fmt.Fprintf(os.Stderr, "⚠ autoTouch: %s\n", err)
+		} else if touched > 0 {
 			fmt.Printf("  Auto-touched %d output(s)\n", touched)
 		}
 	}
@@ -89,7 +91,9 @@ func runJiraCreate(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Created %s and pushed description", key))
-	if touched, err := autoTouch(*source); err == nil && touched > 0 {
+	if touched, err := autoTouch(*source); err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ autoTouch: %s\n", err)
+	} else if touched > 0 {
 		fmt.Printf("  Auto-touched %d output(s)\n", touched)
 	}
 	return 0

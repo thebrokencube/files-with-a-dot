@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -92,6 +94,51 @@ targets:
 	_, err := autoTouch(srcFile)
 	if err == nil {
 		t.Error("expected error when no tree node matches source")
+	}
+}
+
+func TestAutoTouchErrorLogged(t *testing.T) {
+	dir := t.TempDir()
+	srcFile := filepath.Join(dir, "unlinked.md")
+	os.WriteFile(srcFile, []byte("# Unlinked"), 0644)
+
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte(`schema: 1
+project: "Test"
+sources: []
+targets:
+  my-tree:
+    how: "Test tree"
+    outputs:
+      - path: out.md
+    tree:
+      system: jira
+      root:
+        id: "PROJ-1"
+        file: other.md
+`), 0644)
+
+	// Capture stderr to verify warning is logged
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Simulate the logging pattern from runJiraPush/runJiraCreate
+	if touched, err := autoTouch(srcFile); err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ autoTouch: %s\n", err)
+	} else if touched > 0 {
+		fmt.Printf("  Auto-touched %d output(s)\n", touched)
+	}
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	stderr := string(buf[:n])
+
+	if !strings.Contains(stderr, "autoTouch:") {
+		t.Errorf("expected stderr to contain 'autoTouch:', got %q", stderr)
 	}
 }
 
