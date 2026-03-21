@@ -37,7 +37,7 @@ func printInputSchemas() int {
 					"defaults": map[string]any{
 						"type": "object",
 						"properties": map[string]any{
-							"sync":    map[string]any{"type": "string", "enum": []string{"push", "pull"}},
+							"sync":    map[string]any{"type": "string", "enum": []string{"push", "pull", "both"}},
 							"type":    map[string]any{"type": "string", "description": "Default Jira issue type"},
 							"field":   map[string]any{"type": "string", "description": "Default field (description or comment)"},
 							"project": map[string]any{"type": "string", "description": "Jira project key"},
@@ -56,7 +56,7 @@ func printInputSchemas() int {
 					"jira":  map[string]any{"type": "string", "description": "Jira key (e.g. BEN-123) or TBD"},
 					"label": map[string]any{"type": "string", "description": "Display label (overrides heading/filename)"},
 					"type":  map[string]any{"type": "string", "description": "Jira issue type"},
-					"sync":  map[string]any{"type": "string", "enum": []string{"push", "pull"}},
+					"sync":  map[string]any{"type": "string", "enum": []string{"push", "pull", "both"}},
 					"order": map[string]any{"type": "integer", "description": "Sibling sort order (lower first)"},
 				},
 				"required": []string{"jira"},
@@ -81,7 +81,7 @@ func printOutputSchemas() int {
 					"key":      map[string]any{"type": "string"},
 					"label":    map[string]any{"type": "string"},
 					"type":     map[string]any{"type": "string"},
-					"sync":     map[string]any{"type": "string", "enum": []string{"push", "pull"}},
+					"sync":     map[string]any{"type": "string", "enum": []string{"push", "pull", "both"}},
 					"file":     map[string]any{"type": "string"},
 					"parent":   map[string]any{"type": "string"},
 					"children": map[string]any{"type": "integer"},

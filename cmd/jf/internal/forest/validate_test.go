@@ -79,7 +79,7 @@ func TestValidateTBDMissingLabel(t *testing.T) {
 
 func TestValidateInvalidSync(t *testing.T) {
 	roots := []*Node{
-		{Key: "BEN-1", Label: "Bad", Type: "Story", Sync: "both", File: "bad.md"},
+		{Key: "BEN-1", Label: "Bad", Type: "Story", Sync: "bogus", File: "bad.md"},
 	}
 	issues := Validate(roots, &Forest{})
 	hasError := false
@@ -90,6 +90,18 @@ func TestValidateInvalidSync(t *testing.T) {
 	}
 	if !hasError {
 		t.Error("expected invalid sync error")
+	}
+}
+
+func TestValidateSyncBoth(t *testing.T) {
+	roots := []*Node{
+		{Key: "BEN-1", Label: "Both", Type: "Story", Sync: "both", File: "both.md"},
+	}
+	issues := Validate(roots, &Forest{})
+	for _, iss := range issues {
+		if strings.Contains(iss.Message, "invalid sync") {
+			t.Errorf("sync 'both' should be valid, got: %s", iss.Message)
+		}
 	}
 }
 

@@ -94,11 +94,11 @@ func checkFieldValues(nodes []*Node) []ValidationIssue {
 	var issues []ValidationIssue
 
 	for _, n := range nodes {
-		if n.Sync != "" && n.Sync != "push" && n.Sync != "pull" {
+		if n.Sync != "" && n.Sync != "push" && n.Sync != "pull" && n.Sync != "both" {
 			issues = append(issues, ValidationIssue{
 				Level:   "error",
 				File:    n.File,
-				Message: fmt.Sprintf("invalid sync value %q (must be push or pull)", n.Sync),
+				Message: fmt.Sprintf("invalid sync value %q (must be push, pull, or both)", n.Sync),
 			})
 		}
 		if n.Order < 0 {

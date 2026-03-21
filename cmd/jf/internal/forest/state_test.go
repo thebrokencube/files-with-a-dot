@@ -188,6 +188,53 @@ func TestComputeHash(t *testing.T) {
 	}
 }
 
+func TestDetectConflictNone(t *testing.T) {
+	local := []byte("content")
+	remote := []byte("remote")
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LocalHash: ComputeHash(local), RemoteHash: ComputeHash(remote)},
+	}}
+	if s.DetectConflict("BEN-1", local, remote) != ConflictNone {
+		t.Error("expected ConflictNone")
+	}
+}
+
+func TestDetectConflictLocalOnly(t *testing.T) {
+	remote := []byte("remote")
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LocalHash: ComputeHash([]byte("old")), RemoteHash: ComputeHash(remote)},
+	}}
+	if s.DetectConflict("BEN-1", []byte("new"), remote) != ConflictLocalOnly {
+		t.Error("expected ConflictLocalOnly")
+	}
+}
+
+func TestDetectConflictRemoteOnly(t *testing.T) {
+	local := []byte("content")
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LocalHash: ComputeHash(local), RemoteHash: ComputeHash([]byte("old"))},
+	}}
+	if s.DetectConflict("BEN-1", local, []byte("new")) != ConflictRemoteOnly {
+		t.Error("expected ConflictRemoteOnly")
+	}
+}
+
+func TestDetectConflictBoth(t *testing.T) {
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LocalHash: ComputeHash([]byte("old-local")), RemoteHash: ComputeHash([]byte("old-remote"))},
+	}}
+	if s.DetectConflict("BEN-1", []byte("new-local"), []byte("new-remote")) != ConflictBoth {
+		t.Error("expected ConflictBoth")
+	}
+}
+
+func TestDetectConflictNeverSynced(t *testing.T) {
+	s := &State{Nodes: make(map[string]NodeState)}
+	if s.DetectConflict("BEN-1", []byte("local"), []byte("remote")) != ConflictNone {
+		t.Error("expected ConflictNone for never-synced node")
+	}
+}
+
 func TestIsPullStale(t *testing.T) {
 	s := &State{Nodes: map[string]NodeState{
 		"BEN-1": {LastPull: time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)},

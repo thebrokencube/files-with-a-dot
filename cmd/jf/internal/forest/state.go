@@ -113,6 +113,38 @@ func ComputeHash(content []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
+// ConflictStatus represents the state of a bidirectional node.
+type ConflictStatus int
+
+const (
+	ConflictNone       ConflictStatus = iota
+	ConflictLocalOnly                 // local changed, remote unchanged
+	ConflictRemoteOnly                // remote changed, local unchanged
+	ConflictBoth                      // both sides changed
+)
+
+// DetectConflict compares current local and remote content against stored state.
+func (s *State) DetectConflict(key string, localContent, remoteADF []byte) ConflictStatus {
+	ns, ok := s.Nodes[key]
+	if !ok {
+		return ConflictNone // never synced
+	}
+
+	localChanged := ComputeHash(localContent) != ns.LocalHash
+	remoteChanged := ComputeHash(remoteADF) != ns.RemoteHash
+
+	switch {
+	case localChanged && remoteChanged:
+		return ConflictBoth
+	case localChanged:
+		return ConflictLocalOnly
+	case remoteChanged:
+		return ConflictRemoteOnly
+	default:
+		return ConflictNone
+	}
+}
+
 // IsPullStale returns true if the node has never been pulled.
 func (s *State) IsPullStale(key string) bool {
 	ns, ok := s.Nodes[key]
