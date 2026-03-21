@@ -70,6 +70,9 @@ For each track, specify:
 - Test names and what they validate
 - Commit message(s) and what each commit contains
 - Validation commands (build, test, lint)
+- Wave grouping (if multiple tracks): group independent tracks into waves. Tracks within a
+  wave run in parallel; waves are sequential. Format: `### Wave 1 (parallel)` /
+  `### Wave 2 (after Wave 1)`. Single-track plans skip wave notation.
 
 #### Build & Deploy section (required)
 
@@ -124,6 +127,16 @@ references cause mid-execution corrections.
 
 Fix any inaccuracies, then commit via `folio home push`. The committed work brief is the
 contract for Agent 3.
+
+### Brief Content Review (hard)
+
+After the verification gate passes, dispatch 1 review agent (subagent_type: general-purpose,
+model: "sonnet") to review the brief for:
+1. **Self-containment**: Can an execution agent proceed without reading the design doc?
+2. **Convention compliance**: Does structure match recent archived briefs?
+3. **Completeness**: Are all design doc decisions reflected as constraints?
+
+If issues found, fix and re-review. Loop until clean (cap 3 iterations).
 
 ## Session Exit (mandatory)
 
