@@ -103,6 +103,7 @@ Each prompt must:
 - Point to the committed brief as the primary input
 - Name the specific track(s) to execute
 - Include build/test/deploy commands inline (don't just say "see brief")
+- Include a subagent review step before committing (see plan-execute.md Phase 7 step 4)
 - Include folio checkpoint instructions (observations to resolve, retro trigger)
 
 The handoff prompt is the acid test of brief quality: if the prompt needs to add context
