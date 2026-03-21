@@ -149,16 +149,17 @@ func extractFrontmatterBytes(content []byte) []byte {
 // firstHeading returns the text of the first # heading in the content.
 func firstHeading(content []byte) string {
 	scanner := bufio.NewScanner(bytes.NewReader(content))
-	inFrontmatter := false
+	fenceCount := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
 
 		if trimmed == "---" {
-			inFrontmatter = !inFrontmatter
+			fenceCount++
 			continue
 		}
-		if inFrontmatter {
+		// Inside frontmatter (between first and second fence)
+		if fenceCount == 1 {
 			continue
 		}
 

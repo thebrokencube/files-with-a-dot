@@ -38,7 +38,7 @@ func runTree(args []string) int {
 	}
 
 	// Print header
-	fmt.Printf("Forest: %s (%d nodes)\n\n", f.Dir, countNodes(roots))
+	fmt.Printf("Forest: %s (%d nodes)\n\n", f.Dir, len(forest.Flatten(roots)))
 
 	printTree(roots, "")
 	return 0
@@ -60,12 +60,4 @@ func printTree(nodes []*forest.Node, indent string) {
 			printTree(n.Children, childIndent)
 		}
 	}
-}
-
-func countNodes(nodes []*forest.Node) int {
-	count := len(nodes)
-	for _, n := range nodes {
-		count += countNodes(n.Children)
-	}
-	return count
 }

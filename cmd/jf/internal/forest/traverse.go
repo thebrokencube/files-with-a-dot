@@ -59,8 +59,7 @@ func Resolve(roots []*Node, target string) (*Node, error) {
 }
 
 func resolve(roots []*Node, target string) *Node {
-	var all []*Node
-	collectAll(roots, &all)
+	all := Flatten(roots)
 
 	upper := strings.ToUpper(target)
 
@@ -89,10 +88,17 @@ func resolve(roots []*Node, target string) *Node {
 	return nil
 }
 
-func collectAll(nodes []*Node, out *[]*Node) {
+// Flatten returns all nodes in pre-order (parent before children).
+func Flatten(roots []*Node) []*Node {
+	var result []*Node
+	flatten(roots, &result)
+	return result
+}
+
+func flatten(nodes []*Node, out *[]*Node) {
 	for _, n := range nodes {
 		*out = append(*out, n)
-		collectAll(n.Children, out)
+		flatten(n.Children, out)
 	}
 }
 

@@ -36,8 +36,7 @@ func runList(args []string) int {
 		return 0
 	}
 
-	var all []*forest.Node
-	flattenNodes(roots, &all)
+	all := forest.Flatten(roots)
 
 	for _, n := range all {
 		sync := "push"
@@ -47,11 +46,4 @@ func runList(args []string) int {
 		fmt.Printf("%-12s %-5s %s\n", n.Key, sync, n.File)
 	}
 	return 0
-}
-
-func flattenNodes(nodes []*forest.Node, out *[]*forest.Node) {
-	for _, n := range nodes {
-		*out = append(*out, n)
-		flattenNodes(n.Children, out)
-	}
 }

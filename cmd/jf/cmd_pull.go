@@ -78,8 +78,7 @@ func pullForest(dir string, positional []string, failFast bool) int {
 		toPull = []*forest.Node{node}
 	} else {
 		// Collect all sync:pull nodes
-		var all []*forest.Node
-		flattenForPull(roots, &all)
+		all := forest.Flatten(roots)
 		for _, n := range all {
 			if n.Sync == "pull" && strings.ToUpper(n.Key) != "TBD" {
 				toPull = append(toPull, n)
@@ -171,8 +170,8 @@ func mergeWithFrontmatter(filePath string, pulled []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// extractExistingFrontmatter returns the frontmatter block including
-// opening fence and content lines (but not closing fence), or nil.
+// extractExistingFrontmatter returns the opening fence and YAML content
+// lines (excluding closing fence), or nil if no frontmatter found.
 func extractExistingFrontmatter(content []byte) []byte {
 	lines := bytes.SplitN(content, []byte("\n"), -1)
 	if len(lines) == 0 || strings.TrimSpace(string(lines[0])) != "---" {
@@ -181,9 +180,8 @@ func extractExistingFrontmatter(content []byte) []byte {
 
 	for i := 1; i < len(lines) && i < 50; i++ {
 		if strings.TrimSpace(string(lines[i])) == "---" {
-			// Return everything up to and including the content lines, plus newline
 			var buf bytes.Buffer
-			for j := 0; j <= i; j++ {
+			for j := 0; j < i; j++ {
 				buf.Write(lines[j])
 				buf.WriteByte('\n')
 			}
@@ -192,11 +190,4 @@ func extractExistingFrontmatter(content []byte) []byte {
 	}
 
 	return nil
-}
-
-func flattenForPull(nodes []*forest.Node, out *[]*forest.Node) {
-	for _, n := range nodes {
-		*out = append(*out, n)
-		flattenForPull(n.Children, out)
-	}
 }

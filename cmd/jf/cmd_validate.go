@@ -34,7 +34,7 @@ func runValidate(args []string) int {
 	issues := forest.Validate(roots, f)
 
 	if len(issues) == 0 {
-		fmt.Printf("✓ Forest valid (%d nodes)\n", countAllNodes(roots))
+		fmt.Printf("✓ Forest valid (%d nodes)\n", len(forest.Flatten(roots)))
 		return 0
 	}
 
@@ -55,12 +55,4 @@ func runValidate(args []string) int {
 		return 1
 	}
 	return 0
-}
-
-func countAllNodes(nodes []*forest.Node) int {
-	count := len(nodes)
-	for _, n := range nodes {
-		count += countAllNodes(n.Children)
-	}
-	return count
 }

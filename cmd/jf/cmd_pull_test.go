@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -17,7 +16,7 @@ func TestExtractExistingFrontmatter(t *testing.T) {
 		{
 			name:   "basic frontmatter",
 			input:  "---\njira: BEN-1\ntype: Story\n---\n# Content",
-			wantFM: "---\njira: BEN-1\ntype: Story\n---\n",
+			wantFM: "---\njira: BEN-1\ntype: Story\n",
 		},
 		{
 			name:    "no frontmatter",
@@ -32,7 +31,7 @@ func TestExtractExistingFrontmatter(t *testing.T) {
 		{
 			name:   "minimal frontmatter",
 			input:  "---\njira: BEN-1\n---\n",
-			wantFM: "---\njira: BEN-1\n---\n",
+			wantFM: "---\njira: BEN-1\n",
 		},
 	}
 
@@ -83,15 +82,10 @@ func TestMergeWithFrontmatter(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		s := string(result)
-		if !strings.HasPrefix(s, "---\njira: BEN-1\nsync: pull\n---\n") {
-			t.Errorf("frontmatter not preserved: %q", s)
-		}
-		if !strings.Contains(s, "# New Content") {
-			t.Error("pulled content not included")
-		}
-		if strings.Contains(s, "Old Content") {
-			t.Error("old content should be replaced")
+		// Exact expected output: frontmatter preserved + closing fence + pulled content
+		want := "---\njira: BEN-1\nsync: pull\n---\n# New Content\nNew text from Jira"
+		if string(result) != want {
+			t.Errorf("expected %q, got %q", want, string(result))
 		}
 	})
 

@@ -28,8 +28,7 @@ func (v ValidationIssue) String() string {
 func Validate(roots []*Node, forest *Forest) []ValidationIssue {
 	var issues []ValidationIssue
 
-	var all []*Node
-	collectNodes(roots, &all)
+	all := Flatten(roots)
 
 	issues = append(issues, checkKeyUniqueness(all)...)
 	issues = append(issues, checkTBDNodes(all)...)
@@ -48,14 +47,15 @@ func checkKeyUniqueness(nodes []*Node) []ValidationIssue {
 		if strings.ToUpper(n.Key) == "TBD" {
 			continue
 		}
-		if first, ok := seen[n.Key]; ok {
+		upper := strings.ToUpper(n.Key)
+		if first, ok := seen[upper]; ok {
 			issues = append(issues, ValidationIssue{
 				Level:   "error",
 				File:    n.File,
 				Message: fmt.Sprintf("duplicate key %s (also in %s)", n.Key, first),
 			})
 		} else {
-			seen[n.Key] = n.File
+			seen[upper] = n.File
 		}
 	}
 
@@ -138,11 +138,4 @@ func checkStemUniqueness(nodes []*Node) []ValidationIssue {
 	}
 
 	return issues
-}
-
-func collectNodes(nodes []*Node, out *[]*Node) {
-	for _, n := range nodes {
-		*out = append(*out, n)
-		collectNodes(n.Children, out)
-	}
 }
