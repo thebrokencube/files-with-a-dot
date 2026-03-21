@@ -24,7 +24,8 @@ var (
 
 // StripFrontmatter removes YAML frontmatter from input if present.
 // Only strips when: line 0 is exactly "---", a closing "---" appears
-// within lines 1-19, and at least one line between fences contains ":".
+// within lines 1-49, and at least one line between fences contains ":".
+// Limit matches forest/schema.go's extractFrontmatterBytes (50 lines).
 func StripFrontmatter(input []byte) []byte {
 	lines := bytes.SplitN(input, []byte("\n"), -1)
 	if len(lines) == 0 || !reFrontmatter.Match(lines[0]) {
@@ -32,8 +33,8 @@ func StripFrontmatter(input []byte) []byte {
 	}
 
 	limit := len(lines)
-	if limit > 20 {
-		limit = 20
+	if limit > 50 {
+		limit = 50
 	}
 
 	for i := 1; i < limit; i++ {

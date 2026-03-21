@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"strings"
 	"testing"
@@ -47,16 +48,29 @@ func TestStripFrontmatterHR(t *testing.T) {
 	}
 }
 
+func TestStripFrontmatter30Lines(t *testing.T) {
+	lines := []string{"---"}
+	for i := 0; i < 30; i++ {
+		lines = append(lines, fmt.Sprintf("key%d: value%d", i, i))
+	}
+	lines = append(lines, "---", "content")
+	input := strings.Join(lines, "\n")
+	result := StripFrontmatter([]byte(input))
+	if string(result) != "content" {
+		t.Error("expected 30-line frontmatter to be stripped (limit is 50)")
+	}
+}
+
 func TestStripFrontmatterTooLong(t *testing.T) {
 	lines := []string{"---"}
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 55; i++ {
 		lines = append(lines, "key: value")
 	}
 	lines = append(lines, "---", "content")
 	input := strings.Join(lines, "\n")
 	result := StripFrontmatter([]byte(input))
 	if string(result) != input {
-		t.Error("expected input unchanged when closing --- is beyond line 19")
+		t.Error("expected input unchanged when closing --- is beyond line 49")
 	}
 }
 
