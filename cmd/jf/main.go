@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"jf/internal/setup"
 	"os"
 )
 
@@ -13,7 +14,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch os.Args[1] {
+	cmd := os.Args[1]
+
+	// Commands that skip prereq checks
+	switch cmd {
+	case "setup":
+		os.Exit(runSetup(os.Args[2:]))
+	case "init":
+		os.Exit(runInit(os.Args[2:]))
+	case "version":
+		fmt.Printf("jf %s\n", version)
+		os.Exit(0)
+	case "--help", "-h", "help":
+		printUsage()
+		os.Exit(0)
+	}
+
+	// Prereq guard for all other commands
+	if msg := setup.QuickCheck(setup.DefaultChecker); msg != "" {
+		fmt.Fprintln(os.Stderr, msg)
+		os.Exit(1)
+	}
+
+	switch cmd {
 	case "push":
 		os.Exit(runPush(os.Args[2:]))
 	case "pull":
@@ -34,14 +57,8 @@ func main() {
 		os.Exit(runSync(os.Args[2:]))
 	case "create-missing":
 		os.Exit(runCreateMissing(os.Args[2:]))
-	case "version":
-		fmt.Printf("jf %s\n", version)
-		os.Exit(0)
-	case "--help", "-h", "help":
-		printUsage()
-		os.Exit(0)
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", cmd)
 		printUsage()
 		os.Exit(1)
 	}
@@ -63,6 +80,10 @@ Level 1 (forest):
   show <target>        Single-node detail view
   sync                 Push all + pull all
   create-missing       Create Jira tickets for TBD nodes
+
+Setup:
+  setup                Check and install prerequisites
+  init                 Scaffold forest.yml in current directory
 
 Utility:
   version              Show version

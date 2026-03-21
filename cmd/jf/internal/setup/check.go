@@ -1,0 +1,121 @@
+package setup
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+// CheckResult represents the outcome of a single prerequisite check.
+type CheckResult struct {
+	Name   string `json:"name"`
+	Status string `json:"status"` // "ok" | "missing" | "outdated"
+	Detail string `json:"detail"`
+	Fix    string `json:"fix"`
+}
+
+// Checker runs an external command and returns its output.
+// Injected for testability.
+type Checker func(name string, args ...string) (string, error)
+
+// DefaultChecker shells out via os/exec.
+func DefaultChecker(name string, args ...string) (string, error) {
+	out, err := exec.Command(name, args...).Output()
+	return strings.TrimSpace(string(out)), err
+}
+
+// CheckAll runs all prerequisite checks and returns results + overall pass.
+func CheckAll(check Checker) ([]CheckResult, bool) {
+	var results []CheckResult
+	allOk := true
+
+	results = append(results, checkNode(check))
+	results = append(results, checkAcli(check))
+	results = append(results, checkJiraAuth())
+
+	for _, r := range results {
+		if r.Status != "ok" {
+			allOk = false
+		}
+	}
+
+	return results, allOk
+}
+
+func checkNode(check Checker) CheckResult {
+	version, err := check("node", "--version")
+	if err != nil {
+		return CheckResult{
+			Name:   "node",
+			Status: "missing",
+			Detail: "Node.js not found",
+			Fix:    "brew install node",
+		}
+	}
+	return CheckResult{
+		Name:   "node",
+		Status: "ok",
+		Detail: version,
+	}
+}
+
+func checkAcli(check Checker) CheckResult {
+	version, err := check("acli", "--version")
+	if err != nil {
+		return CheckResult{
+			Name:   "acli",
+			Status: "missing",
+			Detail: "acli not found",
+			Fix:    "brew install acli",
+		}
+	}
+	return CheckResult{
+		Name:   "acli",
+		Status: "ok",
+		Detail: version,
+	}
+}
+
+func checkJiraAuth() CheckResult {
+	token := os.Getenv("JIRA_API_TOKEN")
+	if token == "" {
+		// Also check common alternative env vars
+		for _, key := range []string{"JIRA_TOKEN", "ATLASSIAN_API_TOKEN"} {
+			if os.Getenv(key) != "" {
+				return CheckResult{
+					Name:   "jira-auth",
+					Status: "ok",
+					Detail: fmt.Sprintf("Using %s", key),
+				}
+			}
+		}
+		return CheckResult{
+			Name:   "jira-auth",
+			Status: "missing",
+			Detail: "No Jira API token found",
+			Fix:    "Set JIRA_API_TOKEN in ~/.env.local",
+		}
+	}
+	return CheckResult{
+		Name:   "jira-auth",
+		Status: "ok",
+		Detail: "JIRA_API_TOKEN set",
+	}
+}
+
+// QuickCheck runs checks and returns a one-line error if anything fails.
+// Returns empty string if all checks pass.
+func QuickCheck(check Checker) string {
+	results, ok := CheckAll(check)
+	if ok {
+		return ""
+	}
+
+	for _, r := range results {
+		if r.Status != "ok" {
+			return fmt.Sprintf("✗ %s. Run: jf setup", r.Detail)
+		}
+	}
+	return ""
+}
