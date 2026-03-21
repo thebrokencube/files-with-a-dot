@@ -31,7 +31,7 @@ Before writing, read 2-3 recent archived briefs from the project's work archive
 Populate each track with execution-level detail. The brief must be self-contained — the
 execution agent reads only the brief, not the design doc or conversation history.
 
-Every brief has four required sections, in order:
+Every brief has six required sections, in order:
 
 #### Context section (required)
 
@@ -71,14 +71,41 @@ For each track, specify:
 - Commit message(s) and what each commit contains
 - Validation commands (build, test, lint)
 
+#### Build & Deploy section (required)
+
+How to build, test, and deploy in the target repo. An execution agent should be able to
+validate its work without guessing. Include:
+- **Build commands**: exact commands to compile/build (with working directory)
+- **Test commands**: how to run the full test suite and targeted tests
+- **Deploy/sync steps**: what to run after code changes land (e.g., `dot sync` for
+  dotfiles, `make build` for checked-in binaries, deploy commands for services)
+- **Prerequisites**: tools to install, dependencies to set up, environment to configure
+
+This section prevents the most common handoff failure: the execution agent makes correct
+code changes but doesn't know how to validate or ship them.
+
 #### Execution Conventions section (required)
 
-Commit format, scope target (max commits — typically ~5), validation commands,
-module/package path, push workflow, and repo-specific patterns.
+Commit format, scope target (max commits — typically ~5), ordered commit sequence
+(what goes in each commit, in what order), push workflow, and repo-specific patterns.
 
 Include a **Folio integration** subsection: targets to add for branches, observation
 items to resolve on completion, `folio home push` checkpoints at milestones. Execution agents
 should maintain folio state as they go — not as a final cleanup step.
+
+#### Handoff Prompts section (required)
+
+Copy-pasteable prompts for starting execution sessions. One prompt per independent
+session (often one per track, but coupled tracks share a session).
+
+Each prompt must:
+- Point to the committed brief as the primary input
+- Name the specific track(s) to execute
+- Include build/test/deploy commands inline (don't just say "see brief")
+- Include folio checkpoint instructions (observations to resolve, retro trigger)
+
+The handoff prompt is the acid test of brief quality: if the prompt needs to add context
+beyond "read the brief and execute Track N," the brief is underspecified.
 
 Scaffold the brief under `work/active/YYYY-MM-DD-<topic>/README.md`. If the brief needs
 per-track detail files (large tracks), create `track-N.md` siblings.

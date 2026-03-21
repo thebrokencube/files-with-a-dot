@@ -57,6 +57,12 @@ When design doc scope is 5 or fewer files with clear implementation, collapse De
 into a single document. The design agent writes execution-level detail directly — skip Agent 2.
 Criteria: file count, scope clarity, single-repo. If ambiguous, use the full pipeline.
 
+The combined doc must include the brief's required sections: Context, Agent Setup, Tracks,
+Build & Deploy, Execution Conventions (with commit sequence), and Handoff Prompts. These
+sections appear in the design doc's Execution Brief — see `references/plan-brief.md` for
+section specs. The handoff prompt is the acid test: if it needs context beyond "read the doc
+and execute," the doc is underspecified.
+
 Commit checkpoints are still mandatory: the combined design+brief doc must be committed before
 execution begins. Lightweight mode reduces agents, not checkpoints.
 
