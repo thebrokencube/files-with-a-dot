@@ -1,0 +1,6 @@
+schema: 1
+
+defaults:
+  sync: push
+  type: Story
+  project: TEST

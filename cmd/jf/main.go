@@ -18,6 +18,12 @@ func main() {
 		os.Exit(runPush(os.Args[2:]))
 	case "pull":
 		os.Exit(runPull(os.Args[2:]))
+	case "discover":
+		os.Exit(runDiscover(os.Args[2:]))
+	case "tree":
+		os.Exit(runTree(os.Args[2:]))
+	case "list":
+		os.Exit(runList(os.Args[2:]))
 	case "version":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
@@ -37,6 +43,11 @@ func printUsage() {
 Level 0 (stateless):
   push <KEY> <FILE>    Compile markdown and push to Jira description
   pull <KEY> <FILE>    Pull Jira description to local file
+
+Level 1 (forest):
+  discover             Detect and display forest tree (dry run)
+  tree                 Show forest hierarchy
+  list                 Flat list of all nodes
 
 Utility:
   version              Show version
