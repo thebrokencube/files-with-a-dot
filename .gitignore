@@ -19,6 +19,10 @@ local/
 .idea/
 .vscode/
 
+# Node (npm build deps)
+cmd/folio/scripts/node_modules/
+cmd/jf/scripts/node_modules/
+
 # Neovim
 configs/base/nvim/.config/nvim/plugin/packer_compiled.lua
 configs/base/nvim/.config/nvim/lazy-lock.json

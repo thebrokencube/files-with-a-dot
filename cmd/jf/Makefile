@@ -1,0 +1,28 @@
+BINARY    := jf
+GOFILES   := $(shell find . -name '*.go')
+GO        := go
+
+.PHONY: build test vet fmt check bundle clean
+
+build: $(BINARY)            ## Compile binary
+
+$(BINARY): $(GOFILES) go.mod $(wildcard go.sum)
+	$(GO) build -o $(BINARY) .
+
+test:                        ## Run all tests
+	$(GO) test ./... -v
+
+vet:                         ## Static analysis
+	$(GO) vet ./...
+
+fmt:                         ## Format all Go source
+	gofmt -w .
+
+check: fmt vet test          ## Full pre-commit check: format, vet, test
+
+bundle:                      ## Rebuild marklassian bundle (requires npm)
+	cd scripts && npm install && npx esbuild md2adf.mjs --bundle --format=esm --platform=node --outfile=md2adf.bundle.mjs
+	cp scripts/md2adf.bundle.mjs internal/pipeline/md2adf.bundle.mjs
+
+clean:                       ## Remove build artifacts
+	rm -f $(BINARY)
