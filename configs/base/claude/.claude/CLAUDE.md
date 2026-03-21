@@ -38,6 +38,12 @@ My development environment, available globally across all projects.
 - **Skill files** (`~/.claude/skills/`) are symlinked from `~/.dotfiles`. When modifying a skill while working in another repo, commit the skill change in the dotfiles repo separately, following dotfiles commit conventions (versioned tags — see dotfiles skill).
 - When a task touches files in multiple repos, always commit each repo separately with appropriate conventions.
 
+## Workflow Rules
+- **Scope confirmation required.** Before reorganizing files, archiving work tracks, restructuring directories, or moving content between folio artifact types (reference, work, output), confirm the scope with me first. Small edits within a file are fine — structural changes need a check.
+- **Respect the invoked skill's tooling.** When I invoke a `/skill` command, use that skill's intended tools and workflows. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails. If `/jira-forest` is invoked, use `jf`. If `/folio` is invoked, use `folio`.
+- **Keep it simple.** Start with the simplest implementation that works. Don't add error handling, wrapper classes, notifications, or extra abstraction unless I ask for it. If I want more, I'll ask.
+- **Show, don't summarize.** When I ask to see a plan, document, or file contents, display the actual content — don't read it internally and give me a summary.
+
 ## Tool Use
 - **One operation per tool call.** Never chain commands with `&&`, `;`, `||`, pipes (`|`), or command substitution (`$(...)`, backticks). Use separate parallel tool calls for independent operations and sequential calls for dependent ones.
 - **Changing directories works.** The Bash tool's working directory persists across calls. To work in a different repo, run `cd /path/to/repo` as its own Bash call, then run git (or other commands) in subsequent calls. This is the correct way to operate on multiple repos — not `git -C` or chaining.
