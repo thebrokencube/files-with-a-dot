@@ -32,6 +32,8 @@ func main() {
 		os.Exit(runShow(os.Args[2:]))
 	case "sync":
 		os.Exit(runSync(os.Args[2:]))
+	case "create-missing":
+		os.Exit(runCreateMissing(os.Args[2:]))
 	case "version":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
@@ -60,6 +62,7 @@ Level 1 (forest):
   status               Forest summary with staleness
   show <target>        Single-node detail view
   sync                 Push all + pull all
+  create-missing       Create Jira tickets for TBD nodes
 
 Utility:
   version              Show version

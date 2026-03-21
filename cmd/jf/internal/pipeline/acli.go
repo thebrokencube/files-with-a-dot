@@ -63,6 +63,12 @@ func (p *Pipeline) Push(compiled []byte) error {
 
 var reJiraKey = regexp.MustCompile(`[A-Z]+-\d+`)
 
+// ExtractJiraKey finds the first Jira key (e.g. BEN-123) in the given output.
+// Returns empty string if none found.
+func ExtractJiraKey(out []byte) string {
+	return reJiraKey.FindString(string(out))
+}
+
 // Create creates a Jira ticket from a JSON payload and returns the new key.
 func (p *Pipeline) Create(payload []byte) (string, error) {
 	tmpFile, err := os.CreateTemp("", "jf-create-*.json")
