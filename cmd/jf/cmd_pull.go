@@ -31,16 +31,41 @@ func runPull(args []string) int {
 	return pullForest(*dir, positional, *failFast)
 }
 
+// richPull extracts ADF from View JSON output and converts to markdown.
+func richPull(viewJSON []byte) ([]byte, error) {
+	adf, err := pipeline.ExtractDescriptionADF(viewJSON)
+	if err != nil {
+		return nil, err
+	}
+	if adf == nil {
+		return []byte(""), nil // empty description
+	}
+	return pipeline.ConvertADF(adf)
+}
+
 func pullSingle(key, filePath string) int {
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
-	out, err := p.View(key, "description", false)
+	// Try rich pull: JSON -> extract ADF -> convert to markdown
+	out, err := p.View(key, "description", true)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", key, err)
 		return 2
 	}
 
-	if err := os.WriteFile(filePath, out, 0644); err != nil {
+	md, err := richPull(out)
+	if err != nil {
+		// Fallback: plain text pull
+		fmt.Fprintf(os.Stderr, "⚠ %s: ADF conversion failed (%s), falling back to plain text\n", key, err)
+		out, err = p.View(key, "description", false)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "✗ %s: fallback acli error\n  %s\n", key, err)
+			return 2
+		}
+		md = out
+	}
+
+	if err := os.WriteFile(filePath, md, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: write error\n  %s\n", filePath, err)
 		return 1
 	}
@@ -88,7 +113,7 @@ func pullForest(dir string, positional []string, failFast bool) int {
 	for _, n := range toPull {
 		filePath := filepath.Join(f.Dir, n.File)
 
-		out, err := p.View(n.Key, "description", false)
+		out, err := p.View(n.Key, "description", true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", n.Key, err)
 			failed++
@@ -98,8 +123,23 @@ func pullForest(dir string, positional []string, failFast bool) int {
 			continue
 		}
 
+		md, richErr := richPull(out)
+		if richErr != nil {
+			fmt.Fprintf(os.Stderr, "⚠ %s: ADF conversion failed (%s), falling back to plain text\n", n.Key, richErr)
+			out, err = p.View(n.Key, "description", false)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "✗ %s: fallback acli error\n  %s\n", n.Key, err)
+				failed++
+				if failFast {
+					break
+				}
+				continue
+			}
+			md = out
+		}
+
 		// Preserve frontmatter if file exists
-		content, err := mergeWithFrontmatter(filePath, out)
+		content, err := mergeWithFrontmatter(filePath, md)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s: %s\n", n.Key, err)
 			failed++
