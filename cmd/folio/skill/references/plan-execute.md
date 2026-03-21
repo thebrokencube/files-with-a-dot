@@ -23,17 +23,17 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
    or flag semantics, grep the skill files (`~/.claude/skills/`) for stale references before
    proceeding. Skill docs that reference old field names or removed commands cause downstream
    confusion — fix them in the same commit or as a follow-up commit in the same track.
-4. **Review — hard gate.** Launch 2 review agents (subagent_type: general-purpose) — one
-   checking accuracy, one checking scope. Converge findings and fix issues. Do NOT run
-   `git commit` until both reviews complete and all findings are resolved. If fixes are
-   mechanical (typos, imports, paths), proceed to step 5. If fixes change logic or add code
-   paths, return to step 3.
+4. **Review — hard gate.** Launch 1 review agent (subagent_type: general-purpose,
+   model: "opus") covering accuracy, scope, and code quality. If the review returns issues,
+   fix them and re-dispatch the review agent. Loop until zero issues. Cap at 3 iterations —
+   if still failing, escalate to the user. Do NOT run `git commit` until the review passes
+   clean.
 5. **Commit.** One logical unit per commit.
 6. **Repeat** from step 1 for the next step.
 
 ### Implementation Review Prompt
 
-Use with `subagent_type: "general-purpose"` and `model: "sonnet"`. Launch two instances — one accuracy, one scope. Needs file access.
+Use with `subagent_type: "general-purpose"` and `model: "opus"`. Launch one instance with comprehensive checklist. Needs file access.
 
 ```
 You are reviewing code changes before a commit. Your job is to catch implementation bugs.
@@ -47,17 +47,17 @@ You are reviewing code changes before a commit. Your job is to catch implementat
 ## Changes to Review
 {change_description}
 
-## Your Focus: {focus}
-{focus_description}
+## Review Checklist
+1. **Accuracy**: Verify changes match the work brief. Check for typos, stale references,
+   incorrect file paths, broken imports, wrong function signatures. Read the actual files.
+2. **Scope**: Check changes are necessary and sufficient. Flag anything not in the brief,
+   unnecessary abstractions, or missing pieces. Verify the commit bundles one logical unit.
+3. **Code quality**: Check for bugs, edge cases, error handling gaps, and style issues.
+   Flag anything that would fail review on a real PR.
 
-For each issue found, state: what's wrong, where, and a concrete fix.
+For each issue: what's wrong, where, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues.
 ```
-
-**Focus descriptions:**
-
-- **Accuracy**: "Verify the changes match the work brief. Check for typos, stale references, incorrect file paths, broken imports, and wrong function signatures. Read the actual changed files."
-- **Scope**: "Check that changes are necessary and sufficient. Flag anything that wasn't in the brief, unnecessary abstractions, or missing pieces. Meta-review: should any of these changes NOT exist? Verify the commit bundles one logical unit — flag if unrelated concerns are mixed."
 
 **Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml observations, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
