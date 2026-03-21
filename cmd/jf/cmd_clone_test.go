@@ -69,6 +69,9 @@ func TestScaffoldTree(t *testing.T) {
 	if !strings.Contains(string(readme), "jira: BEN-1") {
 		t.Error("expected jira key in root README")
 	}
+	if !strings.Contains(string(readme), `label: "Root Epic"`) {
+		t.Error("expected quoted label in root README")
+	}
 
 	// Leaf file should exist
 	leaf, err := os.ReadFile(filepath.Join(dir, "BEN-2.md"))
@@ -77,6 +80,29 @@ func TestScaffoldTree(t *testing.T) {
 	}
 	if !strings.Contains(string(leaf), "jira: BEN-2") {
 		t.Error("expected jira key in leaf file")
+	}
+	if !strings.Contains(string(leaf), `label: "Leaf Story"`) {
+		t.Error("expected quoted label in leaf file")
+	}
+}
+
+func TestScaffoldTreeQuotesColons(t *testing.T) {
+	dir := t.TempDir()
+	tree := &cloneNode{
+		Key:     "RET-1",
+		Summary: "chore(docs): move stuff out of top level",
+	}
+
+	if err := scaffoldTree(dir, tree, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(readme), `label: "chore(docs): move stuff out of top level"`) {
+		t.Errorf("expected quoted label with colon, got:\n%s", string(readme))
 	}
 }
 

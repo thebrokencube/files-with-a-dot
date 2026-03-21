@@ -169,7 +169,7 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 	}
 
 	filePath := filepath.Join(dirPath, "README.md")
-	fm := fmt.Sprintf("---\njira: %s\nlabel: %s\nsync: pull\n---\n", node.Key, node.Summary)
+	fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: pull\n---\n", node.Key, strings.ReplaceAll(node.Summary, "\"", "\\\""))
 	if err := os.WriteFile(filePath, []byte(fm), 0644); err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 			}
 		} else {
 			leafFile := filepath.Join(dirPath, child.Key+".md")
-			fm := fmt.Sprintf("---\njira: %s\nlabel: %s\nsync: pull\n---\n", child.Key, child.Summary)
+			fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: pull\n---\n", child.Key, strings.ReplaceAll(child.Summary, "\"", "\\\""))
 			if err := os.WriteFile(leafFile, []byte(fm), 0644); err != nil {
 				return err
 			}
