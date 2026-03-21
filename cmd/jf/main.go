@@ -26,6 +26,12 @@ func main() {
 		os.Exit(runList(os.Args[2:]))
 	case "validate":
 		os.Exit(runValidate(os.Args[2:]))
+	case "status":
+		os.Exit(runStatus(os.Args[2:]))
+	case "show":
+		os.Exit(runShow(os.Args[2:]))
+	case "sync":
+		os.Exit(runSync(os.Args[2:]))
 	case "version":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
@@ -51,6 +57,9 @@ Level 1 (forest):
   tree                 Show forest hierarchy
   list                 Flat list of all nodes
   validate             Check forest integrity
+  status               Forest summary with staleness
+  show <target>        Single-node detail view
+  sync                 Push all + pull all
 
 Utility:
   version              Show version
