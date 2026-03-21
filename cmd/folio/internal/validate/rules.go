@@ -214,9 +214,19 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		}
 	}
 
-	// Tree and batch mutual exclusion
-	if target.Tree != nil && target.Batch != nil {
-		r.addError("Target '%s': tree and batch are mutually exclusive", tid)
+	// Tree, batch, and forest mutual exclusion
+	typeCount := 0
+	if target.Tree != nil {
+		typeCount++
+	}
+	if target.Batch != nil {
+		typeCount++
+	}
+	if target.Forest != nil {
+		typeCount++
+	}
+	if typeCount > 1 {
+		r.addError("Target '%s': tree, batch, and forest are mutually exclusive", tid)
 	}
 
 	// Tree validation
@@ -226,6 +236,18 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		}
 		seenIDs := make(map[string]bool)
 		validateTreeNode(r, tid, &target.Tree.Root, target, folioDir, seenIDs)
+	}
+
+	// Forest validation
+	if target.Forest != nil {
+		if target.Forest.Root == "" {
+			r.addError("Target '%s': forest missing required field: root", tid)
+		} else {
+			rootPath := filepath.Join(folioDir, target.Forest.Root)
+			if info, err := os.Stat(rootPath); err != nil || !info.IsDir() {
+				r.addError("Target '%s': forest root directory not found: %s", tid, target.Forest.Root)
+			}
+		}
 	}
 
 	// How field (optional with warning, instructions fallback)

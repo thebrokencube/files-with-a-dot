@@ -43,6 +43,7 @@ type Target struct {
 	Outputs      []Output `yaml:"outputs"`
 	Batch        *Batch   `yaml:"batch"`
 	Tree         *Tree    `yaml:"tree"`
+	Forest       *Forest  `yaml:"forest"`
 }
 
 // Output represents a target's output destination.
@@ -81,6 +82,15 @@ type TreeNode struct {
 	Notes        string     `yaml:"notes"`        // optional, advisory notes about this node
 	Sync         string     `yaml:"sync"`         // "push", "pull", "both" (empty = default push)
 	Children     []TreeNode `yaml:"children"`     // recursive
+}
+
+// Forest represents a jf-managed forest target. The hierarchy lives on disk
+// (directory layout + YAML frontmatter); folio stores per-node compilation
+// instructions and a pointer to the forest root.
+type Forest struct {
+	Root         string            `yaml:"root"`          // path to forest root directory (relative to folio.yml)
+	HowDefault   string            `yaml:"how_default"`   // default compilation instruction for all nodes
+	HowOverrides map[string]string `yaml:"how_overrides"` // per-node overrides keyed by Jira key
 }
 
 // BatchItem represents a single item in a batch target.
