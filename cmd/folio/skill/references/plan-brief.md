@@ -89,9 +89,10 @@ code changes but doesn't know how to validate or ship them.
 Commit format, scope target (max commits — typically ~5), ordered commit sequence
 (what goes in each commit, in what order), push workflow, and repo-specific patterns.
 
-Include a **Folio integration** subsection: targets to add for branches, observation
-items to resolve on completion, `folio home push` checkpoints at milestones. Execution agents
-should maintain folio state as they go — not as a final cleanup step.
+Include a **Folio integration** subsection: targets to add for branches, existing observation
+items to resolve on completion, `folio home push` checkpoints at milestones. Do not instruct
+agents to add "completion" observations — observations are open items, not a changelog.
+Execution agents should maintain folio state as they go — not as a final cleanup step.
 
 #### Handoff Prompts section (required)
 

@@ -122,7 +122,9 @@ Previously: `/folio audit`
 
 ### /folio observe
 
-Manage observations in folio.yml. **Do NOT edit the `observations:` list in folio.yml by hand** — not to add, remove, reorder, or reformat entries. All mutations go through CLI commands, which enforce format validation. `folio home push` runs lint as a gate and will reject malformed observations.
+Manage observations in folio.yml. Observations are an **open-items queue** — things that need attention (bugs, gaps, ideas, debt, tasks). Resolve them when addressed. Do not add observations to record completed work; that's what retros and commit history are for.
+
+**Do NOT edit the `observations:` list in folio.yml by hand** — not to add, remove, reorder, or reformat entries. All mutations go through CLI commands, which enforce format validation. `folio home push` runs lint as a gate and will reject malformed observations.
 
 Workflow:
 1. `folio observe types` — get valid types and descriptions
