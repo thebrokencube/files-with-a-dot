@@ -46,5 +46,8 @@ cask "iterm2"                   # Fallback terminal
 # Knowledge management
 cask "obsidian"                 # Vault browser for ~/.folio
 
+# Presentations
+brew "marp-cli"                 # Markdown → HTML/PDF/PPTX slide decks
+
 # Fonts
 cask "font-inconsolata-nerd-font"
