@@ -13,23 +13,32 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 
 1. **Implement** one logical unit (one feature, fix, or refactor). If a step spans
    multiple concerns, split it at commit time.
-2. **Content extraction check** (if this step moved or extracted content across files): Diff
+2. **Test gate (Go repos only).** If the repo uses Go (`go.mod` exists or Makefile contains
+   `go test`), write or update tests before production code. RED-GREEN-REFACTOR:
+   - Write a failing test for the expected behavior
+   - Run `make test` — verify it fails with the expected error
+   - Write minimal code to pass
+   - Run `make test` — verify it passes
+   - Refactor if needed, re-run tests
+   For skill-file-only changes (no Go code), note "no automated tests for skill files" and
+   proceed to the next step.
+3. **Content extraction check** (if this step moved or extracted content across files): Diff
    old content against new locations. Verify nothing was dropped, duplicated, or silently
    truncated. Do not rely solely on review agents — run an explicit before/after comparison.
-3. **Validate — hard gate.** Run the validation commands from the brief's execution conventions
+4. **Validate — hard gate.** Run the validation commands from the brief's execution conventions
    in order: build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed
-   to step 4 until all validation commands pass.
+   to step 5 until all validation commands pass.
    **Skill file drift check**: If this step changed CLI behavior, command names, schema fields,
    or flag semantics, grep the skill files (`~/.claude/skills/`) for stale references before
    proceeding. Skill docs that reference old field names or removed commands cause downstream
    confusion — fix them in the same commit or as a follow-up commit in the same track.
-4. **Review — hard gate.** Launch 1 review agent (subagent_type: general-purpose,
+5. **Review — hard gate.** Launch 1 review agent (subagent_type: general-purpose,
    model: "opus") covering accuracy, scope, and code quality. If the review returns issues,
    fix them and re-dispatch the review agent. Loop until zero issues. Cap at 3 iterations —
    if still failing, escalate to the user. Do NOT run `git commit` until the review passes
    clean.
-5. **Commit.** One logical unit per commit.
-6. **Repeat** from step 1 for the next step.
+6. **Commit.** One logical unit per commit.
+7. **Repeat** from step 1 for the next step.
 
 ### Implementation Review Prompt
 
