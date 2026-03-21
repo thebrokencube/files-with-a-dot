@@ -126,7 +126,7 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
 		// Compile and push description
 		source, err := os.ReadFile(filePath)
 		if err == nil {
-			compiled, compileErr := p.Compile(newKey, source)
+			compiled, compileErr := p.Compile(newKey, source, "")
 			if compileErr != nil {
 				if force {
 					fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", newKey)

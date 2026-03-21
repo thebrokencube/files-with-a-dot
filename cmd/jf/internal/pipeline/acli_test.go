@@ -26,7 +26,7 @@ func TestCompileProducesValidJSON(t *testing.T) {
 		t.Skip("node not found, skipping integration test")
 	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
-	out, err := p.Compile("TEST-1", []byte("## Hello"))
+	out, err := p.Compile("TEST-1", []byte("## Hello"), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestCompileProducesADF(t *testing.T) {
 		t.Skip("node not found, skipping integration test")
 	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
-	out, err := p.Compile("KEY-1", []byte("## Heading\n\nParagraph"))
+	out, err := p.Compile("KEY-1", []byte("## Heading\n\nParagraph"), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestCompileStripsFrontmatter(t *testing.T) {
 	}
 	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
 	input := "---\ntitle: test\n---\n## Content"
-	out, err := p.Compile("KEY-1", []byte(input))
+	out, err := p.Compile("KEY-1", []byte(input), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,6 +88,44 @@ func TestCompileStripsFrontmatter(t *testing.T) {
 	content := desc["content"].([]any)
 	if len(content) != 1 {
 		t.Fatalf("expected 1 content node after frontmatter strip, got %d", len(content))
+	}
+}
+
+func TestCompileIncludesSummary(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not found, skipping integration test")
+	}
+	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
+	out, err := p.Compile("KEY-1", []byte("## Content"), "My new title")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed["summary"] != "My new title" {
+		t.Errorf("expected summary 'My new title', got %v", parsed["summary"])
+	}
+}
+
+func TestCompileOmitsSummaryWhenEmpty(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not found, skipping integration test")
+	}
+	p := &Pipeline{Run: func(string, ...string) ([]byte, error) { return nil, nil }}
+	out, err := p.Compile("KEY-1", []byte("## Content"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := parsed["summary"]; ok {
+		t.Error("expected no summary field when empty")
 	}
 }
 

@@ -26,7 +26,8 @@ type Pipeline struct {
 
 // Compile converts markdown source into an acli-edit JSON payload.
 // Shells out to Node via embedded marklassian bundle.
-func (p *Pipeline) Compile(id string, source []byte) ([]byte, error) {
+// If summary is non-empty, it is included in the payload to update the Jira summary field.
+func (p *Pipeline) Compile(id string, source []byte, summary string) ([]byte, error) {
 	adf, err := CompileMarkdown(source)
 	if err != nil {
 		return nil, fmt.Errorf("compile: %w", err)
@@ -35,6 +36,9 @@ func (p *Pipeline) Compile(id string, source []byte) ([]byte, error) {
 	payload := map[string]any{
 		"issues":      []string{id},
 		"description": json.RawMessage(adf),
+	}
+	if summary != "" {
+		payload["summary"] = summary
 	}
 
 	return json.MarshalIndent(payload, "", "  ")

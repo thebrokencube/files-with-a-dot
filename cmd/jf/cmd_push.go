@@ -40,7 +40,7 @@ func pushSingle(key, filePath string, force bool) int {
 
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
-	compiled, err := p.Compile(key, source)
+	compiled, err := p.Compile(key, source, "")
 	if err != nil {
 		if force {
 			fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", key)
@@ -142,7 +142,7 @@ func pushForest(dir string, positional []string, subtreeTarget string, force, fa
 			continue
 		}
 
-		compiled, err := p.Compile(n.Key, source)
+		compiled, err := p.Compile(n.Key, source, n.Label)
 		if err != nil {
 			if force {
 				fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", n.Key)
