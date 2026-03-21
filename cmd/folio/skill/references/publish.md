@@ -43,25 +43,31 @@ Unlisted systems: push = manual (present to user).
 **Content rules**: Inline links (not reference-style). No footer sections (references, changelog). No downward duplication — parent descriptions should not repeat child content. Each ticket stands alone for its level.
 
 **Source file purity**: Jira tree node source files must be pure precompile input — no metadata
-headers (title, status, type). Metadata belongs in folio.yml `notes` fields. `folio jira compile`
-strips YAML frontmatter automatically (`StripFrontmatter`), but non-YAML headers leak through.
-Source files should start directly at content (e.g., `## Goal`).
+headers (title, status, type). Metadata belongs in frontmatter (`jira:`, `type:`, `sync:`, etc.)
+or folio.yml `notes` fields. `jf push` strips YAML frontmatter automatically before converting
+to ADF. Source files should start directly at content after frontmatter (e.g., `## Goal`).
 
 ## Jira Push Pipeline
 
-Tree targets with `system: jira` use `folio jira` commands. A single command handles conversion and push:
+Tree targets with `system: jira` use `jf` (Jira Forest CLI) for push operations. `folio jira push` delegates to `jf push` under the hood.
 
+**Level 0 (single file)**:
+```bash
+jf push BEN-48284 epic.md
+```
+
+**Level 1 (forest-aware)**:
+```bash
+jf sync              # push all + pull all
+jf status --json     # check what's stale
+```
+
+**folio wrapper** (adds autoTouch for folio staleness):
 ```bash
 folio jira push --id BEN-48284 --source epic.md
 ```
 
-This runs: Compile (markdown to ADF via marklassian) -> Push (acli edit).
-
-To inspect the intermediate ADF JSON without pushing:
-
-```bash
-folio jira compile --id BEN-48284 --source epic.md --output compiled/jira/BEN-48284.json
-```
+`jf push` runs: strip frontmatter -> compile (markdown to ADF via marklassian) -> push (acli edit) -> record in `.jf/state.json`.
 
 **Supported markdown**: tables, fenced code blocks, blockquotes, nested lists, task lists, all heading levels, bold, italic, code, links. marklassian handles the full CommonMark spec. See references/jira-gotchas.md for content pitfalls (relative links, @mentions, size limits).
 
@@ -69,13 +75,20 @@ folio jira compile --id BEN-48284 --source epic.md --output compiled/jira/BEN-48
 
 > **IMPORTANT:** Always use `folio jira` for all Jira write operations. MCP Jira tools are read-only in this workflow (permitted for field discovery where acli has no equivalent). When using MCP for reads, always pass the `fields` parameter — see tooling.yml for standard/minimal/extended field sets.
 
-For tree nodes that do not yet have a Jira key, use the two-phase creation command. It creates a barebones ticket (no description), captures the key, then pushes the description separately. This two-phase approach is more reliable than embedding ADF in the creation payload.
+For tree nodes that do not yet have a Jira key, two approaches:
 
+**Forest-level creation** (preferred for multiple TBD nodes):
+```bash
+jf create-missing --dry-run    # preview what would be created
+jf create-missing              # create all TBD nodes (pre-order traversal)
+```
+
+**Single-ticket creation** (folio wrapper):
 ```bash
 folio jira create --json /tmp/{slug}-create.json --source {source}.md
 ```
 
-This runs: Create (acli, captures key) -> Compile (using new key) -> Push (description).
+Both run: Create (acli, captures key) -> Push description (via `jf push`).
 
 **Before running**, build the creation JSON. **The creation JSON must NOT contain a `description` field** — `acli create` silently drops or malforms inline ADF descriptions.
 
