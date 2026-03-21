@@ -49,13 +49,13 @@ Source files should start directly at content (e.g., `## Goal`).
 
 ## Jira Push Pipeline
 
-Tree targets with `system: jira` use `folio jira` commands. A single command handles lint, conversion, and push:
+Tree targets with `system: jira` use `folio jira` commands. A single command handles conversion and push:
 
 ```bash
 folio jira push --id BEN-48284 --source epic.md
 ```
 
-This runs: Lint (gate) -> Convert (markdown to ADF) -> Push (acli edit). Stops on lint failure.
+This runs: Compile (markdown to ADF via marklassian) -> Push (acli edit).
 
 To inspect the intermediate ADF JSON without pushing:
 
@@ -63,7 +63,7 @@ To inspect the intermediate ADF JSON without pushing:
 folio jira compile --id BEN-48284 --source epic.md --output compiled/jira/BEN-48284.json
 ```
 
-**Markdown constraints** (enforced by lint): no tables, no fenced code blocks, no blockquotes, no nested lists, no h3+, no images, no bare `[` or relative links. Only `##` headings, flat lists, paragraphs, and inline bold/code/links. Flatten source files before composition.
+**Supported markdown**: tables, fenced code blocks, blockquotes, nested lists, task lists, all heading levels, bold, italic, code, links. marklassian handles the full CommonMark spec. See references/jira-gotchas.md for content pitfalls (relative links, @mentions, size limits).
 
 ## Jira Creation Pipeline
 
@@ -75,7 +75,7 @@ For tree nodes that do not yet have a Jira key, use the two-phase creation comma
 folio jira create --json /tmp/{slug}-create.json --source {source}.md
 ```
 
-This runs: Lint (gate) -> Create (acli, captures key) -> Compile (using new key) -> Push (description).
+This runs: Create (acli, captures key) -> Compile (using new key) -> Push (description).
 
 **Before running**, build the creation JSON. **The creation JSON must NOT contain a `description` field** — `acli create` silently drops or malforms inline ADF descriptions.
 

@@ -147,7 +147,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path |
 | `/folio health` | `folio health` — project health report (types, naming, observations) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
-| `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: lint, compile, push, create, view, search |
+| `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: compile, push, create, view, search |
 
 **Flag ordering**: The folio CLI uses Go's `flag` package, which requires flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` silently ignores `--folio`. This applies to all commands.
 
