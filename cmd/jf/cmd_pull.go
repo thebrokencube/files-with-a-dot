@@ -15,6 +15,7 @@ func runPull(args []string) int {
 	fs := flag.NewFlagSet("pull", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
+	_ = fs.Bool("force", false, "Overwrite local file even if conflict detected")
 
 	if err := fs.Parse(args); err != nil {
 		return 1
