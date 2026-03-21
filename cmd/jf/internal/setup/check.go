@@ -2,7 +2,6 @@ package setup
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -32,7 +31,7 @@ func CheckAll(check Checker) ([]CheckResult, bool) {
 
 	results = append(results, checkNode(check))
 	results = append(results, checkAcli(check))
-	results = append(results, checkJiraAuth())
+	results = append(results, checkJiraAuth(check))
 
 	for _, r := range results {
 		if r.Status != "ok" {
@@ -77,30 +76,29 @@ func checkAcli(check Checker) CheckResult {
 	}
 }
 
-func checkJiraAuth() CheckResult {
-	token := os.Getenv("JIRA_API_TOKEN")
-	if token == "" {
-		// Also check common alternative env vars
-		for _, key := range []string{"JIRA_TOKEN", "ATLASSIAN_API_TOKEN"} {
-			if os.Getenv(key) != "" {
-				return CheckResult{
-					Name:   "jira-auth",
-					Status: "ok",
-					Detail: fmt.Sprintf("Using %s", key),
-				}
-			}
-		}
+func checkJiraAuth(check Checker) CheckResult {
+	// acli manages its own OAuth auth — verify it can reach Jira
+	out, err := check("acli", "jira", "project", "list", "--limit", "1")
+	if err != nil {
 		return CheckResult{
 			Name:   "jira-auth",
 			Status: "missing",
-			Detail: "No Jira API token found",
-			Fix:    "Set JIRA_API_TOKEN in ~/.env.local",
+			Detail: "acli cannot reach Jira",
+			Fix:    "Run: acli auth login",
+		}
+	}
+	if strings.Contains(out, "unauthorized") || strings.Contains(out, "Unauthorized") {
+		return CheckResult{
+			Name:   "jira-auth",
+			Status: "missing",
+			Detail: "acli auth expired",
+			Fix:    "Run: acli auth login",
 		}
 	}
 	return CheckResult{
 		Name:   "jira-auth",
 		Status: "ok",
-		Detail: "JIRA_API_TOKEN set",
+		Detail: "acli authenticated",
 	}
 }
 

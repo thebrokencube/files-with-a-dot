@@ -2,13 +2,22 @@ package setup
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
+// mockChecker routes responses by command name. For "acli" calls, it also
+// checks the first arg to distinguish version checks from jira auth checks.
 func mockChecker(responses map[string]string) Checker {
 	return func(name string, args ...string) (string, error) {
-		key := name
-		if out, ok := responses[key]; ok {
+		// Try name + first arg (e.g., "acli jira" for auth check)
+		if len(args) > 0 {
+			compound := name + " " + args[0]
+			if out, ok := responses[compound]; ok {
+				return out, nil
+			}
+		}
+		if out, ok := responses[name]; ok {
 			return out, nil
 		}
 		return "", fmt.Errorf("command not found: %s", name)
@@ -17,14 +26,18 @@ func mockChecker(responses map[string]string) Checker {
 
 func TestCheckAllPasses(t *testing.T) {
 	check := mockChecker(map[string]string{
-		"node": "v20.11.0",
-		"acli": "acli version 2.7.0",
+		"node":      "v20.11.0",
+		"acli":      "acli version 2.7.0",
+		"acli jira": "KEY-1  Some issue",
 	})
-
-	t.Setenv("JIRA_API_TOKEN", "test-token")
 
 	results, ok := CheckAll(check)
 	if !ok {
+		for _, r := range results {
+			if r.Status != "ok" {
+				t.Logf("  %s: %s (%s)", r.Name, r.Status, r.Detail)
+			}
+		}
 		t.Fatal("expected all checks to pass")
 	}
 	if len(results) != 3 {
@@ -39,10 +52,9 @@ func TestCheckAllPasses(t *testing.T) {
 
 func TestCheckAllNodeMissing(t *testing.T) {
 	check := mockChecker(map[string]string{
-		"acli": "acli version 2.7.0",
+		"acli":      "acli version 2.7.0",
+		"acli jira": "KEY-1  Some issue",
 	})
-
-	t.Setenv("JIRA_API_TOKEN", "test-token")
 
 	results, ok := CheckAll(check)
 	if ok {
@@ -68,8 +80,6 @@ func TestCheckAllAcliMissing(t *testing.T) {
 		"node": "v20.11.0",
 	})
 
-	t.Setenv("JIRA_API_TOKEN", "test-token")
-
 	results, ok := CheckAll(check)
 	if ok {
 		t.Fatal("expected check to fail")
@@ -86,15 +96,12 @@ func TestCheckAllAcliMissing(t *testing.T) {
 	}
 }
 
-func TestCheckAllJiraAuthMissing(t *testing.T) {
+func TestCheckAllJiraAuthFails(t *testing.T) {
 	check := mockChecker(map[string]string{
-		"node": "v20.11.0",
-		"acli": "acli version 2.7.0",
+		"node":           "v20.11.0",
+		"acli --version": "acli version 2.7.0",
+		// No "acli jira" entry — search call returns error
 	})
-
-	t.Setenv("JIRA_API_TOKEN", "")
-	t.Setenv("JIRA_TOKEN", "")
-	t.Setenv("ATLASSIAN_API_TOKEN", "")
 
 	results, ok := CheckAll(check)
 	if ok {
@@ -110,23 +117,21 @@ func TestCheckAllJiraAuthMissing(t *testing.T) {
 	if authResult.Status != "missing" {
 		t.Errorf("jira-auth status: got %q, want %q", authResult.Status, "missing")
 	}
-	if authResult.Fix != "Set JIRA_API_TOKEN in ~/.env.local" {
-		t.Errorf("jira-auth fix: got %q, want %q", authResult.Fix, "Set JIRA_API_TOKEN in ~/.env.local")
+	if !strings.Contains(authResult.Fix, "acli auth login") {
+		t.Errorf("jira-auth fix: got %q, want contains %q", authResult.Fix, "acli auth login")
 	}
 }
 
-func TestCheckAllAlternativeToken(t *testing.T) {
+func TestCheckAllJiraAuthUnauthorized(t *testing.T) {
 	check := mockChecker(map[string]string{
-		"node": "v20.11.0",
-		"acli": "acli version 2.7.0",
+		"node":      "v20.11.0",
+		"acli":      "acli version 2.7.0",
+		"acli jira": "unauthorized: use 'acli auth login' to authenticate",
 	})
 
-	t.Setenv("JIRA_API_TOKEN", "")
-	t.Setenv("JIRA_TOKEN", "alt-token")
-
 	results, ok := CheckAll(check)
-	if !ok {
-		t.Fatal("expected all checks to pass with alternative token")
+	if ok {
+		t.Fatal("expected check to fail")
 	}
 
 	var authResult CheckResult
@@ -135,18 +140,20 @@ func TestCheckAllAlternativeToken(t *testing.T) {
 			authResult = r
 		}
 	}
-	if authResult.Status != "ok" {
-		t.Errorf("jira-auth status: got %q, want %q", authResult.Status, "ok")
+	if authResult.Status != "missing" {
+		t.Errorf("jira-auth status: got %q, want %q", authResult.Status, "missing")
+	}
+	if authResult.Detail != "acli auth expired" {
+		t.Errorf("jira-auth detail: got %q, want %q", authResult.Detail, "acli auth expired")
 	}
 }
 
 func TestQuickCheckAllOk(t *testing.T) {
 	check := mockChecker(map[string]string{
-		"node": "v20.11.0",
-		"acli": "acli version 2.7.0",
+		"node":      "v20.11.0",
+		"acli":      "acli version 2.7.0",
+		"acli jira": "KEY-1  Some issue",
 	})
-
-	t.Setenv("JIRA_API_TOKEN", "test-token")
 
 	msg := QuickCheck(check)
 	if msg != "" {
@@ -156,8 +163,6 @@ func TestQuickCheckAllOk(t *testing.T) {
 
 func TestQuickCheckFails(t *testing.T) {
 	check := mockChecker(map[string]string{})
-
-	t.Setenv("JIRA_API_TOKEN", "test-token")
 
 	msg := QuickCheck(check)
 	if msg == "" {
