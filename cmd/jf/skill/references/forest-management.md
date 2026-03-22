@@ -61,7 +61,7 @@ Dedup check: searches Jira for existing tickets with matching summary before cre
 ## Init
 
 ```bash
-jf init --project BEN          # scaffold forest.yml in current directory
+jf init --project PROJ         # scaffold forest.yml in current directory
 ```
 
 ## Tree View

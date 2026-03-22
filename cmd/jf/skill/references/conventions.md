@@ -42,22 +42,22 @@ Project-specific field values live in `~/.jf.yml` under `projects:`. See referen
 
 When creating tickets, build a creation JSON with project-specific fields from `~/.jf.yml`. The creation JSON must NOT contain a `description` field — `acli create` silently drops inline ADF descriptions.
 
-Example creation JSON (BEN project):
+Example creation JSON:
 
 ```json
 {
-  "projectKey": "BEN",
+  "projectKey": "PROJ",
   "type": "Task",
-  "summary": "feat(compliance): add state retirement program condition",
-  "parentIssueId": "BEN-48229",
+  "summary": "feat(auth): add OAuth2 login flow",
+  "parentIssueId": "PROJ-100",
   "additionalAttributes": {
-    "components": [{"name": "Partnered Benefits"}],
-    "customfield_10324": {"value": "Compliance Request"}
+    "components": [{"name": "My Component"}],
+    "customfield_NNNNN": {"value": "Some Required Value"}
   }
 }
 ```
 
-Write creation JSON to `/tmp/{slug}-create.json`. `parentIssueId` is optional for top-level issues.
+Populate `additionalAttributes` from `~/.jf.yml` project defaults. Write creation JSON to `/tmp/{slug}-create.json`. `parentIssueId` is optional for top-level issues.
 
 ### Adding a New Project
 

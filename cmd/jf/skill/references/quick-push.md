@@ -5,7 +5,7 @@ Single-file operations without a forest. Use when you have one markdown file to 
 ## Push
 
 ```bash
-jf push BEN-123 description.md
+jf push PROJ-123 description.md
 ```
 
 Pipeline: strip frontmatter -> compile markdown to ADF (via marklassian/Node) -> push via acli edit -> record in `.jf/state.json`.
@@ -15,7 +15,7 @@ Pipeline: strip frontmatter -> compile markdown to ADF (via marklassian/Node) ->
 ## Pull
 
 ```bash
-jf pull BEN-123 output.md
+jf pull PROJ-123 output.md
 ```
 
 Pulls the Jira description as plain text to the local file. Preserves existing YAML frontmatter if the file already exists.

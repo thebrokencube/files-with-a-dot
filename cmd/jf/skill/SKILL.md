@@ -42,8 +42,8 @@ Before any operation, detect the working level:
 For ad-hoc push/pull without a forest:
 
 ```bash
-jf push BEN-123 description.md    # compile + push
-jf pull BEN-123 output.md         # pull to local file
+jf push PROJ-123 description.md    # compile + push
+jf pull PROJ-123 output.md         # pull to local file
 ```
 
 -> See references/quick-push.md for details.
