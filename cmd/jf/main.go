@@ -46,6 +46,8 @@ func main() {
 		os.Exit(runStatus(os.Args[2:]))
 	case "show":
 		os.Exit(runShow(os.Args[2:]))
+	case "rm":
+		os.Exit(runRm(os.Args[2:]))
 	}
 
 	// Prereq guard for Jira-touching commands
@@ -92,6 +94,7 @@ Level 1 (forest):
   create-missing       Create Jira tickets for TBD nodes
   search <text>        Find Jira tickets by text/project/type
   clone <KEY>          Scaffold local forest from Jira hierarchy
+  rm <KEY>...          Remove node files from forest by key
 
 Setup:
   setup                Check and install prerequisites
