@@ -3,7 +3,6 @@ package touch
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
@@ -19,7 +18,7 @@ func Target(folioDir string, target *config.Target) (int, error) {
 		if out.Path == "" {
 			continue
 		}
-		fullPath := filepath.Join(folioDir, out.Path)
+		fullPath := config.ResolvePath(folioDir, out.Path)
 		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			return touched, fmt.Errorf("output file not found: %s", out.Path)
 		}

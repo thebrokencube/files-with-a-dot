@@ -171,7 +171,7 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	for _, out := range target.Outputs {
 		if out.Path != "" {
 			hasLocal = true
-			outDir := filepath.Dir(filepath.Join(folioDir, out.Path))
+			outDir := filepath.Dir(config.ResolvePath(folioDir, out.Path))
 			if info, err := os.Stat(outDir); err != nil || !info.IsDir() {
 				r.addError("Target '%s': output parent directory not found: %s", tid, filepath.Dir(out.Path))
 			}
@@ -243,7 +243,7 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		if target.Forest.Root == "" {
 			r.addError("Target '%s': forest missing required field: root", tid)
 		} else {
-			rootPath := filepath.Join(folioDir, target.Forest.Root)
+			rootPath := config.ResolvePath(folioDir, target.Forest.Root)
 			if info, err := os.Stat(rootPath); err != nil || !info.IsDir() {
 				r.addError("Target '%s': forest root directory not found: %s", tid, target.Forest.Root)
 			}

@@ -51,7 +51,7 @@ func runPbcopy(args []string) int {
 	var outputPath string
 	for _, out := range target.Outputs {
 		if out.Path != "" {
-			outputPath = filepath.Join(folioDir, out.Path)
+			outputPath = config.ResolvePath(folioDir, out.Path)
 			break
 		}
 	}

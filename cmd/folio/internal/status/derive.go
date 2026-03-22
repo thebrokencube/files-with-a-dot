@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
@@ -234,7 +233,7 @@ func deriveTreeNodeStatus(folioDir string, node *config.TreeNode, manifestMtime 
 func getManifestMtime(folioDir string, outputs []config.Output) time.Time {
 	for _, out := range outputs {
 		if out.Path != "" {
-			info, err := os.Stat(filepath.Join(folioDir, out.Path))
+			info, err := os.Stat(config.ResolvePath(folioDir, out.Path))
 			if err == nil {
 				return info.ModTime()
 			}
@@ -245,7 +244,7 @@ func getManifestMtime(folioDir string, outputs []config.Output) time.Time {
 
 // DeriveLocalStatus computes status for a local output by comparing mtimes.
 func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string {
-	fullOutput := filepath.Join(folioDir, outputPath)
+	fullOutput := config.ResolvePath(folioDir, outputPath)
 	outInfo, err := os.Stat(fullOutput)
 	if err != nil {
 		return "missing"
@@ -270,7 +269,7 @@ func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string
 // Returns "" if clean, "output missing" if the output doesn't exist, or the
 // first source path that is newer than the output.
 func DeriveLocalCause(folioDir, outputPath string, sourcePaths []string) string {
-	fullOutput := filepath.Join(folioDir, outputPath)
+	fullOutput := config.ResolvePath(folioDir, outputPath)
 	outInfo, err := os.Stat(fullOutput)
 	if err != nil {
 		return "output missing"
