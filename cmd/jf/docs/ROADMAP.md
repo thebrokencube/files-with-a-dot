@@ -82,8 +82,8 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 
 ### Search Command
 
-Thin JQL wrapper via `Pipeline.Search`. No `--json` flag — outputs raw acli text directly.
-Supports `--project`, `--type`, `--limit` filters.
+Thin JQL wrapper via `Pipeline.Search`. Supports `--project`, `--type`, `--limit` filters.
+`--json` passes through to acli for structured output.
 
 ### Clone Hierarchy Depth Limiting
 
@@ -101,14 +101,12 @@ prompt, no `--force` override, no Jira-side cleanup.
 
 ## Planned
 
-### `--json` for Tree and Search
+### `--json` for Tree
 
-`tree` and `search` are the only inspection/query commands without structured output.
-`tree` would emit `[]NodeInfo` (matching `discover --json`). `search` would pass
-`jsonOut: true` to `Pipeline.Search()` which already accepts the parameter.
+`tree` is the only inspection command without structured output.
+It would emit `[]NodeInfo` (matching `discover --json`).
 
-See: [ARCHITECTURE.md — Finding (a)](ARCHITECTURE.md#a-tree-and-search-lack---json),
-[ARCHITECTURE.md — Finding (f)](ARCHITECTURE.md#f-search-outputs-raw-acli-text-with-no-structured-output)
+See: [ARCHITECTURE.md — Finding (a)](ARCHITECTURE.md#a-tree-and-search-lack---json)
 
 ### `--dry-run` for Push, Pull, and Sync
 
@@ -171,9 +169,3 @@ users choose the default sync direction at clone time.
 
 See: [ARCHITECTURE.md — Finding (e)](ARCHITECTURE.md#e-clone-hardcodes-sync-both-for-all-scaffolded-nodes)
 
-### Frontmatter Limit Constant
-
-The 50-line frontmatter parsing limit is hardcoded independently in both
-`forest/schema.go` and `pipeline/adf.go`. Extract a shared constant to prevent drift.
-
-See: [ARCHITECTURE.md — Finding (g)](ARCHITECTURE.md#g-50-line-frontmatter-parsing-limit-is-a-coupling-point)

@@ -420,16 +420,9 @@ want to push descriptions must manually change every file's frontmatter or the f
 scaffolded node frontmatter. Could also omit per-node `sync:` and let the forest default
 apply (less repetitive frontmatter).
 
-### (f) `search` outputs raw acli text with no structured output
+### (f) ~~`search` outputs raw acli text with no structured output~~ — resolved
 
-**Where:** `cmd_search.go:30` — `p.Search(jql, "summary,issuetype,status", *limit, false)`.
-The `false` parameter means acli returns human-readable text. `cmd_search.go:36` —
-`fmt.Print(string(out))` passes raw output through.
-
-**Context:** The `Pipeline.Search()` method already accepts a `jsonOut bool` parameter and
-passes `--json` to acli when true. The `search` command simply doesn't expose this.
-
-**Fix:** Add `--json` flag to `runSearch()` and pass it through to `Pipeline.Search()`.
+`runSearch()` now accepts `--json` and passes it through to `Pipeline.Search()`.
 
 ### (g) ~~50-line frontmatter parsing limit is a coupling point~~ — resolved
 
@@ -474,11 +467,8 @@ Commands that support `--json` should use the types from `internal/output/json.g
 Formatted as future observations:
 
 - `gap(jf): tree command lacks --json output unlike other inspection commands`
-- `gap(jf): search command lacks --json output — returns raw acli text`
 - `debt(jf): sync re-loads forest then delegates to pushForest/pullForest which each load again`
 - `idea(jf): tree-drawing connector logic shared between discover and tree — extract to helper`
 - `idea(jf): add --dry-run to push/pull/sync for safe previewing`
 - `debt(jf): clone hardcodes sync:both for all scaffolded nodes — no --sync flag`
-- ~~`debt(jf): 50-line frontmatter parsing limit is a coupling point across forest and pipeline`~~ — resolved via `forest.MaxFrontmatterLines`
-- `gap(jf): search passes jsonOut=false to Pipeline.Search which already supports --json passthrough`
 - `debt(jf): clone skips state recording (skipState=true) as a workaround for conflict detection on first sync`

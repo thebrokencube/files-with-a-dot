@@ -13,6 +13,7 @@ func runSearch(args []string) int {
 	project := fs.String("project", "", "Filter by Jira project key")
 	issueType := fs.String("type", "", "Filter by issue type (Epic, Story, Task, etc.)")
 	limit := fs.Int("limit", 50, "Maximum results")
+	jsonOut := fs.Bool("json", false, "Output raw JSON from Jira")
 
 	if err := parseFlags(fs, args); err != nil {
 		return 1
@@ -27,7 +28,7 @@ func runSearch(args []string) int {
 	jql := buildSearchJQL(query, *project, *issueType)
 
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
-	out, err := p.Search(jql, "summary,issuetype,status", *limit, false)
+	out, err := p.Search(jql, "summary,issuetype,status", *limit, *jsonOut)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ search failed: %s\n", err)
 		return 2
