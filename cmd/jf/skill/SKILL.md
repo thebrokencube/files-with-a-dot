@@ -1,6 +1,11 @@
+---
+name: jf
+description: "Use when managing Jira tickets, creating/editing issues, pushing descriptions, searching with JQL, managing ticket lifecycle (parking, repurposing), or when needing Jira conventions, project field defaults, and content gotchas."
+---
+
 # Jira Forest (jf)
 
-Standalone CLI for managing Jira ticket hierarchies as local markdown forests. Works at two levels: Level 0 (single-file push/pull) and Level 1 (forest-aware operations with `forest.yml`).
+Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local markdown forests, provides conventions for ticket structure, and holds configuration for project-specific field defaults via `~/.jf.yml`. Works at two levels: Level 0 (single-file push/pull) and Level 1 (forest-aware operations with `forest.yml`).
 
 ## Quick Reference
 
@@ -70,10 +75,22 @@ Park tickets to permanently deactivate noise — over-decomposed, superseded, or
 
 -> See references/lifecycle.md for the park workflow and repurposing guidance.
 
-## folio Integration
+## Conventions
 
-When used within a folio project, `folio jira push` delegates to `jf push` and adds folio-specific autoTouch for staleness tracking. Use `jf` directly for forest-level operations; use `folio jira` when you need folio's target system integration.
+Ticket naming, description structure, content rules, and project field defaults.
+
+-> See references/conventions.md for all conventions and project-specific creation templates.
+
+## Configuration
+
+`~/.jf.yml` holds per-environment config: cloud ID, project field defaults, parking lot settings.
+
+-> See references/configuration.md for the full schema.
+
+## JQL & Bulk Operations
+
+-> See references/jql-patterns.md for NL-to-JQL translation and bulk acli operations.
 
 ## Gotchas
 
--> See references/gotchas.md for Jira-specific pitfalls.
+-> See references/gotchas.md for Jira-specific pitfalls (content rendering, MCP optimization, acli quirks).
