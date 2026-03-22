@@ -431,18 +431,10 @@ passes `--json` to acli when true. The `search` command simply doesn't expose th
 
 **Fix:** Add `--json` flag to `runSearch()` and pass it through to `Pipeline.Search()`.
 
-### (g) 50-line frontmatter parsing limit is a coupling point
+### (g) ~~50-line frontmatter parsing limit is a coupling point~~ — resolved
 
-**Where:** `internal/forest/schema.go:131` — `extractFrontmatterBytes()` limits scan to
-50 lines. `internal/pipeline/adf.go:36` — `StripFrontmatter()` independently limits to
-50 lines. Both use the same hardcoded `50` constant.
-
-**Context:** If either limit changes without the other, frontmatter that parses during
-discovery might not be stripped before compilation (or vice versa). The two limits must stay
-in sync.
-
-**Fix:** Extract a shared constant (e.g., `MaxFrontmatterLines = 50`) or a shared
-frontmatter-extraction function used by both packages.
+All four sites (`extractFrontmatterBytes`, `StripFrontmatter`, `extractExistingFrontmatter`,
+`rewriteTBDLine`) now use `forest.MaxFrontmatterLines` (defined in `internal/forest/schema.go`).
 
 ## Extension Points
 
@@ -487,6 +479,6 @@ Formatted as future observations:
 - `idea(jf): tree-drawing connector logic shared between discover and tree — extract to helper`
 - `idea(jf): add --dry-run to push/pull/sync for safe previewing`
 - `debt(jf): clone hardcodes sync:both for all scaffolded nodes — no --sync flag`
-- `debt(jf): 50-line frontmatter parsing limit is a coupling point across forest and pipeline`
+- ~~`debt(jf): 50-line frontmatter parsing limit is a coupling point across forest and pipeline`~~ — resolved via `forest.MaxFrontmatterLines`
 - `gap(jf): search passes jsonOut=false to Pipeline.Search which already supports --json passthrough`
 - `debt(jf): clone skips state recording (skipState=true) as a workaround for conflict detection on first sync`

@@ -212,7 +212,7 @@ func rewriteTBDLine(content []byte, newKey string) ([]byte, bool) {
 
 	// First pass: find closing fence to confirm valid frontmatter
 	closingIdx := -1
-	for i := 1; i < len(lines) && i < 50; i++ {
+	for i := 1; i < len(lines) && i < forest.MaxFrontmatterLines; i++ {
 		if strings.TrimSpace(string(lines[i])) == "---" {
 			closingIdx = i
 			break

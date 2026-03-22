@@ -234,7 +234,7 @@ func extractExistingFrontmatter(content []byte) []byte {
 		return nil
 	}
 
-	for i := 1; i < len(lines) && i < 50; i++ {
+	for i := 1; i < len(lines) && i < forest.MaxFrontmatterLines; i++ {
 		if strings.TrimSpace(string(lines[i])) == "---" {
 			var buf bytes.Buffer
 			for j := 0; j < i; j++ {

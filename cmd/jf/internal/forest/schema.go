@@ -120,6 +120,11 @@ func DeriveLabel(fm *Frontmatter, content []byte, filePath string) string {
 	return stem
 }
 
+// MaxFrontmatterLines is the maximum number of lines scanned for a closing
+// --- fence when extracting YAML frontmatter. All frontmatter parsers
+// (forest/schema, pipeline/adf, cmd_pull) must use this constant.
+const MaxFrontmatterLines = 50
+
 // extractFrontmatterBytes returns the raw YAML between --- fences, or nil.
 func extractFrontmatterBytes(content []byte) []byte {
 	lines := bytes.SplitN(content, []byte("\n"), -1)
@@ -128,8 +133,8 @@ func extractFrontmatterBytes(content []byte) []byte {
 	}
 
 	limit := len(lines)
-	if limit > 50 {
-		limit = 50
+	if limit > MaxFrontmatterLines {
+		limit = MaxFrontmatterLines
 	}
 
 	for i := 1; i < limit; i++ {
