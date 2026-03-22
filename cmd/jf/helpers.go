@@ -1,11 +1,29 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
 	"os"
+	"strings"
 )
+
+// parseFlags wraps fs.Parse with trailing flag detection.
+// Returns error on parse failure or flags found after positional arguments.
+func parseFlags(fs *flag.FlagSet, args []string) error {
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	for _, arg := range fs.Args() {
+		if strings.HasPrefix(arg, "-") {
+			err := fmt.Errorf("unknown flag %q after positional arguments (flags must come before arguments)", arg)
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+	}
+	return nil
+}
 
 // loadForest finds and discovers a forest from the given directory.
 // Returns the forest config, discovered roots, or a descriptive error.

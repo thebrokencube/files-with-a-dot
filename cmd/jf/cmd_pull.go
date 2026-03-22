@@ -17,7 +17,7 @@ func runPull(args []string) int {
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
 	_ = fs.Bool("force", false, "Overwrite local file even if conflict detected")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 
@@ -29,7 +29,7 @@ func runPull(args []string) int {
 	}
 
 	// Forest mode
-	return pullForest(*dir, positional, *failFast)
+	return pullForest(*dir, positional, *failFast, false)
 }
 
 // richPull extracts ADF from View JSON output and converts to markdown.
@@ -80,7 +80,7 @@ func pullSingle(key, filePath string) int {
 	return 0
 }
 
-func pullForest(dir string, positional []string, failFast bool) int {
+func pullForest(dir string, positional []string, failFast bool, skipState bool) int {
 	f, roots, err := loadForest(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
@@ -170,8 +170,8 @@ func pullForest(dir string, positional []string, failFast bool) int {
 			continue
 		}
 
-		// Record pull state
-		if adfJSON != nil {
+		// Record pull state (skip during clone so first sync detects no conflict)
+		if !skipState && adfJSON != nil {
 			localHash := forest.ComputeHash(pipeline.StripFrontmatter(content))
 			remoteHash := forest.ComputeHash(adfJSON)
 			state.RecordPull(n.Key, localHash, remoteHash)
@@ -181,9 +181,11 @@ func pullForest(dir string, positional []string, failFast bool) int {
 		succeeded++
 	}
 
-	// Save state
-	if err := forest.SaveState(f.Dir, state); err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ state save failed: %s\n", err)
+	// Save state (skip during clone so first sync detects no conflict)
+	if !skipState {
+		if err := forest.SaveState(f.Dir, state); err != nil {
+			fmt.Fprintf(os.Stderr, "⚠ state save failed: %s\n", err)
+		}
 	}
 
 	fmt.Printf("\nPulled %d/%d nodes", succeeded, succeeded+failed)

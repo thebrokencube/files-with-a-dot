@@ -16,7 +16,7 @@ func runSync(args []string) int {
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
 	resolve := fs.String("resolve", "", "Conflict resolution: local|remote (default: skip)")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 
@@ -33,7 +33,7 @@ func runSync(args []string) int {
 		pushCode := pushForest(*dir, nil, "", *force, *failFast)
 		fmt.Println()
 		fmt.Println("── Pull ──")
-		pullCode := pullForest(*dir, nil, *failFast)
+		pullCode := pullForest(*dir, nil, *failFast, false)
 		if pushCode != 0 || pullCode != 0 {
 			return 1
 		}
@@ -92,7 +92,7 @@ func runSync(args []string) int {
 
 	fmt.Println()
 	fmt.Println("── Pull ──")
-	pullCode := pullForest(*dir, nil, *failFast)
+	pullCode := pullForest(*dir, nil, *failFast, false)
 
 	if pushCode != 0 || pullCode != 0 || (conflicts > 0 && *resolve == "") {
 		return 1

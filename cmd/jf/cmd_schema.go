@@ -10,7 +10,7 @@ func runSchema(args []string) int {
 	fs := flag.NewFlagSet("schema", flag.ContinueOnError)
 	outputSchema := fs.Bool("output", false, "Emit command output schemas instead of input schemas")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

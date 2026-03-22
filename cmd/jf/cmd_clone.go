@@ -16,7 +16,7 @@ func runClone(args []string) int {
 	dir := fs.String("dir", ".", "Parent directory for cloned forest")
 	depth := fs.Int("depth", 0, "Max hierarchy depth (0 = unlimited)")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 
@@ -57,7 +57,7 @@ func runClone(args []string) int {
 	}
 
 	fmt.Printf("\nPulling descriptions...\n")
-	pullCode := pullForest(forestDir, nil, false)
+	pullCode := pullForest(forestDir, nil, false, true)
 
 	fmt.Printf("\n✓ Forest ready at %s\n", forestDir)
 	return pullCode
@@ -169,7 +169,7 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 	}
 
 	filePath := filepath.Join(dirPath, "README.md")
-	fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: pull\n---\n", node.Key, strings.ReplaceAll(node.Summary, "\"", "\\\""))
+	fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: both\n---\n", node.Key, strings.ReplaceAll(node.Summary, "\"", "\\\""))
 	if err := os.WriteFile(filePath, []byte(fm), 0644); err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 			}
 		} else {
 			leafFile := filepath.Join(dirPath, child.Key+".md")
-			fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: pull\n---\n", child.Key, strings.ReplaceAll(child.Summary, "\"", "\\\""))
+			fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: both\n---\n", child.Key, strings.ReplaceAll(child.Summary, "\"", "\\\""))
 			if err := os.WriteFile(leafFile, []byte(fm), 0644); err != nil {
 				return err
 			}
@@ -196,7 +196,7 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 
 func generateForestYAML(forestDir string, root *cloneNode) error {
 	project := strings.Split(root.Key, "-")[0]
-	yml := fmt.Sprintf("schema: 1\ndefaults:\n  sync: pull\n  project: %s\n", project)
+	yml := fmt.Sprintf("schema: 1\ndefaults:\n  sync: both\n  project: %s\n", project)
 	return os.WriteFile(filepath.Join(forestDir, "forest.yml"), []byte(yml), 0644)
 }
 

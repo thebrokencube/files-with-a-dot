@@ -17,7 +17,7 @@ func runCreateMissing(args []string) int {
 	dryRun := fs.Bool("dry-run", false, "Show what would be created without side effects")
 	force := fs.Bool("force", false, "Push as plain text if marklassian conversion fails")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

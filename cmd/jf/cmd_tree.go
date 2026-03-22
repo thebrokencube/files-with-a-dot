@@ -11,7 +11,7 @@ func runTree(args []string) int {
 	fs := flag.NewFlagSet("tree", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan (default: current directory)")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

@@ -8,7 +8,7 @@ import (
 
 func TestPullForestNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := pullForest(dir, nil, false)
+	code := pullForest(dir, nil, false, false)
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing forest, got %d", code)
 	}
@@ -19,7 +19,7 @@ func TestPullForestTargetNotFound(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
-	code := pullForest(dir, []string{"NONEXISTENT"}, false)
+	code := pullForest(dir, []string{"NONEXISTENT"}, false, false)
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing target, got %d", code)
 	}
@@ -30,7 +30,7 @@ func TestPullForestNoPullNodes(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Push Only\n"), 0644)
 
-	code := pullForest(dir, nil, false)
+	code := pullForest(dir, nil, false, false)
 	if code != 0 {
 		t.Fatalf("expected exit 0 (no pull nodes), got %d", code)
 	}

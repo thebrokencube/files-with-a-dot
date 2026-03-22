@@ -20,7 +20,7 @@ func runInit(args []string) int {
 	project := fs.String("project", "BEN", "Jira project key")
 	dir := fs.String("dir", ".", "Directory to create forest.yml in")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

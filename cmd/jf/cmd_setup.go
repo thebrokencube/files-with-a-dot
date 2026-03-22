@@ -13,7 +13,7 @@ func runSetup(args []string) int {
 	checkOnly := fs.Bool("check", false, "Non-interactive check only")
 	jsonOut := fs.Bool("json", false, "Output as JSON (with --check)")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

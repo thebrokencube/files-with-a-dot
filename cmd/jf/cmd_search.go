@@ -14,7 +14,7 @@ func runSearch(args []string) int {
 	issueType := fs.String("type", "", "Filter by issue type (Epic, Story, Task, etc.)")
 	limit := fs.Int("limit", 50, "Maximum results")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

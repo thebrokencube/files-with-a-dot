@@ -12,7 +12,7 @@ func runRm(args []string) int {
 	fs := flag.NewFlagSet("rm", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 

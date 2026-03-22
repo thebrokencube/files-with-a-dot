@@ -14,7 +14,7 @@ func runStatus(args []string) int {
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
 	jsonOut := fs.Bool("json", false, "Output as JSON")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 
