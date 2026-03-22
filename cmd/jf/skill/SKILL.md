@@ -11,22 +11,25 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 
 | Command | What it does |
 |---------|-------------|
+| `jf clone <KEY>` | Scaffold local forest from Jira hierarchy |
+| `jf init` | Create `forest.yml` in current directory |
+| `jf setup` | Check prerequisites (node, acli, auth) |
 | `jf push <KEY> <FILE>` | Compile markdown to ADF and push to Jira description |
 | `jf pull <KEY> <FILE>` | Pull Jira description to local markdown |
-| `jf discover` | Detect forest tree from filesystem |
+| `jf sync` | Push all stale + pull all pull-mode nodes |
 | `jf tree` | Show forest hierarchy |
 | `jf list [--json]` | Flat list of all nodes |
-| `jf validate` | Check forest integrity |
-| `jf status [--json]` | Forest summary with staleness |
 | `jf show <target>` | Single-node detail view |
-| `jf sync` | Push all + pull all |
+| `jf status [--json]` | Forest summary with staleness |
+| `jf validate` | Check forest integrity |
 | `jf create-missing` | Create Jira tickets for TBD nodes |
-| `jf rm <KEY>...` | Remove node files from forest by key |
-| `jf setup` | Check and install prerequisites |
-| `jf init` | Scaffold `forest.yml` in current directory |
+| `jf search <text>` | Find Jira tickets by text/project/type |
+| `jf rm <KEY>...` | Remove node files from forest |
 | `jf schema` | Emit JSON Schema for forest.yml and frontmatter |
 
 Most commands accept `--json` for structured output.
+
+**Flag ordering**: All `jf` commands require flags before positional arguments. `jf push --dir /tmp KEY FILE` works; `jf push KEY FILE --dir /tmp` errors.
 
 ## Level Detection
 
@@ -67,7 +70,9 @@ A forest is a directory tree with:
 - `.md` files with YAML frontmatter containing `jira: KEY` (or `jira: TBD`)
 - Directory `README.md` files become parent nodes; files in directories become children
 
-Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull), `order` (sibling sort).
+Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull/both), `order` (sibling sort).
+
+`jf clone` scaffolds a forest with `sync: both` by default — content is pulled from Jira initially but syncs bidirectionally from then on. No state baseline is recorded during clone, so the first `jf sync` after clone treats all nodes as fresh (no false conflicts).
 
 ## Lifecycle
 

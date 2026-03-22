@@ -146,12 +146,12 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio validate` | `folio validate` |
 | `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
 | `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
-| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path |
+| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview) |
 | `/folio health` | `folio health` — project health report (types, naming, observations) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 | `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: compile, push, create, view, search |
 
-**Flag ordering**: The folio CLI uses Go's `flag` package, which requires flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` silently ignores `--folio`. This applies to all commands.
+**Flag ordering**: Both `folio` and `jf` require flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` errors with a clear message. This applies to all commands in both CLIs.
 
 If any CLI command fails, run `folio setup --check` first.
 
