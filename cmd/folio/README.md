@@ -42,11 +42,20 @@ folio init            # Initialize a new folio project
 Each folio project has a `folio.yml` declaring its structure:
 
 ```
-~/.folio/active/<project>/
-├── folio.yml           # Project manifest (sources, targets, DAG)
-├── plans/              # Implementation plans
-├── reference/          # Research, analysis, retrospectives
-└── compiled/           # Composed outputs ready to share
+~/.folio/
+├── active/<project>/
+│   ├── folio.yml           # Project manifest (sources, targets, DAG)
+│   ├── reference/          # Research, analysis, retrospectives
+│   ├── work/               # Implementation plans and tracks
+│   └── output/             # Composed outputs ready to share
+├── archive/                # Completed/shelved projects
+└── vault/                  # Cross-cutting knowledge (no folio.yml)
+    ├── research/           # Tool surveys, ecosystem landscapes
+    ├── domain/             # Business/technical domain knowledge
+    ├── guide/              # Reusable procedures
+    └── insight/            # Patterns extracted from experience
 ```
+
+Projects source from the vault via `vault:` prefix paths (e.g., `vault:research/comparable-dvc.md`). Lifecycle types (spike, design, plan, retro) stay project-scoped; references promote to vault when proven cross-cutting.
 
 Status is derived from file modification times — no separate tracking needed.

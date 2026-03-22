@@ -4,7 +4,9 @@ Shared across workflows. Contains YAML structure reference for Claude. Go code o
 
 ## folio.yml Schema
 
-All paths relative to the directory containing folio.yml.
+All paths relative to the directory containing folio.yml, unless prefixed with `vault:`.
+
+The `vault:` prefix resolves to `~/.folio/vault/` — a shared knowledge layer outside any project. Use for cross-cutting references that multiple projects source from.
 
 ```yaml
 schema: 1                              # Required. 1 or 2.
@@ -14,6 +16,9 @@ sources:                               # Optional. Project-level sources.
   # Primary: local file you wrote
   - path: file.md
     depends_on: [other-source.md]    # Optional. Declares source ordering.
+
+  # Vault: cross-cutting reference from shared vault
+  - path: vault:research/2026-03-01-comparable-dvc.md
 
   # External: remote system resource
   - external: jira

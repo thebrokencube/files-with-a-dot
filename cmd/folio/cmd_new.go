@@ -21,10 +21,6 @@ func runNew(args []string) int {
 	dryRun := fs.Bool("dry-run", false, "Print what would be created, no side effects")
 	parseFlags(fs, args)
 
-	if !resolveOrDie(folioPath) {
-		return 1
-	}
-
 	if fs.NArg() < 2 {
 		printNewUsage()
 		return 1
@@ -33,9 +29,13 @@ func runNew(args []string) int {
 	artifactType := fs.Arg(0)
 	topic := fs.Arg(1)
 
-	// Handle vault: prefix — scaffold directly in vault directory
+	// Handle vault: prefix — scaffold directly in vault directory (no folio.yml needed)
 	if strings.HasPrefix(artifactType, "vault:") {
 		return runNewVault(artifactType, topic, *dryRun)
+	}
+
+	if !resolveOrDie(folioPath) {
+		return 1
 	}
 
 	// Deprecation check

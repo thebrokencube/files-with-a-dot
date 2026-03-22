@@ -39,6 +39,8 @@ observation -> spike -> design -> plan[tracks] -> implementation -> retro
 **References** (labels: research, insight, guide, domain, review) feed in at any stage.
 **Outputs** are composed artifacts for external systems.
 
+**Two-tier residency**: Lifecycle types always stay project-scoped. References that prove cross-cutting promote to `~/.folio/vault/<label>/` — a shared knowledge layer outside any project. Source paths use the `vault:` prefix (e.g., `vault:research/2026-03-01-comparable-dvc.md`) which resolves to `~/.folio/vault/`. The vault has no folio.yml — its directory structure is its index.
+
 `folio status` shows a lifecycle summary header with counts per stage.
 
 | From | To | Trigger |
@@ -146,7 +148,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio validate` | `folio validate` |
 | `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
 | `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
-| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview) |
+| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` — scaffolds in `~/.folio/vault/`, no folio.yml registration. |
 | `/folio health` | `folio health` — project health report (types, naming, observations) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
 | `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: compile, push, create, view, search |
