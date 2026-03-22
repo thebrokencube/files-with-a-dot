@@ -30,22 +30,7 @@ Unlisted systems: push = manual (present to user).
 
 ## Jira Conventions
 
-**Ticket naming**: Encode hierarchy in the summary field:
-- **Tasks/Stories**: `type(scope): description` — e.g., `feat(resolver): add fallback heuristic`
-- **Epics**: `[PREFIX] Name` — e.g., `[SRM] Resolver Hardening`
-- **Initiatives**: Plain name — e.g., `State Retirement Mandates`
-
-**Description structure** by hierarchy level:
-- **Tasks/Stories**: `## Context`, `## Goal`, `## Scope` (h2 sections)
-- **Epics**: `## Context`, `## Goal` (no Scope — scope lives in child tickets)
-- **Initiatives**: Minimal — context and goal only, children carry detail
-
-**Content rules**: Inline links (not reference-style). No footer sections (references, changelog). No downward duplication — parent descriptions should not repeat child content. Each ticket stands alone for its level.
-
-**Source file purity**: Jira tree node source files must be pure precompile input — no metadata
-headers (title, status, type). Metadata belongs in frontmatter (`jira:`, `type:`, `sync:`, etc.)
-or folio.yml `notes` fields. `jf push` strips YAML frontmatter automatically before converting
-to ADF. Source files should start directly at content after frontmatter (e.g., `## Goal`).
+For ticket naming, description structure, content rules, and project field defaults, see the `/jf` skill's `references/conventions.md`. All Jira standards are canonical in `/jf`.
 
 ## Jira Push Pipeline
 
@@ -69,7 +54,7 @@ folio jira push --id BEN-48284 --source epic.md
 
 `jf push` runs: strip frontmatter -> compile (markdown to ADF via marklassian) -> push (acli edit) -> record in `.jf/state.json`.
 
-**Supported markdown**: tables, fenced code blocks, blockquotes, nested lists, task lists, all heading levels, bold, italic, code, links. marklassian handles the full CommonMark spec. See references/jira-gotchas.md for content pitfalls (relative links, @mentions, size limits).
+**Supported markdown**: tables, fenced code blocks, blockquotes, nested lists, task lists, all heading levels, bold, italic, code, links. marklassian handles the full CommonMark spec. See the `/jf` skill's `references/gotchas.md` for content pitfalls (relative links, @mentions, size limits).
 
 ## Jira Creation Pipeline
 
@@ -90,22 +75,7 @@ folio jira create --json /tmp/{slug}-create.json --source {source}.md
 
 Both run: Create (acli, captures key) -> Push description (via `jf push`).
 
-**Before running**, build the creation JSON. **The creation JSON must NOT contain a `description` field** — `acli create` silently drops or malforms inline ADF descriptions.
-
-```json
-{
-  "projectKey": "BEN",
-  "type": "Story",
-  "summary": "Title from source",
-  "parentIssueId": "BEN-12345",
-  "additionalAttributes": {
-    "components": [{ "name": "Component" }],
-    "customfield_NNNNN": "value"
-  }
-}
-```
-
-Write to `/tmp/{slug}-create.json`. `parentIssueId` is optional for top-level issues. Discover required fields with `acli jira workitem create --generate-json`. For BEN project-specific field values, see the jira skill.
+**Before running**, build the creation JSON per the `/jf` skill's `references/conventions.md` (Project Defaults section). Project-specific field values come from `~/.jf.yml`.
 
 After creation, rename the source file from slug to the new ticket key and clean up the creation JSON.
 
