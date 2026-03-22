@@ -79,32 +79,33 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: jf <command> [flags]
 
-Level 0 (stateless):
+Getting started:
+  clone <KEY>          Scaffold local forest from Jira hierarchy
+  init                 Create forest.yml in current directory
+  setup                Check prerequisites (node, acli, auth)
+
+Sync workflow:
   push <KEY> <FILE>    Compile markdown and push to Jira description
   pull <KEY> <FILE>    Pull Jira description to local file
+  sync                 Push all stale + pull all pull-mode nodes
 
-Level 1 (forest):
-  discover             Detect and display forest tree (dry run)
+Forest inspection:
   tree                 Show forest hierarchy
   list                 Flat list of all nodes
-  validate             Check forest integrity
-  status               Forest summary with staleness
   show <target>        Single-node detail view
-  sync                 Push all + pull all
+  status               Forest summary with staleness
+  validate             Check forest integrity
+
+Ticket management:
   create-missing       Create Jira tickets for TBD nodes
   search <text>        Find Jira tickets by text/project/type
-  clone <KEY>          Scaffold local forest from Jira hierarchy
-  rm <KEY>...          Remove node files from forest by key
+  rm <KEY>...          Remove node files from forest
 
-Setup:
-  setup                Check and install prerequisites
-  init                 Scaffold forest.yml in current directory
+Other:
   schema               Emit JSON Schema for forest.yml and frontmatter
-
-Utility:
   version              Show version
-  help                 Show this help
 
+Flags must come before positional arguments.
 Run 'jf <command> --help' for details.
 `)
 }
