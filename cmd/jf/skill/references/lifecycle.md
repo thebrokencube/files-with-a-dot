@@ -4,7 +4,7 @@ Forest lifecycle operation for permanently deactivating Jira tickets. Combines `
 
 ## Prerequisites
 
-**Cloud ID**: All MCP Jira tools require a `cloudId` parameter. Discover it once per session by calling `getAccessibleAtlassianResources` — it returns a list of sites with `id` fields. Use that `id` as `cloudId` for all subsequent calls.
+**Cloud ID**: All MCP Jira tools require a `cloudId` parameter. Read it from `~/.jf.yml` at `cloud_id` — do NOT call `getAccessibleAtlassianResources` each session.
 
 **Config file** (`~/.jf.yml`): Persistent storage for parking lot settings, keyed by project. The agent reads and writes this file directly (plain YAML, no binary support needed). Format:
 ```yaml
@@ -72,7 +72,7 @@ Resolve the parking lot epic for each project in this order:
 
 Process keys **bottom-up** (children before parents). This matters for both `jf rm` (child guard) AND the Jira operations — don't transition a parent while its children are still active.
 
-Read the target status from `~/.jf.yml` for this project (`parking_lots.<PROJECT>.status`). If not set, default to `"To Do"` and ask the user to confirm.
+Read the target status from `~/.jf.yml` for this project (`parking_lots.<PROJECT>.status`). If not set, default to `"Backlog"` and ask the user to confirm.
 
 For each key:
 
