@@ -33,8 +33,7 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `cmd_push.go` | `runPush()` — Level 0 single-file push (`pushSingle`) and forest-mode push (`pushForest`). Includes `buildPlainTextPayload()` for `--force` fallback. |
 | `cmd_pull.go` | `runPull()` — Level 0 single-file pull (`pullSingle`) and forest-mode pull (`pullForest`). Includes `richPull()` for ADF→markdown conversion, `mergeWithFrontmatter()` to preserve YAML frontmatter on pull, `extractExistingFrontmatter()`. |
 | `cmd_sync.go` | `runSync()` — Pre-scans `sync:both` nodes for conflicts via `DetectConflict()`, then delegates to `pushForest()` and `pullForest()`. |
-| `cmd_discover.go` | `runDiscover()` — Discovers forest nodes and prints tree or JSON. Includes `printDiscoverTree()` for ASCII tree output with sync-direction icons. |
-| `cmd_tree.go` | `runTree()` — Minimal hierarchy view. Includes `printTree()` for ASCII tree output (key + label only). |
+| `cmd_tree.go` | `runTree()` — Forest hierarchy view with `--json` and `--verbose` flags. Includes `printTree()` for ASCII tree output with optional sync-direction icons and file paths. |
 | `cmd_list.go` | `runList()` — Flat list of all nodes with optional JSON. Includes `nodeToInfo()` to convert `Node` to `output.NodeInfo`. |
 | `cmd_show.go` | `runShow()` — Single-node detail view with state. Includes `nodeStatus()` for stale/clean/unknown and `syncDisplay()`. |
 | `cmd_status.go` | `runStatus()` — Forest-wide summary with push/pull staleness counts. |
@@ -97,7 +96,6 @@ version  → prints version constant
 Requires a `forest.yml` (found via `FindForest()`), but no Jira connectivity.
 
 ```
-discover → runDiscover()
 tree     → runTree()
 list     → runList()
 validate → runValidate()
@@ -360,18 +358,10 @@ type Checker func(name string, args ...string) (string, error)
 
 ## Command Overlap & Consolidation
 
-### (a) `tree` and `search` lack `--json`
+### (a) ~~`tree` and `search` lack `--json`~~ — resolved
 
-**Where:** `cmd_tree.go` — `runTree()` only has `--dir` flag. `cmd_search.go` — `runSearch()`
-has `--project`, `--type`, `--limit` but no `--json`.
-
-**Context:** `discover`, `list`, `show`, `status`, `validate`, and `setup --check` all
-support `--json` output using the `output` package. `tree` and `search` are the only
-inspection/query commands without structured output.
-
-**Fix:** Add `--json` flag to both. For `tree`, emit `[]NodeInfo` (same as `discover --json`).
-For `search`, pass `jsonOut: true` to `Pipeline.Search()` (it already accepts a `jsonOut`
-parameter — `cmd_search.go:31` hardcodes `false`).
+Both `tree` and `search` now support `--json`. `tree --json` emits `[]NodeInfo` (absorbing
+the former `discover --json` output). `search --json` passes through to `Pipeline.Search()`.
 
 ### (b) `sync` triple-loads the forest
 
@@ -385,16 +375,10 @@ Then `cmd_sync.go:95` calls `pullForest()` which calls `loadForest()` at `cmd_pu
 **Fix:** Load forest once in `runSync()`, pass the `*Forest` and `[]*Node` to push/pull
 functions instead of having them re-discover independently.
 
-### (c) Tree-drawing connector logic duplicated
+### (c) ~~Tree-drawing connector logic duplicated~~ — resolved
 
-**Where:** `cmd_discover.go:44-64` (`printDiscoverTree`) and `cmd_tree.go:35-51`
-(`printTree`) both implement the same `├─`/`└─`/`│ ` connector pattern independently.
-
-**Context:** Both functions walk `[]*Node` children, compute last-child branching,
-and print indented trees. The only difference is what columns they print per node.
-
-**Fix:** Extract a shared tree-walker that takes a per-node format function, used by both
-`discover` and `tree`.
+`discover` has been consolidated into `tree`. A single `printTree()` with a `verbose bool`
+parameter handles both the clean view and the detailed view (sync icons + file paths).
 
 ### (d) No `--dry-run` on `push`, `pull`, or `sync`
 
@@ -466,9 +450,7 @@ Commands that support `--json` should use the types from `internal/output/json.g
 
 Formatted as future observations:
 
-- `gap(jf): tree command lacks --json output unlike other inspection commands`
 - `debt(jf): sync re-loads forest then delegates to pushForest/pullForest which each load again`
-- `idea(jf): tree-drawing connector logic shared between discover and tree — extract to helper`
 - `idea(jf): add --dry-run to push/pull/sync for safe previewing`
 - `debt(jf): clone hardcodes sync:both for all scaffolded nodes — no --sync flag`
 - `debt(jf): clone skips state recording (skipState=true) as a workaround for conflict detection on first sync`

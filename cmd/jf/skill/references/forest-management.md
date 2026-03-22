@@ -10,7 +10,7 @@ Use these decision points when the user asks about their forest:
 
 | User intent | Command | Key flags |
 |-------------|---------|-----------|
-| "What's in my forest?" | `jf discover --json` | Structured node list |
+| "What's in my forest?" | `jf tree --json` | Structured node list |
 | "What needs syncing?" | `jf status --json` | Staleness counts |
 | "Is my forest valid?" | `jf validate --json` | Issues with levels |
 | "Show me one ticket" | `jf show --json KEY` | Detail + stale/clean |

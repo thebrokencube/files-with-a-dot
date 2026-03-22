@@ -28,7 +28,7 @@ After code changes: rebuild the binary and commit it.
 1. Create `cmd_<name>.go` with `run<Name>(args []string) int`
 2. Register in `main.go` switch — pick the prerequisite tier:
    - Tier 1 (first switch): no external deps (setup, init, schema, version)
-   - Tier 2 (second switch): needs forest, no Jira (discover, tree, list, etc.)
+   - Tier 2 (second switch): needs forest, no Jira (tree, list, etc.)
    - Tier 3 (third switch, after `QuickCheck`): touches Jira (push, pull, sync, etc.)
 3. Use `parseFlags()` for all flag parsing — enforces flags-before-arguments ordering
 

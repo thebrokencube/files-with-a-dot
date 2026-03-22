@@ -47,8 +47,7 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 
 ### Forest Inspection Commands
 
-- `discover` — filesystem walk with JSON output
-- `tree` — indented hierarchy view
+- `tree` — indented hierarchy view with `--json` and `--verbose` flags
 - `list` — flat node list with JSON output
 - `show` — single-node detail with state
 - `status` — forest summary with staleness counts
@@ -101,26 +100,12 @@ prompt, no `--force` override, no Jira-side cleanup.
 
 ## Planned
 
-### `--json` for Tree
-
-`tree` is the only inspection command without structured output.
-It would emit `[]NodeInfo` (matching `discover --json`).
-
-See: [ARCHITECTURE.md — Finding (a)](ARCHITECTURE.md#a-tree-and-search-lack---json)
-
 ### `--dry-run` for Push, Pull, and Sync
 
 Preview what would be pushed/pulled without side effects. Only `create-missing`
 currently has `--dry-run`.
 
 See: [ARCHITECTURE.md — Finding (d)](ARCHITECTURE.md#d-no---dry-run-on-push-pull-or-sync)
-
-### Tree-Drawing Helper Extraction
-
-`printDiscoverTree` and `printTree` share the same `├─`/`└─`/`│ ` connector logic.
-Extract a shared tree-walker that takes a per-node format function.
-
-See: [ARCHITECTURE.md — Finding (c)](ARCHITECTURE.md#c-tree-drawing-connector-logic-duplicated)
 
 ### Sync Forest-Load Deduplication
 

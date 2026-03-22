@@ -36,7 +36,7 @@ Most commands accept `--json` for structured output.
 Before any operation, detect the working level:
 
 1. Run `jf setup --check --json` — verify environment (node, acli, JIRA_API_TOKEN)
-2. Try `jf discover --json` from the working directory
+2. Try `jf tree --json` from the working directory
    - If forest found: **Level 1** (forest-aware operations available)
    - If no forest: **Level 0** (single-file push/pull only)
 
@@ -74,6 +74,8 @@ Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull/both),
 See [docs/USAGE.md](../docs/USAGE.md#frontmatter-reference) for field details, inheritance, and label derivation.
 
 `jf clone` scaffolds a forest with `sync: both` by default — content is pulled from Jira initially but syncs bidirectionally from then on. No state baseline is recorded during clone, so the first `jf sync` after clone treats all nodes as fresh (no false conflicts).
+
+`jf tree --json` outputs `[]NodeInfo` (same structure as `jf list --json`). `jf tree --verbose` shows sync direction icons and file paths.
 
 For architecture details (data models, pipeline internals, module structure), see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
 

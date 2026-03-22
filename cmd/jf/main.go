@@ -34,8 +34,6 @@ func main() {
 
 	// Local-only commands (no Jira auth needed)
 	switch cmd {
-	case "discover":
-		os.Exit(runDiscover(os.Args[2:]))
 	case "tree":
 		os.Exit(runTree(os.Args[2:]))
 	case "list":

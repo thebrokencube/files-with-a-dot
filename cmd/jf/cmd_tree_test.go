@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,6 +48,69 @@ func TestRunTreeNoForest(t *testing.T) {
 	code := runTree([]string{"-dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
+	}
+}
+
+func TestRunTreeJSON(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runTree([]string{"-dir", dir, "-json"})
+
+	w.Close()
+	os.Stdout = old
+
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d", code)
+	}
+
+	buf := make([]byte, 8192)
+	n, _ := r.Read(buf)
+
+	var result []map[string]any
+	if err := json.Unmarshal(buf[:n], &result); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	if len(result) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(result))
+	}
+}
+
+func TestRunTreeVerbose(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
+
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code := runTree([]string{"-dir", dir, "-verbose"})
+
+	w.Close()
+	os.Stdout = old
+
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d", code)
+	}
+
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+	output := string(buf[:n])
+
+	// Verbose mode shows sync icons and file paths
+	if !strings.Contains(output, "↑") && !strings.Contains(output, "↓") {
+		t.Errorf("verbose output missing sync icons\nGot:\n%s", output)
+	}
+	if !strings.Contains(output, ".md") {
+		t.Errorf("verbose output missing file paths\nGot:\n%s", output)
 	}
 }
 

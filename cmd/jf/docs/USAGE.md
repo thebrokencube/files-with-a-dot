@@ -234,8 +234,7 @@ to accept theirs.
 | `init` | 0 | no | no | stable | Create forest.yml |
 | `schema` | 0 | no | n/a (outputs JSON) | stable | Emit JSON Schema |
 | `version` | 0 | no | no | stable | Show version |
-| `discover` | 1 | no | yes | stable | Discover nodes and show tree |
-| `tree` | 1 | no | no | stable | Show forest hierarchy |
+| `tree` | 1 | no | yes | stable | Show forest hierarchy |
 | `list` | 1 | no | yes | stable | Flat list of all nodes |
 | `show` | 1 | no | yes | stable | Single-node detail view |
 | `status` | 1 | no | yes | stable | Forest summary with staleness |
