@@ -6,12 +6,17 @@ Forest lifecycle operation for permanently deactivating Jira tickets. Combines `
 
 **Cloud ID**: All MCP Jira tools require a `cloudId` parameter. Discover it once per session by calling `getAccessibleAtlassianResources` — it returns a list of sites with `id` fields. Use that `id` as `cloudId` for all subsequent calls.
 
-**Config file** (`~/.jf.yml`): Persistent storage for parking lot epic keys, keyed by project. The agent reads and writes this file directly (plain YAML, no binary support needed). Format:
+**Config file** (`~/.jf.yml`): Persistent storage for parking lot settings, keyed by project. The agent reads and writes this file directly (plain YAML, no binary support needed). Format:
 ```yaml
 parking_lots:
-  PROJ: PROJ-999
-  OTHER: OTHER-456
+  PROJ:
+    epic: PROJ-999
+    status: Backlog       # target status category for parked tickets
+  OTHER:
+    epic: OTHER-456
+    status: Triage
 ```
+The `status` field is the target `statusCategory.name` to transition parked tickets into (e.g., `"Backlog"`, `"Triage"`, `"To Do"`). This is NOT "Done" — parked tickets are dormant placeholders, not completed work. If `status` is missing, default to `"To Do"` category and ask the user to confirm.
 
 ## Park
 
@@ -65,18 +70,20 @@ Resolve the parking lot epic for each project in this order:
 
 #### Step 2: Per-key Jira operations
 
-Process keys **bottom-up** (children before parents). This matters for both `jf rm` (child guard) AND the Jira operations — don't transition a parent to Done while its children are still active.
+Process keys **bottom-up** (children before parents). This matters for both `jf rm` (child guard) AND the Jira operations — don't transition a parent while its children are still active.
+
+Read the target status from `~/.jf.yml` for this project (`parking_lots.<PROJECT>.status`). If not set, default to `"To Do"` and ask the user to confirm.
 
 For each key:
 
-**2a. Transition to Done:**
+**2a. Transition to target status:**
 ```
 getTransitionsForJiraIssue({
   cloudId: "<cloud-id>",
   issueIdOrKey: "PROJ-123"
 })
 ```
-The response contains a `transitions` array. Each transition has a `to` object with `statusCategory.name`. Find the transition where `to.statusCategory.name` is `"Done"`. Then:
+The response contains a `transitions` array. Each transition has a `to` object with `statusCategory.name`. Find the transition where `to.statusCategory.name` matches the target status from config. Then:
 ```
 transitionJiraIssue({
   cloudId: "<cloud-id>",
@@ -85,8 +92,8 @@ transitionJiraIssue({
 })
 ```
 
-- If the ticket is **already Done** (no "Done" transition available and current status category is "Done"): skip this step, continue to 2b.
-- If **no direct Done transition exists** (workflow requires intermediate steps): try transitioning through available states toward Done (e.g., To Do → In Progress → Done). If that fails, report the issue and skip this key.
+- If the ticket is **already in the target status** (no matching transition and current status category matches): skip this step, continue to 2b.
+- If **no direct transition exists** to the target status: try transitioning through available states toward it. If that fails, report the issue and skip this key.
 
 **2b. Clear content and reparent** (two calls):
 
