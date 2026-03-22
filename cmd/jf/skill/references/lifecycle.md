@@ -11,12 +11,12 @@ Forest lifecycle operation for permanently deactivating Jira tickets. Combines `
 parking_lots:
   PROJ:
     epic: PROJ-999
-    status: Backlog       # target status category for parked tickets
+    status: Backlog       # target status name for parked tickets
   OTHER:
     epic: OTHER-456
     status: Triage
 ```
-The `status` field is the target `statusCategory.name` to transition parked tickets into (e.g., `"Backlog"`, `"Triage"`, `"To Do"`). This is NOT "Done" — parked tickets are dormant placeholders, not completed work. If `status` is missing, default to `"To Do"` category and ask the user to confirm.
+The `status` field is the **Jira status name** to transition parked tickets into (e.g., `"Backlog"`, `"Triage"`). This is the status name as it appears in Jira, NOT the status category. Match it against the transition's `name` or `to.name` field, not `statusCategory.name`. Parked tickets are dormant placeholders, not completed work — do not use "Done". If `status` is missing, default to `"Backlog"` and ask the user to confirm.
 
 ## Park
 
@@ -83,7 +83,7 @@ getTransitionsForJiraIssue({
   issueIdOrKey: "PROJ-123"
 })
 ```
-The response contains a `transitions` array. Each transition has a `to` object with `statusCategory.name`. Find the transition where `to.statusCategory.name` matches the target status from config. Then:
+The response contains a `transitions` array. Each transition has a `name` and a `to` object with `name` and `statusCategory`. Find the transition where `name` or `to.name` matches the target status from config (e.g., `"Backlog"`). Then:
 ```
 transitionJiraIssue({
   cloudId: "<cloud-id>",
@@ -92,7 +92,7 @@ transitionJiraIssue({
 })
 ```
 
-- If the ticket is **already in the target status** (no matching transition and current status category matches): skip this step, continue to 2b.
+- If the ticket is **already in the target status** (no matching transition and current status name matches): skip this step, continue to 2b.
 - If **no direct transition exists** to the target status: try transitioning through available states toward it. If that fails, report the issue and skip this key.
 
 **2b. Clear content and reparent** (two calls):
@@ -109,18 +109,20 @@ editJiraIssue({
 })
 ```
 
-Then, clear the description with an empty ADF document:
+Then, clear the description with an empty ADF document. This must be a separate call because `contentFormat: "adf"` would affect how other fields are interpreted:
 ```
 editJiraIssue({
   cloudId: "<cloud-id>",
   issueIdOrKey: "PROJ-123",
-  description: "{\"version\":1,\"type\":\"doc\",\"content\":[]}",
-  responseContentFormat: "adf"
+  fields: {
+    "description": {"version": 1, "type": "doc", "content": []}
+  },
+  contentFormat: "adf"
 })
 ```
-- Do NOT pass `description: null` — the MCP tool rejects it.
-- The description must be an empty ADF document string, not null or empty string.
-- `parent: { "key": "..." }` sets the parent to the parking lot epic. This is the standard Jira next-gen/team-managed parent field format.
+- Do NOT pass `description: null` or an empty string — the MCP tool rejects both.
+- The description must be an empty ADF document object, passed inside `fields`.
+- `contentFormat: "adf"` tells the MCP tool to interpret the description value as ADF, not markdown.
 
 **On failure for any key**: Log the error, skip that key, continue with remaining keys. At the end, only pass successfully-parked keys to `jf rm`.
 
