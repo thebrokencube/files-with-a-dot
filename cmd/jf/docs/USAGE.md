@@ -19,7 +19,8 @@ jf setup
 **Clone an existing Jira hierarchy:**
 
 ```bash
-jf clone PROJ-123
+jf clone PROJ-123                    # bidirectional sync (default)
+jf clone --sync push PROJ-123       # push-only (local authoring)
 cd scaffolded-directory-name
 jf tree
 jf sync
@@ -245,7 +246,7 @@ to accept theirs.
 | `sync` | 2 | yes | no | stable | Push stale + pull pull-mode nodes (`--dry-run`) |
 | `create-missing` | 2 | yes | no | stable | Create Jira tickets for TBD nodes |
 | `search` | 2 | yes | yes | experimental | Search Jira tickets by text |
-| `clone` | 2 | yes | no | stable | Scaffold forest from Jira hierarchy |
+| `clone` | 2 | yes | no | stable | Scaffold forest from Jira hierarchy (`--sync push\|pull\|both`) |
 
 ## Frontmatter Reference
 

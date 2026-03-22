@@ -73,7 +73,7 @@ A forest is a directory tree with:
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull/both), `order` (sibling sort).
 See [docs/USAGE.md](../docs/USAGE.md#frontmatter-reference) for field details, inheritance, and label derivation.
 
-`jf clone` scaffolds a forest with `sync: both` by default — content is pulled from Jira initially but syncs bidirectionally from then on. No state baseline is recorded during clone, so the first `jf sync` after clone treats all nodes as fresh (no false conflicts).
+`jf clone` scaffolds a forest with `sync: both` by default (override with `--sync push|pull|both`). Content is pulled from Jira initially; a state baseline is recorded so the first `jf sync` has real content hashes for conflict detection.
 
 `jf tree --json` outputs `[]NodeInfo` (same structure as `jf list --json`). `jf tree --verbose` shows sync direction icons and file paths.
 

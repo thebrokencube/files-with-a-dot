@@ -15,14 +15,20 @@ func runClone(args []string) int {
 	fs := flag.NewFlagSet("clone", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "Parent directory for cloned forest")
 	depth := fs.Int("depth", 0, "Max hierarchy depth (0 = unlimited)")
+	syncMode := fs.String("sync", "both", "Sync direction for scaffolded nodes: push|pull|both")
 
 	if err := parseFlags(fs, args); err != nil {
 		return 1
 	}
 
+	if *syncMode != "push" && *syncMode != "pull" && *syncMode != "both" {
+		fmt.Fprintf(os.Stderr, "✗ --sync must be 'push', 'pull', or 'both'\n")
+		return 1
+	}
+
 	positional := fs.Args()
 	if len(positional) != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: jf clone <KEY> [--dir DIR] [--depth N]")
+		fmt.Fprintln(os.Stderr, "Usage: jf clone <KEY> [--dir DIR] [--depth N] [--sync push|pull|both]")
 		return 1
 	}
 
@@ -46,18 +52,18 @@ func runClone(args []string) int {
 	fmt.Printf("Found %d total nodes\n\n", total)
 
 	forestDir := filepath.Join(*dir, slugify(root.Summary))
-	if err := scaffoldTree(forestDir, tree, ""); err != nil {
+	if err := scaffoldTree(forestDir, tree, "", *syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ scaffold error: %s\n", err)
 		return 1
 	}
 
-	if err := generateForestYAML(forestDir, root); err != nil {
+	if err := generateForestYAML(forestDir, root, *syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ forest.yml error: %s\n", err)
 		return 1
 	}
 
 	fmt.Printf("\nPulling descriptions...\n")
-	pullCode := pullForest(forestDir, nil, false, true, false, nil, nil)
+	pullCode := pullForest(forestDir, nil, false, false, false, nil, nil)
 
 	fmt.Printf("\n✓ Forest ready at %s\n", forestDir)
 	return pullCode
@@ -162,14 +168,14 @@ func slugify(summary string) string {
 	return s
 }
 
-func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
+func scaffoldTree(baseDir string, node *cloneNode, relPath, syncMode string) error {
 	dirPath := filepath.Join(baseDir, relPath)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return err
 	}
 
 	filePath := filepath.Join(dirPath, "README.md")
-	fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: both\n---\n", node.Key, strings.ReplaceAll(node.Summary, "\"", "\\\""))
+	fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: %s\n---\n", node.Key, strings.ReplaceAll(node.Summary, "\"", "\\\""), syncMode)
 	if err := os.WriteFile(filePath, []byte(fm), 0644); err != nil {
 		return err
 	}
@@ -179,12 +185,12 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 	for _, child := range node.Children {
 		if len(child.Children) > 0 {
 			childDir := slugify(child.Summary)
-			if err := scaffoldTree(baseDir, child, filepath.Join(relPath, childDir)); err != nil {
+			if err := scaffoldTree(baseDir, child, filepath.Join(relPath, childDir), syncMode); err != nil {
 				return err
 			}
 		} else {
 			leafFile := filepath.Join(dirPath, child.Key+".md")
-			fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: both\n---\n", child.Key, strings.ReplaceAll(child.Summary, "\"", "\\\""))
+			fm := fmt.Sprintf("---\njira: %s\nlabel: \"%s\"\nsync: %s\n---\n", child.Key, strings.ReplaceAll(child.Summary, "\"", "\\\""), syncMode)
 			if err := os.WriteFile(leafFile, []byte(fm), 0644); err != nil {
 				return err
 			}
@@ -194,9 +200,9 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath string) error {
 	return nil
 }
 
-func generateForestYAML(forestDir string, root *cloneNode) error {
+func generateForestYAML(forestDir string, root *cloneNode, syncMode string) error {
 	project := strings.Split(root.Key, "-")[0]
-	yml := fmt.Sprintf("schema: 1\ndefaults:\n  sync: both\n  project: %s\n", project)
+	yml := fmt.Sprintf("schema: 1\ndefaults:\n  sync: %s\n  project: %s\n", syncMode, project)
 	return os.WriteFile(filepath.Join(forestDir, "forest.yml"), []byte(yml), 0644)
 }
 

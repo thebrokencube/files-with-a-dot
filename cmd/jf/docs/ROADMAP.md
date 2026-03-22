@@ -65,6 +65,8 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 
 - `init` — create `forest.yml` with project defaults
 - `clone` — scaffold from Jira hierarchy with recursive child fetching
+- `clone --sync push|pull|both` — set sync direction at clone time (default: `both`)
+- Clone records state baseline for conflict detection on first sync
 
 ### Prerequisites Checking
 
@@ -140,10 +142,4 @@ syncing only a branch of the forest.
 Pre-push validation (e.g., lint markdown, check required sections) and post-pull
 transforms (e.g., normalize formatting). Would use a `hooks:` section in `forest.yml`.
 
-### Clone `--sync` Flag
-
-`clone` hardcodes `sync: both` for all scaffolded nodes. A `--sync` flag would let
-users choose the default sync direction at clone time.
-
-See: [ARCHITECTURE.md — Finding (e)](ARCHITECTURE.md#e-clone-hardcodes-sync-both-for-all-scaffolded-nodes)
 

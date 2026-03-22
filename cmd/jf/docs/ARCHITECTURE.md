@@ -38,7 +38,7 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `cmd_show.go` | `runShow()` — Single-node detail view with state. Includes `nodeStatus()` for stale/clean/unknown and `syncDisplay()`. |
 | `cmd_status.go` | `runStatus()` — Forest-wide summary with push/pull staleness counts. |
 | `cmd_validate.go` | `runValidate()` — Runs `forest.Validate()` and reports issues as text or JSON. |
-| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
+| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. Supports `--sync push\|pull\|both`. Records state baseline after pulling. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
 | `cmd_search.go` | `runSearch()` — Thin JQL wrapper. Includes `buildSearchJQL()` to construct JQL from text/project/type filters. |
 | `cmd_create.go` | `runCreateMissing()` — Creates Jira tickets for TBD nodes. Includes `dryRunCreate()`, `executeCreate()`, `dedupCheck()`, `buildCreatePayload()`, `rewriteFrontmatterKey()`, `rewriteTBDLine()`, `isTBDLine()`. |
 | `cmd_init.go` | `runInit()` — Creates `forest.yml` with defaults. Uses `defaultForestYml` template. |
@@ -380,18 +380,11 @@ All three commands now accept `--dry-run`. Push shows `[dry-run] would push KEY 
 Pull shows `[dry-run] would pull KEY -> FILE`. Sync runs conflict pre-scan (read-only)
 then emits dry-run previews for both phases.
 
-### (e) `clone` hardcodes `sync: both` for all scaffolded nodes
+### (e) ~~`clone` hardcodes `sync: both` for all scaffolded nodes~~ — resolved
 
-**Where:** `cmd_clone.go:172` — `scaffoldTree()` writes `sync: both` in every scaffolded
-file's frontmatter. `cmd_clone.go:199` — `generateForestYAML()` writes `sync: both` as
-the forest default.
-
-**Context:** All cloned nodes get bidirectional sync regardless of intent. Users who only
-want to push descriptions must manually change every file's frontmatter or the forest default.
-
-**Fix:** Add a `--sync` flag to `clone` (default: `both`) that sets the forest default and
-scaffolded node frontmatter. Could also omit per-node `sync:` and let the forest default
-apply (less repetitive frontmatter).
+`clone` now accepts `--sync push|pull|both` (default: `both`). The flag value is used for
+both the forest default and per-node frontmatter. Clone also records a state baseline
+(skipState=false) so the first sync has real content hashes.
 
 ### (f) ~~`search` outputs raw acli text with no structured output~~ — resolved
 
@@ -439,5 +432,3 @@ Commands that support `--json` should use the types from `internal/output/json.g
 
 Formatted as future observations:
 
-- `debt(jf): clone hardcodes sync:both for all scaffolded nodes — no --sync flag`
-- `debt(jf): clone skips state recording (skipState=true) as a workaround for conflict detection on first sync`

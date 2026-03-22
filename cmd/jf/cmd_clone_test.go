@@ -57,7 +57,7 @@ func TestScaffoldTree(t *testing.T) {
 		},
 	}
 
-	if err := scaffoldTree(dir, tree, ""); err != nil {
+	if err := scaffoldTree(dir, tree, "", "both"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,7 +93,7 @@ func TestScaffoldTreeQuotesColons(t *testing.T) {
 		Summary: "chore(docs): move stuff out of top level",
 	}
 
-	if err := scaffoldTree(dir, tree, ""); err != nil {
+	if err := scaffoldTree(dir, tree, "", "both"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,7 +110,7 @@ func TestGenerateForestYAML(t *testing.T) {
 	dir := t.TempDir()
 	root := &cloneNode{Key: "BEN-123", Summary: "Test"}
 
-	if err := generateForestYAML(dir, root); err != nil {
+	if err := generateForestYAML(dir, root, "both"); err != nil {
 		t.Fatal(err)
 	}
 
