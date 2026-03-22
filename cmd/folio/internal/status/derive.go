@@ -165,7 +165,7 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 				if item.Source == "" {
 					bis.Status = "unknown"
 				} else {
-					srcPath := filepath.Join(folioDir, item.Source)
+					srcPath := config.ResolvePath(folioDir, item.Source)
 					srcInfo, err := os.Stat(srcPath)
 					if err != nil {
 						bis.Status = "missing"
@@ -196,7 +196,7 @@ func deriveTreeNodeStatus(folioDir string, node *config.TreeNode, manifestMtime 
 
 	// Derive own status: source mtime vs manifest mtime
 	if node.File != "" {
-		srcPath := filepath.Join(folioDir, node.File)
+		srcPath := config.ResolvePath(folioDir, node.File)
 		srcInfo, err := os.Stat(srcPath)
 		if err != nil {
 			ns.Status = "missing"
@@ -253,7 +253,7 @@ func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string
 	outputMtime := outInfo.ModTime()
 
 	for _, src := range sourcePaths {
-		fullSrc := filepath.Join(folioDir, src)
+		fullSrc := config.ResolvePath(folioDir, src)
 		srcInfo, err := os.Stat(fullSrc)
 		if err != nil {
 			return "stale"
@@ -278,7 +278,7 @@ func DeriveLocalCause(folioDir, outputPath string, sourcePaths []string) string 
 	outputMtime := outInfo.ModTime()
 
 	for _, src := range sourcePaths {
-		fullSrc := filepath.Join(folioDir, src)
+		fullSrc := config.ResolvePath(folioDir, src)
 		srcInfo, err := os.Stat(fullSrc)
 		if err != nil {
 			return fmt.Sprintf("source %s missing", src)

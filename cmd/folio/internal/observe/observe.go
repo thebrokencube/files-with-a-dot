@@ -3,9 +3,10 @@ package observe
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
 
 var observationRe = regexp.MustCompile(`^(bug|gap|idea|debt|task)\([a-z][a-z0-9-]*\): .+$`)
@@ -222,7 +223,7 @@ func Lint(folioDir string, items []string) []LintIssue {
 		// Extract and check inline path references
 		paths := extractPaths(item)
 		for _, p := range paths {
-			full := filepath.Join(folioDir, p)
+			full := config.ResolvePath(folioDir, p)
 			if _, err := os.Stat(full); os.IsNotExist(err) {
 				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("broken path: %s", p)})
 			}

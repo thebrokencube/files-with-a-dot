@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
@@ -31,6 +32,11 @@ func runNew(args []string) int {
 
 	artifactType := fs.Arg(0)
 	topic := fs.Arg(1)
+
+	// Handle vault: prefix — scaffold directly in vault directory
+	if strings.HasPrefix(artifactType, "vault:") {
+		return runNewVault(artifactType, topic, *dryRun)
+	}
 
 	// Deprecation check
 	if artifactType == "note" {
@@ -116,6 +122,58 @@ func runNew(args []string) int {
 	if !*noRegister {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
+	return 0
+}
+
+var validVaultLabels = map[string]bool{
+	"research": true,
+	"domain":   true,
+	"guide":    true,
+	"insight":  true,
+}
+
+func runNewVault(artifactType, topic string, dryRun bool) int {
+	label := strings.TrimPrefix(artifactType, "vault:")
+	if !validVaultLabels[label] {
+		fmt.Fprintln(os.Stderr, output.Errf("unknown vault label %q", label))
+		fmt.Fprintf(os.Stderr, "  Valid labels: research, domain, guide, insight\n")
+		return 1
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("cannot determine home directory: %s", err))
+		return 1
+	}
+
+	today := time.Now().Format("2006-01-02")
+	filename := today + "-" + topic + ".md"
+	absPath := filepath.Join(home, ".folio", "vault", label, filename)
+
+	if _, err := os.Stat(absPath); err == nil {
+		fmt.Fprintln(os.Stderr, output.Errf("file already exists: vault/%s/%s", label, filename))
+		return 1
+	}
+
+	if dryRun {
+		fmt.Printf("Would create: vault/%s/%s\n", label, filename)
+		fmt.Printf("  No folio.yml registration (vault has no manifest)\n")
+		return 0
+	}
+
+	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("creating directory: %s", err))
+		return 1
+	}
+
+	// Use the reference template for the label type
+	tmpl := taxonomy.Template(label, topic)
+	if err := os.WriteFile(absPath, []byte(tmpl), 0644); err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("writing file: %s", err))
+		return 1
+	}
+
+	fmt.Println(output.Successf("Created vault/%s/%s", label, filename))
 	return 0
 }
 

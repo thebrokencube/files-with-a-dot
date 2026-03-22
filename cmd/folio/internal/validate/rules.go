@@ -142,7 +142,7 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 			r.addError("%s: depends_on is only valid on local path sources", prefix)
 		}
 	} else if src.Path != "" {
-		fullPath := filepath.Join(folioDir, src.Path)
+		fullPath := config.ResolvePath(folioDir, src.Path)
 		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			r.addError("%s: file not found: %s", prefix, src.Path)
 		}
@@ -199,7 +199,7 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 				r.addError("%s: missing required field: id", prefix)
 			}
 			if item.Source != "" {
-				fullPath := filepath.Join(folioDir, item.Source)
+				fullPath := config.ResolvePath(folioDir, item.Source)
 				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 					r.addError("Target '%s': batch item source not found: %s", tid, item.Source)
 				}
@@ -289,7 +289,7 @@ func validateTreeNode(r *Result, tid string, node *config.TreeNode, target *conf
 
 	// File optional; if present, must exist
 	if node.File != "" {
-		fullPath := filepath.Join(folioDir, node.File)
+		fullPath := config.ResolvePath(folioDir, node.File)
 		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			r.addError("%s: file not found: %s", prefix, node.File)
 		}
