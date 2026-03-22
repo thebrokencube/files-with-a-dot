@@ -66,9 +66,9 @@ Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull), `ord
 
 ## Lifecycle
 
-Park (deactivate) and unpark (reactivate) tickets using a combination of `jf rm` and MCP-driven Jira operations. These are skill-level workflows — the jf binary only handles the local file removal.
+Park tickets to permanently deactivate noise — over-decomposed, superseded, or unneeded tickets become blank placeholders in a parking lot epic. Parked tickets can be repurposed later instead of creating new ones.
 
--> See references/lifecycle.md for park and unpark workflows.
+-> See references/lifecycle.md for the park workflow and repurposing guidance.
 
 ## folio Integration
 
