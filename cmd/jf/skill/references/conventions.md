@@ -7,8 +7,8 @@ Standards for ticket structure, naming, and content. These are opinionated conve
 Encode hierarchy in the summary field:
 
 - **Tasks/Stories**: `type(scope): description` — e.g., `feat(resolver): add fallback heuristic`
-- **Epics**: `[PREFIX] Name` — e.g., `[SRM] Resolver Hardening`
-- **Initiatives**: Plain name — e.g., `State Retirement Mandates`
+- **Epics**: `[PREFIX] Name` — e.g., `[AUTH] Login Hardening`
+- **Initiatives**: Plain name — e.g., `Platform Reliability`
 
 ## Description Structure
 

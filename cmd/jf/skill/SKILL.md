@@ -71,8 +71,11 @@ A forest is a directory tree with:
 - Directory `README.md` files become parent nodes; files in directories become children
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull/both), `order` (sibling sort).
+See [docs/USAGE.md](../docs/USAGE.md#frontmatter-reference) for field details, inheritance, and label derivation.
 
 `jf clone` scaffolds a forest with `sync: both` by default — content is pulled from Jira initially but syncs bidirectionally from then on. No state baseline is recorded during clone, so the first `jf sync` after clone treats all nodes as fresh (no false conflicts).
+
+For architecture details (data models, pipeline internals, module structure), see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
 
 ## Lifecycle
 

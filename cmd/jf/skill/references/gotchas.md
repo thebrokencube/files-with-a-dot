@@ -1,6 +1,8 @@
 # Jira Gotchas
 
-Common pitfalls when working with Jira via jf, acli, and MCP tools.
+Common pitfalls when working with Jira via jf, acli, and MCP tools. For jf-specific
+troubleshooting (error messages and fixes), see
+[docs/USAGE.md](../docs/USAGE.md#troubleshooting).
 
 ## Content Rendering
 
@@ -27,15 +29,3 @@ Common pitfalls when working with Jira via jf, acli, and MCP tools.
 ## Field Discovery
 
 - **Use MCP `getJiraIssueTypeMetaWithFields` for custom field discovery.** acli's `--generate-json` gives you the creation template, but MCP gives you the full field metadata including allowed values and required fields. Some projects have mandatory custom fields (e.g., T-Shirt Size estimates) that must be included via `additional_fields` on creation.
-
-## Frontmatter
-
-- **`jira: TBD`** is case-insensitive — `tbd`, `"TBD"`, `'TBD'` all work.
-- **Missing closing `---`**: If frontmatter has no closing fence, jf treats the file as having no frontmatter (content passes through as-is).
-- **Order field**: `order: N` controls sibling sort within a directory. Lower values sort first. Nodes without order sort after ordered nodes, alphabetically by filename.
-
-## forest.yml
-
-- **Schema version**: Must be `schema: 1`. Missing or wrong version causes discovery to fail.
-- **Defaults cascade**: `defaults.sync`, `defaults.type`, `defaults.project` apply to all nodes unless overridden in frontmatter.
-- **`.jf/` directory**: Created automatically for state tracking. Add `.jf/` to `.gitignore` if the forest lives in a git repo.
