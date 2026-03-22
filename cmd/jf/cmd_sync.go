@@ -15,6 +15,7 @@ func runSync(args []string) int {
 	force := fs.Bool("force", false, "Push as plain text if marklassian conversion fails")
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
 	resolve := fs.String("resolve", "", "Conflict resolution: local|remote (default: skip)")
+	dryRun := fs.Bool("dry-run", false, "Preview what would be synced without side effects")
 
 	if err := parseFlags(fs, args); err != nil {
 		return 1
@@ -25,15 +26,15 @@ func runSync(args []string) int {
 		return 1
 	}
 
-	// Pre-scan for conflicts on sync:both nodes
+	// Load forest once for all phases
 	f, roots, err := loadForest(*dir)
 	if err != nil {
 		// Fall through to push/pull which will print their own errors
 		fmt.Println("── Push ──")
-		pushCode := pushForest(*dir, nil, "", *force, *failFast)
+		pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, nil, nil)
 		fmt.Println()
 		fmt.Println("── Pull ──")
-		pullCode := pullForest(*dir, nil, *failFast, false)
+		pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, nil, nil)
 		if pushCode != 0 || pullCode != 0 {
 			return 1
 		}
@@ -45,6 +46,7 @@ func runSync(args []string) int {
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
+	// Pre-scan for conflicts on sync:both nodes
 	all := forest.Flatten(roots)
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 	conflicts := 0
@@ -87,12 +89,13 @@ func runSync(args []string) int {
 		fmt.Fprintf(os.Stderr, "\n%d conflict(s) detected. Use --resolve local|remote to resolve.\n\n", conflicts)
 	}
 
+	// Pass pre-loaded forest to push and pull
 	fmt.Println("── Push ──")
-	pushCode := pushForest(*dir, nil, "", *force, *failFast)
+	pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, f, roots)
 
 	fmt.Println()
 	fmt.Println("── Pull ──")
-	pullCode := pullForest(*dir, nil, *failFast, false)
+	pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, f, roots)
 
 	if pushCode != 0 || pullCode != 0 || (conflicts > 0 && *resolve == "") {
 		return 1

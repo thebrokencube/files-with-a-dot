@@ -240,9 +240,9 @@ to accept theirs.
 | `status` | 1 | no | yes | stable | Forest summary with staleness |
 | `validate` | 1 | no | yes | stable | Check forest integrity |
 | `rm` | 1 | no | no | experimental | Remove node files |
-| `push` | 2 | yes | no | stable | Push descriptions to Jira |
-| `pull` | 2 | yes | no | stable | Pull descriptions from Jira |
-| `sync` | 2 | yes | no | stable | Push stale + pull pull-mode nodes |
+| `push` | 2 | yes | no | stable | Push descriptions to Jira (`--dry-run`) |
+| `pull` | 2 | yes | no | stable | Pull descriptions from Jira (`--dry-run`) |
+| `sync` | 2 | yes | no | stable | Push stale + pull pull-mode nodes (`--dry-run`) |
 | `create-missing` | 2 | yes | no | stable | Create Jira tickets for TBD nodes |
 | `search` | 2 | yes | yes | experimental | Search Jira tickets by text |
 | `clone` | 2 | yes | no | stable | Scaffold forest from Jira hierarchy |

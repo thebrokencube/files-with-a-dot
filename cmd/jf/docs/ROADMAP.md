@@ -72,6 +72,12 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 - `QuickCheck` guard on Jira-touching commands
 - JSON output via `--check --json`
 
+### Dry-Run Support
+
+- `push --dry-run` — lists nodes with byte counts, no Jira calls
+- `pull --dry-run` — lists nodes with target files, no writes
+- `sync --dry-run` — conflict pre-scan runs (read-only), then dry-run previews for both phases
+
 ### Flag Ordering Enforcement
 
 - `parseFlags` detects trailing flags after positional arguments
@@ -100,19 +106,6 @@ prompt, no `--force` override, no Jira-side cleanup.
 
 ## Planned
 
-### `--dry-run` for Push, Pull, and Sync
-
-Preview what would be pushed/pulled without side effects. Only `create-missing`
-currently has `--dry-run`.
-
-See: [ARCHITECTURE.md — Finding (d)](ARCHITECTURE.md#d-no---dry-run-on-push-pull-or-sync)
-
-### Sync Forest-Load Deduplication
-
-`runSync` loads the forest once for conflict pre-scan, then `pushForest` and `pullForest`
-each load it again. Refactor to load once and pass through.
-
-See: [ARCHITECTURE.md — Finding (b)](ARCHITECTURE.md#b-sync-triple-loads-the-forest)
 
 ## Considering
 

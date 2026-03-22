@@ -16,6 +16,7 @@ func runPull(args []string) int {
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
 	_ = fs.Bool("force", false, "Overwrite local file even if conflict detected")
+	dryRun := fs.Bool("dry-run", false, "Preview what would be pulled without side effects")
 
 	if err := parseFlags(fs, args); err != nil {
 		return 1
@@ -29,7 +30,7 @@ func runPull(args []string) int {
 	}
 
 	// Forest mode
-	return pullForest(*dir, positional, *failFast, false)
+	return pullForest(*dir, positional, *failFast, false, *dryRun, nil, nil)
 }
 
 // richPull extracts ADF from View JSON output and converts to markdown.
@@ -80,12 +81,18 @@ func pullSingle(key, filePath string) int {
 	return 0
 }
 
-func pullForest(dir string, positional []string, failFast bool, skipState bool) int {
-	f, roots, err := loadForest(dir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		fmt.Fprintf(os.Stderr, "  For Level 0: jf pull <KEY> <FILE>\n")
-		return 1
+func pullForest(dir string, positional []string,
+	failFast, skipState, dryRun bool,
+	f *forest.Forest, roots []*forest.Node) int {
+
+	if f == nil {
+		var err error
+		f, roots, err = loadForest(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+			fmt.Fprintf(os.Stderr, "  For Level 0: jf pull <KEY> <FILE>\n")
+			return 1
+		}
 	}
 
 	// Resolve target if specified
@@ -109,6 +116,13 @@ func pullForest(dir string, positional []string, failFast bool, skipState bool) 
 
 	if len(toPull) == 0 {
 		fmt.Println("No pull-mode nodes found.")
+		return 0
+	}
+
+	if dryRun {
+		for _, n := range toPull {
+			fmt.Printf("[dry-run] would pull %s -> %s\n", n.Key, n.File)
+		}
 		return 0
 	}
 

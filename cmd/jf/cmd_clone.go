@@ -57,7 +57,7 @@ func runClone(args []string) int {
 	}
 
 	fmt.Printf("\nPulling descriptions...\n")
-	pullCode := pullForest(forestDir, nil, false, true)
+	pullCode := pullForest(forestDir, nil, false, true, false, nil, nil)
 
 	fmt.Printf("\n✓ Forest ready at %s\n", forestDir)
 	return pullCode

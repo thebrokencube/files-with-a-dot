@@ -30,9 +30,9 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `main.go` | Command router with three-tier dispatch (no-prereq, local-only, Jira-touching). Defines `version` constant and `printUsage()`. |
 | `helpers.go` | Shared utilities: `parseFlags()` for trailing-flag detection, `loadForest()` and `loadForestOrFail()` for forest discovery with error handling. |
 | `helpers_test.go` | Tests for `parseFlags()` — trailing flag detection, normal ordering, positional-only. |
-| `cmd_push.go` | `runPush()` — Level 0 single-file push (`pushSingle`) and forest-mode push (`pushForest`). Includes `buildPlainTextPayload()` for `--force` fallback. |
-| `cmd_pull.go` | `runPull()` — Level 0 single-file pull (`pullSingle`) and forest-mode pull (`pullForest`). Includes `richPull()` for ADF→markdown conversion, `mergeWithFrontmatter()` to preserve YAML frontmatter on pull, `extractExistingFrontmatter()`. |
-| `cmd_sync.go` | `runSync()` — Pre-scans `sync:both` nodes for conflicts via `DetectConflict()`, then delegates to `pushForest()` and `pullForest()`. |
+| `cmd_push.go` | `runPush()` — Level 0 single-file push (`pushSingle`) and forest-mode push (`pushForest`). Accepts pre-loaded `*Forest`/`[]*Node` (nil = load internally). Supports `--dry-run`. Includes `buildPlainTextPayload()` for `--force` fallback. |
+| `cmd_pull.go` | `runPull()` — Level 0 single-file pull (`pullSingle`) and forest-mode pull (`pullForest`). Accepts pre-loaded `*Forest`/`[]*Node` (nil = load internally). Supports `--dry-run`. Includes `richPull()` for ADF→markdown conversion, `mergeWithFrontmatter()` to preserve YAML frontmatter on pull, `extractExistingFrontmatter()`. |
+| `cmd_sync.go` | `runSync()` — Loads forest once, pre-scans `sync:both` nodes for conflicts via `DetectConflict()`, then passes pre-loaded forest to `pushForest()` and `pullForest()`. Supports `--dry-run`. |
 | `cmd_tree.go` | `runTree()` — Forest hierarchy view with `--json` and `--verbose` flags. Includes `printTree()` for ASCII tree output with optional sync-direction icons and file paths. |
 | `cmd_list.go` | `runList()` — Flat list of all nodes with optional JSON. Includes `nodeToInfo()` to convert `Node` to `output.NodeInfo`. |
 | `cmd_show.go` | `runShow()` — Single-node detail view with state. Includes `nodeStatus()` for stale/clean/unknown and `syncDisplay()`. |
@@ -334,8 +334,8 @@ prevents recording state so the first sync can detect conflicts cleanly.
 3. If `ConflictBoth` is detected and no `--resolve` flag, reports conflict and skips
 4. Delegates to `pushForest()` then `pullForest()`
 
-Note: `runSync()` calls `loadForest()` for conflict pre-scan, then `pushForest()` and
-`pullForest()` each call `loadForest()` again internally — three total forest loads per sync.
+`runSync()` loads the forest once and passes it to `pushForest()` and `pullForest()`.
+Both functions accept optional pre-loaded `*Forest`/`[]*Node` to avoid redundant loads.
 
 ### Runner Interface
 
@@ -363,33 +363,22 @@ type Checker func(name string, args ...string) (string, error)
 Both `tree` and `search` now support `--json`. `tree --json` emits `[]NodeInfo` (absorbing
 the former `discover --json` output). `search --json` passes through to `Pipeline.Search()`.
 
-### (b) `sync` triple-loads the forest
+### (b) ~~`sync` triple-loads the forest~~ — resolved
 
-**Where:** `cmd_sync.go:29` — `loadForest(*dir)` for conflict pre-scan. Then
-`cmd_sync.go:91` calls `pushForest()` which calls `loadForest()` at `cmd_push.go:64`.
-Then `cmd_sync.go:95` calls `pullForest()` which calls `loadForest()` at `cmd_pull.go:84`.
-
-**Context:** Each `loadForest()` call does `FindForest()` (directory walk) + `Discover()`
-(filesystem scan + tree build). Three full scans per sync.
-
-**Fix:** Load forest once in `runSync()`, pass the `*Forest` and `[]*Node` to push/pull
-functions instead of having them re-discover independently.
+`pushForest` and `pullForest` now accept optional `*Forest` and `[]*Node` parameters.
+`runSync` loads the forest once and passes it through. Standalone `runPush`/`runPull`
+pass `nil, nil` and load internally.
 
 ### (c) ~~Tree-drawing connector logic duplicated~~ — resolved
 
 `discover` has been consolidated into `tree`. A single `printTree()` with a `verbose bool`
 parameter handles both the clean view and the detailed view (sync icons + file paths).
 
-### (d) No `--dry-run` on `push`, `pull`, or `sync`
+### (d) ~~No `--dry-run` on `push`, `pull`, or `sync`~~ — resolved
 
-**Where:** `cmd_push.go` — no dry-run flag. `cmd_pull.go` — no dry-run flag.
-`cmd_sync.go` — no dry-run flag. Only `cmd_create.go` has `--dry-run` (`dryRunCreate()`).
-
-**Context:** Push and pull directly modify Jira descriptions or local files with no
-preview option. A `--dry-run` would show what would be pushed/pulled without side effects.
-
-**Fix:** Add `--dry-run` to push (list nodes that would be pushed with byte counts),
-pull (list nodes that would be pulled), and sync (combine both).
+All three commands now accept `--dry-run`. Push shows `[dry-run] would push KEY (FILE, N bytes)`.
+Pull shows `[dry-run] would pull KEY -> FILE`. Sync runs conflict pre-scan (read-only)
+then emits dry-run previews for both phases.
 
 ### (e) `clone` hardcodes `sync: both` for all scaffolded nodes
 
@@ -450,7 +439,5 @@ Commands that support `--json` should use the types from `internal/output/json.g
 
 Formatted as future observations:
 
-- `debt(jf): sync re-loads forest then delegates to pushForest/pullForest which each load again`
-- `idea(jf): add --dry-run to push/pull/sync for safe previewing`
 - `debt(jf): clone hardcodes sync:both for all scaffolded nodes — no --sync flag`
 - `debt(jf): clone skips state recording (skipState=true) as a workaround for conflict detection on first sync`

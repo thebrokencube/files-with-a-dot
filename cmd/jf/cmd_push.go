@@ -15,6 +15,7 @@ func runPush(args []string) int {
 	subtree := fs.String("subtree", "", "Push node and all descendants")
 	failFast := fs.Bool("fail-fast", false, "Stop on first error")
 	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
+	dryRun := fs.Bool("dry-run", false, "Preview what would be pushed without side effects")
 
 	if err := parseFlags(fs, args); err != nil {
 		return 1
@@ -28,7 +29,7 @@ func runPush(args []string) int {
 	}
 
 	// Forest mode: discover and push
-	return pushForest(*dir, positional, *subtree, *force, *failFast)
+	return pushForest(*dir, positional, *subtree, *force, *failFast, *dryRun, nil, nil)
 }
 
 func pushSingle(key, filePath string, force bool) int {
@@ -60,12 +61,18 @@ func pushSingle(key, filePath string, force bool) int {
 	return 0
 }
 
-func pushForest(dir string, positional []string, subtreeTarget string, force, failFast bool) int {
-	f, roots, err := loadForest(dir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
-		return 1
+func pushForest(dir string, positional []string, subtreeTarget string,
+	force, failFast, dryRun bool,
+	f *forest.Forest, roots []*forest.Node) int {
+
+	if f == nil {
+		var err error
+		f, roots, err = loadForest(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+			fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
+			return 1
+		}
 	}
 
 	// Validate first
@@ -116,6 +123,19 @@ func pushForest(dir string, positional []string, subtreeTarget string, force, fa
 
 	if len(toPush) == 0 {
 		fmt.Println("No push-mode nodes found.")
+		return 0
+	}
+
+	if dryRun {
+		for _, n := range toPush {
+			filePath := filepath.Join(f.Dir, n.File)
+			source, err := os.ReadFile(filePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "✗ %s: %s\n", n.Key, err)
+				continue
+			}
+			fmt.Printf("[dry-run] would push %s (%s, %d bytes)\n", n.Key, n.File, len(source))
+		}
 		return 0
 	}
 
