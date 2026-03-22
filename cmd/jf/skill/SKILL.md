@@ -16,6 +16,7 @@ Standalone CLI for managing Jira ticket hierarchies as local markdown forests. W
 | `jf show <target>` | Single-node detail view |
 | `jf sync` | Push all + pull all |
 | `jf create-missing` | Create Jira tickets for TBD nodes |
+| `jf rm <KEY>...` | Remove node files from forest by key |
 | `jf setup` | Check and install prerequisites |
 | `jf init` | Scaffold `forest.yml` in current directory |
 | `jf schema` | Emit JSON Schema for forest.yml and frontmatter |
@@ -62,6 +63,12 @@ A forest is a directory tree with:
 - Directory `README.md` files become parent nodes; files in directories become children
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull), `order` (sibling sort).
+
+## Lifecycle
+
+Park (deactivate) and unpark (reactivate) tickets using a combination of `jf rm` and MCP-driven Jira operations. These are skill-level workflows — the jf binary only handles the local file removal.
+
+-> See references/lifecycle.md for park and unpark workflows.
 
 ## folio Integration
 
