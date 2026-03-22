@@ -42,4 +42,4 @@ configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
 cmd/folio/skill:$HOME/.claude/skills/folio
 configs/base/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr
-configs/base/claude/.claude/skills/jira-forest:$HOME/.claude/skills/jira-forest
+cmd/jf/skill:$HOME/.claude/skills/jf

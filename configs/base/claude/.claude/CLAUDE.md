@@ -40,7 +40,7 @@ My development environment, available globally across all projects.
 
 ## Workflow Rules
 - **Scope confirmation required.** Before reorganizing files, archiving work tracks, restructuring directories, or moving content between folio artifact types (reference, work, output), confirm the scope with me first. Small edits within a file are fine — structural changes need a check.
-- **Respect the invoked skill's tooling.** When I invoke a `/skill` command, use that skill's intended tools and workflows. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails. If `/jira-forest` is invoked, use `jf`. If `/folio` is invoked, use `folio`.
+- **Respect the invoked skill's tooling.** When I invoke a `/skill` command, use that skill's intended tools and workflows. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails. If `/jf` is invoked, use `jf`. If `/folio` is invoked, use `folio`.
 - **Keep it simple.** Start with the simplest implementation that works. Don't add error handling, wrapper classes, notifications, or extra abstraction unless I ask for it. If I want more, I'll ask.
 - **Show, don't summarize.** When I ask to see a plan, document, or file contents, display the actual content — don't read it internally and give me a summary.
 
