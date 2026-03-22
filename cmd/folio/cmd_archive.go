@@ -20,7 +20,7 @@ func runArchive(args []string) int {
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	dryRun := fs.Bool("dry-run", false, "Print what would happen, no side effects")
 	noPush := fs.Bool("no-push", false, "Skip auto-commit")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if fs.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, output.Errf("usage: folio archive <track-name> [--folio PATH] [--dry-run] [--no-push]"))
@@ -118,9 +118,9 @@ func runArchive(args []string) int {
 			return 1
 		}
 		rel, err := filepath.Rel(homeDir, folioDir)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, output.Errf("computing relative path: %s", err))
-			return 1
+		if err != nil || strings.HasPrefix(rel, "..") {
+			fmt.Fprintln(os.Stderr, output.Errf("folio directory %s is outside FOLIO_HOME %s — skipping auto-push", folioDir, homeDir))
+			return 0
 		}
 		msg := fmt.Sprintf("chore(archive): archive %s", trackName)
 		if pushErr := repo.PushScoped(homeDir, msg, []string{rel}); pushErr != nil {

@@ -44,7 +44,7 @@ func runHomeInit(args []string) int {
 func runHomeValidate(args []string) int {
 	fs := flag.NewFlagSet("home validate", flag.ExitOnError)
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	color := colorEnabled(*noColor)
 	dir := mustResolveHome()
@@ -75,7 +75,7 @@ func runHomeList(args []string) int {
 	fs := flag.NewFlagSet("home list", flag.ExitOnError)
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	color := colorEnabled(*noColor)
 	dir := mustResolveHome()
@@ -169,7 +169,7 @@ func runHomePush(args []string) int {
 	msg := fs.String("m", "", "Commit message: type(scope): description")
 	folioName := fs.String("folio", "", "Scope commit to a single folio (shortname or path)")
 	all := fs.Bool("all", false, "Stage all changes (current behavior, default)")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	// Allow positional args as message for convenience: folio home push "my message"
 	if fs.NArg() > 0 {

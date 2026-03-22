@@ -11,7 +11,7 @@ import (
 func runSetup(args []string) int {
 	fs := flag.NewFlagSet("setup", flag.ExitOnError)
 	checkMode := fs.Bool("check", false, "Silent mode: exit 0 if OK, exit 1 if missing")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	folioBin, err := os.Executable()
 	if err != nil {

@@ -17,7 +17,7 @@ func runValidate(args []string) int {
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -65,7 +65,7 @@ func runStatus(args []string) int {
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -99,7 +99,7 @@ func runStatus(args []string) int {
 func runInit(args []string) int {
 	fs := flag.NewFlagSet("init", flag.ExitOnError)
 	name := fs.String("name", "", "Project name")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if _, err := os.Stat("folio.yml"); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml already exists in %s", mustGetwd()))

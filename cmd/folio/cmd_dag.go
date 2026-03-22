@@ -37,7 +37,7 @@ func runDag(args []string) int {
 	branches := fs.Bool("branches", false, "Show branch topology")
 	statusFlag := fs.Bool("status", false, "Show staleness overlay (requires --branches)")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1

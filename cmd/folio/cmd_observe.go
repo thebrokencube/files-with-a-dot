@@ -33,7 +33,7 @@ func runObserve(args []string) int {
 func runObserveAppend(args []string) int {
 	fs := flag.NewFlagSet("observe", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -77,7 +77,7 @@ func runObserveList(args []string) int {
 	scopeFilter := fs.String("scope", "", "Filter by scope")
 	typeFilter := fs.String("type", "", "Filter by type")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	_ = noColor // reserved for future use
 
@@ -155,7 +155,7 @@ func runObserveList(args []string) int {
 func runObserveResolve(args []string) int {
 	fs := flag.NewFlagSet("observe resolve", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -190,7 +190,7 @@ func runObserveTypes(args []string) int {
 func runObserveLint(args []string) int {
 	fs := flag.NewFlagSet("observe lint", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1

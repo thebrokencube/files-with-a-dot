@@ -15,7 +15,7 @@ import (
 func runPbcopy(args []string) int {
 	fs := flag.NewFlagSet("pbcopy", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1

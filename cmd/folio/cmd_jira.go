@@ -20,7 +20,7 @@ func runJiraCompile(args []string) int {
 	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
 	source := fs.String("source", "", "Markdown source file (- for stdin)")
 	_ = fs.String("output", "", "Deprecated: output file")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
@@ -38,7 +38,7 @@ func runJiraPush(args []string) int {
 	fs := flag.NewFlagSet("jira push", flag.ExitOnError)
 	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
 	source := fs.String("source", "", "Markdown source file (- for stdin)")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
@@ -61,7 +61,7 @@ func runJiraCreate(args []string) int {
 	fs := flag.NewFlagSet("jira create", flag.ExitOnError)
 	jsonFile := fs.String("json", "", "Creation JSON payload file")
 	source := fs.String("source", "", "Markdown source file for description")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if *jsonFile == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--json and --source are required"))
@@ -104,7 +104,7 @@ func runJiraView(args []string) int {
 	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
 	fields := fs.String("fields", "", "Comma-separated field list")
 	jsonOut := fs.Bool("json", false, "JSON output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if *id == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id is required"))
@@ -128,7 +128,7 @@ func runJiraSearch(args []string) int {
 	jql := fs.String("jql", "", "JQL query string")
 	fields := fs.String("fields", "", "Comma-separated field list")
 	limit := fs.Int("limit", 50, "Max results")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if *jql == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--jql is required"))

@@ -17,7 +17,8 @@ func runNew(args []string) int {
 	fs := flag.NewFlagSet("new", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	noRegister := fs.Bool("no-register", false, "Skip adding source entry to folio.yml")
-	fs.Parse(args)
+	dryRun := fs.Bool("dry-run", false, "Print what would be created, no side effects")
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -68,6 +69,17 @@ func runNew(args []string) int {
 	if _, err := os.Stat(absPath); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("file already exists: %s", relPath))
 		return 1
+	}
+
+	if *dryRun {
+		fmt.Printf("Would create: %s\n", relPath)
+		if colocated {
+			fmt.Printf("  → colocated with %s/\n", filepath.Dir(relPath))
+		}
+		if !*noRegister {
+			fmt.Printf("  Would add source entry to folio.yml\n")
+		}
+		return 0
 	}
 
 	// Validate folio.yml parses before modifying
@@ -131,7 +143,7 @@ func validTypeList() string {
 }
 
 func printNewUsage() {
-	fmt.Fprintf(os.Stderr, `Usage: folio new <type> <topic> [--folio PATH] [--no-register]
+	fmt.Fprintf(os.Stderr, `Usage: folio new <type> <topic> [--folio PATH] [--no-register] [--dry-run]
 
 Scaffold a typed artifact at the correct path.
 
@@ -144,6 +156,7 @@ Types:
 Options:
   --folio PATH      Path or shortname (default: ./folio.yml)
   --no-register     Skip adding source entry to folio.yml
+  --dry-run         Print what would be created, no side effects
 `, strings.Join(taxonomy.ReferenceTypes, ", "))
 }
 

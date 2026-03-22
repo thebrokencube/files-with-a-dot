@@ -21,7 +21,7 @@ func runGather(args []string) int {
 	typeFlag := fs.String("type", "", "Reference type (spike, survey, design, ...)")
 	name := fs.String("name", "", "Reference file name (default: derived from URL)")
 	read := fs.Bool("read", false, "Read and summarize URL (requires Claude skill)")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1

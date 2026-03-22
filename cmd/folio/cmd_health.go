@@ -18,7 +18,7 @@ func runHealth(args []string) int {
 	fs := flag.NewFlagSet("health", flag.ExitOnError)
 	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	if !resolveOrDie(folioPath) {
 		return 1
@@ -42,7 +42,7 @@ func runHealth(args []string) int {
 func runHomeHealth(args []string) int {
 	fs := flag.NewFlagSet("home health", flag.ExitOnError)
 	noColor := fs.Bool("no-color", false, "Disable colored output")
-	fs.Parse(args)
+	parseFlags(fs, args)
 
 	color := colorEnabled(*noColor)
 	homeDir := mustResolveHome()
