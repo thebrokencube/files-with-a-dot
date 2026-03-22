@@ -208,6 +208,7 @@ Scaffold a typed artifact at the correct path.
 Types:
   Lifecycle:   spike, design, plan, retro
   Reference:   %s
+  Vault:       vault:research, vault:domain, vault:guide, vault:insight
   Alias:       brief (-> plan)
   Dual-layer:  design, retro (colocate with work dir if one matches topic)
 
