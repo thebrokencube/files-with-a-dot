@@ -183,7 +183,7 @@ Keep your proposal under 80 lines. Be concrete — file paths, function names, s
 
 ### Propose Agent Prompt (Team Mode)
 
-Use with `subagent_type: "Plan"` and session default model. Launch N instances in parallel.
+Use with `subagent_type: "general-purpose"` and session default model. Launch N instances in parallel.
 
 ```
 You are a research/design agent on a team exploring: {task_description}
@@ -201,6 +201,7 @@ You are a research/design agent on a team exploring: {task_description}
 1. Read all required files first for shared context
 2. Explore the codebase through your lens — read actual source code, not just descriptions
 3. Write your findings to: {round_dir}/{lens_slug}.md
+   **Write ONLY to this path. Do not create, modify, or write to any other file.**
 4. Your file MUST include:
    - Concrete findings with file paths and line references
    - Specific recommendations (not "consider X" — say "do X because Y")
@@ -311,23 +312,11 @@ Write your output to: {round_dir}/converged.md
 Also return a 5-10 line summary of key decisions made.
 ```
 
-## Phase 4: Review
+## Phase 4a: Fill Design Doc
 
-Launch 1 agent (subagent_type: general-purpose) to review the merged plan. The review covers:
-
-1. **Accuracy**: Does the plan reference correct file paths, function names, and APIs? Are assumptions about existing code valid?
-2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
-3. **Scope**: Is everything in the plan necessary for the task? **Meta-review: should any of this work not exist?** Flag anything that's over-engineered, gold-plated, or solving a problem the user didn't ask about.
-
-Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
-
-Loop until the review returns zero issues. Cap at 3 iterations — if issues persist after 3
-rounds, present remaining issues to the user for judgment.
-
-**Design doc (mandatory):** After the review, fill in and commit the design doc. The design
-doc was scaffolded after Phase 1 — it already exists at `reference/design/YYYY-MM-DD-<topic>.md`
-inside the work directory. Every plan produces one — lightweight for simple changes, but it
-always exists.
+The design doc was scaffolded after Phase 1 — it already exists at
+`reference/design/YYYY-MM-DD-<topic>.md` inside the work directory. Every plan produces
+one — lightweight for simple changes, but it always exists.
 
 1. Fill in the design doc using the layer-tagged template below. Source content from the
    converge output, mapping it to the appropriate layer sections.
@@ -369,16 +358,44 @@ always exists.
    choices JIT via spikes. Convergence Status tracks per-layer progress across rounds.
    Design Provenance records how the design was produced (agent count, lenses, review fixes).
 
-2. **Scope approval gate (hard):** Present the **Scope Boundary** section to the user
+**Do NOT commit or proceed to review until the design doc is fully filled.** The review
+agent reviews the design doc as written — not the converge output.
+
+## Phase 4b: Review Design Doc (hard gate — blocks commit)
+
+**Prerequisite: Phase 4a complete.** The design doc must be filled before review begins.
+The review agent reviews the actual design doc artifact, not the converge output — this
+ensures the committed artifact is the one that was validated.
+
+Launch 1 agent (subagent_type: general-purpose, model: opus) to review the design doc. The review covers:
+
+1. **Accuracy**: Does the design doc reference correct file paths, function names, and APIs? Are assumptions about existing code valid? Read the actual source files to verify.
+2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
+3. **Scope**: Is everything in the design doc necessary for the task? **Meta-review: should any of this work not exist?** Flag anything that's over-engineered, gold-plated, or solving a problem the user didn't ask about.
+4. **Completeness**: Are there gaps between the converge output and the design doc — decisions that were made during convergence but lost during fill?
+
+Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
+
+Loop: fix issues in the design doc, re-run review. Cap at 3 iterations — if issues persist
+after 3 rounds, present remaining issues to the user for judgment.
+
+### Review Gate Checklist (must pass before commit)
+
+- [ ] Review agent returned zero issues, OR 3 iterations completed AND user judged remaining issues
+- [ ] All review fixes applied to the design doc (not just noted)
+
+**After the review gate passes:**
+
+1. **Scope approval gate (hard):** Present the **Scope Boundary** section to the user
    for explicit sign-off before committing. This is scope negotiation, not just documentation —
    gaps here cause re-runs. Wait for "yes" before proceeding.
-3. **Provenance validation:** Before committing, verify all vault research produced during
+2. **Provenance validation:** Before committing, verify all vault research produced during
    the round is registered in folio.yml with `depends_on` pointing to the design doc. Check
    that the design doc's `depends_on` list in folio.yml includes every vault research source
    that informed it. Missing links mean broken provenance — fix before committing.
-4. If a folio project exists: commit via `folio home push`
-5. If no folio project: use `--no-register` and write to the plan file's directory instead
-6. Present to user: "Design doc committed."
+3. If a folio project exists: commit via `folio home push`
+4. If no folio project: use `--no-register` and write to the plan file's directory instead
+5. Present to user: "Design doc committed."
 
 The committed design doc is the contract for Agent 2.
 
@@ -387,26 +404,29 @@ The committed design doc is the contract for Agent 2.
 Use with `subagent_type: "general-purpose"` and `model: "opus"`. Needs file access to verify claims.
 
 ```
-You are reviewing an implementation plan. Your job is to find problems before code is written.
+You are reviewing a design document. Your job is to find problems before the design is committed and handed off to implementation.
 
 ## Original Task
 {task_description}
 
-## Plan to Review
-{plan_content}
+## Design Doc Path
+{design_doc_path}
 
-## Review Checklist
+## Instructions
+Read the design doc at the path above. Review it against the actual codebase:
+
 1. **Accuracy**: Verify file paths, function names, and API references exist and are correct. Read the actual files.
 2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
-3. **Scope**: Is everything necessary? Meta-review: should any part of this plan NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
+3. **Scope**: Is everything necessary? Meta-review: should any part of this design NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
+4. **Completeness**: Are any architectural decisions or interface contracts missing? Could an execution agent implement from this doc alone?
 
-For each issue found, state: what's wrong, where in the plan, and a concrete fix.
+For each issue found, state: what's wrong, where in the design doc, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues — don't nitpick style or add suggestions beyond the task scope.
 ```
 
 ### Multi-Perspective Review (`--pe-review`)
 
-When `/folio plan --pe-review` is specified, replace the single Phase 4 review agent with 5
+When `/folio plan --pe-review` is specified, replace the single Phase 4b review agent with 5
 parallel agents (API surface, blast radius, migration risk, test coverage, UX). Converge their
 findings before the design doc commit. Use for high-stakes or cross-cutting changes.
 

@@ -22,7 +22,7 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
   └───────────┘         └───────────┘
 ```
 
-The forward path: gather sources (Phase 1), freeze architecture in a design doc (Phase 4), decompose into tracks (Phase 5), write execution-level briefs (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
+The forward path: gather sources (Phase 1), freeze architecture in a design doc (Phase 4a-4b), decompose into tracks (Phase 5), write execution-level briefs (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
 
 Phase 7 is a loop: implement → validate → review (mandatory gate) → commit.
 
@@ -118,7 +118,7 @@ plan-execute.md Layered Escalation for the full classification table. Do not pat
 artifacts inline — re-run the producing agent.
 
 **Amend-design path**: For additive scope changes where core architecture is settled: (1) describe
-the amendment, (2) get explicit approval, (3) edit the design doc, (4) re-run Phase 4 review
+the amendment, (2) get explicit approval, (3) edit the design doc, (4) re-run Phase 4b review
 only, (5) commit. Use only when additive — if it contradicts existing decisions, re-run from
 Phase 2.
 
@@ -131,13 +131,14 @@ Use the strongest available agent mode per phase, with graceful degradation:
 | Phase 1 (Research) | Agent team (parallel explorers) | Sequential subagents | Breadth matters; parallel exploration finds more |
 | Phase 2 (Propose) | Agent team (parallel lenses) | 2 sequential subagents | Divergence benefits from independence |
 | Phase 3 (Converge) | Single agent | Single agent | Convergence is inherently serial |
-| Phase 4 (Review) | Agent team (multi-persona) | 1 opus subagent | Multiple perspectives catch more |
+| Phase 4a (Fill) | Single agent | Single agent | Mechanical mapping from converge output |
+| Phase 4b (Review) | Agent team (multi-persona) | 1 opus subagent | Multiple perspectives catch more |
 | Phase 5-6 (Brief) | Single agent | Single agent | Serial work, no parallelism benefit |
 | Phase 7 (Execute) | Single agent per track | Single agent per track | Execution is focused, bounded |
 | Phase 8 (Retro) | Single agent | Single agent | Reflection is serial |
 
 **Detection**: Check if TeamCreate is available (tool inventory). If yes, use team mode for
-Phases 1, 2, and 4. If not, fall back to subagents. Both paths produce the same committed
+Phases 1, 2, and 4b. If not, fall back to subagents. Both paths produce the same committed
 artifacts — the handoff contract is identical regardless of mode.
 
 **Materialization in team mode**: Team agents MUST write findings to files (not just
