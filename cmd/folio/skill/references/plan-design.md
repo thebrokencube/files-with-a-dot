@@ -79,6 +79,14 @@ Launch propose agents in parallel, each with the same context summary but a diff
 
 **Use team mode when**: The task spans multiple independent concerns that benefit from dedicated deep-dive focus — architecture + migration feasibility + evolvability, or performance + correctness + UX. Each lens should represent a genuinely different evaluation axis, not just "more thorough." The user can request team mode or custom lenses naturally in the topic text (e.g., "go nuts with agent teams").
 
+**Recommended lens: devil's advocate.** When running 3+ agents in team mode, include a
+devil's advocate agent that argues against the proposed approach. Its job is to find the
+strongest counterarguments, identify simpler alternatives, and challenge whether the full
+scope is warranted. This lens consistently prevents over-engineering — it forces the
+convergence agent to address objections rather than rubber-stamp consensus. The devil's
+advocate prompt should explicitly instruct the agent to be genuinely adversarial, not to
+strawman and concede.
+
 ### Team Mode Protocol
 
 When using team mode, each agent follows a standard protocol:
@@ -395,9 +403,9 @@ composition, lens selection, convergence quality, context management.
 Write a handoff document to `/tmp/handoff-{topic}.md`. This is the single source of truth
 for the next session — whether that's the next phase or another planning round.
 
-**Progressive disclosure**: The handoff is structured in layers. A new session that knows
-what to do reads 10 lines. A session that needs to understand *why* reads deeper. Action
-first, context second, history last.
+**Progressive disclosure** (see `references/progressive-disclosure.md`): The handoff is
+structured in layers. A new session that knows what to do reads 10 lines. A session that
+needs to understand *why* reads deeper. Action first, context second, history last.
 
 **Layer 1 — TL;DR + Start Here (always read)**
 

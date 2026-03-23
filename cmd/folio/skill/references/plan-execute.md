@@ -119,6 +119,9 @@ Commit via `folio home push`.
 
 **Handoff validation (mandatory if work continues)**: If handing off to another session,
 spawn a fresh subagent with ONLY the handoff doc + work plan (no conversation context).
-The subagent reports ambiguities. Fix before session ends. Include skill invocations in the
-handoff (e.g., `/folio status --folio <path>`, `/commit`) so the next session loads the
-right context without having to discover it.
+The subagent reports ambiguities. Fix before session ends.
+
+**Handoff structure follows progressive disclosure** (see `references/progressive-disclosure.md`):
+action first (TL;DR + Start Here prompt), context second (open questions, key decisions, exit
+criteria). Include skill invocations in the Start Here block (e.g., `/folio status --folio
+<path>`, `/commit`) so the next session loads the right context without having to discover it.

@@ -67,7 +67,13 @@ criteria progress (which items checked off). If 3 rounds haven't converged, esca
 with explicit options: (a) accept current state, (b) narrow scope, (c) spike on blocking
 question.
 
-Handoff docs are the connective tissue. They MUST be complete enough that a fresh session can pick up without reading conversation history. See plan-design.md Session Exit for the mandatory handoff template.
+Handoff docs are the connective tissue. They MUST be complete enough that a fresh session
+can pick up without reading conversation history. See plan-design.md Session Exit for the
+mandatory handoff template.
+
+**Progressive disclosure applies to all handoffs** — action first, context second, history
+last. See `references/progressive-disclosure.md` for the canonical definition. Every handoff
+artifact (session handoff docs, execution briefs, handoff prompts) follows this structure.
 
 ## Invocation
 

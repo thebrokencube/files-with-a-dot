@@ -35,6 +35,12 @@ execution agent reads only the brief, not the design doc or conversation history
 below, in order. Archived briefs that predate this structure are NOT precedent — this spec
 supersedes them. Build & Deploy is a standalone section, not merged into Execution Conventions.
 
+**Progressive disclosure structure.** Briefs follow the two-layer layout defined in
+`references/progressive-disclosure.md`: action layer (track instructions, top) and reference
+layer (Key Reference sections, bottom). The action layer should be self-sufficient for
+mechanical steps. If a track step can't be executed without a Key Reference, the track
+instruction is underspecified — add more inline detail.
+
 Every brief has six required sections, in order:
 
 #### Context section (required)
@@ -117,6 +123,12 @@ Execution agents should maintain folio state as they go — not as a final clean
 
 Copy-pasteable prompts for starting execution sessions. One prompt per independent
 session (often one per track, but coupled tracks share a session).
+
+**Structure follows progressive disclosure** — action first, context second:
+1. **Action block** (top): what to execute, which brief to read, which track(s). The
+   execution agent can start from this alone.
+2. **Context block** (below): skill invocations, build/test commands, folio checkpoints.
+   Provides setup the agent needs but wouldn't know to request.
 
 Each prompt must:
 - Point to the committed brief as the primary input
