@@ -376,12 +376,12 @@ Launch 1 agent (subagent_type: general-purpose, model: opus) to review the desig
 
 Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
 
-Loop: fix issues in the design doc, re-run review. Cap at 3 iterations — if issues persist
-after 3 rounds, present remaining issues to the user for judgment.
+Loop: fix issues in the design doc, re-run review. Cap at 5 iterations — if issues persist
+after 5 rounds, present remaining issues to the user for judgment.
 
 ### Review Gate Checklist (must pass before commit)
 
-- [ ] Review agent returned zero issues, OR 3 iterations completed AND user judged remaining issues
+- [ ] Review agent returned zero issues, OR 5 iterations completed AND user judged remaining issues
 - [ ] All review fixes applied to the design doc (not just noted)
 
 **After the review gate passes:**
@@ -412,6 +412,10 @@ You are reviewing a design document. Your job is to find problems before the des
 ## Design Doc Path
 {design_doc_path}
 
+## Prior Issues (verify these are resolved)
+{If round > 1: list of issues from previous review round}
+{If round 1: "This is the first review round. No prior issues."}
+
 ## Instructions
 Read the design doc at the path above. Review it against the actual codebase:
 
@@ -419,8 +423,11 @@ Read the design doc at the path above. Review it against the actual codebase:
 2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
 3. **Scope**: Is everything necessary? Meta-review: should any part of this design NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
 4. **Completeness**: Are any architectural decisions or interface contracts missing? Could an execution agent implement from this doc alone?
+Do not flag issues that linters, formatters, or test suites would catch — those are handled by deterministic tools.
 
-For each issue found, state: what's wrong, where in the design doc, and a concrete fix.
+Report in two sections:
+1. **Prior fix verification**: For each prior issue, state RESOLVED or STILL PRESENT with evidence.
+2. **New findings**: Issues not in the prior list. For each: what's wrong, where, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues — don't nitpick style or add suggestions beyond the task scope.
 ```
 

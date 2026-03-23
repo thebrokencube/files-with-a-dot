@@ -51,13 +51,13 @@ For each track step after the spike, execute:
    confusion — fix them in the same commit or as a follow-up commit in the same track.
 5. **Review — hard gate.** Launch 1 review agent (subagent_type: general-purpose,
    model: "opus") covering accuracy, scope, and code quality. If the review returns issues,
-   fix them and re-dispatch the review agent. Loop until zero issues. Cap at 3 iterations —
+   fix them and re-dispatch the review agent. Loop until zero issues. Cap at 5 iterations —
    if still failing, escalate to the user. Do NOT run `git commit` until the review passes
    clean.
 6. **Commit checklist (ALL must pass):**
    - [ ] Tests pass (step 2)
    - [ ] Validation commands pass (step 4)
-   - [ ] Review returned zero issues (step 5, cap 3 iterations)
+   - [ ] Review returned zero issues (step 5, cap 5 iterations)
    - [ ] Content extraction checked (step 3, if applicable)
    One logical unit per commit.
 7. **Repeat** from step 1 for the next step.
@@ -78,6 +78,10 @@ You are reviewing code changes before a commit. Your job is to catch implementat
 ## Changes to Review
 {change_description}
 
+## Prior Issues (verify these are resolved)
+{If round > 1: list of issues from previous review round}
+{If round 1: "This is the first review round. No prior issues."}
+
 ## Review Checklist
 1. **Accuracy**: Verify changes match the work brief. Check for typos, stale references,
    incorrect file paths, broken imports, wrong function signatures. Read the actual files.
@@ -85,8 +89,11 @@ You are reviewing code changes before a commit. Your job is to catch implementat
    unnecessary abstractions, or missing pieces. Verify the commit bundles one logical unit.
 3. **Code quality**: Check for bugs, edge cases, error handling gaps, and style issues.
    Flag anything that would fail review on a real PR.
+Do not flag issues that linters, formatters, or test suites would catch — those are handled by deterministic tools.
 
-For each issue: what's wrong, where, and a concrete fix.
+Report in two sections:
+1. **Prior fix verification**: For each prior issue, state RESOLVED or STILL PRESENT with evidence.
+2. **New findings**: Issues not in the prior list. For each: what's wrong, where, and a concrete fix.
 Keep your review under 40 lines. Only flag real issues.
 ```
 

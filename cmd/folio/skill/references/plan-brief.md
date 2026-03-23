@@ -165,7 +165,7 @@ Dispatch 1 review agent (subagent_type: general-purpose, model: "sonnet") to rev
 For multi-track plans, use multi-persona review (3-4 agents with different perspectives:
 accuracy, scope, completeness, executability). Single-track plans use 1 agent.
 
-If issues found, fix and re-review. Loop until clean (cap 3 iterations).
+If issues found, fix and re-review. Loop until clean (cap 5 iterations).
 
 ## Session Exit (mandatory)
 
