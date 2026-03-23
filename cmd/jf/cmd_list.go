@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/forest"
-	"jf/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/output"
 	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
@@ -15,6 +15,7 @@ func runList(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

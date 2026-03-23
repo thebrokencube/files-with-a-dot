@@ -105,7 +105,7 @@ func runJiraCreate(args []string) int {
 	} else if touched > 0 {
 		fmt.Printf("  Auto-touched %d output(s)\n", touched)
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func runJiraView(args []string) int {
@@ -132,7 +132,7 @@ func runJiraView(args []string) int {
 	}
 
 	fmt.Print(string(out))
-	return 0
+	return dendrik.ExitOK
 }
 
 func runJiraSearch(args []string) int {
@@ -159,7 +159,7 @@ func runJiraSearch(args []string) int {
 	}
 
 	fmt.Print(string(out))
-	return 0
+	return dendrik.ExitOK
 }
 
 // runJf delegates to the jf binary with stdout/stderr passthrough.
@@ -174,7 +174,7 @@ func runJf(args ...string) int {
 		fmt.Fprintf(os.Stderr, "jf: %s\n", err)
 		return dendrik.ExitExternalErr
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 // autoTouch finds the folio.yml containing sourcePath, locates the target

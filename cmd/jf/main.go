@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/setup"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/setup"
 	"os"
 )
 

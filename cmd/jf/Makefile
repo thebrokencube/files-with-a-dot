@@ -1,5 +1,5 @@
 BINARY    := jf
-GOFILES   := $(shell find . -name '*.go')
+GOFILES   := $(shell find . ../../pkg/dendrik -name '*.go')
 GO        := go
 
 .PHONY: build test vet fmt check bundle clean

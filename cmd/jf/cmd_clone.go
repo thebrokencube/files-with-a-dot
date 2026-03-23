@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"jf/internal/pipeline"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,6 +19,7 @@ func runClone(args []string) int {
 	syncMode := fs.StringLong("sync", "both", "Sync direction for scaffolded nodes: push|pull|both")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

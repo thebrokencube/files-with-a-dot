@@ -29,7 +29,7 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 
 Most commands accept `--json` for structured output.
 
-**Flag ordering**: All `jf` commands require flags before positional arguments. `jf push --dir /tmp KEY FILE` works; `jf push KEY FILE --dir /tmp` errors.
+**Flag ordering**: Flags can appear before or after positional arguments. Both `jf push --dir /tmp KEY FILE` and `jf push KEY FILE --dir /tmp` work.
 
 ## Level Detection
 

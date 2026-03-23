@@ -112,7 +112,7 @@ func runNew(args []string) int {
 		if !*noRegister {
 			fmt.Printf("  Would add source entry to folio.yml\n")
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Validate folio.yml parses before modifying
@@ -149,7 +149,7 @@ func runNew(args []string) int {
 	if !*noRegister {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func runNewRound(topic, folioPath string, dryRun bool) int {
@@ -182,7 +182,7 @@ func runNewRound(topic, folioPath string, dryRun bool) int {
 
 	if dryRun {
 		fmt.Printf("Would create: %s\n", relPath)
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if err := os.MkdirAll(roundDir, 0755); err != nil {
@@ -191,7 +191,7 @@ func runNewRound(topic, folioPath string, dryRun bool) int {
 	}
 
 	fmt.Println(output.Successf("Created %s", relPath))
-	return 0
+	return dendrik.ExitOK
 }
 
 var validVaultLabels = map[string]bool{
@@ -227,7 +227,7 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 	if dryRun {
 		fmt.Printf("Would create: vault/%s/%s\n", label, filename)
 		fmt.Printf("  No folio.yml registration (vault has no manifest)\n")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
@@ -243,7 +243,7 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 	}
 
 	fmt.Println(output.Successf("Created vault/%s/%s", label, filename))
-	return 0
+	return dendrik.ExitOK
 }
 
 // appendNewSource adds a path source entry to folio.yml.

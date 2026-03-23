@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -20,17 +19,20 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func mustResolveHome() string {
+func resolveHomeOrFail() (string, int) {
 	dir, err := home.Dir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		os.Exit(1)
+		return "", dendrik.ExitUserError
 	}
-	return dir
+	return dir, dendrik.ExitOK
 }
 
 func runHomeInit(args []string) int {
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	if err := home.Init(dir); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
@@ -38,7 +40,7 @@ func runHomeInit(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Initialized FOLIO_HOME at %s", dir))
-	return 0
+	return dendrik.ExitOK
 }
 
 func runHomeValidate(args []string) int {
@@ -50,7 +52,10 @@ func runHomeValidate(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	errs := home.Validate(dir)
 
@@ -60,7 +65,7 @@ func runHomeValidate(args []string) int {
 		} else {
 			fmt.Printf("FOLIO_HOME structure is valid (%s)\n", dir)
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if color {
@@ -84,24 +89,29 @@ func runHomeList(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	entries, err := list.Scan(dir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		}
 		return dendrik.ExitUserError
 	}
 
 	if *jsonMode {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		enc.Encode(entries)
-		return 0
+		dendrik.WriteResult(os.Stdout, entries)
+		return dendrik.ExitOK
 	}
 
 	if len(entries) == 0 {
 		fmt.Println("No folios found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Group by section
@@ -129,7 +139,7 @@ func runHomeList(args []string) int {
 		printEntryTable(archived, color)
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func filterEntries(entries []list.Entry, section string) []list.Entry {
@@ -197,7 +207,10 @@ func runHomePush(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	// Validate all active folio.yml files before committing
 	if errs := validateActiveProjects(dir); len(errs) > 0 {
@@ -234,7 +247,7 @@ func runHomePush(args []string) int {
 	if pushErr != nil {
 		if errors.Is(pushErr, repo.ErrNothingToCommit) {
 			fmt.Println("Nothing to commit (working tree clean)")
-			return 0
+			return dendrik.ExitOK
 		}
 		if errors.Is(pushErr, repo.ErrInvalidCommitMessage) {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
@@ -245,11 +258,14 @@ func runHomePush(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Committed and pushed"))
-	return 0
+	return dendrik.ExitOK
 }
 
 func runHomePull(args []string) int {
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	if err := repo.Pull(dir); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
@@ -257,7 +273,7 @@ func runHomePull(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Pulled latest"))
-	return 0
+	return dendrik.ExitOK
 }
 
 func runHomeArchive(args []string) int {
@@ -267,7 +283,10 @@ func runHomeArchive(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 	relPath := args[0]
 
 	if err := move.Archive(dir, relPath); err != nil {
@@ -276,7 +295,7 @@ func runHomeArchive(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Archived active/%s", relPath))
-	return 0
+	return dendrik.ExitOK
 }
 
 func runHomeActivate(args []string) int {
@@ -286,7 +305,10 @@ func runHomeActivate(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	dir := mustResolveHome()
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 	relPath := args[0]
 
 	if err := move.Activate(dir, relPath); err != nil {
@@ -295,7 +317,7 @@ func runHomeActivate(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Activated archive/%s", relPath))
-	return 0
+	return dendrik.ExitOK
 }
 
 // validateActiveProjects loads and validates every folio.yml in active/.

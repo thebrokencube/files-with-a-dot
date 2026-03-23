@@ -30,8 +30,7 @@ func runValidate(args []string) int {
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		if *jsonMode {
-			fmt.Printf(`{"valid":false,"errors":["folio.yml not found at %s"],"warnings":[]}`, *folioPath)
-			fmt.Println()
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
 		} else {
 			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
 		}
@@ -41,7 +40,7 @@ func runValidate(args []string) int {
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		if *jsonMode {
-			fmt.Println(`{"valid":false,"errors":["folio.yml is not valid YAML"],"warnings":[]}`)
+			dendrik.WriteError(os.Stdout, "folio.yml is not valid YAML", "")
 		} else {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		}
@@ -60,7 +59,7 @@ func runValidate(args []string) int {
 	if !result.Valid {
 		return dendrik.ExitExternalErr
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func runStatus(args []string) int {
@@ -80,13 +79,21 @@ func runStatus(args []string) int {
 	color := dendrik.ColorEnabled(*noColor)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		}
 		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		}
 		return dendrik.ExitUserError
 	}
 
@@ -99,7 +106,7 @@ func runStatus(args []string) int {
 		output.PrintStatusTerminal(os.Stdout, ps, causedBy, color)
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func runInit(args []string) int {
@@ -136,5 +143,5 @@ observations: []
 	}
 
 	fmt.Println(output.Successf("Created folio.yml for %s%s%s", output.Bold, *name, output.Reset))
-	return 0
+	return dendrik.ExitOK
 }

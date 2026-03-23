@@ -83,5 +83,5 @@ func runPbcopy(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Copied %s to clipboard (%d bytes)", outputPath, len(data)))
-	return 0
+	return dendrik.ExitOK
 }

@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"jf/internal/forest"
-	"jf/internal/pipeline"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +20,7 @@ func runPull(args []string) int {
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be pulled without side effects")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

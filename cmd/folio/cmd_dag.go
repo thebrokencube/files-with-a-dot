@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -47,18 +46,30 @@ func runDag(args []string) int {
 	}
 
 	if *statusFlag && !*branches {
-		fmt.Fprintln(os.Stderr, output.Errf("--status requires --branches"))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, "--status requires --branches", "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("--status requires --branches"))
+		}
 		return dendrik.ExitUserError
 	}
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		}
 		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		}
 		return dendrik.ExitUserError
 	}
 
@@ -76,7 +87,7 @@ func runDag(args []string) int {
 		} else {
 			output.PrintBranchDAGFromTopology(os.Stdout, bt, !*noColor, *statusFlag)
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	outputMap := graph.BuildOutputMap(f)
@@ -116,16 +127,10 @@ func runDag(args []string) int {
 		if dj.Edges == nil {
 			dj.Edges = []dagEdge{}
 		}
-		data, err := json.Marshal(dj)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, `{"error":"json marshal error: %s"}`, err)
-			fmt.Fprintln(os.Stderr)
-			return dendrik.ExitUserError
-		}
-		fmt.Println(string(data))
+		dendrik.WriteResult(os.Stdout, dj)
 	} else {
 		output.PrintDAGTerminal(os.Stdout, f.Targets, merged, allTargets, !*noColor)
 	}
 
-	return 0
+	return dendrik.ExitOK
 }

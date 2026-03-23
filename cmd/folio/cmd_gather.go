@@ -117,7 +117,7 @@ func runGather(args []string) int {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 // deriveNameFromURL extracts a reasonable file name from a URL.

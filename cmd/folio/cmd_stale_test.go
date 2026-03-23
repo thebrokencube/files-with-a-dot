@@ -160,17 +160,20 @@ targets:
 		t.Errorf("expected exit code 1, got %d", code)
 	}
 
-	var sj struct {
-		Stale []struct {
-			ID      string   `json:"id"`
-			Status  string   `json:"status"`
-			Outputs []string `json:"outputs"`
-			Cause   string   `json:"cause"`
-		} `json:"stale"`
+	var env struct {
+		Data struct {
+			Stale []struct {
+				ID      string   `json:"id"`
+				Status  string   `json:"status"`
+				Outputs []string `json:"outputs"`
+				Cause   string   `json:"cause"`
+			} `json:"stale"`
+		} `json:"data"`
 	}
-	if err := json.Unmarshal(buf.Bytes(), &sj); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
+	sj := env.Data
 	if len(sj.Stale) != 1 {
 		t.Fatalf("expected 1 stale entry, got %d", len(sj.Stale))
 	}
@@ -226,20 +229,23 @@ targets:
 		t.Errorf("expected exit code 1, got %d", code)
 	}
 
-	var sj struct {
-		Stale []struct {
-			ID     string `json:"id"`
-			Branch string `json:"branch"`
-		} `json:"stale"`
+	var env2 struct {
+		Data struct {
+			Stale []struct {
+				ID     string `json:"id"`
+				Branch string `json:"branch"`
+			} `json:"stale"`
+		} `json:"data"`
 	}
-	if err := json.Unmarshal(buf.Bytes(), &sj); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &env2); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
-	if len(sj.Stale) != 1 {
-		t.Fatalf("expected 1 stale entry, got %d", len(sj.Stale))
+	sj2 := env2.Data
+	if len(sj2.Stale) != 1 {
+		t.Fatalf("expected 1 stale entry, got %d", len(sj2.Stale))
 	}
-	if sj.Stale[0].Branch != "feat-my-branch" {
-		t.Errorf("branch = %q, want feat-my-branch", sj.Stale[0].Branch)
+	if sj2.Stale[0].Branch != "feat-my-branch" {
+		t.Errorf("branch = %q, want feat-my-branch", sj2.Stale[0].Branch)
 	}
 }
 

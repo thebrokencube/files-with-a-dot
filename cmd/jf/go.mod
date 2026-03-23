@@ -1,4 +1,4 @@
-module jf
+module github.com/thebrokencube/files-with-a-dot/cmd/jf
 
 go 1.25.0
 

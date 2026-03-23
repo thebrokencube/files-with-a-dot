@@ -39,7 +39,7 @@ func runHealth(args []string) int {
 	report := health.Analyze(f, folioDir)
 	printHealthReport(report, color)
 
-	return 0 // always exit 0 (advisory)
+	return dendrik.ExitOK // always exit 0 (advisory)
 }
 
 func runHomeHealth(args []string) int {
@@ -51,7 +51,10 @@ func runHomeHealth(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
-	homeDir := mustResolveHome()
+	homeDir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
 
 	entries, err := list.Scan(homeDir)
 	if err != nil {
@@ -62,7 +65,7 @@ func runHomeHealth(args []string) int {
 	active := filterEntries(entries, "active")
 	if len(active) == 0 {
 		fmt.Println("No active folios found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	for i, entry := range active {
@@ -80,7 +83,7 @@ func runHomeHealth(args []string) int {
 		}
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func printHealthReport(r *health.Report, color bool) {

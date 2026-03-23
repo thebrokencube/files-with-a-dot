@@ -22,6 +22,7 @@ func runInit(args []string) int {
 	dir := fs.String('d', "dir", ".", "Directory to create forest.yml in")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

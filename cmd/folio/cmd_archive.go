@@ -67,7 +67,7 @@ func runArchive(args []string) int {
 	if *dryRun {
 		fmt.Printf("Would move: %s → %s\n", activeDir, archiveDir)
 		fmt.Printf("Would rewrite %d path reference(s) in folio.yml\n", count)
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Ensure archive parent directory exists
@@ -123,7 +123,7 @@ func runArchive(args []string) int {
 		rel, err := filepath.Rel(homeDir, folioDir)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			fmt.Fprintln(os.Stderr, output.Errf("folio directory %s is outside FOLIO_HOME %s — skipping auto-push", folioDir, homeDir))
-			return 0
+			return dendrik.ExitOK
 		}
 		msg := fmt.Sprintf("chore(archive): archive %s", trackName)
 		if pushErr := repo.PushScoped(homeDir, msg, []string{rel}); pushErr != nil {
@@ -133,7 +133,7 @@ func runArchive(args []string) int {
 		fmt.Println("Committed and pushed.")
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func rewritePaths(raw []byte, oldPrefix, newPrefix string) ([]byte, int) {

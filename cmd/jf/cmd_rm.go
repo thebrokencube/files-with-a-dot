@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"os"
 	"path/filepath"
 
@@ -14,6 +14,7 @@ func runRm(args []string) int {
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

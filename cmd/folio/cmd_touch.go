@@ -56,5 +56,5 @@ func runTouch(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Touched %d output(s) for %s", touched, targetID))
-	return 0
+	return dendrik.ExitOK
 }

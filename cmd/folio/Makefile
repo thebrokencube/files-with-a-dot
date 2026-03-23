@@ -1,5 +1,5 @@
 BINARY    := folio
-GOFILES   := $(shell find . -name '*.go')
+GOFILES   := $(shell find . ../../pkg/dendrik -name '*.go')
 GO        := go
 
 .PHONY: build test lint fmt vet check install clean

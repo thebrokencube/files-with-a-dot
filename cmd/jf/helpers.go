@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"

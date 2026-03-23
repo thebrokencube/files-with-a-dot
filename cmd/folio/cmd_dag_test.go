@@ -123,10 +123,11 @@ targets:
 		t.Errorf("expected exit code 0 for JSON mode, got %d", code)
 	}
 
-	var dj dagJSON
-	if err := json.Unmarshal(buf.Bytes(), &dj); err != nil {
+	var env struct{ Data dagJSON `json:"data"` }
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}
+	dj := env.Data
 
 	if len(dj.Nodes) != 2 {
 		t.Errorf("expected 2 nodes, got %d", len(dj.Nodes))
@@ -248,25 +249,28 @@ targets:
 		t.Errorf("expected exit code 0 for --branches --json, got %d", code)
 	}
 
-	var bt struct {
-		Roots []struct {
-			Base     string `json:"base"`
-			Children []struct {
-				ID       string `json:"id"`
-				Branch   string `json:"branch"`
+	var env struct {
+		Data struct {
+			Roots []struct {
 				Base     string `json:"base"`
-				PR       string `json:"pr"`
 				Children []struct {
-					ID     string `json:"id"`
-					Branch string `json:"branch"`
-					Base   string `json:"base"`
+					ID       string `json:"id"`
+					Branch   string `json:"branch"`
+					Base     string `json:"base"`
+					PR       string `json:"pr"`
+					Children []struct {
+						ID     string `json:"id"`
+						Branch string `json:"branch"`
+						Base   string `json:"base"`
+					} `json:"children"`
 				} `json:"children"`
-			} `json:"children"`
-		} `json:"roots"`
+			} `json:"roots"`
+		} `json:"data"`
 	}
-	if err := json.Unmarshal(buf.Bytes(), &bt); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
 		t.Fatalf("failed to parse JSON: %v\noutput: %s", err, buf.String())
 	}
+	bt := env.Data
 	if len(bt.Roots) != 1 {
 		t.Fatalf("expected 1 root, got %d", len(bt.Roots))
 	}

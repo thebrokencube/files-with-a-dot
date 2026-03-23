@@ -1,7 +1,7 @@
 package main
 
 import (
-	"jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"os"
 	"path/filepath"
 	"testing"

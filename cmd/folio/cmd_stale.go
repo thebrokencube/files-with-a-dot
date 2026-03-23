@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,13 +27,21 @@ func runStale(args []string) int {
 	}
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+		}
 		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		}
 		return dendrik.ExitUserError
 	}
 
@@ -101,15 +108,9 @@ func runStale(args []string) int {
 		if entries == nil {
 			entries = []output.StaleEntry{}
 		}
-		data, err := json.Marshal(struct {
+		dendrik.WriteResult(os.Stdout, struct {
 			Stale []output.StaleEntry `json:"stale"`
 		}{Stale: entries})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, `{"error":"json marshal error: %s"}`, err)
-			fmt.Fprintln(os.Stderr)
-			return dendrik.ExitUserError
-		}
-		fmt.Println(string(data))
 	} else {
 		output.PrintStaleTerminal(os.Stdout, entries, !*noColor)
 	}
@@ -117,5 +118,5 @@ func runStale(args []string) int {
 	if len(entries) > 0 {
 		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }

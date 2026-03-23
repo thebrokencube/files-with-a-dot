@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"jf/internal/setup"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/setup"
 	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
@@ -15,6 +15,7 @@ func runSetup(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output as JSON (with --check)")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

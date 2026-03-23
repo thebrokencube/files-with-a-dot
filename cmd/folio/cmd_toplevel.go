@@ -25,5 +25,5 @@ func runSetup(args []string) int {
 		fmt.Println(output.Successf("folio %s (%s)", version, folioBin))
 		fmt.Printf("\n%s%sAll dependencies satisfied.%s\n", output.Green, output.Bold, output.Reset)
 	}
-	return 0
+	return dendrik.ExitOK
 }

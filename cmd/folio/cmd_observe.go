@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,7 +62,7 @@ func runObserveAppend(args []string) int {
 	}
 
 	fmt.Println(output.Successf("Added: %s", item))
-	return 0
+	return dendrik.ExitOK
 }
 
 type listEntry struct {
@@ -93,7 +92,11 @@ func runObserveList(args []string) int {
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		if *jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
+		} else {
+			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		}
 		return dendrik.ExitUserError
 	}
 
@@ -120,18 +123,16 @@ func runObserveList(args []string) int {
 	}
 
 	if *jsonMode {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
 		if entries == nil {
 			entries = []listEntry{}
 		}
-		enc.Encode(entries)
-		return 0
+		dendrik.WriteResult(os.Stdout, entries)
+		return dendrik.ExitOK
 	}
 
 	if len(entries) == 0 {
 		fmt.Println("No observations.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Group by scope
@@ -155,7 +156,7 @@ func runObserveList(args []string) int {
 		}
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func runObserveResolve(args []string) int {
@@ -185,7 +186,7 @@ func runObserveResolve(args []string) int {
 	for _, item := range removed {
 		fmt.Println(output.Successf("Resolved: %s", item))
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func runObserveTypes(args []string) int {
@@ -193,7 +194,7 @@ func runObserveTypes(args []string) int {
 	for _, t := range types {
 		fmt.Printf("  %-6s %s\n", t.Name, t.Description)
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func runObserveLint(args []string) int {
@@ -219,7 +220,7 @@ func runObserveLint(args []string) int {
 
 	if len(issues) == 0 {
 		fmt.Println(output.Successf("All observations valid"))
-		return 0
+		return dendrik.ExitOK
 	}
 
 	for _, issue := range issues {

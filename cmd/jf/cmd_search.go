@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/pipeline"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"strings"
 
@@ -17,6 +17,7 @@ func runSearch(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output raw JSON from Jira")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 

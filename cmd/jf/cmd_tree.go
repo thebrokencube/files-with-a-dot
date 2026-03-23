@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"jf/internal/forest"
-	"jf/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/output"
 	"os"
 	"strings"
 
@@ -17,6 +17,7 @@ func runTree(args []string) int {
 	verbose := fs.Bool('v', "verbose", "Show sync direction and file paths")
 
 	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 
