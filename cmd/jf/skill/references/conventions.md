@@ -7,8 +7,19 @@ Standards for ticket structure, naming, and content. These are opinionated conve
 Encode hierarchy in the summary field:
 
 - **Tasks/Stories**: `type(scope): description` — e.g., `feat(resolver): add fallback heuristic`
-- **Epics**: `[PREFIX] Name` — e.g., `[AUTH] Login Hardening`
+- **Epics**: `[PREFIX/Bucket] Name` — e.g., `[AUTH/Infra] Login Hardening`
+- **Project Names (buckets)**: `[PREFIX] Name` — e.g., `[AUTH] Infrastructure`
 - **Initiatives**: Plain name — e.g., `Platform Reliability`
+
+### Hierarchical Tags
+
+Use hierarchical path tags as a leading prefix to encode ancestry:
+
+- **Bucket under initiative**: `[PREFIX] Name`
+- **Epic under bucket**: `[PREFIX/Bucket] Name`
+- **Deeper nesting**: extend the path — `[PREFIX/Bucket/Sub] Name`
+
+Tags are always leading (prefix position), never trailing or backtick-wrapped. The tag encodes the parent path so tickets are scannable in flat Jira views (boards, JQL results) without needing to navigate the hierarchy.
 
 ## Description Structure
 
