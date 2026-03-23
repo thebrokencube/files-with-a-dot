@@ -61,6 +61,12 @@ Each session produces a handoff document (see plan-design.md Session Exit) that 
 
 **Key principle**: Each round should deepen specific areas, not repeat broad exploration. If round 1 produced a strong architecture but weak migration plan, round 2 focuses agent teams on migration feasibility — don't re-derive the architecture.
 
+**Convergence tracking**: Each round's handoff doc MUST include a "Convergence Status"
+section: what's settled (don't revisit), what's weak (next round's focus), and exit
+criteria progress (which items checked off). If 3 rounds haven't converged, escalate to user
+with explicit options: (a) accept current state, (b) narrow scope, (c) spike on blocking
+question.
+
 Handoff docs are the connective tissue. They MUST be complete enough that a fresh session can pick up without reading conversation history. See plan-design.md Session Exit for the mandatory handoff template.
 
 ## Invocation
@@ -97,6 +103,28 @@ inline — re-run the producing agent.
 the amendment, (2) get explicit approval, (3) edit the design doc, (4) re-run Phase 4 review
 only, (5) commit. Use only when additive — if it contradicts existing decisions, re-run from
 Phase 2.
+
+## Agent Routing
+
+Use the strongest available agent mode per phase, with graceful degradation:
+
+| Phase | Preferred mode | Fallback mode | Rationale |
+|-------|---------------|---------------|-----------|
+| Phase 1 (Research) | Agent team (parallel explorers) | Sequential subagents | Breadth matters; parallel exploration finds more |
+| Phase 2 (Propose) | Agent team (parallel lenses) | 2 sequential subagents | Divergence benefits from independence |
+| Phase 3 (Converge) | Single agent | Single agent | Convergence is inherently serial |
+| Phase 4 (Review) | Agent team (multi-persona) | 1 opus subagent | Multiple perspectives catch more |
+| Phase 5-6 (Brief) | Single agent | Single agent | Serial work, no parallelism benefit |
+| Phase 7 (Execute) | Single agent per track | Single agent per track | Execution is focused, bounded |
+| Phase 8 (Retro) | Single agent | Single agent | Reflection is serial |
+
+**Detection**: Check if TeamCreate is available (tool inventory). If yes, use team mode for
+Phases 1, 2, and 4. If not, fall back to subagents. Both paths produce the same committed
+artifacts — the handoff contract is identical regardless of mode.
+
+**Materialization in team mode**: Team agents MUST write findings to files (not just
+conversation memory). The convergence agent reads files, not conversation. This protects
+against context compaction in long sessions.
 
 ## Phase References
 

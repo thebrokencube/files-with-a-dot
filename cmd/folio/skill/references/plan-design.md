@@ -35,7 +35,11 @@ Gather context before spawning any agents. This happens in the main conversation
    are not hard constraints.
 10. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
     exists, what needs to change, key trade-offs, and relevant folio context (if any)
-11. **Framing gate (hard):** Present the conceptual model — how the pieces fit together,
+11. **Source coverage check**: Before spawning propose agents, verify the problem space is
+    understood. If the topic involves a domain the agent has not spiked on, STOP and suggest
+    `/folio gather` first. Evidence of sufficient gathering: at least one spike or research
+    reference in folio.yml sources for each key domain the task touches.
+12. **Framing gate (hard):** Present the conceptual model — how the pieces fit together,
     what changes, what stays — to the user. Wait for confirmation before spawning propose
     agents. This catches misalignment before diverge-converge, not after.
 
@@ -69,12 +73,39 @@ When using team mode, each agent follows a standard protocol:
 
 1. **Read shared context** — the context summary plus any files listed as required reading
 2. **Explore** — read actual source code, fetch external docs, examine real files. Produce concrete findings, not summaries of summaries.
-3. **Materialize to file** — write findings to a temp file (e.g., `/tmp/{team}-{lens}.md`) before reporting back. This is mandatory — agent memory is ephemeral, files survive context compaction.
+3. **Materialize to file** — write findings to `agent-research/{NNNN}-round/{lens-slug}.md`
+   inside the work directory. The round directory is created when the team spins up (see
+   Round Directory below). This is mandatory — agent memory is ephemeral, files survive
+   context compaction and session boundaries.
 4. **Signal done** — report completion with file path and 3-5 line summary of key findings
 
 The convergence agent (Phase 3) reads all materialized files, not conversation summaries.
+It writes its output to `converged.md` in the same round directory.
 
-**Why materialize**: Long sessions compact context. If an agent's findings only exist in conversation history, they can be lost or degraded. Files are durable. Write early, write often.
+### Round Directory
+
+Each diverge-converge cycle gets a numbered round directory inside `agent-research/`:
+
+```
+agent-research/
+  0001-round/
+    pragmatic.md
+    thorough.md
+    converged.md
+  0002-round/
+    migration-feasibility.md
+    performance.md
+    converged.md
+```
+
+**Create the round directory when spinning up the agent team** — before dispatching propose
+agents. To determine the next number: list existing `agent-research/????-round/` directories,
+increment. First round is `0001-round`. If the work dir doesn't exist yet (design creates it
+in Phase 4), create `agent-research/` under the work dir path that `folio new design` will
+use — the directory can exist before the design doc is scaffolded.
+
+Previous rounds stay intact for reference. The design doc's provenance section should note
+which round produced the final convergence.
 
 ### Model Routing
 
@@ -139,7 +170,7 @@ You are a research/design agent on a team exploring: {task_description}
 ## Protocol
 1. Read all required files first for shared context
 2. Explore the codebase through your lens — read actual source code, not just descriptions
-3. Write your findings to: /tmp/{team_name}-{lens_slug}.md
+3. Write your findings to: {round_dir}/{lens_slug}.md
 4. Your file MUST include:
    - Concrete findings with file paths and line references
    - Specific recommendations (not "consider X" — say "do X because Y")
@@ -174,11 +205,16 @@ Convergence criteria:
   must state which proposal wins and why. If a prior design doc or user constraint exists,
   it is authoritative over agent proposals.
 
+**Knowledge gap feedback loop**: If propose agents identify knowledge gaps (unknown
+constraints, unverified assumptions, missing domain context), STOP the converge phase.
+Record the gaps as observations (`folio observe`). Suggest `/folio gather` for each gap.
+Resume planning in a new session after gathering. Do not paper over gaps with assumptions.
+
 After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
-**Team mode materialization**: The converge agent MUST write its output to a file (e.g.,
-`/tmp/{team_name}-converged.md`) in addition to returning it. This protects against context
-compaction in long sessions.
+**Team mode materialization**: The converge agent MUST write its output to
+`{round_dir}/converged.md` in addition to returning it. This protects against context
+compaction in long sessions and preserves the convergence artifact for future reference.
 
 ### Converge Agent Prompt (Standard Mode)
 
@@ -235,7 +271,7 @@ Synthesize into a single unified plan:
 - Implementation order with dependencies
 - Pre-decide key signatures, types, and architectural decisions
 
-Write your output to: /tmp/{team_name}-converged.md
+Write your output to: {round_dir}/converged.md
 Also return a 5-10 line summary of key decisions made.
 ```
 
@@ -347,7 +383,8 @@ for the next session — whether that's the next phase or another planning round
      conditions that mean we're done planning]."
 7. **How to Start** — a copy-paste prompt block the user can paste into a new session.
    Should be self-contained — the new session reads this handoff + the artifacts, not
-   conversation history.
+   conversation history. Include skill invocations to run at session start (e.g.,
+   `/folio status --folio <path>`, `/commit`) so the new session loads the right context.
 8. **Temp Files** — list any /tmp files that can be cleaned up vs. ones that are still needed
 
 **Checklist before writing the handoff** (prevents forgetting things):
@@ -358,7 +395,13 @@ for the next session — whether that's the next phase or another planning round
 - [ ] Exit criteria for planning stated (if iterating)?
 - [ ] Folio project path and commands included?
 
-### Step 4: Clipboard Delivery
+### Step 4: Handoff Validation (mandatory)
+
+Spawn a fresh subagent with ONLY the handoff doc + design doc (no conversation context).
+The subagent reports ambiguities — anything that requires context the handoff doesn't
+provide. Fix ambiguities before session ends. Commit updated handoff via `folio home push`.
+
+### Step 5: Clipboard Delivery
 
 ```bash
 cat /tmp/handoff-{topic}.md | pbcopy
@@ -366,3 +409,23 @@ cat /tmp/handoff-{topic}.md | pbcopy
 
 Always copy the full handoff to clipboard. The user starts the next session by pasting it.
 Tell the user: "Handoff copied to clipboard. Paste it to start the next session."
+
+## Exit Criteria Templates
+
+Define these before starting each phase transition. Concrete checklists, not prose.
+
+### Gather → Design
+- [ ] All knowledge domains relevant to the task have sources in folio.yml
+- [ ] No source >14 days stale for active domains
+- [ ] Key trade-offs identified (at least 2 competing approaches)
+
+### Design Round N → Round N+1
+- [ ] Specific weak areas listed with investigation strategy
+- [ ] Prior round's weak areas resolved or explicitly accepted
+- [ ] No more than 3 rounds without user checkpoint
+
+### Design → Brief
+- [ ] No open questions in design doc
+- [ ] High-risk areas validated (spike or code exploration)
+- [ ] User signed off on architecture + scope boundary
+- [ ] Design doc committed via `folio home push`

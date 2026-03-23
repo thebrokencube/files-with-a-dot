@@ -4,10 +4,10 @@ Read by Agent 3 (Execute). Self-contained for execution sessions.
 
 ## Phase 7: Execute
 
-Reads the committed work brief — no prior conversation context. If the brief has multiple
+Reads the committed work plan — no prior conversation context. If the plan has multiple
 tracks, each track can be executed independently (same or separate sessions).
 
-If you discover something unexpected during implementation that contradicts the brief, stop and consult the user rather than improvising.
+If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
 
 For each track step, execute this sequence in order. Do NOT skip or reorder steps.
 
@@ -25,7 +25,7 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
 3. **Content extraction check** (if this step moved or extracted content across files): Diff
    old content against new locations. Verify nothing was dropped, duplicated, or silently
    truncated. Do not rely solely on review agents — run an explicit before/after comparison.
-4. **Validate — hard gate.** Run the validation commands from the brief's execution conventions
+4. **Validate — hard gate.** Run the validation commands from the plan's execution conventions
    in order: build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed
    to step 5 until all validation commands pass.
    **Skill file drift check**: If this step changed CLI behavior, command names, schema fields,
@@ -37,7 +37,12 @@ For each track step, execute this sequence in order. Do NOT skip or reorder step
    fix them and re-dispatch the review agent. Loop until zero issues. Cap at 3 iterations —
    if still failing, escalate to the user. Do NOT run `git commit` until the review passes
    clean.
-6. **Commit.** One logical unit per commit.
+6. **Commit checklist (ALL must pass):**
+   - [ ] Tests pass (step 2)
+   - [ ] Validation commands pass (step 4)
+   - [ ] Review returned zero issues (step 5, cap 3 iterations)
+   - [ ] Content extraction checked (step 3, if applicable)
+   One logical unit per commit.
 7. **Repeat** from step 1 for the next step.
 
 ### Implementation Review Prompt
@@ -93,8 +98,27 @@ full context; observation items capture the actionable follow-ups. Both are writ
 file is the durable artifact, observation items are the work triggers. Commit via
 `folio home push`. For lightweight retros (few findings), observation items alone suffice.
 
+## Exit Criteria Templates
+
+### Brief → Execute
+- [ ] All commit checklist items passed for every commit
+- [ ] Work plan's validation commands pass end-to-end
+- [ ] No unresolved escalations to user
+
+### Execute → Done
+- [ ] All tracks completed with passing validation
+- [ ] Retro materialized (`folio new retro` or observation items)
+- [ ] Relevant observations resolved (`folio observe resolve`)
+- [ ] Handoff doc written if work continues in next session
+
 ## Session Exit
 
 Phase 8 retro is the exit sequence for the final agent. No forward handoff.
 Record actionable findings via `folio new retro <topic>` and observation items.
 Commit via `folio home push`.
+
+**Handoff validation (mandatory if work continues)**: If handing off to another session,
+spawn a fresh subagent with ONLY the handoff doc + work plan (no conversation context).
+The subagent reports ambiguities. Fix before session ends. Include skill invocations in the
+handoff (e.g., `/folio status --folio <path>`, `/commit`) so the next session loads the
+right context without having to discover it.

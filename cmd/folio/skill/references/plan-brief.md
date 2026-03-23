@@ -31,6 +31,10 @@ Before writing, read 2-3 recent archived briefs from the project's work archive
 Populate each track with execution-level detail. The brief must be self-contained — the
 execution agent reads only the brief, not the design doc or conversation history.
 
+**The 6-section structure is mandatory.** Every work plan MUST have all six sections listed
+below, in order. Archived briefs that predate this structure are NOT precedent — this spec
+supersedes them. Build & Deploy is a standalone section, not merged into Execution Conventions.
+
 Every brief has six required sections, in order:
 
 #### Context section (required)
@@ -60,19 +64,31 @@ Tell the execution agent how to prepare before touching any code:
    at a time — make the mapping unambiguous.
 3. **Escalation triggers**: When should the agent stop and ask the user? Common triggers:
    validation failures after migration steps, file paths or signatures that don't match the
-   brief, temptation to add code not in the track, high-complexity commits.
+   brief, temptation to add code not in the track, high-complexity commits, style or
+   convention questions not covered by the brief.
 
 #### Tracks section (required)
+
+**Multi-track plans MUST create track-N.md files from the start.** Do not defer to "if
+needed" — track files prevent README.md from growing unwieldy and signal clear boundaries
+to execution agents. Single-track plans keep everything in README.md.
 
 For each track, specify:
 - Exact file changes (create, modify, delete) with paths
 - Function signatures, struct diffs, type definitions
-- Test names and what they validate
+- Test names and what they validate; test helper signatures and shared fixtures
 - Commit message(s) and what each commit contains
 - Validation commands (build, test, lint)
+- For CLI commands: specify expected stdout/stderr format
+- Flag creative vs mechanical steps with **"judgment required"** markers — helps execution
+  agents know when to follow literally vs when to adapt
 - Wave grouping (if multiple tracks): group independent tracks into waves. Tracks within a
   wave run in parallel; waves are sequential. Format: `### Wave 1 (parallel)` /
   `### Wave 2 (after Wave 1)`. Single-track plans skip wave notation.
+
+**Specification depth must be approximately uniform across tracks.** If Track 1 has function
+signatures and test tables, Track 4 cannot be a one-liner. Thin tracks signal the brief
+author didn't think them through — flesh them out or merge them into an adjacent track.
 
 #### Build & Deploy section (required)
 
@@ -105,8 +121,11 @@ session (often one per track, but coupled tracks share a session).
 Each prompt must:
 - Point to the committed brief as the primary input
 - Name the specific track(s) to execute
+- List skill invocations to run at session start — `/folio status --folio <path>` (loads folio
+  conventions), `/commit` (loads commit format), plus any project-specific skills. These load
+  context the execution agent needs but won't know to request.
 - Include build/test/deploy commands inline (don't just say "see brief")
-- Include a subagent review step before committing (see plan-execute.md Phase 7 step 4)
+- Include a subagent review step before committing (see plan-execute.md Phase 7 step 5)
 - Include folio checkpoint instructions (observations to resolve, retro trigger)
 
 The handoff prompt is the acid test of brief quality: if the prompt needs to add context
@@ -117,26 +136,34 @@ already exists for the topic (from a prior `folio new design`), use it — the d
 will be a sibling at `reference/design/` inside the same directory. If the plan needs
 per-track detail files (large tracks), create `track-N.md` siblings.
 
-### Brief Verification Gate (hard)
+### Commit Checklist (ALL must pass before `folio home push`)
 
-Before committing, ALL prerequisites must be true. No exceptions — briefs with stale
-references cause mid-execution corrections.
+The commit instruction includes the gate — they are inseparable. Do not commit without
+mentally processing every item.
 
 1. [ ] File paths verified — launch verification agents to confirm all referenced paths exist
 2. [ ] Function signatures verified — agents confirm signatures match actual code
 3. [ ] Tag/version sequences verified — `git tag --sort=-v:refname | head -1` matches brief
-4. [ ] User approved track structure (Phase 5 gate passed)
+4. [ ] External constraints verified — CI config, team names, templates referenced in the
+   brief exist and are current
+5. [ ] No unresolved choices — grep the brief for "or", "either", "optionally" and resolve
+   each to a concrete decision
+6. [ ] Specification depth approximately uniform across tracks
+7. [ ] User approved track structure (Phase 5 gate passed)
+8. [ ] Content review passed (see below)
 
 Fix any inaccuracies, then commit via `folio home push`. The committed work plan is the
 contract for Agent 3.
 
-### Brief Content Review (hard)
+### Content Review (part of commit checklist, item 8)
 
-After the verification gate passes, dispatch 1 review agent (subagent_type: general-purpose,
-model: "sonnet") to review the brief for:
+Dispatch 1 review agent (subagent_type: general-purpose, model: "sonnet") to review:
 1. **Self-containment**: Can an execution agent proceed without reading the design doc?
-2. **Convention compliance**: Does structure match recent archived briefs?
+2. **Convention compliance**: Does structure match recent archived briefs? All 6 sections present?
 3. **Completeness**: Are all design doc decisions reflected as constraints?
+
+For multi-track plans, use multi-persona review (3-4 agents with different perspectives:
+accuracy, scope, completeness, executability). Single-track plans use 1 agent.
 
 If issues found, fix and re-review. Loop until clean (cap 3 iterations).
 
@@ -145,12 +172,19 @@ If issues found, fix and re-review. Loop until clean (cap 3 iterations).
 1. **Retro prompt**: "Anything worth retroing on before we move to execution?"
    Materialize findings via `folio new retro <topic>` and observation items. Commit via
    `folio home push`. For lightweight retros, observation items alone suffice.
-2. **Handoff gate** — two options:
+2. **Handoff validation (mandatory)**: Spawn a fresh subagent with ONLY the committed work
+   plan path and design doc path (no conversation context). The subagent reads both and
+   reports ambiguities — anything unclear, contradictory, or requiring context the plan
+   doesn't provide. Fix ambiguities before proceeding. This catches gaps that the author
+   can't see because they have conversation context the execution agent won't.
+3. **Handoff gate** — two options:
    - **Continue** (default): Spawn next agent via Agent tool with fresh context. Pass only
-     the committed artifact path and setup instructions — no conversation history.
-   - **New session**: Provide a paste-able prompt for the user to start fresh.
+     the committed artifact path, setup instructions, and skill invocations — no conversation
+     history.
+   - **New session**: Provide a paste-able prompt for the user to start fresh. Include skill
+     invocations (e.g., `/folio status`, `/commit`) so the new session loads the right context.
    Format: "Work plan committed at [path]. **Continue to Execute phase, or hand off to a
    new session?**"
-3. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
+4. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
    temp file and `pbcopy < /tmp/handoff-prompt.txt`. The prompt exists in the doc for
    durability, but clipboard is how the user actually starts the next session.
