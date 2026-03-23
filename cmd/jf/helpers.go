@@ -1,29 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
-	"jf/internal/output"
 	"os"
-	"strings"
-)
 
-// parseFlags wraps fs.Parse with trailing flag detection.
-// Returns error on parse failure or flags found after positional arguments.
-func parseFlags(fs *flag.FlagSet, args []string) error {
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	for _, arg := range fs.Args() {
-		if strings.HasPrefix(arg, "-") {
-			err := fmt.Errorf("unknown flag %q after positional arguments (flags must come before arguments)", arg)
-			fmt.Fprintln(os.Stderr, err)
-			return err
-		}
-	}
-	return nil
-}
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
+)
 
 // loadForest finds and discovers a forest from the given directory.
 // Returns the forest config, discovered roots, or a descriptive error.
@@ -51,11 +34,11 @@ func loadForestOrFail(dir string, jsonOut bool) (*forest.Forest, []*forest.Node,
 	f, roots, err := loadForest(dir)
 	if err != nil {
 		if jsonOut {
-			output.Error(err.Error(), dir)
+			dendrik.WriteError(os.Stderr, err.Error(), dir)
 		} else {
 			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 		}
-		return nil, nil, 1
+		return nil, nil, dendrik.ExitUserError
 	}
-	return f, roots, 0
+	return f, roots, dendrik.ExitOK
 }

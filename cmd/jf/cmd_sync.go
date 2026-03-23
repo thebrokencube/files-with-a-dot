@@ -1,29 +1,30 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runSync(args []string) int {
-	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	force := fs.Bool("force", false, "Push as plain text if marklassian conversion fails")
-	failFast := fs.Bool("fail-fast", false, "Stop on first error")
-	resolve := fs.String("resolve", "", "Conflict resolution: local|remote (default: skip)")
-	dryRun := fs.Bool("dry-run", false, "Preview what would be synced without side effects")
+	fs := dendrik.NewFlagSet("sync")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
+	failFast := fs.BoolLong("fail-fast", "Stop on first error")
+	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: skip)")
+	dryRun := fs.Bool('n', "dry-run", "Preview what would be synced without side effects")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	if *resolve != "" && *resolve != "local" && *resolve != "remote" {
 		fmt.Fprintf(os.Stderr, "✗ --resolve must be 'local' or 'remote'\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Load forest once for all phases
@@ -36,9 +37,9 @@ func runSync(args []string) int {
 		fmt.Println("── Pull ──")
 		pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, nil, nil)
 		if pushCode != 0 || pullCode != 0 {
-			return 1
+			return dendrik.ExitUserError
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	state, stateErr := forest.LoadState(f.Dir)
@@ -98,7 +99,7 @@ func runSync(args []string) int {
 	pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, f, roots)
 
 	if pushCode != 0 || pullCode != 0 || (conflicts > 0 && *resolve == "") {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }

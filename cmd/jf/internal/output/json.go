@@ -1,34 +1,5 @@
 package output
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-)
-
-// Result marshals data as JSON to stdout.
-func Result(data any) {
-	out, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		Error(err.Error(), "")
-		return
-	}
-	fmt.Println(string(out))
-}
-
-// Error outputs a structured error in JSON mode to stderr.
-func Error(msg string, detail string) {
-	e := ErrorResult{Error: msg, Detail: detail}
-	out, _ := json.Marshal(e)
-	fmt.Fprintln(os.Stderr, string(out))
-}
-
-// ErrorResult is the JSON error envelope.
-type ErrorResult struct {
-	Error  string `json:"error"`
-	Detail string `json:"detail,omitempty"`
-}
-
 // NodeResult is the per-node output for push/pull/sync operations.
 type NodeResult struct {
 	Node   string `json:"node"`

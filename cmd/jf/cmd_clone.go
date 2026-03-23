@@ -2,34 +2,35 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runClone(args []string) int {
-	fs := flag.NewFlagSet("clone", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Parent directory for cloned forest")
-	depth := fs.Int("depth", 0, "Max hierarchy depth (0 = unlimited)")
-	syncMode := fs.String("sync", "both", "Sync direction for scaffolded nodes: push|pull|both")
+	fs := dendrik.NewFlagSet("clone")
+	dir := fs.String('d', "dir", ".", "Parent directory for cloned forest")
+	depth := fs.IntLong("depth", 0, "Max hierarchy depth (0 = unlimited)")
+	syncMode := fs.StringLong("sync", "both", "Sync direction for scaffolded nodes: push|pull|both")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	if *syncMode != "push" && *syncMode != "pull" && *syncMode != "both" {
 		fmt.Fprintf(os.Stderr, "✗ --sync must be 'push', 'pull', or 'both'\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
-	positional := fs.Args()
+	positional := fs.GetArgs()
 	if len(positional) != 1 {
 		fmt.Fprintln(os.Stderr, "Usage: jf clone <KEY> [--dir DIR] [--depth N] [--sync push|pull|both]")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	rootKey := positional[0]
@@ -39,13 +40,13 @@ func runClone(args []string) int {
 	root, err := fetchIssue(p, rootKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	tree, err := fetchTree(p, root, *depth, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	total := countNodes(tree)
@@ -54,12 +55,12 @@ func runClone(args []string) int {
 	forestDir := filepath.Join(*dir, slugify(root.Summary))
 	if err := scaffoldTree(forestDir, tree, "", *syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ scaffold error: %s\n", err)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if err := generateForestYAML(forestDir, root, *syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ forest.yml error: %s\n", err)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Printf("\nPulling descriptions...\n")

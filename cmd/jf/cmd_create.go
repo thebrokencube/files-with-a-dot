@@ -2,23 +2,24 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runCreateMissing(args []string) int {
-	fs := flag.NewFlagSet("create-missing", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	dryRun := fs.Bool("dry-run", false, "Show what would be created without side effects")
-	force := fs.Bool("force", false, "Push as plain text if marklassian conversion fails")
+	fs := dendrik.NewFlagSet("create-missing")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	dryRun := fs.Bool('n', "dry-run", "Show what would be created without side effects")
+	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, false)
@@ -35,7 +36,7 @@ func runCreateMissing(args []string) int {
 		}
 	}
 	if hasErrors {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Collect TBD nodes in pre-order (parents before children)
@@ -49,7 +50,7 @@ func runCreateMissing(args []string) int {
 
 	if len(tbdNodes) == 0 {
 		fmt.Println("No TBD nodes found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if *dryRun {
@@ -70,7 +71,7 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 		fmt.Printf("     Type: %s, Project: %s, Parent: %s\n", n.Type, f.Defaults.Project, parentKey)
 		fmt.Printf("     File: %s\n", n.File)
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
@@ -154,9 +155,9 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
 	fmt.Println()
 
 	if failed > 0 {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 // dedupCheck searches Jira for an existing ticket matching the JQL.

@@ -12,7 +12,7 @@ func TestRunRmSuccess(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
-	code := runRm([]string{"-dir", dir, "TEST-1"})
+	code := runRm([]string{"--dir", dir, "TEST-1"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -29,7 +29,7 @@ func TestRunRmMultipleKeys(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "b.md"), []byte("---\njira: TEST-2\n---\n# B\n"), 0644)
 
-	code := runRm([]string{"-dir", dir, "TEST-1", "TEST-2"})
+	code := runRm([]string{"--dir", dir, "TEST-1", "TEST-2"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -47,7 +47,7 @@ func TestRunRmNotFound(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
-	code := runRm([]string{"-dir", dir, "NONEXISTENT"})
+	code := runRm([]string{"--dir", dir, "NONEXISTENT"})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -61,7 +61,7 @@ func TestRunRmChildGuard(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, "sub"), 0755)
 	os.WriteFile(filepath.Join(dir, "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
 
-	code := runRm([]string{"-dir", dir, "TEST-1"})
+	code := runRm([]string{"--dir", dir, "TEST-1"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for child guard, got %d", code)
 	}
@@ -81,7 +81,7 @@ func TestRunRmNoArgs(t *testing.T) {
 
 func TestRunRmNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runRm([]string{"-dir", dir, "TEST-1"})
+	code := runRm([]string{"--dir", dir, "TEST-1"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for no forest, got %d", code)
 	}
@@ -94,7 +94,7 @@ func TestRunRmPartialFailure(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
 
 	// TEST-1 exists, NOPE does not — should return 1 but still remove TEST-1
-	code := runRm([]string{"-dir", dir, "TEST-1", "NOPE"})
+	code := runRm([]string{"--dir", dir, "TEST-1", "NOPE"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for partial failure, got %d", code)
 	}

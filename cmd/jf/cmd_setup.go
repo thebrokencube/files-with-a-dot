@@ -2,19 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"jf/internal/setup"
 	"os"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runSetup(args []string) int {
-	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
-	checkOnly := fs.Bool("check", false, "Non-interactive check only")
-	jsonOut := fs.Bool("json", false, "Output as JSON (with --check)")
+	fs := dendrik.NewFlagSet("setup")
+	checkOnly := fs.Bool('c', "check", "Non-interactive check only")
+	jsonOut := fs.Bool('j', "json", "Output as JSON (with --check)")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	if *checkOnly {
@@ -31,9 +32,9 @@ func setupCheck(jsonOut bool) int {
 		data, _ := json.MarshalIndent(results, "", "  ")
 		fmt.Println(string(data))
 		if ok {
-			return 0
+			return dendrik.ExitOK
 		}
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	for _, r := range results {
@@ -55,11 +56,11 @@ func setupCheck(jsonOut bool) int {
 
 	if ok {
 		fmt.Println("\nAll checks passed.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	fmt.Println("\nSome checks failed. Fix the issues above and re-run: jf setup --check")
-	return 1
+	return dendrik.ExitUserError
 }
 
 func setupInteractive() int {
@@ -82,9 +83,9 @@ func setupInteractive() int {
 
 	if ok {
 		fmt.Println("\nAll prerequisites met. You're ready to use jf.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	fmt.Fprintf(os.Stderr, "\nInstall missing prerequisites, then re-run: jf setup\n")
-	return 1
+	return dendrik.ExitUserError
 }

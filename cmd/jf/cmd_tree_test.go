@@ -19,7 +19,7 @@ func TestRunTree(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"-dir", dir})
+	code := runTree([]string{"--dir", dir})
 
 	w.Close()
 	os.Stdout = old
@@ -45,7 +45,7 @@ func TestRunTree(t *testing.T) {
 
 func TestRunTreeNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runTree([]string{"-dir", dir})
+	code := runTree([]string{"--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -61,7 +61,7 @@ func TestRunTreeJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"-dir", dir, "-json"})
+	code := runTree([]string{"--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -73,12 +73,12 @@ func TestRunTreeJSON(t *testing.T) {
 	buf := make([]byte, 8192)
 	n, _ := r.Read(buf)
 
-	var result []map[string]any
-	if err := json.Unmarshal(buf[:n], &result); err != nil {
+	var envelope struct{ Data []map[string]any }
+	if err := json.Unmarshal(buf[:n], &envelope); err != nil {
 		t.Fatalf("invalid JSON output: %v", err)
 	}
-	if len(result) != 2 {
-		t.Fatalf("expected 2 items, got %d", len(result))
+	if len(envelope.Data) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(envelope.Data))
 	}
 }
 
@@ -92,7 +92,7 @@ func TestRunTreeVerbose(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"-dir", dir, "-verbose"})
+	code := runTree([]string{"--dir", dir, "--verbose"})
 
 	w.Close()
 	os.Stdout = old
@@ -118,7 +118,7 @@ func TestRunTreeEmpty(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
-	code := runTree([]string{"-dir", dir})
+	code := runTree([]string{"--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0 for empty forest, got %d", code)
 	}

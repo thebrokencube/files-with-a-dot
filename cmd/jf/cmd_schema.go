@@ -2,16 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runSchema(args []string) int {
-	fs := flag.NewFlagSet("schema", flag.ContinueOnError)
-	outputSchema := fs.Bool("output", false, "Emit command output schemas instead of input schemas")
+	fs := dendrik.NewFlagSet("schema")
+	outputSchema := fs.Bool('o', "output", "Emit command output schemas instead of input schemas")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	if *outputSchema {
@@ -66,7 +67,7 @@ func printInputSchemas() int {
 
 	out, _ := json.MarshalIndent(schema, "", "  ")
 	fmt.Println(string(out))
-	return 0
+	return dendrik.ExitOK
 }
 
 func printOutputSchemas() int {
@@ -130,5 +131,5 @@ func printOutputSchemas() int {
 
 	out, _ := json.MarshalIndent(schema, "", "  ")
 	fmt.Println(string(out))
-	return 0
+	return dendrik.ExitOK
 }

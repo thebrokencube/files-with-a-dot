@@ -2,27 +2,28 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runPull(args []string) int {
-	fs := flag.NewFlagSet("pull", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	failFast := fs.Bool("fail-fast", false, "Stop on first error")
-	_ = fs.Bool("force", false, "Overwrite local file even if conflict detected")
-	dryRun := fs.Bool("dry-run", false, "Preview what would be pulled without side effects")
+	fs := dendrik.NewFlagSet("pull")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	failFast := fs.BoolLong("fail-fast", "Stop on first error")
+	_ = fs.Bool('f', "force", "Overwrite local file even if conflict detected")
+	dryRun := fs.Bool('n', "dry-run", "Preview what would be pulled without side effects")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
-	positional := fs.Args()
+	positional := fs.GetArgs()
 
 	// Level 0: explicit key + file
 	if len(positional) >= 2 {
@@ -57,7 +58,7 @@ func pullSingle(key, filePath string) int {
 	out, err := p.View(key, "description", true)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", key, err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	md, _, err := richPull(out)
@@ -67,18 +68,18 @@ func pullSingle(key, filePath string) int {
 		out, err = p.View(key, "description", false)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s: fallback acli error\n  %s\n", key, err)
-			return 2
+			return dendrik.ExitExternalErr
 		}
 		md = out
 	}
 
 	if err := os.WriteFile(filePath, md, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: write error\n  %s\n", filePath, err)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Printf("✓ Pulled %s description -> %s\n", key, filePath)
-	return 0
+	return dendrik.ExitOK
 }
 
 func pullForest(dir string, positional []string,
@@ -91,7 +92,7 @@ func pullForest(dir string, positional []string,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 			fmt.Fprintf(os.Stderr, "  For Level 0: jf pull <KEY> <FILE>\n")
-			return 1
+			return dendrik.ExitUserError
 		}
 	}
 
@@ -101,7 +102,7 @@ func pullForest(dir string, positional []string,
 		node, err := forest.Resolve(roots, positional[0])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-			return 1
+			return dendrik.ExitUserError
 		}
 		toPull = []*forest.Node{node}
 	} else {
@@ -116,14 +117,14 @@ func pullForest(dir string, positional []string,
 
 	if len(toPull) == 0 {
 		fmt.Println("No pull-mode nodes found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if dryRun {
 		for _, n := range toPull {
 			fmt.Printf("[dry-run] would pull %s -> %s\n", n.Key, n.File)
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	state, err := forest.LoadState(f.Dir)
@@ -209,9 +210,9 @@ func pullForest(dir string, positional []string,
 	fmt.Println()
 
 	if failed > 0 {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 // mergeWithFrontmatter preserves YAML frontmatter from the existing file

@@ -1,21 +1,23 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
+	"os"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runTree(args []string) int {
-	fs := flag.NewFlagSet("tree", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool("json", false, "Output as JSON")
-	verbose := fs.Bool("verbose", false, "Show sync direction and file paths")
+	fs := dendrik.NewFlagSet("tree")
+	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
+	jsonOut := fs.Bool('j', "json", "Output as JSON")
+	verbose := fs.Bool('v', "verbose", "Show sync direction and file paths")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, *jsonOut)
@@ -29,20 +31,20 @@ func runTree(args []string) int {
 		for _, n := range all {
 			items = append(items, nodeToInfo(n))
 		}
-		output.Result(items)
-		return 0
+		dendrik.WriteResult(os.Stdout, items)
+		return dendrik.ExitOK
 	}
 
 	if len(roots) == 0 {
 		fmt.Println("No jira: nodes found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Print header
 	fmt.Printf("Forest: %s (%d nodes)\n\n", f.Dir, len(forest.Flatten(roots)))
 
 	printTree(roots, "", *verbose)
-	return 0
+	return dendrik.ExitOK
 }
 
 func printTree(nodes []*forest.Node, indent string, verbose bool) {

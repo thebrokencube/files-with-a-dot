@@ -78,24 +78,6 @@ func TestStatusResultMarshal(t *testing.T) {
 	}
 }
 
-func TestErrorResultMarshal(t *testing.T) {
-	e := ErrorResult{Error: "not found", Detail: "node X"}
-	data, _ := json.Marshal(e)
-	want := `{"error":"not found","detail":"node X"}`
-	if string(data) != want {
-		t.Errorf("got %s, want %s", string(data), want)
-	}
-}
-
-func TestErrorResultOmitsDetail(t *testing.T) {
-	e := ErrorResult{Error: "fail"}
-	data, _ := json.Marshal(e)
-	want := `{"error":"fail"}`
-	if string(data) != want {
-		t.Errorf("got %s, want %s", string(data), want)
-	}
-}
-
 func containsStr(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {

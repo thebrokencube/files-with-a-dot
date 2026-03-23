@@ -1,45 +1,66 @@
 package main
 
 import (
-	"flag"
 	"testing"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func TestParseFlagsTrailingDetected(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	fs.String("dir", ".", "test flag")
+func TestParseTrailingFlagsHandled(t *testing.T) {
+	// ff v4 handles interspersed flags natively, so trailing flags work
+	fs := dendrik.NewFlagSet("test")
+	fs.StringLong("dir", ".", "test flag")
 
-	err := parseFlags(fs, []string{"positional", "--dir", "/tmp"})
-	if err == nil {
-		t.Fatal("expected error for trailing flag, got nil")
+	err := dendrik.Parse(fs, []string{"positional", "--dir", "/tmp"})
+	if err != nil {
+		t.Fatalf("ff v4 should handle interspersed flags, got: %s", err)
 	}
 }
 
-func TestParseFlagsNormalOrder(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	fs.String("dir", ".", "test flag")
+func TestParseNormalOrder(t *testing.T) {
+	fs := dendrik.NewFlagSet("test")
+	dir := fs.StringLong("dir", ".", "test flag")
 
-	err := parseFlags(fs, []string{"--dir", "/tmp", "positional"})
+	err := dendrik.Parse(fs, []string{"--dir", "/tmp", "positional"})
 	if err != nil {
 		t.Fatalf("unexpected error for flags-before-args: %s", err)
 	}
-}
-
-func TestParseFlagsNoArgs(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	fs.String("dir", ".", "test flag")
-
-	err := parseFlags(fs, []string{"--dir", "/tmp"})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	if *dir != "/tmp" {
+		t.Fatalf("dir: got %q, want %q", *dir, "/tmp")
 	}
 }
 
-func TestParseFlagsPositionalOnly(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+func TestParseNoArgs(t *testing.T) {
+	fs := dendrik.NewFlagSet("test")
+	dir := fs.StringLong("dir", ".", "test flag")
 
-	err := parseFlags(fs, []string{"pos1", "pos2"})
+	err := dendrik.Parse(fs, []string{"--dir", "/tmp"})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if *dir != "/tmp" {
+		t.Fatalf("dir: got %q, want %q", *dir, "/tmp")
+	}
+}
+
+func TestParsePositionalOnly(t *testing.T) {
+	fs := dendrik.NewFlagSet("test")
+
+	err := dendrik.Parse(fs, []string{"pos1", "pos2"})
 	if err != nil {
 		t.Fatalf("unexpected error for positional-only args: %s", err)
+	}
+	args := fs.GetArgs()
+	if len(args) != 2 {
+		t.Fatalf("args: got %d, want 2", len(args))
+	}
+}
+
+func TestParseUnknownFlagReturnsError(t *testing.T) {
+	fs := dendrik.NewFlagSet("test")
+
+	err := dendrik.Parse(fs, []string{"--bogus"})
+	if err == nil {
+		t.Fatal("expected error for unknown flag")
 	}
 }

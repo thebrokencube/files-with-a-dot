@@ -52,7 +52,7 @@ func TestRunSchemaOutput(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runSchema([]string{"-output"})
+	code := runSchema([]string{"--output"})
 
 	w.Close()
 	os.Stdout = old

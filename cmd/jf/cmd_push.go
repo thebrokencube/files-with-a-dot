@@ -1,27 +1,28 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/pipeline"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runPush(args []string) int {
-	fs := flag.NewFlagSet("push", flag.ContinueOnError)
-	force := fs.Bool("force", false, "Push as plain text if marklassian conversion fails")
-	subtree := fs.String("subtree", "", "Push node and all descendants")
-	failFast := fs.Bool("fail-fast", false, "Stop on first error")
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	dryRun := fs.Bool("dry-run", false, "Preview what would be pushed without side effects")
+	fs := dendrik.NewFlagSet("push")
+	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
+	subtree := fs.String('s', "subtree", "", "Push node and all descendants")
+	failFast := fs.BoolLong("fail-fast", "Stop on first error")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	dryRun := fs.Bool('n', "dry-run", "Preview what would be pushed without side effects")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
-	positional := fs.Args()
+	positional := fs.GetArgs()
 
 	// Level 0: explicit key + file
 	if len(positional) >= 2 {
@@ -36,7 +37,7 @@ func pushSingle(key, filePath string, force bool) int {
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: file not found\n", filePath)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
@@ -48,17 +49,17 @@ func pushSingle(key, filePath string, force bool) int {
 			compiled = buildPlainTextPayload(key, source)
 		} else {
 			fmt.Fprintf(os.Stderr, "✗ %s: marklassian conversion failed\n  %s\n", key, err)
-			return 1
+			return dendrik.ExitUserError
 		}
 	}
 
 	if err := p.Push(compiled); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", key, err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	fmt.Printf("✓ Pushed %s description (%d bytes)\n", key, len(source))
-	return 0
+	return dendrik.ExitOK
 }
 
 func pushForest(dir string, positional []string, subtreeTarget string,
@@ -71,7 +72,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 			fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
-			return 1
+			return dendrik.ExitUserError
 		}
 	}
 
@@ -85,7 +86,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 		}
 	}
 	if hasErrors {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Resolve target
@@ -99,7 +100,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 		node, err := forest.Subtree(roots, target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-			return 1
+			return dendrik.ExitUserError
 		}
 		pushRoots = []*forest.Node{node}
 	} else {
@@ -123,7 +124,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 
 	if len(toPush) == 0 {
 		fmt.Println("No push-mode nodes found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if dryRun {
@@ -136,7 +137,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 			}
 			fmt.Printf("[dry-run] would push %s (%s, %d bytes)\n", n.Key, n.File, len(source))
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	// Load state for tracking
@@ -203,9 +204,9 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 	fmt.Println()
 
 	if failed > 0 {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func buildPlainTextPayload(key string, source []byte) []byte {

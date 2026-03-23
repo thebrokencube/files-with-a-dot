@@ -17,7 +17,7 @@ func TestRunValidate(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runValidate([]string{"-dir", dir})
+	code := runValidate([]string{"--dir", dir})
 
 	w.Close()
 	os.Stdout = old
@@ -37,7 +37,7 @@ func TestRunValidate(t *testing.T) {
 
 func TestRunValidateNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runValidate([]string{"-dir", dir})
+	code := runValidate([]string{"--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -50,7 +50,7 @@ func TestRunValidateWithErrors(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "b.md"), []byte("---\njira: TEST-1\n---\n# B\n"), 0644)
 
-	code := runValidate([]string{"-dir", dir})
+	code := runValidate([]string{"--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for duplicate keys, got %d", code)
 	}
@@ -65,7 +65,7 @@ func TestRunValidateJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runValidate([]string{"-dir", dir, "-json"})
+	code := runValidate([]string{"--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -77,11 +77,13 @@ func TestRunValidateJSON(t *testing.T) {
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
 
-	var result map[string]any
-	if err := json.Unmarshal(buf[:n], &result); err != nil {
+	var envelope struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(buf[:n], &envelope); err != nil {
 		t.Fatalf("invalid JSON output: %v", err)
 	}
-	if result["valid"] != true {
-		t.Errorf("expected valid=true, got %v", result["valid"])
+	if envelope.Data["valid"] != true {
+		t.Errorf("expected valid=true, got %v", envelope.Data["valid"])
 	}
 }

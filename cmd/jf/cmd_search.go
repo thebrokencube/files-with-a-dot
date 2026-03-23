@@ -1,28 +1,29 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/pipeline"
 	"os"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runSearch(args []string) int {
-	fs := flag.NewFlagSet("search", flag.ContinueOnError)
-	project := fs.String("project", "", "Filter by Jira project key")
-	issueType := fs.String("type", "", "Filter by issue type (Epic, Story, Task, etc.)")
-	limit := fs.Int("limit", 50, "Maximum results")
-	jsonOut := fs.Bool("json", false, "Output raw JSON from Jira")
+	fs := dendrik.NewFlagSet("search")
+	project := fs.String('p', "project", "", "Filter by Jira project key")
+	issueType := fs.String('t', "type", "", "Filter by issue type (Epic, Story, Task, etc.)")
+	limit := fs.Int('l', "limit", 50, "Maximum results")
+	jsonOut := fs.Bool('j', "json", "Output raw JSON from Jira")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
-	query := fs.Args()
+	query := fs.GetArgs()
 	if len(query) == 0 && *project == "" {
 		fmt.Fprintln(os.Stderr, "Usage: jf search <text> [--project KEY] [--type TYPE]")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	jql := buildSearchJQL(query, *project, *issueType)
@@ -31,11 +32,11 @@ func runSearch(args []string) int {
 	out, err := p.Search(jql, "summary,issuetype,status", *limit, *jsonOut)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ search failed: %s\n", err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	fmt.Print(string(out))
-	return 0
+	return dendrik.ExitOK
 }
 
 func buildSearchJQL(text []string, project, issueType string) string {

@@ -1,21 +1,22 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runStatus(args []string) int {
-	fs := flag.NewFlagSet("status", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	jsonOut := fs.Bool("json", false, "Output as JSON")
+	fs := dendrik.NewFlagSet("status")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, *jsonOut)
@@ -59,7 +60,7 @@ func runStatus(args []string) int {
 	}
 
 	if *jsonOut {
-		output.Result(output.StatusResult{
+		dendrik.WriteResult(os.Stdout, output.StatusResult{
 			Forest:    f.Dir,
 			Total:     len(all),
 			TBD:       tbdTotal,
@@ -68,7 +69,7 @@ func runStatus(args []string) int {
 			PullTotal: pullTotal,
 			PullStale: pullStale,
 		})
-		return 0
+		return dendrik.ExitOK
 	}
 
 	fmt.Printf("Forest: %s\n", f.Dir)
@@ -80,5 +81,5 @@ func runStatus(args []string) int {
 	fmt.Printf("Push:   %d nodes, %d stale\n", pushTotal, pushStale)
 	fmt.Printf("Pull:   %d nodes, %d stale\n", pullTotal, pullStale)
 
-	return 0
+	return dendrik.ExitOK
 }

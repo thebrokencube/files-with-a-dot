@@ -1,19 +1,21 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
+	"os"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runList(args []string) int {
-	fs := flag.NewFlagSet("list", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool("json", false, "Output as JSON")
+	fs := dendrik.NewFlagSet("list")
+	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
+	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	_, roots, code := loadForestOrFail(*dir, *jsonOut)
@@ -28,13 +30,13 @@ func runList(args []string) int {
 		for _, n := range all {
 			items = append(items, nodeToInfo(n))
 		}
-		output.Result(items)
-		return 0
+		dendrik.WriteResult(os.Stdout, items)
+		return dendrik.ExitOK
 	}
 
 	if len(roots) == 0 {
 		fmt.Println("No jira: nodes found.")
-		return 0
+		return dendrik.ExitOK
 	}
 
 	for _, n := range all {
@@ -44,7 +46,7 @@ func runList(args []string) int {
 		}
 		fmt.Printf("%-12s %-5s %s\n", n.Key, sync, n.File)
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func nodeToInfo(n *forest.Node) output.NodeInfo {

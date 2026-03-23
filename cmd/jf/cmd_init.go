@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 const defaultForestYml = `schema: 1
@@ -16,27 +17,27 @@ defaults:
 `
 
 func runInit(args []string) int {
-	fs := flag.NewFlagSet("init", flag.ContinueOnError)
-	project := fs.String("project", "BEN", "Jira project key")
-	dir := fs.String("dir", ".", "Directory to create forest.yml in")
+	fs := dendrik.NewFlagSet("init")
+	project := fs.String('p', "project", "BEN", "Jira project key")
+	dir := fs.String('d', "dir", ".", "Directory to create forest.yml in")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	path := filepath.Join(*dir, "forest.yml")
 
 	if _, err := os.Stat(path); err == nil {
 		fmt.Printf("⚠ forest.yml already exists at %s\n", path)
-		return 0
+		return dendrik.ExitOK
 	}
 
 	content := fmt.Sprintf(defaultForestYml, *project)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ Failed to create forest.yml: %s\n", err)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Printf("✓ Created forest.yml (project: %s)\n", *project)
-	return 0
+	return dendrik.ExitOK
 }

@@ -1,25 +1,26 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runRm(args []string) int {
-	fs := flag.NewFlagSet("rm", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
+	fs := dendrik.NewFlagSet("rm")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
-	keys := fs.Args()
+	keys := fs.GetArgs()
 	if len(keys) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: jf rm <KEY>...\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, false)
@@ -53,7 +54,7 @@ func runRm(args []string) int {
 	}
 
 	if failed {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }

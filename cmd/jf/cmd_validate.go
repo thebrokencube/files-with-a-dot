@@ -1,19 +1,21 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
 	"jf/internal/output"
+	"os"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runValidate(args []string) int {
-	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool("json", false, "Output as JSON")
+	fs := dendrik.NewFlagSet("validate")
+	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
+	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, *jsonOut)
@@ -37,16 +39,16 @@ func runValidate(args []string) int {
 				result.Valid = false
 			}
 		}
-		output.Result(result)
+		dendrik.WriteResult(os.Stdout, result)
 		if !result.Valid {
-			return 1
+			return dendrik.ExitUserError
 		}
-		return 0
+		return dendrik.ExitOK
 	}
 
 	if len(issues) == 0 {
 		fmt.Printf("✓ Forest valid (%d nodes)\n", len(forest.Flatten(roots)))
-		return 0
+		return dendrik.ExitOK
 	}
 
 	errors := 0
@@ -63,7 +65,7 @@ func runValidate(args []string) int {
 	fmt.Printf("\n%d error(s), %d warning(s)\n", errors, warnings)
 
 	if errors > 0 {
-		return 1
+		return dendrik.ExitUserError
 	}
-	return 0
+	return dendrik.ExitOK
 }

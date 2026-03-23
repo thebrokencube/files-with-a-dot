@@ -18,7 +18,7 @@ func TestRunList(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runList([]string{"-dir", dir})
+	code := runList([]string{"--dir", dir})
 
 	w.Close()
 	os.Stdout = old
@@ -44,7 +44,7 @@ func TestRunList(t *testing.T) {
 
 func TestRunListNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runList([]string{"-dir", dir})
+	code := runList([]string{"--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -59,7 +59,7 @@ func TestRunListJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runList([]string{"-dir", dir, "-json"})
+	code := runList([]string{"--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -71,14 +71,14 @@ func TestRunListJSON(t *testing.T) {
 	buf := make([]byte, 4096)
 	n, _ := r.Read(buf)
 
-	var result []map[string]any
-	if err := json.Unmarshal(buf[:n], &result); err != nil {
+	var envelope struct{ Data []map[string]any }
+	if err := json.Unmarshal(buf[:n], &envelope); err != nil {
 		t.Fatalf("invalid JSON output: %v", err)
 	}
-	if len(result) != 1 {
-		t.Fatalf("expected 1 item, got %d", len(result))
+	if len(envelope.Data) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(envelope.Data))
 	}
-	if result[0]["key"] != "TEST-1" {
-		t.Errorf("expected key TEST-1, got %v", result[0]["key"])
+	if envelope.Data[0]["key"] != "TEST-1" {
+		t.Errorf("expected key TEST-1, got %v", envelope.Data[0]["key"])
 	}
 }

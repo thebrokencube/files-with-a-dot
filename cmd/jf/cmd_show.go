@@ -1,27 +1,27 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"jf/internal/forest"
-	"jf/internal/output"
 	"os"
 	"path/filepath"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runShow(args []string) int {
-	fs := flag.NewFlagSet("show", flag.ContinueOnError)
-	dir := fs.String("dir", ".", "Directory to scan for forest.yml")
-	jsonOut := fs.Bool("json", false, "Output as JSON")
+	fs := dendrik.NewFlagSet("show")
+	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
+	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
-	if err := parseFlags(fs, args); err != nil {
-		return 1
+	if err := dendrik.Parse(fs, args); err != nil {
+		return dendrik.ExitUserError
 	}
 
-	positional := fs.Args()
+	positional := fs.GetArgs()
 	if len(positional) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: jf show <target>\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, roots, code := loadForestOrFail(*dir, false)
@@ -32,7 +32,7 @@ func runShow(args []string) int {
 	node, err := forest.Resolve(roots, positional[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	state, err := forest.LoadState(f.Dir)
@@ -45,8 +45,8 @@ func runShow(args []string) int {
 	if *jsonOut {
 		info := nodeToInfo(node)
 		info.Status = staleStr
-		output.Result(info)
-		return 0
+		dendrik.WriteResult(os.Stdout, info)
+		return dendrik.ExitOK
 	}
 
 	parentStr := "(root)"
@@ -67,7 +67,7 @@ func runShow(args []string) int {
 		fmt.Printf("Pushed:   %s\n", ns.LastPush.Format("2006-01-02 15:04:05"))
 	}
 
-	return 0
+	return dendrik.ExitOK
 }
 
 func syncDisplay(sync string) string {

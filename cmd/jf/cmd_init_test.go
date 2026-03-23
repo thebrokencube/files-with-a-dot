@@ -8,7 +8,7 @@ import (
 
 func TestRunInit(t *testing.T) {
 	dir := t.TempDir()
-	code := runInit([]string{"-dir", dir, "-project", "TEST"})
+	code := runInit([]string{"--dir", dir, "--project", "TEST"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -28,7 +28,7 @@ func TestRunInitAlreadyExists(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("existing"), 0644)
 
-	code := runInit([]string{"-dir", dir})
+	code := runInit([]string{"--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0 for existing forest.yml, got %d", code)
 	}
@@ -42,7 +42,7 @@ func TestRunInitAlreadyExists(t *testing.T) {
 
 func TestRunInitDefaultProject(t *testing.T) {
 	dir := t.TempDir()
-	code := runInit([]string{"-dir", dir})
+	code := runInit([]string{"--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
