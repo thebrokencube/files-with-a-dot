@@ -189,6 +189,7 @@ Two gate types, proportional to risk:
 | stack propagate | Soft | After propagation | Rebased branches, conflicts resolved, stale remainder |
 | stack check | None | — | Read-only |
 | review | None | — | Read-only |
+| plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
 
 ## Materialization Invariants
