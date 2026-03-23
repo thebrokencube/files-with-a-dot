@@ -395,31 +395,75 @@ composition, lens selection, convergence quality, context management.
 Write a handoff document to `/tmp/handoff-{topic}.md`. This is the single source of truth
 for the next session — whether that's the next phase or another planning round.
 
-**Handoff document MUST include all of these sections:**
+**Progressive disclosure**: The handoff is structured in layers. A new session that knows
+what to do reads 10 lines. A session that needs to understand *why* reads deeper. Action
+first, context second, history last.
 
-1. **What Was Done** — phases completed, artifacts produced, key decisions made
-2. **Artifacts and Paths** — every file that was created or modified, with full paths
-3. **Key Decisions** — numbered list of architectural/design decisions with rationale
-4. **Folio Context** — project path, how to check status, how to commit (`folio home push`)
-5. **Open Questions** — unresolved decisions, naming questions, areas of uncertainty
-6. **What's Next** — one of:
-   - **If shipping**: "Move to Brief phase / implementation. Read [design doc path] as spec."
-   - **If iterating**: "Run another planning round. Weak areas to focus on: [list]. Use
-     `/folio plan <topic>` with agent teams to deep-dive these. Exit criteria: [concrete
-     conditions that mean we're done planning]."
-7. **How to Start** — a copy-paste prompt block the user can paste into a new session.
-   Should be self-contained — the new session reads this handoff + the artifacts, not
-   conversation history. Include skill invocations to run at session start (e.g.,
-   `/folio status --folio <path>`, `/commit`) so the new session loads the right context.
-8. **Temp Files** — list any /tmp files that can be cleaned up vs. ones that are still needed
+**Layer 1 — TL;DR + Start Here (always read)**
+
+```markdown
+# Handoff: {Topic} — {Phase/State}
+
+## TL;DR
+{One sentence: what happened.} {One sentence: what's open.} {One sentence: what to do.}
+
+## Start Here
+
+{Copy-paste prompt block for the next session. Self-contained — includes topic, key
+constraints, design doc path, vault sources, and mode (e.g., "full agent teams powered").}
+
+Skills to invoke: `/folio status --folio <path>`, `/commit`, {others as needed}
+```
+
+The TL;DR is max 3 sentences. The Start Here block is the prompt the user pastes — it must
+work without reading anything else in the handoff. If the prompt needs context that isn't
+in the design doc, the handoff is underspecified.
+
+**Layer 2 — Context (read if the session needs to understand why)**
+
+```markdown
+## Open Questions
+{Bulleted list of unresolved decisions. Only questions the next session must address.}
+
+## Key Decisions (this session only)
+{Numbered list of decisions made THIS session — prior sessions' decisions live in the
+design doc. Don't repeat what's already committed.}
+
+## Exit Criteria
+{Concrete checklist for when the next round/phase is done.}
+```
+
+Keep Layer 2 under 30 lines. If a decision needs rationale, one sentence — not a paragraph.
+Link to the design doc for full context rather than restating it.
+
+**Layer 3 — Reference (skim or skip)**
+
+```markdown
+## Artifacts
+{File tree of what was created/modified, with paths. Compact — no descriptions unless
+the path isn't self-explanatory.}
+
+## Folio
+- Project: `{path}`
+- Commit: `folio home push -m "type(scope): description"`
+
+## Temp Files
+{List /tmp files. One line each.}
+```
+
+**What NOT to include in the handoff:**
+- Full decision history from prior rounds (that's the design doc's job)
+- Restated design doc sections (link, don't copy)
+- Convergence status tables that repeat settled items (only list what's open)
+- Agent research summaries (those are in the round directories)
 
 **Checklist before writing the handoff** (prevents forgetting things):
 - [ ] All artifacts committed to folio? (`folio home push`)
-- [ ] Design doc / track plan saved to folio (not just /tmp)?
-- [ ] Observations captured for process improvements?
-- [ ] Open naming questions or unresolved decisions noted?
-- [ ] Exit criteria for planning stated (if iterating)?
-- [ ] Folio project path and commands included?
+- [ ] TL;DR is 3 sentences or fewer?
+- [ ] Start Here prompt works without reading the rest of the handoff?
+- [ ] Key Decisions only lists THIS session's decisions?
+- [ ] Open questions are questions, not restated context?
+- [ ] Exit criteria stated (if iterating)?
 
 ### Step 4: Handoff Validation (mandatory)
 
