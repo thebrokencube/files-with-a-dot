@@ -62,10 +62,20 @@ Each session produces a handoff document (see plan-design.md Session Exit) that 
 **Key principle**: Each round should deepen specific areas, not repeat broad exploration. If round 1 produced a strong architecture but weak migration plan, round 2 focuses agent teams on migration feasibility — don't re-derive the architecture.
 
 **Convergence tracking**: Each round's handoff doc MUST include a "Convergence Status"
-section: what's settled (don't revisit), what's weak (next round's focus), and exit
-criteria progress (which items checked off). If 3 rounds haven't converged, escalate to user
-with explicit options: (a) accept current state, (b) narrow scope, (c) spike on blocking
-question.
+section with per-layer status: Direction (problem/approach/scope), Interfaces
+(contracts/tracks/cross-cutting), and Implementation (technique choices). Use the status
+vocabulary: EXPLORING, PROPOSED, SETTLED (Round N), AMENDED (Round N), NEEDS REVIEW,
+DEFERRED, IN PROGRESS. Per-layer round budgets apply:
+
+| Layer | Budget | Circuit breaker |
+|-------|--------|----------------|
+| Direction | 1-3 rounds | After 3 direction rounds without convergence, escalate |
+| Interface | 1-2 rounds | After 2 interface rounds post-direction-settled, escalate |
+| Implementation | 0-1 rounds | After 1 round, escalate (shouldn't normally run) |
+| **Global maximum** | **5 rounds** | Hard escalate regardless of per-layer state |
+
+When escalating, present explicit options: (a) accept current state, (b) narrow scope,
+(c) spike on blocking question.
 
 Handoff docs are the connective tissue. They MUST be complete enough that a fresh session
 can pick up without reading conversation history. See plan-design.md Session Exit for the
@@ -88,11 +98,11 @@ When design doc scope is 5 or fewer files with clear implementation, collapse De
 into a single document. The design agent writes execution-level detail directly — skip Agent 2.
 Criteria: file count, scope clarity, single-repo. If ambiguous, use the full pipeline.
 
-The combined doc must include the brief's required sections: Context, Agent Setup, Tracks,
-Build & Deploy, Execution Conventions (with commit sequence), and Handoff Prompts. These
-sections appear in the design doc's Execution Brief — see `references/plan-brief.md` for
-section specs. The handoff prompt is the acid test: if it needs context beyond "read the doc
-and execute," the doc is underspecified.
+The combined doc must include the brief's required sections: Direction Summary, Interface
+Spec, Track Decomposition, and Execution Setup. These sections appear in the design doc's
+Execution Brief — see `references/plan-brief.md` for section specs. The handoff prompt is
+the acid test: if it needs context beyond "read the doc and execute," the doc is
+underspecified.
 
 Commit checkpoints are still mandatory: the combined design+brief doc must be committed before
 execution begins. Lightweight mode reduces agents, not checkpoints.
@@ -101,9 +111,11 @@ execution begins. Lightweight mode reduces agents, not checkpoints.
 
 If design doc feedback requires rethinking (not just minor edits), re-run Phases 2-4 within
 Agent 1. If work plan feedback requires restructuring, re-run Phases 5-6 in a new Agent 2
-session. If execution reveals a design-level flaw, escalate to the user — re-run from Phase 2
-(new design) or Phase 5 (new brief) depending on severity. Do not patch committed artifacts
-inline — re-run the producing agent.
+session. If execution reveals a flaw, classify by layer: direction-level flaw → re-run from
+Phase 2 (new design round); interface-level flaw → re-run from Phase 5 (new brief) or patch
+the interface spec; implementation question → agent resolves or asks user (no re-run). See
+plan-execute.md Layered Escalation for the full classification table. Do not patch committed
+artifacts inline — re-run the producing agent.
 
 **Amend-design path**: For additive scope changes where core architecture is settled: (1) describe
 the amendment, (2) get explicit approval, (3) edit the design doc, (4) re-run Phase 4 review
