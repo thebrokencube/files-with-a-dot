@@ -406,3 +406,22 @@ func TestRunNewRoundDryRun(t *testing.T) {
 		t.Error("dry-run should not create the directory")
 	}
 }
+
+func TestRunNewSlugifiesSpaces(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
+	os.MkdirAll(workDir, 0755)
+
+	code := runNew([]string{"--folio", yml, "round", "my topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 with spaces in topic, got %d", code)
+	}
+
+	roundDir := filepath.Join(workDir, "agent-research", "0001-round")
+	if info, err := os.Stat(roundDir); err != nil || !info.IsDir() {
+		t.Fatalf("expected directory at %s", roundDir)
+	}
+}

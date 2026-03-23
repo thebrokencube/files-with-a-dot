@@ -31,7 +31,7 @@ func runNew(args []string) int {
 	}
 
 	artifactType := fs.GetArgs()[0]
-	topic := fs.GetArgs()[1]
+	topic := strings.ReplaceAll(fs.GetArgs()[1], " ", "-")
 
 	// Handle vault: prefix — scaffold directly in vault directory (no folio.yml needed)
 	if strings.HasPrefix(artifactType, "vault:") {
