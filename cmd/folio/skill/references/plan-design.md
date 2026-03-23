@@ -52,7 +52,29 @@ not rely on training data. Flag facts that couldn't be live-verified.
 
 ## Phase 2: Propose
 
-Launch 2 Plan agents in parallel, each with the same context summary but a different lens. Each returns a proposal (max 80 lines).
+Launch propose agents in parallel, each with the same context summary but a different lens.
+
+### Standard vs Team Mode
+
+| Mode | When | Agents | Output |
+|------|------|--------|--------|
+| **Standard** (default) | Single-concern, bounded scope | 2 subagents | Each returns proposal text (max 80 lines) |
+| **Team** | Multi-concern, deep design, platform-level | 3-5 teammates | Each materializes findings to a file |
+
+**Use team mode when**: The task spans multiple independent concerns that benefit from dedicated deep-dive focus — architecture + migration feasibility + evolvability, or performance + correctness + UX. Each lens should represent a genuinely different evaluation axis, not just "more thorough." The user can request team mode or custom lenses naturally in the topic text (e.g., "go nuts with agent teams").
+
+### Team Mode Protocol
+
+When using team mode, each agent follows a standard protocol:
+
+1. **Read shared context** — the context summary plus any files listed as required reading
+2. **Explore** — read actual source code, fetch external docs, examine real files. Produce concrete findings, not summaries of summaries.
+3. **Materialize to file** — write findings to a temp file (e.g., `/tmp/{team}-{lens}.md`) before reporting back. This is mandatory — agent memory is ephemeral, files survive context compaction.
+4. **Signal done** — report completion with file path and 3-5 line summary of key findings
+
+The convergence agent (Phase 3) reads all materialized files, not conversation summaries.
+
+**Why materialize**: Long sessions compact context. If an agent's findings only exist in conversation history, they can be lost or degraded. Files are durable. Write early, write often.
 
 ### Model Routing
 
@@ -60,17 +82,18 @@ Subagents use explicit model selection to balance cost and capability:
 
 | Role | model | Rationale |
 |------|-------|-----------|
-| Propose | sonnet | Breadth exploration, constrained output |
+| Propose (standard) | sonnet | Breadth exploration, constrained output |
+| Propose (team) | session default | Deep exploration needs full capability |
 | Converge | session default | Synthesis needs depth |
 | Review | opus | Complex architectural reviews need depth (obs #42) |
 
 When `model` is omitted, the agent inherits the session default.
 
-Default lenses:
+Default lenses (standard 2-agent mode):
 - **Pragmatic**: Minimize changes, reuse existing code, prefer the simplest approach that works
 - **Thorough**: Consider edge cases, maintainability, architectural fit, future extensibility
 
-### Propose Agent Prompt
+### Propose Agent Prompt (Standard Mode)
 
 Use with `subagent_type: "Plan"` and `model: "sonnet"`. Launch two instances in parallel with different lens values.
 
@@ -97,6 +120,36 @@ Focus on architecture, file-level changes, and key design trade-offs. Defer per-
 Keep your proposal under 80 lines. Be concrete — file paths, function names, specific changes. No hand-waving.
 ```
 
+### Propose Agent Prompt (Team Mode)
+
+Use with `subagent_type: "Plan"` and session default model. Launch N instances in parallel.
+
+```
+You are a research/design agent on a team exploring: {task_description}
+
+## Context
+{context_summary}
+
+## Your Lens: {lens_name}
+{lens_description}
+
+## Required Reading
+{file_list}
+
+## Protocol
+1. Read all required files first for shared context
+2. Explore the codebase through your lens — read actual source code, not just descriptions
+3. Write your findings to: /tmp/{team_name}-{lens_slug}.md
+4. Your file MUST include:
+   - Concrete findings with file paths and line references
+   - Specific recommendations (not "consider X" — say "do X because Y")
+   - Risks and mitigations for your area of focus
+   - Open questions that need resolution
+5. Report back with: file path, 3-5 line summary of key findings
+
+Be concrete. Read real code. No hand-waving.
+```
+
 **Default lens descriptions:**
 
 - **Pragmatic**: "Minimize the number of files changed and lines of code written. Reuse existing patterns and utilities. Prefer the simplest correct solution. Avoid new abstractions unless they pay for themselves immediately."
@@ -104,7 +157,10 @@ Keep your proposal under 80 lines. Be concrete — file paths, function names, s
 
 ## Phase 3: Converge
 
-Launch 1 agent (subagent_type: general-purpose, model: session default) to merge the two proposals into a single plan (max 100 lines).
+Launch 1 agent (subagent_type: general-purpose, model: session default) to merge proposals into a single plan.
+
+**Standard mode**: Converge agent receives proposal text directly (max 100 lines output).
+**Team mode**: Converge agent receives file paths to all materialized proposals. It reads each file, then synthesizes. Output may be longer for complex multi-lens convergence — cap at 200 lines for team mode.
 
 Convergence criteria:
 - Every file to be changed is listed with what changes and why
@@ -114,10 +170,17 @@ Convergence criteria:
   implementation-level detail deferred to the Brief agent
 - **Option-value interactions**: When rejecting an option, note what conditions would
   reinstate it — preserves reasoning without re-running diverge-converge
+- **Conflict resolution priority** (team mode): When proposals conflict, the converge agent
+  must state which proposal wins and why. If a prior design doc or user constraint exists,
+  it is authoritative over agent proposals.
 
 After the converge agent returns, briefly summarize (3–5 lines) the key divergence decisions to the user — which proposal won on each point and why. Informational only, not blocking. Proceed to Phase 4 immediately after.
 
-### Converge Agent Prompt
+**Team mode materialization**: The converge agent MUST write its output to a file (e.g.,
+`/tmp/{team_name}-converged.md`) in addition to returning it. This protects against context
+compaction in long sessions.
+
+### Converge Agent Prompt (Standard Mode)
 
 Use with `subagent_type: "general-purpose"`.
 
@@ -143,6 +206,37 @@ Merge the two proposals into a single implementation plan:
 - Pre-decide function signatures, type definitions, and edge-case handling where feasible
 
 Keep the merged plan under 100 lines. Be concrete.
+```
+
+### Converge Agent Prompt (Team Mode)
+
+Use with `subagent_type: "general-purpose"`.
+
+```
+You are synthesizing findings from {N} research/design agents into a unified plan.
+
+## Original Task
+{task_description}
+
+## Proposal Files
+Read each of these files fully before synthesizing:
+{file_path_list}
+
+## Conflict Resolution
+- If proposals agree, that's strong signal — keep it
+- If proposals conflict, pick the stronger approach with explicit rationale
+- Prior design docs and user-stated constraints are authoritative over proposals
+- When rejecting an approach, note what conditions would reinstate it
+
+## Instructions
+Synthesize into a single unified plan:
+- Resolve all conflicts — no "on one hand / on the other hand"
+- Every file to change listed with what changes and why
+- Implementation order with dependencies
+- Pre-decide key signatures, types, and architectural decisions
+
+Write your output to: /tmp/{team_name}-converged.md
+Also return a 5-10 line summary of key decisions made.
 ```
 
 ## Phase 4: Review
@@ -206,15 +300,69 @@ For re-run and amend-design rules, see plan.md.
 
 ## Session Exit (mandatory)
 
-1. **Retro prompt**: "Anything worth retroing on before we move to the next phase?"
-   Materialize findings via `folio new retro <topic>` and observation items. Commit via
-   `folio home push`. For lightweight retros, observation items alone suffice.
-2. **Handoff gate** — two options:
-   - **Continue** (default): Spawn next agent via Agent tool with fresh context. Pass only
-     the committed artifact path and setup instructions — no conversation history.
-   - **New session**: Provide a paste-able prompt for the user to start fresh.
-   Format: "[Artifact] committed at [path]. **Continue to [next phase], or hand off to a
-   new session?**"
-3. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
-   temp file and `pbcopy < /tmp/handoff-prompt.txt`. The prompt exists in the doc for
-   durability, but clipboard is how the user actually starts the next session.
+Every session that produces design work MUST complete all four steps before ending.
+
+### Step 1: Confidence Check
+
+Ask the user: **"Is this design hardened enough to move forward, or should we iterate more?"**
+
+Three possible outcomes:
+
+| Response | Action |
+|----------|--------|
+| **Ship it** | Proceed to Brief phase (Agent 2) or implementation |
+| **Iterate** | Produce iteration handoff (Step 3b) identifying weak areas for next round |
+| **Not sure** | Run `/folio review` on the design doc to surface gaps, then re-ask |
+
+Planning is iterative. A single round of diverge-converge rarely produces a hardened plan.
+It's perfectly fine — expected, even — to loop through multiple sessions before moving to
+implementation. Each round should deepen specific areas, not repeat broad exploration.
+
+### Step 2: Retro
+
+"Anything worth retroing on before we wrap?"
+
+Materialize findings via `folio new retro <topic>` and observation items. Commit via
+`folio home push`. For lightweight retros, observation items alone suffice.
+
+Retro scope includes the planning process itself — what worked about the agent team
+composition, lens selection, convergence quality, context management.
+
+### Step 3: Handoff Document
+
+Write a handoff document to `/tmp/handoff-{topic}.md`. This is the single source of truth
+for the next session — whether that's the next phase or another planning round.
+
+**Handoff document MUST include all of these sections:**
+
+1. **What Was Done** — phases completed, artifacts produced, key decisions made
+2. **Artifacts and Paths** — every file that was created or modified, with full paths
+3. **Key Decisions** — numbered list of architectural/design decisions with rationale
+4. **Folio Context** — project path, how to check status, how to commit (`folio home push`)
+5. **Open Questions** — unresolved decisions, naming questions, areas of uncertainty
+6. **What's Next** — one of:
+   - **If shipping**: "Move to Brief phase / implementation. Read [design doc path] as spec."
+   - **If iterating**: "Run another planning round. Weak areas to focus on: [list]. Use
+     `/folio plan <topic>` with agent teams to deep-dive these. Exit criteria: [concrete
+     conditions that mean we're done planning]."
+7. **How to Start** — a copy-paste prompt block the user can paste into a new session.
+   Should be self-contained — the new session reads this handoff + the artifacts, not
+   conversation history.
+8. **Temp Files** — list any /tmp files that can be cleaned up vs. ones that are still needed
+
+**Checklist before writing the handoff** (prevents forgetting things):
+- [ ] All artifacts committed to folio? (`folio home push`)
+- [ ] Design doc / track plan saved to folio (not just /tmp)?
+- [ ] Observations captured for process improvements?
+- [ ] Open naming questions or unresolved decisions noted?
+- [ ] Exit criteria for planning stated (if iterating)?
+- [ ] Folio project path and commands included?
+
+### Step 4: Clipboard Delivery
+
+```bash
+cat /tmp/handoff-{topic}.md | pbcopy
+```
+
+Always copy the full handoff to clipboard. The user starts the next session by pasting it.
+Tell the user: "Handoff copied to clipboard. Paste it to start the next session."

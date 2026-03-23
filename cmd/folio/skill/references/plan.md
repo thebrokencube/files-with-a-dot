@@ -44,6 +44,25 @@ The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate 
 
 **Invocation**: Agent 1 is invoked by `/folio plan`. Agents 2 and 3 are separate sessions — the user starts them after reviewing the prior agent's committed output.
 
+## Iteration Across Sessions
+
+Planning is often iterative — a single session rarely produces a fully hardened design. The Design phase (Agent 1) can loop across multiple sessions:
+
+```
+Session 1: Research + first diverge-converge -> design doc v1
+  User reviews, identifies weak areas
+Session 2: Deep-dive weak areas -> design doc v2
+  User reviews, still not confident on X
+Session 3: Focused round on X -> design doc v3
+  User: "ship it" -> proceed to Brief phase
+```
+
+Each session produces a handoff document (see plan-design.md Session Exit) that bridges to the next. The handoff identifies what's strong, what's weak, and what the next round should focus on. Exit criteria should be stated explicitly so the loop has a defined endpoint.
+
+**Key principle**: Each round should deepen specific areas, not repeat broad exploration. If round 1 produced a strong architecture but weak migration plan, round 2 focuses agent teams on migration feasibility — don't re-derive the architecture.
+
+Handoff docs are the connective tissue. They MUST be complete enough that a fresh session can pick up without reading conversation history. See plan-design.md Session Exit for the mandatory handoff template.
+
 ## Invocation
 
 - `/folio plan` — Infer topic from context, default lenses (pragmatic vs thorough)
