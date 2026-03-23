@@ -16,7 +16,7 @@ func runCreateMissing(args []string) int {
 	fs := dendrik.NewFlagSet("create-missing")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
 	dryRun := fs.Bool('n', "dry-run", "Show what would be created without side effects")
-	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
+	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
 
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -58,7 +58,7 @@ func runCreateMissing(args []string) int {
 		return dryRunCreate(tbdNodes, f)
 	}
 
-	return executeCreate(tbdNodes, f, *force)
+	return executeCreate(tbdNodes, f, *plainText)
 }
 
 func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
@@ -75,7 +75,7 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 	return dendrik.ExitOK
 }
 
-func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
+func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
 	// Track failed parents so we skip their children
@@ -136,7 +136,7 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
 			}
 			compiled, compileErr := p.Compile(newKey, source, "")
 			if compileErr != nil {
-				if force {
+				if plainText {
 					fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", newKey)
 					compiled = buildPlainTextPayload(newKey, source)
 				} else {

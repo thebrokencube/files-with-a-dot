@@ -73,6 +73,17 @@ func pullSingle(key, filePath string) int {
 		md = out
 	}
 
+	// Level 0 overwrite guard: block if local file has substantive content.
+	// No state available at Level 0, so any content blocks the pull.
+	existing, readErr := os.ReadFile(filePath)
+	if readErr == nil {
+		stripped := pipeline.StripFrontmatter(existing)
+		if len(bytes.TrimSpace(stripped)) > 0 {
+			fmt.Fprintf(os.Stderr, "✗ %s: BLOCKED — local has content, first pull (no baseline)\n", key)
+			return dendrik.ExitUserError
+		}
+	}
+
 	if err := os.WriteFile(filePath, md, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: write error\n  %s\n", filePath, err)
 		return dendrik.ExitUserError
@@ -163,6 +174,22 @@ func pullForest(dir string, positional []string,
 			}
 			md = out
 			adfJSON = nil
+		}
+
+		// Overwrite guard: block if local has content and no baseline
+		existing, readErr := os.ReadFile(filePath)
+		if readErr == nil {
+			stripped := pipeline.StripFrontmatter(existing)
+			if len(bytes.TrimSpace(stripped)) > 0 {
+				if _, hasState := state.Nodes[n.Key]; !hasState {
+					fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — local has content, first pull (no baseline)\n", n.Key)
+					failed++
+					if failFast {
+						break
+					}
+					continue
+				}
+			}
 		}
 
 		// Preserve frontmatter if file exists

@@ -14,7 +14,7 @@ import (
 
 func runPush(args []string) int {
 	fs := dendrik.NewFlagSet("push")
-	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
+	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
 	subtree := fs.String('s', "subtree", "", "Push node and all descendants")
 	failFast := fs.BoolLong("fail-fast", "Stop on first error")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
@@ -29,14 +29,14 @@ func runPush(args []string) int {
 
 	// Level 0: explicit key + file
 	if len(positional) >= 2 {
-		return pushSingle(positional[0], positional[1], *force)
+		return pushSingle(positional[0], positional[1], *plainText)
 	}
 
 	// Forest mode: discover and push
-	return pushForest(*dir, positional, *subtree, *force, *failFast, *dryRun, nil, nil, nil)
+	return pushForest(*dir, positional, *subtree, *plainText, *failFast, *dryRun, nil, nil, nil)
 }
 
-func pushSingle(key, filePath string, force bool) int {
+func pushSingle(key, filePath string, plainText bool) int {
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: file not found\n", filePath)
@@ -53,7 +53,7 @@ func pushSingle(key, filePath string, force bool) int {
 
 	compiled, err := p.Compile(key, source, "")
 	if err != nil {
-		if force {
+		if plainText {
 			fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", key)
 			compiled = buildPlainTextPayload(key, source)
 		} else {
@@ -72,7 +72,7 @@ func pushSingle(key, filePath string, force bool) int {
 }
 
 func pushForest(dir string, positional []string, subtreeTarget string,
-	force, failFast, dryRun bool,
+	plainText, failFast, dryRun bool,
 	f *forest.Forest, roots []*forest.Node, skipKeys map[string]bool) int {
 
 	if f == nil {
@@ -187,7 +187,7 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 
 		compiled, err := p.Compile(n.Key, source, n.Label)
 		if err != nil {
-			if force {
+			if plainText {
 				fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", n.Key)
 				compiled = buildPlainTextPayload(n.Key, source)
 			} else {
