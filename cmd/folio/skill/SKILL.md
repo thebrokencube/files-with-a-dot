@@ -199,7 +199,8 @@ before the next phase begins. This is enforced by the skill, not optional.
 
 | Workflow | Phase | Artifact | Command |
 |----------|-------|----------|---------|
-| gather | deep research | reference file | `folio new <inferred-type> <topic>` |
+| gather | snapshot (Shape A) | reference file | `folio new <inferred-type> <topic>` |
+| gather | re-seed (Shape C) | updated reference file | edit existing file |
 | plan | Phase 1 research | spike(s) | `folio new spike <topic>` |
 | plan | Phase 4b design | design doc | `folio new design <topic>` (creates work dir if none exists, colocates inside it) |
 | plan | Phase 7 retro | retro file | `folio new retro <topic>` (colocates with work dir if topic matches) |
@@ -210,7 +211,7 @@ they do not count as materialization.
 
 ## Reference Files
 
-- **references/gather.md** — Gather workflow: URL scaffold, materialize, deep research mode
+- **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
