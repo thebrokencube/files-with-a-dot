@@ -59,6 +59,8 @@ Tool contract linter for the dotfiles platform. Validates that CLI tools in `cmd
 - `run-has-json` — run* functions register --json flag
 - `activation-metadata` — trigger/skip_when/related fields are valid
 
+-> Read references/contract-checks.md for full check details with remediation examples.
+
 ## Interpreting Results
 
 Severity levels:
@@ -79,3 +81,9 @@ dendrik lint cmd/jf --strict  # strict mode for pre-tag validation
 dendrik lint cmd/newtool      # see what's missing
 dendrik lint --explain symlink-entries  # understand a specific check
 ```
+
+## Conventions
+
+-> Read references/cli-conventions.md for CLI conventions (exit codes, flags, output, command structure).
+
+-> Read references/skill-conventions.md for skill conventions (frontmatter, layout, progressive disclosure).
