@@ -76,7 +76,7 @@ func runHomeValidate(args []string) int {
 
 func runHomeList(args []string) int {
 	fs := dendrik.NewFlagSet("home list")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -172,9 +172,9 @@ func printEntryTable(entries []list.Entry, color bool) {
 
 func runHomePush(args []string) int {
 	fs := dendrik.NewFlagSet("home push")
-	msg := fs.StringLong("m", "", "Commit message: type(scope): description")
-	folioName := fs.StringLong("folio", "", "Scope commit to a single folio (shortname or path)")
-	all := fs.BoolLong("all", "Stage all changes (current behavior, default)")
+	msg := fs.String('m', "message", "", "Commit message: type(scope): description")
+	folioName := fs.String('f', "folio", "", "Scope commit to a single folio (shortname or path)")
+	all := fs.Bool('a', "all", "Stage all changes (current behavior, default)")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

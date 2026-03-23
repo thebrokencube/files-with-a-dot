@@ -32,7 +32,7 @@ func runObserve(args []string) int {
 
 func runObserveAppend(args []string) int {
 	fs := dendrik.NewFlagSet("observe")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
@@ -75,10 +75,10 @@ type listEntry struct {
 
 func runObserveList(args []string) int {
 	fs := dendrik.NewFlagSet("observe list")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
-	scopeFilter := fs.StringLong("scope", "", "Filter by scope")
-	typeFilter := fs.StringLong("type", "", "Filter by type")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
+	scopeFilter := fs.String('s', "scope", "", "Filter by scope")
+	typeFilter := fs.String('t', "type", "", "Filter by type")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -160,7 +160,7 @@ func runObserveList(args []string) int {
 
 func runObserveResolve(args []string) int {
 	fs := dendrik.NewFlagSet("observe resolve")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
@@ -198,7 +198,7 @@ func runObserveTypes(args []string) int {
 
 func runObserveLint(args []string) int {
 	fs := dendrik.NewFlagSet("observe lint")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

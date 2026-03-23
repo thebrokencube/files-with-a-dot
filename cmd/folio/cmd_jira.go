@@ -17,8 +17,8 @@ import (
 
 func runJiraCompile(args []string) int {
 	fs := dendrik.NewFlagSet("jira compile")
-	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
-	source := fs.StringLong("source", "", "Markdown source file (- for stdin)")
+	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
+	source := fs.String('s', "source", "", "Markdown source file (- for stdin)")
 	_ = fs.StringLong("output", "", "Deprecated: output file")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -39,8 +39,8 @@ func runJiraCompile(args []string) int {
 
 func runJiraPush(args []string) int {
 	fs := dendrik.NewFlagSet("jira push")
-	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
-	source := fs.StringLong("source", "", "Markdown source file (- for stdin)")
+	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
+	source := fs.String('s', "source", "", "Markdown source file (- for stdin)")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
@@ -66,7 +66,7 @@ func runJiraPush(args []string) int {
 func runJiraCreate(args []string) int {
 	fs := dendrik.NewFlagSet("jira create")
 	jsonFile := fs.StringLong("json", "", "Creation JSON payload file")
-	source := fs.StringLong("source", "", "Markdown source file for description")
+	source := fs.String('s', "source", "", "Markdown source file for description")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
@@ -110,9 +110,9 @@ func runJiraCreate(args []string) int {
 
 func runJiraView(args []string) int {
 	fs := dendrik.NewFlagSet("jira view")
-	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
+	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
 	fields := fs.StringLong("fields", "", "Comma-separated field list")
-	jsonOut := fs.BoolLong("json", "JSON output")
+	jsonOut := fs.Bool('j', "json", "JSON output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
@@ -137,9 +137,9 @@ func runJiraView(args []string) int {
 
 func runJiraSearch(args []string) int {
 	fs := dendrik.NewFlagSet("jira search")
-	jql := fs.StringLong("jql", "", "JQL query string")
+	jql := fs.String('q', "jql", "", "JQL query string")
 	fields := fs.StringLong("fields", "", "Comma-separated field list")
-	limit := fs.IntLong("limit", 50, "Max results")
+	limit := fs.Int('l', "limit", 50, "Max results")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

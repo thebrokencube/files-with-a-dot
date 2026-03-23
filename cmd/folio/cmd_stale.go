@@ -15,8 +15,8 @@ import (
 
 func runStale(args []string) int {
 	fs := dendrik.NewFlagSet("stale")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

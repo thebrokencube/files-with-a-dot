@@ -14,8 +14,8 @@ import (
 
 func runValidate(args []string) int {
 	fs := dendrik.NewFlagSet("validate")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -65,8 +65,8 @@ func runValidate(args []string) int {
 
 func runStatus(args []string) int {
 	fs := dendrik.NewFlagSet("status")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -104,7 +104,7 @@ func runStatus(args []string) int {
 
 func runInit(args []string) int {
 	fs := dendrik.NewFlagSet("init")
-	name := fs.StringLong("name", "", "Project name")
+	name := fs.String('n', "name", "", "Project name")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

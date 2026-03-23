@@ -10,7 +10,7 @@ import (
 
 func runSetup(args []string) int {
 	fs := dendrik.NewFlagSet("setup")
-	checkMode := fs.BoolLong("check", "Silent mode: exit 0 if OK, exit 1 if missing")
+	checkMode := fs.Bool('c', "check", "Silent mode: exit 0 if OK, exit 1 if missing")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

@@ -16,11 +16,11 @@ import (
 
 func runGather(args []string) int {
 	fs := dendrik.NewFlagSet("gather")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	materialize := fs.BoolLong("materialize", "Create reference file stub and wire path")
-	typeFlag := fs.StringLong("type", "", "Reference type (spike, survey, design, ...)")
-	name := fs.StringLong("name", "", "Reference file name (default: derived from URL)")
-	read := fs.BoolLong("read", "Read and summarize URL (requires Claude skill)")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	materialize := fs.Bool('m', "materialize", "Create reference file stub and wire path")
+	typeFlag := fs.String('t', "type", "", "Reference type (spike, survey, design, ...)")
+	name := fs.String('n', "name", "", "Reference file name (default: derived from URL)")
+	read := fs.Bool('r', "read", "Read and summarize URL (requires Claude skill)")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError

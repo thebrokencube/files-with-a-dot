@@ -16,7 +16,7 @@ import (
 
 func runHealth(args []string) int {
 	fs := dendrik.NewFlagSet("health")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

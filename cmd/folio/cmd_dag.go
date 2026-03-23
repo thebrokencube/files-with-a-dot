@@ -32,10 +32,10 @@ type dagEdge struct {
 
 func runDag(args []string) int {
 	fs := dendrik.NewFlagSet("dag")
-	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
-	branches := fs.BoolLong("branches", "Show branch topology")
-	statusFlag := fs.BoolLong("status", "Show staleness overlay (requires --branches)")
+	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
+	branches := fs.Bool('b', "branches", "Show branch topology")
+	statusFlag := fs.Bool('s', "status", "Show staleness overlay (requires --branches)")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
