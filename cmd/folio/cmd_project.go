@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,20 +9,24 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runValidate(args []string) int {
-	fs := flag.NewFlagSet("validate", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("validate")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		if *jsonMode {
@@ -61,17 +64,20 @@ func runValidate(args []string) int {
 }
 
 func runStatus(args []string) int {
-	fs := flag.NewFlagSet("status", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("status")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
@@ -97,9 +103,12 @@ func runStatus(args []string) int {
 }
 
 func runInit(args []string) int {
-	fs := flag.NewFlagSet("init", flag.ExitOnError)
-	name := fs.String("name", "", "Project name")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("init")
+	name := fs.StringLong("name", "", "Project name")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if _, err := os.Stat("folio.yml"); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml already exists in %s", mustGetwd()))

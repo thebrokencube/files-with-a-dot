@@ -1,9 +1,7 @@
 package main
 
 import (
-	"flag"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -137,49 +135,6 @@ func TestActiveShortnames(t *testing.T) {
 			t.Fatalf("expected 0, got %d", len(got))
 		}
 	})
-}
-
-func TestParseFlagsNormalOrder(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	fs.String("folio", "", "test flag")
-	parseFlags(fs, []string{"--folio", "/tmp/folio.yml", "positional"})
-	if fs.Args()[0] != "positional" {
-		t.Fatalf("expected positional arg, got %q", fs.Args()[0])
-	}
-}
-
-func TestParseFlagsNoArgs(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	parseFlags(fs, []string{})
-	if len(fs.Args()) != 0 {
-		t.Fatalf("expected no args, got %d", len(fs.Args()))
-	}
-}
-
-func TestParseFlagsPositionalOnly(t *testing.T) {
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	parseFlags(fs, []string{"hello", "world"})
-	if len(fs.Args()) != 2 {
-		t.Fatalf("expected 2 args, got %d", len(fs.Args()))
-	}
-}
-
-// TestParseFlagsTrailingDetected verifies that trailing flags cause os.Exit(1).
-// We run ourselves as a subprocess to catch the exit.
-func TestParseFlagsTrailingDetected(t *testing.T) {
-	if os.Getenv("TEST_PARSEFLAGS_EXIT") == "1" {
-		fs := flag.NewFlagSet("test", flag.ContinueOnError)
-		fs.String("folio", "", "test flag")
-		parseFlags(fs, []string{"positional", "--folio", "/tmp"})
-		return
-	}
-	cmd := exec.Command(os.Args[0], "-test.run=TestParseFlagsTrailingDetected")
-	cmd.Env = append(os.Environ(), "TEST_PARSEFLAGS_EXIT=1")
-	err := cmd.Run()
-	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
-		return // expected non-zero exit
-	}
-	t.Fatal("expected process to exit with non-zero status for trailing flags")
 }
 
 func TestResolveFolioPath(t *testing.T) {

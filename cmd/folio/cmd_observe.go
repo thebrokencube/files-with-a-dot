@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runObserve(args []string) int {
@@ -31,15 +31,18 @@ func runObserve(args []string) int {
 }
 
 func runObserveAppend(args []string) int {
-	fs := flag.NewFlagSet("observe", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("observe")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	item := strings.TrimSpace(strings.Join(fs.Args(), " "))
+	item := strings.TrimSpace(strings.Join(fs.GetArgs(), " "))
 	if item == "" {
 		fmt.Fprintf(os.Stderr, "Usage: folio observe <item text> [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "       folio observe list [--json] [--scope X] [--type X]\n")
@@ -71,13 +74,16 @@ type listEntry struct {
 }
 
 func runObserveList(args []string) int {
-	fs := flag.NewFlagSet("observe list", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
-	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
-	scopeFilter := fs.String("scope", "", "Filter by scope")
-	typeFilter := fs.String("type", "", "Filter by type")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("observe list")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
+	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	scopeFilter := fs.StringLong("scope", "", "Filter by scope")
+	typeFilter := fs.StringLong("type", "", "Filter by type")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	_ = noColor // reserved for future use
 
@@ -153,15 +159,18 @@ func runObserveList(args []string) int {
 }
 
 func runObserveResolve(args []string) int {
-	fs := flag.NewFlagSet("observe resolve", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("observe resolve")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	matches := fs.Args()
+	matches := fs.GetArgs()
 	if len(matches) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio observe resolve <#N|substring> [match...]\n")
 		return 1
@@ -188,9 +197,12 @@ func runObserveTypes(args []string) int {
 }
 
 func runObserveLint(args []string) int {
-	fs := flag.NewFlagSet("observe lint", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("observe lint")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1

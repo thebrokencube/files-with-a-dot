@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,37 +10,6 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 )
-
-// parseFlags parses flags and detects trailing flags after positional arguments.
-// Folio uses flag.ExitOnError, so fs.Parse exits on error. This adds detection
-// for the silent-drop case where flags appear after positional args.
-func parseFlags(fs *flag.FlagSet, args []string) {
-	fs.Parse(args)
-	for _, arg := range fs.Args() {
-		if strings.HasPrefix(arg, "-") {
-			fmt.Fprintf(os.Stderr, "error: unknown flag %q after positional arguments (flags must come before arguments)\n", arg)
-			os.Exit(1)
-		}
-	}
-}
-
-func isTerminal() bool {
-	fi, err := os.Stdout.Stat()
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeCharDevice != 0
-}
-
-func colorEnabled(noColorFlag bool) bool {
-	if noColorFlag {
-		return false
-	}
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
-	return isTerminal()
-}
 
 func mustGetwd() string {
 	wd, err := os.Getwd()

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func mustResolveHome() string {
@@ -42,11 +42,14 @@ func runHomeInit(args []string) int {
 }
 
 func runHomeValidate(args []string) int {
-	fs := flag.NewFlagSet("home validate", flag.ExitOnError)
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("home validate")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 	dir := mustResolveHome()
 
 	errs := home.Validate(dir)
@@ -72,12 +75,15 @@ func runHomeValidate(args []string) int {
 }
 
 func runHomeList(args []string) int {
-	fs := flag.NewFlagSet("home list", flag.ExitOnError)
-	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("home list")
+	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 	dir := mustResolveHome()
 
 	entries, err := list.Scan(dir)
@@ -165,15 +171,18 @@ func printEntryTable(entries []list.Entry, color bool) {
 }
 
 func runHomePush(args []string) int {
-	fs := flag.NewFlagSet("home push", flag.ExitOnError)
-	msg := fs.String("m", "", "Commit message: type(scope): description")
-	folioName := fs.String("folio", "", "Scope commit to a single folio (shortname or path)")
-	all := fs.Bool("all", false, "Stage all changes (current behavior, default)")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("home push")
+	msg := fs.StringLong("m", "", "Commit message: type(scope): description")
+	folioName := fs.StringLong("folio", "", "Scope commit to a single folio (shortname or path)")
+	all := fs.BoolLong("all", "Stage all changes (current behavior, default)")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	// Allow positional args as message for convenience: folio home push "my message"
-	if fs.NArg() > 0 {
-		*msg = strings.Join(fs.Args(), " ")
+	if len(fs.GetArgs()) > 0 {
+		*msg = strings.Join(fs.GetArgs(), " ")
 	}
 
 	if *msg == "" {

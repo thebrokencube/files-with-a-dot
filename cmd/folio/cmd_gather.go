@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,22 +11,26 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runGather(args []string) int {
-	fs := flag.NewFlagSet("gather", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	materialize := fs.Bool("materialize", false, "Create reference file stub and wire path")
-	typeFlag := fs.String("type", "", "Reference type (spike, survey, design, ...)")
-	name := fs.String("name", "", "Reference file name (default: derived from URL)")
-	read := fs.Bool("read", false, "Read and summarize URL (requires Claude skill)")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("gather")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	materialize := fs.BoolLong("materialize", "Create reference file stub and wire path")
+	typeFlag := fs.StringLong("type", "", "Reference type (spike, survey, design, ...)")
+	name := fs.StringLong("name", "", "Reference file name (default: derived from URL)")
+	read := fs.BoolLong("read", "Read and summarize URL (requires Claude skill)")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	if fs.NArg() == 0 {
+	if len(fs.GetArgs()) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize --type <type>] [--name <name>] [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Adds a source entry to folio.yml for the given URL.\n")
 		return 1
@@ -39,7 +42,7 @@ func runGather(args []string) int {
 		return 1
 	}
 
-	rawURL := fs.Arg(0)
+	rawURL := fs.GetArgs()[0]
 
 	// Validate URL
 	parsed, err := url.Parse(rawURL)

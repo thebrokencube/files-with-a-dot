@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,19 +11,23 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/health"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runHealth(args []string) int {
-	fs := flag.NewFlagSet("health", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("health")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
@@ -40,11 +43,14 @@ func runHealth(args []string) int {
 }
 
 func runHomeHealth(args []string) int {
-	fs := flag.NewFlagSet("home health", flag.ExitOnError)
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("home health")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
-	color := colorEnabled(*noColor)
+	color := dendrik.ColorEnabled(*noColor)
 	homeDir := mustResolveHome()
 
 	entries, err := list.Scan(homeDir)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,24 +8,28 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runTouch(args []string) int {
-	fs := flag.NewFlagSet("touch", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("touch")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1
 	}
 
-	if fs.NArg() == 0 {
+	if len(fs.GetArgs()) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio touch <target-id> [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Marks a target as current by updating output file mtimes.\n")
 		return 1
 	}
 
-	targetID := fs.Arg(0)
+	targetID := fs.GetArgs()[0]
 
 	f, err := config.Load(*folioPath)
 	if err != nil {

@@ -1,17 +1,20 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runSetup(args []string) int {
-	fs := flag.NewFlagSet("setup", flag.ExitOnError)
-	checkMode := fs.Bool("check", false, "Silent mode: exit 0 if OK, exit 1 if missing")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("setup")
+	checkMode := fs.BoolLong("check", "Silent mode: exit 0 if OK, exit 1 if missing")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	folioBin, err := os.Executable()
 	if err != nil {

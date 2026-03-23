@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,20 +12,24 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runArchive(args []string) int {
-	fs := flag.NewFlagSet("archive", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	dryRun := fs.Bool("dry-run", false, "Print what would happen, no side effects")
-	noPush := fs.Bool("no-push", false, "Skip auto-commit")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("archive")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	dryRun := fs.BoolLong("dry-run", "Print what would happen, no side effects")
+	noPush := fs.BoolLong("no-push", "Skip auto-commit")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
-	if fs.NArg() < 1 {
+	if len(fs.GetArgs()) < 1 {
 		fmt.Fprintln(os.Stderr, output.Errf("usage: folio archive <track-name> [--folio PATH] [--dry-run] [--no-push]"))
 		return 1
 	}
-	trackName := fs.Arg(0)
+	trackName := fs.GetArgs()[0]
 
 	if !resolveOrDie(folioPath) {
 		return 1

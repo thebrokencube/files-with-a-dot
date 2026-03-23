@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,14 +10,18 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runStale(args []string) int {
-	fs := flag.NewFlagSet("stale", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool("json", false, "Machine-readable JSON output")
-	noColor := fs.Bool("no-color", false, "Disable colored output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("stale")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	jsonMode := fs.BoolLong("json", "Machine-readable JSON output")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if !resolveOrDie(folioPath) {
 		return 1

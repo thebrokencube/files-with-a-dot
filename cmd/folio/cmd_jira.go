@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -13,14 +12,18 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/jira"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runJiraCompile(args []string) int {
-	fs := flag.NewFlagSet("jira compile", flag.ExitOnError)
-	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
-	source := fs.String("source", "", "Markdown source file (- for stdin)")
-	_ = fs.String("output", "", "Deprecated: output file")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("jira compile")
+	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
+	source := fs.StringLong("source", "", "Markdown source file (- for stdin)")
+	_ = fs.StringLong("output", "", "Deprecated: output file")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
@@ -35,10 +38,13 @@ func runJiraCompile(args []string) int {
 }
 
 func runJiraPush(args []string) int {
-	fs := flag.NewFlagSet("jira push", flag.ExitOnError)
-	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
-	source := fs.String("source", "", "Markdown source file (- for stdin)")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("jira push")
+	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
+	source := fs.StringLong("source", "", "Markdown source file (- for stdin)")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
@@ -58,10 +64,13 @@ func runJiraPush(args []string) int {
 }
 
 func runJiraCreate(args []string) int {
-	fs := flag.NewFlagSet("jira create", flag.ExitOnError)
-	jsonFile := fs.String("json", "", "Creation JSON payload file")
-	source := fs.String("source", "", "Markdown source file for description")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("jira create")
+	jsonFile := fs.StringLong("json", "", "Creation JSON payload file")
+	source := fs.StringLong("source", "", "Markdown source file for description")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if *jsonFile == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--json and --source are required"))
@@ -100,11 +109,14 @@ func runJiraCreate(args []string) int {
 }
 
 func runJiraView(args []string) int {
-	fs := flag.NewFlagSet("jira view", flag.ExitOnError)
-	id := fs.String("id", "", "Jira issue key (e.g., BEN-123)")
-	fields := fs.String("fields", "", "Comma-separated field list")
-	jsonOut := fs.Bool("json", false, "JSON output")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("jira view")
+	id := fs.StringLong("id", "", "Jira issue key (e.g., BEN-123)")
+	fields := fs.StringLong("fields", "", "Comma-separated field list")
+	jsonOut := fs.BoolLong("json", "JSON output")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if *id == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id is required"))
@@ -124,11 +136,14 @@ func runJiraView(args []string) int {
 }
 
 func runJiraSearch(args []string) int {
-	fs := flag.NewFlagSet("jira search", flag.ExitOnError)
-	jql := fs.String("jql", "", "JQL query string")
-	fields := fs.String("fields", "", "Comma-separated field list")
-	limit := fs.Int("limit", 50, "Max results")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("jira search")
+	jql := fs.StringLong("jql", "", "JQL query string")
+	fields := fs.StringLong("fields", "", "Comma-separated field list")
+	limit := fs.IntLong("limit", 50, "Max results")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
 	if *jql == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--jql is required"))

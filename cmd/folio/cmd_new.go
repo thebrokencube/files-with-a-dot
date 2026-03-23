@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,22 +11,26 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runNew(args []string) int {
-	fs := flag.NewFlagSet("new", flag.ExitOnError)
-	folioPath := fs.String("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	noRegister := fs.Bool("no-register", false, "Skip adding source entry to folio.yml")
-	dryRun := fs.Bool("dry-run", false, "Print what would be created, no side effects")
-	parseFlags(fs, args)
+	fs := dendrik.NewFlagSet("new")
+	folioPath := fs.StringLong("folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	noRegister := fs.BoolLong("no-register", "Skip adding source entry to folio.yml")
+	dryRun := fs.BoolLong("dry-run", "Print what would be created, no side effects")
+	if err := dendrik.Parse(fs, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return dendrik.ExitUserError
+	}
 
-	if fs.NArg() < 2 {
+	if len(fs.GetArgs()) < 2 {
 		printNewUsage()
 		return 1
 	}
 
-	artifactType := fs.Arg(0)
-	topic := fs.Arg(1)
+	artifactType := fs.GetArgs()[0]
+	topic := fs.GetArgs()[1]
 
 	// Handle vault: prefix — scaffold directly in vault directory (no folio.yml needed)
 	if strings.HasPrefix(artifactType, "vault:") {

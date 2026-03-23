@@ -163,22 +163,3 @@ func TestRunSetupCheck(t *testing.T) {
 	}
 }
 
-func TestColorEnabled(t *testing.T) {
-	if colorEnabled(true) {
-		t.Error("expected false when noColor flag is true")
-	}
-
-	origEnv := os.Getenv("NO_COLOR")
-	os.Setenv("NO_COLOR", "1")
-	defer func() {
-		if origEnv == "" {
-			os.Unsetenv("NO_COLOR")
-		} else {
-			os.Setenv("NO_COLOR", origEnv)
-		}
-	}()
-
-	if colorEnabled(false) {
-		t.Error("expected false when NO_COLOR env is set")
-	}
-}
