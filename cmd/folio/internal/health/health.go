@@ -21,16 +21,17 @@ type Report struct {
 	Untyped      []string       // files in flat reference/ (not in type subdir)
 	Work         WorkReport
 	Observations ObservationReport
-	Retro        RetroReport
+	Design       ColocationReport
+	Retro        ColocationReport
 	Naming       []string // files without date prefix
 	Grade        string   // "Good", "Needs Attention", "Stale"
 }
 
-// RetroReport summarizes retro file colocation status.
-type RetroReport struct {
-	Total     int // total retro files
-	Colocated int // retros inside a work dir
-	Orphaned  int // retros in reference/retro/ with a matching work dir they could move to
+// ColocationReport summarizes colocation status for a colocatable type (design, retro).
+type ColocationReport struct {
+	Total     int // total files of this type
+	Colocated int // files inside a work dir
+	Orphaned  int // files in reference/<type>/ with a matching work dir they could move to
 }
 
 // WorkReport summarizes the work layer.
@@ -57,6 +58,7 @@ func Analyze(f *config.Folio, folioDir string) *Report {
 	analyzeReference(r, folioDir)
 	analyzeWork(r, folioDir)
 	analyzeObservations(r, f, folioDir)
+	analyzeDesign(r, folioDir)
 	analyzeRetro(r, folioDir)
 	analyzeNaming(r, folioDir)
 	r.Grade = computeGrade(r)
@@ -143,28 +145,39 @@ func analyzeObservations(r *Report, f *config.Folio, folioDir string) {
 	}
 }
 
+func analyzeDesign(r *Report, folioDir string) {
+	analyzeColocation(&r.Design, folioDir, "design")
+}
+
 func analyzeRetro(r *Report, folioDir string) {
-	// Count retros in reference/retro/
-	retroDir := filepath.Join(folioDir, "reference", "retro")
-	if entries, err := os.ReadDir(retroDir); err == nil {
+	analyzeColocation(&r.Retro, folioDir, "retro")
+}
+
+// analyzeColocation checks for files of a colocatable type that sit in
+// reference/<typeName>/ but have a matching work dir they could move into.
+// It also counts colocated files already inside work dirs.
+func analyzeColocation(cr *ColocationReport, folioDir string, typeName string) {
+	// Count files in reference/<type>/ and detect orphans
+	refTypeDir := filepath.Join(folioDir, "reference", typeName)
+	if entries, err := os.ReadDir(refTypeDir); err == nil {
 		for _, e := range entries {
 			if e.IsDir() {
 				continue
 			}
-			r.Retro.Total++
+			cr.Total++
 			// Extract topic from YYYY-MM-DD-<topic>.md
 			name := strings.TrimSuffix(e.Name(), ".md")
 			parts := strings.SplitN(name, "-", 4)
 			if len(parts) >= 4 {
 				topic := parts[3]
 				if taxonomy.FindWorkDir(folioDir, topic) != "" {
-					r.Retro.Orphaned++
+					cr.Orphaned++
 				}
 			}
 		}
 	}
 
-	// Count colocated retros in work dirs
+	// Count colocated files in work dirs
 	for _, layer := range []string{"active", "archive"} {
 		layerDir := filepath.Join(folioDir, "work", layer)
 		workDirs, err := os.ReadDir(layerDir)
@@ -175,20 +188,20 @@ func analyzeRetro(r *Report, folioDir string) {
 			if !wd.IsDir() {
 				continue
 			}
-			retroSubDir := filepath.Join(layerDir, wd.Name(), "reference", "retro")
-			if entries, err := os.ReadDir(retroSubDir); err == nil {
+			typeSubDir := filepath.Join(layerDir, wd.Name(), "reference", typeName)
+			if entries, err := os.ReadDir(typeSubDir); err == nil {
 				for _, e := range entries {
 					if !e.IsDir() {
-						r.Retro.Total++
-						r.Retro.Colocated++
+						cr.Total++
+						cr.Colocated++
 					}
 				}
 			}
-			// Also check for retro.md directly in work dir
-			retroFile := filepath.Join(layerDir, wd.Name(), "retro.md")
-			if _, err := os.Stat(retroFile); err == nil {
-				r.Retro.Total++
-				r.Retro.Colocated++
+			// Also check for <type>.md directly in work dir (flat format)
+			flatFile := filepath.Join(layerDir, wd.Name(), typeName+".md")
+			if _, err := os.Stat(flatFile); err == nil {
+				cr.Total++
+				cr.Colocated++
 			}
 		}
 	}

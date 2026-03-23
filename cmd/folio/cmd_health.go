@@ -131,6 +131,11 @@ func printHealthReport(r *health.Report, color bool) {
 		}
 	}
 
+	// Design colocation line
+	if r.Design.Total > 0 {
+		fmt.Printf("  Designs   %d total, %d colocated, %d orphaned\n", r.Design.Total, r.Design.Colocated, r.Design.Orphaned)
+	}
+
 	// Retro line
 	if r.Retro.Total > 0 {
 		fmt.Printf("  Retros    %d total, %d colocated, %d orphaned\n", r.Retro.Total, r.Retro.Colocated, r.Retro.Orphaned)
