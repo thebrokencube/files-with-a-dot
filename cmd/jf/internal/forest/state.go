@@ -92,9 +92,11 @@ func (s *State) IsStale(key string, fileMtime time.Time) bool {
 }
 
 // RecordPush updates the state for a node after a successful push.
-func (s *State) RecordPush(key string) {
+func (s *State) RecordPush(key string, localHash, remoteHash string) {
 	ns := s.Nodes[key]
 	ns.LastPush = time.Now()
+	ns.LocalHash = localHash
+	ns.RemoteHash = remoteHash
 	s.Nodes[key] = ns
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
@@ -39,6 +40,12 @@ func pushSingle(key, filePath string, force bool) int {
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: file not found\n", filePath)
+		return dendrik.ExitUserError
+	}
+
+	stripped := pipeline.StripFrontmatter(source)
+	if len(bytes.TrimSpace(stripped)) == 0 {
+		fmt.Fprintf(os.Stderr, "✗ %s: BLOCKED — empty content, refusing to push\n", key)
 		return dendrik.ExitUserError
 	}
 
@@ -168,6 +175,16 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 			continue
 		}
 
+		stripped := pipeline.StripFrontmatter(source)
+		if len(bytes.TrimSpace(stripped)) == 0 {
+			fmt.Fprintf(os.Stderr, "✗ %s: BLOCKED — empty content, refusing to push\n", n.Key)
+			failed++
+			if failFast {
+				break
+			}
+			continue
+		}
+
 		compiled, err := p.Compile(n.Key, source, n.Label)
 		if err != nil {
 			if force {
@@ -192,7 +209,8 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 			continue
 		}
 
-		state.RecordPush(n.Key)
+		localHash := forest.ComputeHash(stripped)
+		state.RecordPush(n.Key, localHash, "")
 		fmt.Printf("✓ %s (%s)\n", n.Key, n.File)
 		succeeded++
 	}

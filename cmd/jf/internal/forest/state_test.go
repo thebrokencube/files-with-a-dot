@@ -118,7 +118,7 @@ func TestSaveStateAtomic(t *testing.T) {
 
 func TestRecordPush(t *testing.T) {
 	s := &State{Nodes: make(map[string]NodeState)}
-	s.RecordPush("BEN-1")
+	s.RecordPush("BEN-1", "testhash", "")
 
 	ns, ok := s.Nodes["BEN-1"]
 	if !ok {
@@ -126,6 +126,12 @@ func TestRecordPush(t *testing.T) {
 	}
 	if time.Since(ns.LastPush) > time.Second {
 		t.Error("expected LastPush to be recent")
+	}
+	if ns.LocalHash != "testhash" {
+		t.Errorf("expected LocalHash 'testhash', got %q", ns.LocalHash)
+	}
+	if ns.RemoteHash != "" {
+		t.Errorf("expected empty RemoteHash, got %q", ns.RemoteHash)
 	}
 }
 
@@ -137,17 +143,17 @@ func TestRecordPushPreservesFields(t *testing.T) {
 			LocalHash:  "def456",
 		},
 	}}
-	s.RecordPush("BEN-1")
+	s.RecordPush("BEN-1", "newhash", "")
 
 	ns := s.Nodes["BEN-1"]
 	if ns.LastPull.IsZero() {
 		t.Error("RecordPush should preserve LastPull")
 	}
-	if ns.RemoteHash != "abc123" {
-		t.Error("RecordPush should preserve RemoteHash")
+	if ns.LocalHash != "newhash" {
+		t.Error("RecordPush should set LocalHash to new value")
 	}
-	if ns.LocalHash != "def456" {
-		t.Error("RecordPush should preserve LocalHash")
+	if ns.RemoteHash != "" {
+		t.Error("RecordPush should set RemoteHash to provided value")
 	}
 	if time.Since(ns.LastPush) > time.Second {
 		t.Error("expected LastPush to be recent")

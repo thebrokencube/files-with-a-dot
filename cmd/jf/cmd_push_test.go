@@ -44,6 +44,42 @@ func TestPushForestTBDSkipped(t *testing.T) {
 	}
 }
 
+func TestPushEmptyContentBlocked(t *testing.T) {
+	dir := t.TempDir()
+
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{"frontmatter-only", "---\njira: TEST-1\n---\n"},
+		{"whitespace-only", "---\njira: TEST-1\n---\n  \n\n  \n"},
+		{"empty body", "---\njira: TEST-1\n---\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filePath := filepath.Join(dir, tt.name+".md")
+			os.WriteFile(filePath, []byte(tt.content), 0644)
+			code := pushSingle("TEST-1", filePath, false)
+			if code != 1 {
+				t.Errorf("expected exit 1 for %s, got %d", tt.name, code)
+			}
+		})
+	}
+}
+
+func TestPushForestEmptyContentBlocked(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n"), 0644)
+
+	// Non-dry-run: empty content blocks the push (failed count > 0)
+	code := pushForest(dir, nil, "", false, false, false, nil, nil, nil)
+	if code != 1 {
+		t.Fatalf("expected exit 1 for empty content, got %d", code)
+	}
+}
+
 func TestBuildPlainTextPayload(t *testing.T) {
 	source := []byte("---\njira: BEN-1\n---\n# Hello\n\nSome content")
 	payload := buildPlainTextPayload("BEN-1", source)

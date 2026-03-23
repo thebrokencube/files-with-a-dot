@@ -25,6 +25,21 @@ func TestPullForestTargetNotFound(t *testing.T) {
 	}
 }
 
+func TestPullForestIncludesSyncBoth(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "both.md"), []byte("---\njira: TEST-1\nsync: both\n---\n# Both\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "push.md"), []byte("---\njira: TEST-2\nsync: push\n---\n# Push\n"), 0644)
+
+	// dry-run mode: sync:both should appear in pull list
+	code := pullForest(dir, nil, false, false, true, nil, nil)
+	if code != 0 {
+		t.Fatalf("expected exit 0 for dry-run, got %d", code)
+	}
+	// The sync:both node should be included, so we should NOT get "No pull-mode nodes"
+	// (the dry-run will print "[dry-run] would pull TEST-1 -> both.md")
+}
+
 func TestPullForestNoPullNodes(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)

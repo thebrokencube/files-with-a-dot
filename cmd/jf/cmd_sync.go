@@ -15,7 +15,6 @@ import (
 func runSync(args []string) int {
 	fs := dendrik.NewFlagSet("sync")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	force := fs.Bool('f', "force", "Push even if remote has content not seen locally")
 	failFast := fs.BoolLong("fail-fast", "Stop on first error")
 	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: skip)")
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be synced without side effects")
@@ -36,7 +35,7 @@ func runSync(args []string) int {
 	if err != nil {
 		// Fall through to push/pull which will print their own errors
 		fmt.Println("── Push ──")
-		pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, nil, nil, nil)
+		pushCode := pushForest(*dir, nil, "", false, *failFast, *dryRun, nil, nil, nil)
 		fmt.Println()
 		fmt.Println("── Pull ──")
 		pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, nil, nil)
@@ -95,12 +94,8 @@ func runSync(args []string) int {
 	}
 
 	// First-push safety: for nodes never synced, check if Jira has content
-	// that would be overwritten. Block push unless --force.
-	var blockedKeys map[string]bool
-	blocked := 0
-	if !*force {
-		blockedKeys, blocked = checkFirstPushSafety(f, roots, state, p, *dryRun)
-	}
+	// that would be overwritten. Always block — no bypass flag.
+	blockedKeys, blocked := checkFirstPushSafety(f, roots, state, p, *dryRun)
 
 	// Pass pre-loaded forest to push and pull (skip blocked keys)
 	fmt.Println("── Push ──")
@@ -119,7 +114,7 @@ func runSync(args []string) int {
 	fmt.Println()
 	fmt.Println("── Summary ──")
 	if blocked > 0 {
-		fmt.Printf("Blocked: %d node(s) have remote content not seen locally (use --force to override)\n", blocked)
+		fmt.Printf("Blocked: %d node(s) — first sync with remote content (pull first to establish baseline)\n", blocked)
 	}
 	if conflicts > 0 {
 		fmt.Printf("Conflicts: %d\n", conflicts)
@@ -164,7 +159,9 @@ func checkFirstPushSafety(f *forest.Forest, roots []*forest.Node, state *forest.
 		// Fetch Jira description to see if remote has content
 		viewJSON, err := p.View(n.Key, "description", true)
 		if err != nil {
-			continue // can't reach Jira, let push proceed
+			blockedKeys[strings.ToUpper(n.Key)] = true
+			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — cannot reach Jira\n", n.Key)
+			continue
 		}
 
 		adf, _ := pipeline.ExtractDescriptionADF(viewJSON)
@@ -174,11 +171,7 @@ func checkFirstPushSafety(f *forest.Forest, roots []*forest.Node, state *forest.
 
 		// Jira has content — block this node
 		blockedKeys[strings.ToUpper(n.Key)] = true
-		if dryRun {
-			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — Jira has content not seen locally (first sync, no baseline)\n", n.Key)
-		} else {
-			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — Jira has content, skipping push (use --force to override)\n", n.Key)
-		}
+		fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — first sync, Jira has content (pull first to establish baseline)\n", n.Key)
 	}
 
 	return blockedKeys, len(blockedKeys)

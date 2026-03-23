@@ -125,9 +125,15 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, force bool) int {
 			// Not fatal — ticket was created, just frontmatter not updated
 		}
 
-		// Compile and push description
+		// Compile and push description (skip if empty)
 		source, err := os.ReadFile(filePath)
 		if err == nil {
+			stripped := pipeline.StripFrontmatter(source)
+			if len(bytes.TrimSpace(stripped)) == 0 {
+				fmt.Printf("✓ Created %s %q (%s) — description empty, push skipped\n", newKey, n.Label, n.File)
+				succeeded++
+				continue
+			}
 			compiled, compileErr := p.Compile(newKey, source, "")
 			if compileErr != nil {
 				if force {

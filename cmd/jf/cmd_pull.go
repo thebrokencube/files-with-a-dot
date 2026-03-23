@@ -16,7 +16,6 @@ func runPull(args []string) int {
 	fs := dendrik.NewFlagSet("pull")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
 	failFast := fs.BoolLong("fail-fast", "Stop on first error")
-	_ = fs.Bool('f', "force", "Overwrite local file even if conflict detected")
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be pulled without side effects")
 
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -110,7 +109,7 @@ func pullForest(dir string, positional []string,
 		// Collect all sync:pull nodes
 		all := forest.Flatten(roots)
 		for _, n := range all {
-			if n.Sync == "pull" && !forest.IsTBD(n.Key) {
+			if (n.Sync == "pull" || n.Sync == "both") && !forest.IsTBD(n.Key) {
 				toPull = append(toPull, n)
 			}
 		}
