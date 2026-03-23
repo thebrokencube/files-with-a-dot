@@ -17,6 +17,8 @@ type State struct {
 
 // NodeState tracks per-node push/pull state.
 type NodeState struct {
+	LastSync   time.Time `json:"last_sync,omitempty"`
+	Direction  string    `json:"direction,omitempty"`
 	LastPush   time.Time `json:"last_push,omitempty"`
 	LastPull   time.Time `json:"last_pull,omitempty"`
 	LocalHash  string    `json:"local_hash,omitempty"`  // sha256 of content below frontmatter
@@ -43,7 +45,29 @@ func LoadState(forestDir string) (*State, error) {
 	if s.Nodes == nil {
 		s.Nodes = make(map[string]NodeState)
 	}
+	migrateState(&s)
 	return &s, nil
+}
+
+// migrateState upgrades NodeState entries from LastPush/LastPull to LastSync.
+// Idempotent: already-migrated entries are left unchanged.
+func migrateState(s *State) {
+	for key, ns := range s.Nodes {
+		if !ns.LastSync.IsZero() {
+			continue // already migrated
+		}
+		if ns.LastPush.IsZero() && ns.LastPull.IsZero() {
+			continue // nothing to migrate
+		}
+		if ns.LastPull.IsZero() || ns.LastPush.After(ns.LastPull) {
+			ns.LastSync = ns.LastPush
+			ns.Direction = "push"
+		} else {
+			ns.LastSync = ns.LastPull
+			ns.Direction = "pull"
+		}
+		s.Nodes[key] = ns
+	}
 }
 
 // SaveState writes .jf/state.json atomically via tempfile + rename.
@@ -104,6 +128,16 @@ func (s *State) RecordPush(key string, localHash, remoteHash string) {
 func (s *State) RecordPull(key string, localHash, remoteHash string) {
 	ns := s.Nodes[key]
 	ns.LastPull = time.Now()
+	ns.LocalHash = localHash
+	ns.RemoteHash = remoteHash
+	s.Nodes[key] = ns
+}
+
+// RecordSync updates the state for a node after a successful sync operation.
+func (s *State) RecordSync(key, direction, localHash, remoteHash string) {
+	ns := s.Nodes[key]
+	ns.LastSync = time.Now()
+	ns.Direction = direction
 	ns.LocalHash = localHash
 	ns.RemoteHash = remoteHash
 	s.Nodes[key] = ns

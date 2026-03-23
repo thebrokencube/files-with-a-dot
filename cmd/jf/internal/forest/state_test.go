@@ -241,6 +241,171 @@ func TestDetectConflictNeverSynced(t *testing.T) {
 	}
 }
 
+func TestRecordSync(t *testing.T) {
+	s := &State{Nodes: make(map[string]NodeState)}
+	s.RecordSync("BEN-1", "push", "localhash", "remotehash")
+
+	ns, ok := s.Nodes["BEN-1"]
+	if !ok {
+		t.Fatal("expected node state after RecordSync")
+	}
+	if time.Since(ns.LastSync) > time.Second {
+		t.Error("expected LastSync to be recent")
+	}
+	if ns.Direction != "push" {
+		t.Errorf("expected Direction 'push', got %q", ns.Direction)
+	}
+	if ns.LocalHash != "localhash" {
+		t.Errorf("expected LocalHash 'localhash', got %q", ns.LocalHash)
+	}
+	if ns.RemoteHash != "remotehash" {
+		t.Errorf("expected RemoteHash 'remotehash', got %q", ns.RemoteHash)
+	}
+}
+
+func TestMigrationPushOnly(t *testing.T) {
+	pushTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPush: pushTime, LocalHash: "lh", RemoteHash: "rh"},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.Equal(pushTime) {
+		t.Errorf("LastSync = %v, want %v", ns.LastSync, pushTime)
+	}
+	if ns.Direction != "push" {
+		t.Errorf("Direction = %q, want push", ns.Direction)
+	}
+	if ns.LocalHash != "lh" || ns.RemoteHash != "rh" {
+		t.Error("hashes not preserved")
+	}
+}
+
+func TestMigrationPullOnly(t *testing.T) {
+	pullTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPull: pullTime, LocalHash: "lh"},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.Equal(pullTime) {
+		t.Errorf("LastSync = %v, want %v", ns.LastSync, pullTime)
+	}
+	if ns.Direction != "pull" {
+		t.Errorf("Direction = %q, want pull", ns.Direction)
+	}
+}
+
+func TestMigrationBothTimestampsPushNewer(t *testing.T) {
+	pushTime := time.Date(2026, 3, 21, 10, 0, 0, 0, time.UTC)
+	pullTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPush: pushTime, LastPull: pullTime},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.Equal(pushTime) {
+		t.Errorf("LastSync = %v, want %v", ns.LastSync, pushTime)
+	}
+	if ns.Direction != "push" {
+		t.Errorf("Direction = %q, want push", ns.Direction)
+	}
+}
+
+func TestMigrationBothTimestampsPullNewer(t *testing.T) {
+	pushTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	pullTime := time.Date(2026, 3, 21, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPush: pushTime, LastPull: pullTime},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.Equal(pullTime) {
+		t.Errorf("LastSync = %v, want %v", ns.LastSync, pullTime)
+	}
+	if ns.Direction != "pull" {
+		t.Errorf("Direction = %q, want pull", ns.Direction)
+	}
+}
+
+func TestMigrationAlreadyMigrated(t *testing.T) {
+	syncTime := time.Date(2026, 3, 22, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastSync: syncTime, Direction: "push", LocalHash: "lh", RemoteHash: "rh"},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.Equal(syncTime) {
+		t.Error("LastSync changed during re-migration")
+	}
+	if ns.Direction != "push" {
+		t.Error("Direction changed during re-migration")
+	}
+}
+
+func TestMigrationNeitherSet(t *testing.T) {
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if !ns.LastSync.IsZero() {
+		t.Error("LastSync should remain zero")
+	}
+}
+
+func TestMigrationEmptyRemoteHash(t *testing.T) {
+	pushTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPush: pushTime, LocalHash: "lh", RemoteHash: ""},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if ns.RemoteHash != "" {
+		t.Error("empty RemoteHash should be preserved as-is")
+	}
+}
+
+func TestMigrationHashesPreserved(t *testing.T) {
+	pushTime := time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {LastPush: pushTime, LocalHash: "abc123", RemoteHash: "def456"},
+	}}
+	migrateState(s)
+	ns := s.Nodes["KEY-1"]
+	if ns.LocalHash != "abc123" || ns.RemoteHash != "def456" {
+		t.Errorf("hashes changed: local=%q remote=%q", ns.LocalHash, ns.RemoteHash)
+	}
+}
+
+func TestMigrationViaLoadState(t *testing.T) {
+	dir := t.TempDir()
+	// Save old-format state
+	s := &State{Nodes: map[string]NodeState{
+		"KEY-1": {
+			LastPush:   time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC),
+			LocalHash:  "lh",
+			RemoteHash: "rh",
+		},
+	}}
+	if err := SaveState(dir, s); err != nil {
+		t.Fatal(err)
+	}
+
+	// Load should trigger migration
+	loaded, err := LoadState(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ns := loaded.Nodes["KEY-1"]
+	if ns.LastSync.IsZero() {
+		t.Error("LoadState should have triggered migration")
+	}
+	if ns.Direction != "push" {
+		t.Errorf("Direction = %q, want push", ns.Direction)
+	}
+}
+
 func TestIsPullStale(t *testing.T) {
 	s := &State{Nodes: map[string]NodeState{
 		"BEN-1": {LastPull: time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)},
