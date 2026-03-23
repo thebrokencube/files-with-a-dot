@@ -337,3 +337,72 @@ func TestRunNewPlanUsesExistingWorkDir(t *testing.T) {
 		t.Errorf("expected exactly 1 work dir for topic, got %d", len(matches))
 	}
 }
+
+func TestRunNewRoundCreatesFirstRound(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
+	os.MkdirAll(workDir, 0755)
+
+	code := runNew([]string{"--folio", yml, "round", "my-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	roundDir := filepath.Join(workDir, "agent-research", "0001-round")
+	if info, err := os.Stat(roundDir); err != nil || !info.IsDir() {
+		t.Fatalf("expected directory at %s", roundDir)
+	}
+}
+
+func TestRunNewRoundAutoIncrements(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
+	os.MkdirAll(filepath.Join(workDir, "agent-research", "0001-round"), 0755)
+	os.MkdirAll(filepath.Join(workDir, "agent-research", "0002-round"), 0755)
+
+	code := runNew([]string{"--folio", yml, "round", "my-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	roundDir := filepath.Join(workDir, "agent-research", "0003-round")
+	if info, err := os.Stat(roundDir); err != nil || !info.IsDir() {
+		t.Fatalf("expected directory at %s", roundDir)
+	}
+}
+
+func TestRunNewRoundMissingWorkDir(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := runNew([]string{"--folio", yml, "round", "nonexistent"})
+	if code != 1 {
+		t.Errorf("expected exit code 1 for missing work dir, got %d", code)
+	}
+}
+
+func TestRunNewRoundDryRun(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
+	os.MkdirAll(workDir, 0755)
+
+	code := runNew([]string{"--folio", yml, "--dry-run", "round", "my-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	roundDir := filepath.Join(workDir, "agent-research", "0001-round")
+	if _, err := os.Stat(roundDir); err == nil {
+		t.Error("dry-run should not create the directory")
+	}
+}

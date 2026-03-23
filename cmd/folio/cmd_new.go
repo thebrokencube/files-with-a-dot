@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,10 @@ func runNew(args []string) int {
 
 	if !resolveOrDie(folioPath) {
 		return dendrik.ExitUserError
+	}
+
+	if artifactType == "round" {
+		return runNewRound(topic, *folioPath, *dryRun)
 	}
 
 	// Deprecation check
@@ -147,6 +152,48 @@ func runNew(args []string) int {
 	return 0
 }
 
+func runNewRound(topic, folioPath string, dryRun bool) int {
+	folioDir := filepath.Dir(folioPath)
+	workDir := taxonomy.FindWorkDir(folioDir, topic)
+	if workDir == "" {
+		fmt.Fprintln(os.Stderr, output.Errf("no work directory found for topic %q", topic))
+		return dendrik.ExitUserError
+	}
+	if strings.Contains(workDir, string(filepath.Separator)+"work"+string(filepath.Separator)+"archive"+string(filepath.Separator)) {
+		fmt.Fprintln(os.Stderr, output.Errf("work directory for %q is archived — rounds are active work only", topic))
+		return dendrik.ExitUserError
+	}
+
+	agentDir := filepath.Join(workDir, "agent-research")
+	maxNum := 0
+	matches, _ := filepath.Glob(filepath.Join(agentDir, "????-round"))
+	for _, m := range matches {
+		base := filepath.Base(m)
+		prefix := base[:4]
+		if n, err := strconv.Atoi(prefix); err == nil && n > maxNum {
+			maxNum = n
+		}
+	}
+
+	nextNum := maxNum + 1
+	roundName := fmt.Sprintf("%04d-round", nextNum)
+	roundDir := filepath.Join(agentDir, roundName)
+	relPath, _ := filepath.Rel(folioDir, roundDir)
+
+	if dryRun {
+		fmt.Printf("Would create: %s\n", relPath)
+		return 0
+	}
+
+	if err := os.MkdirAll(roundDir, 0755); err != nil {
+		fmt.Fprintln(os.Stderr, output.Errf("creating directory: %s", err))
+		return dendrik.ExitUserError
+	}
+
+	fmt.Println(output.Successf("Created %s", relPath))
+	return 0
+}
+
 var validVaultLabels = map[string]bool{
 	"research": true,
 	"domain":   true,
@@ -233,6 +280,7 @@ Types:
   Vault:       vault:research, vault:domain, vault:guide, vault:insight
   Alias:       brief (-> plan)
   Dual-layer:  design, retro (colocate with work dir if one matches topic)
+  Convention:  round (auto-incrementing agent-research dir under work dir)
 
 Options:
   --folio PATH      Path or shortname (default: ./folio.yml)

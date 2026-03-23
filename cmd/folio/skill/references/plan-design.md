@@ -99,10 +99,14 @@ agent-research/
 ```
 
 **Create the round directory when spinning up the agent team** — before dispatching propose
-agents. To determine the next number: list existing `agent-research/????-round/` directories,
-increment. First round is `0001-round`. If the work dir doesn't exist yet (design creates it
-in Phase 4), create `agent-research/` under the work dir path that `folio new design` will
-use — the directory can exist before the design doc is scaffolded.
+agents. Use the CLI to scaffold the next round:
+
+```bash
+folio new round <topic> --folio <path>
+```
+
+This auto-increments from existing `agent-research/????-round/` directories. First round is
+`0001-round`. The work dir must already exist (design creates it in Phase 4).
 
 Previous rounds stay intact for reference. The design doc's provenance section should note
 which round produced the final convergence.
