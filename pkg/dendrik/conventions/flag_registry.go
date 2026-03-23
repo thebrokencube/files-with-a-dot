@@ -1,8 +1,8 @@
 // Package conventions provides machine-readable convention data for dendrik CLIs.
 //
 // This package is the source of truth for cross-CLI conventions. It is consumed
-// by dendrik lint (Track 6) for validation and dendrik new (Track 5) for
-// scaffolding.
+// by the 25-check dendrik lint contract (see contract.go) for validation
+// and dendrik new (Track 5) for scaffolding.
 package conventions
 
 // FlagEntry describes a short flag's meaning within a specific CLI.

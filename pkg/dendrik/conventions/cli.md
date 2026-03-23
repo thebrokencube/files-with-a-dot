@@ -1,7 +1,8 @@
 # CLI Conventions
 
 Conventions codified from the jf and folio implementations. This is the source
-of truth for `dendrik lint` (Track 6) and `dendrik new` (Track 5).
+of truth for the 25-check `dendrik lint` contract (see `contract.go`) and
+`dendrik new` (Track 5).
 
 Philosophy: Sinatra, not Rails. dendrik provides functions at the points where
 convention matters. It doesn't own `main()`, dispatch, config schemas, help

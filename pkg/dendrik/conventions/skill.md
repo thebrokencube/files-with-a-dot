@@ -1,7 +1,8 @@
 # Skill Conventions
 
 Conventions codified from the jf and folio skill implementations. This is the
-source of truth for `dendrik lint` (Track 6) and `dendrik new` (Track 5).
+source of truth for the 25-check `dendrik lint` contract (see `contract.go`)
+and `dendrik new` (Track 5).
 
 ---
 
@@ -113,8 +114,8 @@ Link from the main SKILL.md to reference files using arrow syntax:
 -> Read references/gather.md for full workflow
 ```
 
-Arrows must point to existing files. `dendrik lint` (Track 6) will validate
-these links.
+Arrows must point to existing files. `dendrik lint` validates these links
+(check ID: `arrow-refs`).
 
 ### When to use references
 
