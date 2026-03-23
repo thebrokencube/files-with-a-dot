@@ -17,7 +17,7 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
         │                      │                       │
         ▼                      ▼                       ▼
   ┌───────────┐         ┌───────────┐           implement per track
-  │design doc │────────→│work brief │────────→  validate → review →
+  │design doc │────────→│work plan  │────────→  validate → review →
   │ COMMITTED │         │ COMMITTED │             commit → retro
   └───────────┘         └───────────┘
 ```
@@ -33,8 +33,8 @@ The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate 
 | Agent | Phases | Input | Output (committed) |
 |-------|--------|-------|-------------------|
 | Design | 1-4 | User request + codebase | Design doc |
-| Brief | 5-6 | Design doc | Work brief with tracks |
-| Execute | 7-8 | Work brief | Code + retro |
+| Brief | 5-6 | Design doc | Work plan with tracks |
+| Execute | 7-8 | Work plan | Code + retro |
 
 **Why three agents, not one:**
 
@@ -88,7 +88,7 @@ execution begins. Lightweight mode reduces agents, not checkpoints.
 ## Re-run Rule
 
 If design doc feedback requires rethinking (not just minor edits), re-run Phases 2-4 within
-Agent 1. If work brief feedback requires restructuring, re-run Phases 5-6 in a new Agent 2
+Agent 1. If work plan feedback requires restructuring, re-run Phases 5-6 in a new Agent 2
 session. If execution reveals a design-level flaw, escalate to the user — re-run from Phase 2
 (new design) or Phase 5 (new brief) depending on severity. Do not patch committed artifacts
 inline — re-run the producing agent.

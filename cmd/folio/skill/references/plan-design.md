@@ -254,9 +254,9 @@ rounds, present remaining issues to the user for judgment.
 
 **Design doc (mandatory):** After the review, commit the design doc. Every plan produces one — lightweight for simple changes, but it always exists.
 
-1. Scaffold via `folio new design <topic>`. This creates
-   `reference/design/YYYY-MM-DD-<topic>.md` with the design template and registers it in
-   folio.yml.
+1. Scaffold via `folio new design <topic>`. This auto-creates the work directory at
+   `work/active/YYYY-MM-DD-<topic>/` and colocates the design doc inside it at
+   `reference/design/YYYY-MM-DD-<topic>.md`. Registers the path in folio.yml.
 2. Fill in from converge output: Problem, Architecture, Divergence decisions, What's NOT
    included, Design Provenance (agent count, lens names, review findings).
 3. **Scope approval gate (hard):** Present the **What's NOT Included** section to the user

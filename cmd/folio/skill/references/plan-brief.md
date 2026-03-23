@@ -112,7 +112,9 @@ Each prompt must:
 The handoff prompt is the acid test of brief quality: if the prompt needs to add context
 beyond "read the brief and execute Track N," the brief is underspecified.
 
-Scaffold the brief under `work/active/YYYY-MM-DD-<topic>/README.md`. If the brief needs
+Scaffold the work plan under `work/active/YYYY-MM-DD-<topic>/README.md`. If a work dir
+already exists for the topic (from a prior `folio new design`), use it — the design doc
+will be a sibling at `reference/design/` inside the same directory. If the plan needs
 per-track detail files (large tracks), create `track-N.md` siblings.
 
 ### Brief Verification Gate (hard)
@@ -125,7 +127,7 @@ references cause mid-execution corrections.
 3. [ ] Tag/version sequences verified — `git tag --sort=-v:refname | head -1` matches brief
 4. [ ] User approved track structure (Phase 5 gate passed)
 
-Fix any inaccuracies, then commit via `folio home push`. The committed work brief is the
+Fix any inaccuracies, then commit via `folio home push`. The committed work plan is the
 contract for Agent 3.
 
 ### Brief Content Review (hard)
@@ -147,7 +149,7 @@ If issues found, fix and re-review. Loop until clean (cap 3 iterations).
    - **Continue** (default): Spawn next agent via Agent tool with fresh context. Pass only
      the committed artifact path and setup instructions — no conversation history.
    - **New session**: Provide a paste-able prompt for the user to start fresh.
-   Format: "Work brief committed at [path]. **Continue to Execute phase, or hand off to a
+   Format: "Work plan committed at [path]. **Continue to Execute phase, or hand off to a
    new session?**"
 3. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
    temp file and `pbcopy < /tmp/handoff-prompt.txt`. The prompt exists in the doc for

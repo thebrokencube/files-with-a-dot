@@ -200,7 +200,7 @@ before the next phase begins. This is enforced by the skill, not optional.
 |----------|-------|----------|---------|
 | gather | deep research | reference file | `folio new <inferred-type> <topic>` |
 | plan | Phase 1 research | spike(s) | `folio new spike <topic>` |
-| plan | Phase 4b design | design doc | `folio new design <topic>` (colocates with work dir if topic matches) |
+| plan | Phase 4b design | design doc | `folio new design <topic>` (creates work dir if none exists, colocates inside it) |
 | plan | Phase 7 retro | retro file | `folio new retro <topic>` (colocates with work dir if topic matches) |
 
 "Materialized" means: file exists on disk, registered in folio.yml, committed

@@ -47,6 +47,7 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
    - Default for ambiguous content → `spike`
 5. **Review gate (soft)**: Present proposed type, filename, content length, and 3 key facts. "Write to {path}?"
 6. Materialize via `folio new <inferred-type> <topic>` — never raw file write. Then fill the template with synthesized content.
+   **Note:** `folio new design` is special — it creates a work directory and colocates the design inside it, not at `reference/design/`. All other reference types scaffold to `reference/<type>/`.
 7. Report what was gathered, the inferred type, and where it was placed
 
 ## Knowledge Graduation
