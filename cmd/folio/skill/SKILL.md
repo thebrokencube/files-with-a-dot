@@ -1,8 +1,8 @@
 ---
 name: folio
-description: Knowledge work lifecycle — plan, compose, review. Manages project
-  structure via folio.yml with source-to-target composition and diverge-converge
-  planning for non-trivial tasks.
+description: "Use when planning non-trivial tasks, composing outputs, or managing
+  knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
+  composition and diverge-converge planning."
 user_invocable: true
 argument-hint: "[gather|plan|compose|publish|review|status|...] [args]"
 ---

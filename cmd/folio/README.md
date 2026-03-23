@@ -2,6 +2,21 @@
 
 Folio manages knowledge work projects — plans, references, and compiled outputs. The CLI handles project management (status, validation), while Claude Code skills handle the creative work (planning, writing).
 
+## Install
+
+Symlinked via dotfiles: `cmd/folio/folio` → `~/.local/bin/folio` (see `symlink_map.txt`).
+
+## Quick Start
+
+```bash
+folio init --name "My Project"   # create folio.yml in current directory
+folio status                     # show project status
+folio observe 'idea(scope): description'  # add an observation
+folio home push                  # push to ~/.folio home
+```
+
+Use `/folio plan` in Claude Code for non-trivial tasks, `/folio compose` to compile outputs.
+
 ## Skills (Claude Code)
 
 Use these in Claude Code for planning and composition:
@@ -24,22 +39,39 @@ Use these in Claude Code for planning and composition:
 
 `/folio plan` runs the full pipeline: gather context, freeze architecture in a design doc (mandatory lock gate), derive the implementation plan, then execute step by step with mandatory review before each commit. When the plan has external targets (Jira, branch topology), execution feeds into compose/publish. Retrospective findings loop back as observations for future cycles.
 
-## CLI Commands
+## Commands
 
-The `folio` binary handles project management:
+| Command | What it does |
+|---------|-------------|
+| `folio status` | Show project status (sources, targets, staleness) |
+| `folio stale` | Find stale projects needing attention |
+| `folio validate` | Validate folio.yml structure |
+| `folio init` | Initialize a new folio project |
+| `folio new <type> <topic>` | Scaffold a typed artifact |
+| `folio observe <text>` | Add/resolve/list observations |
+| `folio health` | Project health report |
+| `folio home list` | List home-synced projects |
+| `folio home push` | Push project to home |
+| `folio gather <url>` | Scaffold source entry from URL |
+| `folio dag` | Show project DAG |
+| `folio jira <cmd>` | Jira pipeline (compile, push, create, view, search) |
 
-```bash
-folio status          # Show project status (sources, targets, staleness)
-folio stale           # Find stale projects needing attention
-folio home list       # List home-synced projects
-folio home push       # Push project to home
-folio validate        # Validate folio.yml structure
-folio init            # Initialize a new folio project
+## Code Structure
+
+```
+cmd/folio/
+├── main.go            # Entry point, command dispatch
+├── cmd_*.go           # One file per command
+├── cmd_*_test.go      # Tests for each command
+├── helpers.go         # Shared utilities
+├── internal/          # Internal packages (folio, home, jira)
+├── scripts/           # Build/test scripts
+├── skill/             # Claude Code skill (SKILL.md + references)
+├── Makefile           # build, test, check targets
+└── testdata/          # Test fixtures
 ```
 
-## Project Structure
-
-Each folio project has a `folio.yml` declaring its structure:
+Project data lives in `~/.folio/`:
 
 ```
 ~/.folio/
