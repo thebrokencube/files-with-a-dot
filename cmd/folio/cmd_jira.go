@@ -28,7 +28,7 @@ func runJiraCompile(args []string) int {
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira compile --id KEY --source FILE\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Fprintln(os.Stderr, "⚠ folio jira compile is deprecated — use: jf push <KEY> <FILE>")
@@ -49,7 +49,7 @@ func runJiraPush(args []string) int {
 	if *id == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira push --id KEY --source FILE\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	code := runJf("push", *id, *source)
@@ -75,13 +75,13 @@ func runJiraCreate(args []string) int {
 	if *jsonFile == "" || *source == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--json and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira create --json FILE --source FILE\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	jsonPayload, err := readSource(*jsonFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", *jsonFile, err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Create ticket via acli (folio still owns this for now)
@@ -89,14 +89,14 @@ func runJiraCreate(args []string) int {
 	key, err := p.Create(jsonPayload)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("create: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Delegate compile+push to jf
 	code := runJf("push", key, *source)
 	if code != 0 {
 		fmt.Fprintln(os.Stderr, output.Errf("push description for %s failed (ticket created)", key))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Created %s and pushed description", key))
@@ -121,14 +121,14 @@ func runJiraView(args []string) int {
 	if *id == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--id is required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira view --id KEY [--fields F] [--json]\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 	out, err := p.View(*id, *fields, *jsonOut)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Print(string(out))
@@ -148,14 +148,14 @@ func runJiraSearch(args []string) int {
 	if *jql == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--jql is required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira search --jql QUERY [--fields F] [--limit N]\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 	out, err := p.Search(*jql, *fields, *limit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Print(string(out))
@@ -172,7 +172,7 @@ func runJf(args ...string) int {
 			return exitErr.ExitCode()
 		}
 		fmt.Fprintf(os.Stderr, "jf: %s\n", err)
-		return 2
+		return dendrik.ExitExternalErr
 	}
 	return 0
 }

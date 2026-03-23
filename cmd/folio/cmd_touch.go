@@ -20,13 +20,13 @@ func runTouch(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if len(fs.GetArgs()) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio touch <target-id> [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Marks a target as current by updating output file mtimes.\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	targetID := fs.GetArgs()[0]
@@ -34,25 +34,25 @@ func runTouch(args []string) int {
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	target, ok := f.Targets[targetID]
 	if !ok {
 		fmt.Fprintln(os.Stderr, output.Errf("target '%s' not found", targetID))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
 	touched, err := touch.Target(folioDir, &target)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if touched == 0 {
 		fmt.Fprintln(os.Stderr, output.Errf("target '%s' has no local output paths", targetID))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Touched %d output(s) for %s", touched, targetID))

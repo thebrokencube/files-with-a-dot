@@ -24,7 +24,7 @@ func runHealth(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
@@ -32,7 +32,7 @@ func runHealth(args []string) int {
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -56,7 +56,7 @@ func runHomeHealth(args []string) int {
 	entries, err := list.Scan(homeDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	active := filterEntries(entries, "active")

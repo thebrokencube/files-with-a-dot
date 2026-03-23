@@ -26,7 +26,7 @@ func runNew(args []string) int {
 
 	if len(fs.GetArgs()) < 2 {
 		printNewUsage()
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	artifactType := fs.GetArgs()[0]
@@ -38,20 +38,20 @@ func runNew(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Deprecation check
 	if artifactType == "note" {
 		fmt.Fprintln(os.Stderr, output.Errf("\"note\" was removed — use \"spike\" for exploratory content, or a specific type (domain, guide, retro)"))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Validate type
 	if !taxonomy.ValidTypes[artifactType] {
 		fmt.Fprintln(os.Stderr, output.Errf("unknown type %q", artifactType))
 		fmt.Fprintf(os.Stderr, "  Valid types: %s\n", validTypeList())
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Resolve path
@@ -60,7 +60,7 @@ func runNew(args []string) int {
 	relPath := taxonomy.TypePath(artifactType, topic)
 	if relPath == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("cannot resolve path for type %q", artifactType))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	colocated := false
@@ -77,7 +77,7 @@ func runNew(args []string) int {
 	// Check file doesn't already exist
 	if _, err := os.Stat(absPath); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("file already exists: %s", relPath))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if *dryRun {
@@ -94,27 +94,27 @@ func runNew(args []string) int {
 	// Validate folio.yml parses before modifying
 	if _, err := config.Load(*folioPath); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Create parent directories
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("creating directory: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Write template
 	tmpl := taxonomy.Template(artifactType, topic)
 	if err := os.WriteFile(absPath, []byte(tmpl), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("writing file: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Register in folio.yml
 	if !*noRegister {
 		if err := appendNewSource(*folioPath, relPath); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 	}
 
@@ -140,13 +140,13 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 	if !validVaultLabels[label] {
 		fmt.Fprintln(os.Stderr, output.Errf("unknown vault label %q", label))
 		fmt.Fprintf(os.Stderr, "  Valid labels: research, domain, guide, insight\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("cannot determine home directory: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	today := time.Now().Format("2006-01-02")
@@ -155,7 +155,7 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 
 	if _, err := os.Stat(absPath); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("file already exists: vault/%s/%s", label, filename))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if dryRun {
@@ -166,14 +166,14 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("creating directory: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Use the reference template for the label type
 	tmpl := taxonomy.Template(label, topic)
 	if err := os.WriteFile(absPath, []byte(tmpl), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("writing file: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Created vault/%s/%s", label, filename))

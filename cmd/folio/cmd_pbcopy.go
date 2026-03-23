@@ -21,13 +21,13 @@ func runPbcopy(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if len(fs.GetArgs()) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio pbcopy <target-id> [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Copies the first local output of a target to the clipboard.\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	targetID := fs.GetArgs()[0]
@@ -35,7 +35,7 @@ func runPbcopy(args []string) int {
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	target, ok := f.Targets[targetID]
@@ -46,7 +46,7 @@ func runPbcopy(args []string) int {
 			fmt.Fprintf(os.Stderr, " %s", tid)
 		}
 		fmt.Fprintln(os.Stderr)
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Find first local output path
@@ -61,25 +61,25 @@ func runPbcopy(args []string) int {
 
 	if outputPath == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("target '%s' has no local output path", targetID))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("output file not found: %s", outputPath))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("reading %s: %s", outputPath, err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = bytes.NewReader(data)
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("pbcopy: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Copied %s to clipboard (%d bytes)", outputPath, len(data)))

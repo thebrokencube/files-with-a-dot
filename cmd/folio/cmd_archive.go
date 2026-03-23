@@ -27,12 +27,12 @@ func runArchive(args []string) int {
 
 	if len(fs.GetArgs()) < 1 {
 		fmt.Fprintln(os.Stderr, output.Errf("usage: folio archive <track-name> [--folio PATH] [--dry-run] [--no-push]"))
-		return 1
+		return dendrik.ExitUserError
 	}
 	trackName := fs.GetArgs()[0]
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -43,20 +43,20 @@ func runArchive(args []string) int {
 	info, err := os.Stat(activeDir)
 	if err != nil || !info.IsDir() {
 		fmt.Fprintln(os.Stderr, output.Errf("track not found: %s", activeDir))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Verify archive dir doesn't exist
 	if _, err := os.Stat(archiveDir); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("archive already exists: %s", archiveDir))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Read raw folio.yml bytes
 	raw, err := os.ReadFile(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("reading folio.yml: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	oldPrefix := filepath.Join("work", "active", trackName)
@@ -73,13 +73,13 @@ func runArchive(args []string) int {
 	// Ensure archive parent directory exists
 	if err := os.MkdirAll(filepath.Dir(archiveDir), 0755); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("creating archive directory: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Move directory
 	if err := os.Rename(activeDir, archiveDir); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("moving directory: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Validate rewritten config
@@ -87,13 +87,13 @@ func runArchive(args []string) int {
 	if err != nil {
 		rollbackDirMove(activeDir, archiveDir)
 		fmt.Fprintln(os.Stderr, output.Errf("rewritten folio.yml failed to parse: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 	result := validate.Validate(parsed, folioDir)
 	if !result.Valid {
 		rollbackDirMove(activeDir, archiveDir)
 		fmt.Fprintln(os.Stderr, output.Errf("rewritten folio.yml failed validation: %s", strings.Join(result.Errors, "; ")))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Atomic write: tmp file then rename
@@ -101,13 +101,13 @@ func runArchive(args []string) int {
 	if err := os.WriteFile(tmpPath, rewritten, 0644); err != nil {
 		rollbackDirMove(activeDir, archiveDir)
 		fmt.Fprintln(os.Stderr, output.Errf("writing temp file: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 	if err := os.Rename(tmpPath, *folioPath); err != nil {
 		rollbackDirMove(activeDir, archiveDir)
 		os.Remove(tmpPath) // best-effort cleanup
 		fmt.Fprintln(os.Stderr, output.Errf("replacing folio.yml: %s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Printf("Archived: %s → %s\n", activeDir, archiveDir)
@@ -118,7 +118,7 @@ func runArchive(args []string) int {
 		homeDir, err := home.Dir()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("resolving FOLIO_HOME: %s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 		rel, err := filepath.Rel(homeDir, folioDir)
 		if err != nil || strings.HasPrefix(rel, "..") {
@@ -128,7 +128,7 @@ func runArchive(args []string) int {
 		msg := fmt.Sprintf("chore(archive): archive %s", trackName)
 		if pushErr := repo.PushScoped(homeDir, msg, []string{rel}); pushErr != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("auto-commit: %s", pushErr))
-			return 1
+			return dendrik.ExitUserError
 		}
 		fmt.Println("Committed and pushed.")
 	}

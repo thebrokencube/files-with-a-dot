@@ -23,7 +23,7 @@ func runValidate(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
@@ -35,7 +35,7 @@ func runValidate(args []string) int {
 		} else {
 			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
 		}
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	f, err := config.Load(*folioPath)
@@ -45,7 +45,7 @@ func runValidate(args []string) int {
 		} else {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
 		}
-		return 2
+		return dendrik.ExitExternalErr
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -58,7 +58,7 @@ func runValidate(args []string) int {
 	}
 
 	if !result.Valid {
-		return 2
+		return dendrik.ExitExternalErr
 	}
 	return 0
 }
@@ -74,20 +74,20 @@ func runStatus(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -112,12 +112,12 @@ func runInit(args []string) int {
 
 	if _, err := os.Stat("folio.yml"); err == nil {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml already exists in %s", mustGetwd()))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if *name == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("--name is required"))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	content := fmt.Sprintf(`schema: 2
@@ -132,7 +132,7 @@ observations: []
 
 	if err := os.WriteFile("folio.yml", []byte(content), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Created folio.yml for %s%s%s", output.Bold, *name, output.Reset))

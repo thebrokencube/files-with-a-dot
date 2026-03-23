@@ -39,7 +39,7 @@ func runObserveAppend(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	item := strings.TrimSpace(strings.Join(fs.GetArgs(), " "))
@@ -49,17 +49,17 @@ func runObserveAppend(args []string) int {
 		fmt.Fprintf(os.Stderr, "       folio observe resolve <match> [match...]\n")
 		fmt.Fprintf(os.Stderr, "       folio observe types\n")
 		fmt.Fprintf(os.Stderr, "       folio observe lint\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if _, err := config.Load(*folioPath); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if err := observe.Append(*folioPath, item); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Added: %s", item))
@@ -88,13 +88,13 @@ func runObserveList(args []string) int {
 	_ = noColor // reserved for future use
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Parse all observations
@@ -167,19 +167,19 @@ func runObserveResolve(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	matches := fs.GetArgs()
 	if len(matches) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio observe resolve <#N|substring> [match...]\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	removed, err := observe.Remove(*folioPath, matches)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	for _, item := range removed {
@@ -205,13 +205,13 @@ func runObserveLint(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -225,5 +225,5 @@ func runObserveLint(args []string) int {
 	for _, issue := range issues {
 		fmt.Fprintf(os.Stderr, "  #%d: %s\n", issue.Index, issue.Reason)
 	}
-	return 1
+	return dendrik.ExitUserError
 }

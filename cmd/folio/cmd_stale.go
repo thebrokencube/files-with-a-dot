@@ -24,18 +24,18 @@ func runStale(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
@@ -107,7 +107,7 @@ func runStale(args []string) int {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, `{"error":"json marshal error: %s"}`, err)
 			fmt.Fprintln(os.Stderr)
-			return 1
+			return dendrik.ExitUserError
 		}
 		fmt.Println(string(data))
 	} else {
@@ -115,7 +115,7 @@ func runStale(args []string) int {
 	}
 
 	if len(entries) > 0 {
-		return 1
+		return dendrik.ExitUserError
 	}
 	return 0
 }

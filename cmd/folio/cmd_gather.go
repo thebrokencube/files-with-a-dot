@@ -27,19 +27,19 @@ func runGather(args []string) int {
 	}
 
 	if !resolveOrDie(folioPath) {
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if len(fs.GetArgs()) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize --type <type>] [--name <name>] [--folio PATH]\n")
 		fmt.Fprintf(os.Stderr, "  Adds a source entry to folio.yml for the given URL.\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if *read {
 		fmt.Fprintln(os.Stderr, "The --read flag requires /folio gather (Claude skill).")
 		fmt.Fprintln(os.Stderr, "Use the skill invocation to read, summarize, and materialize URLs.")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	rawURL := fs.GetArgs()[0]
@@ -48,13 +48,13 @@ func runGather(args []string) int {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		fmt.Fprintln(os.Stderr, output.Errf("invalid URL: %s", rawURL))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Validate the file parses before modifying
 	if _, err := config.Load(*folioPath); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	// Derive name from URL if not specified
@@ -71,12 +71,12 @@ func runGather(args []string) int {
 		if *typeFlag == "" {
 			fmt.Fprintln(os.Stderr, output.Errf("--materialize requires --type <type> (spike, survey, design, ...)"))
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
-			return 1
+			return dendrik.ExitUserError
 		}
 		if !taxonomy.IsReferenceDir(*typeFlag) {
 			fmt.Fprintln(os.Stderr, output.Errf("unknown reference type %q", *typeFlag))
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
-			return 1
+			return dendrik.ExitUserError
 		}
 
 		// Create reference file stub in type directory
@@ -84,23 +84,23 @@ func runGather(args []string) int {
 		refAbsPath := filepath.Join(folioDir, refRelPath)
 		if err := os.MkdirAll(filepath.Dir(refAbsPath), 0755); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("creating reference directory: %s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 		if _, err := os.Stat(refAbsPath); err == nil {
 			fmt.Fprintln(os.Stderr, output.Errf("reference file already exists: %s", refRelPath))
-			return 1
+			return dendrik.ExitUserError
 		}
 
 		stub := fmt.Sprintf("# %s\n\nSource: %s\nCached: %s\n\n<!-- TODO: add content -->\n", refName, rawURL, today)
 		if err := os.WriteFile(refAbsPath, []byte(stub), 0644); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("writing reference file: %s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 
 		// Add materialized source entry (path + derived_from)
 		if err := appendMaterializedSource(*folioPath, refRelPath, rawURL, today); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 
 		fmt.Println(output.Successf("Gathered %s", rawURL))
@@ -110,7 +110,7 @@ func runGather(args []string) int {
 		// Add URL-only source entry (external + derived_from, no path)
 		if err := appendURLSource(*folioPath, rawURL, today); err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 
 		fmt.Println(output.Successf("Gathered %s", rawURL))

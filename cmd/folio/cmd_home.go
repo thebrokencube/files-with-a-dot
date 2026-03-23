@@ -34,7 +34,7 @@ func runHomeInit(args []string) int {
 
 	if err := home.Init(dir); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Initialized FOLIO_HOME at %s", dir))
@@ -71,7 +71,7 @@ func runHomeValidate(args []string) int {
 	for _, e := range errs {
 		fmt.Fprintf(os.Stderr, "  - %s\n", e)
 	}
-	return 2
+	return dendrik.ExitExternalErr
 }
 
 func runHomeList(args []string) int {
@@ -89,7 +89,7 @@ func runHomeList(args []string) int {
 	entries, err := list.Scan(dir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if *jsonMode {
@@ -189,12 +189,12 @@ func runHomePush(args []string) int {
 		fmt.Fprintln(os.Stderr, output.Errf("commit message required (-m or positional arg)"))
 		fmt.Fprintf(os.Stderr, "  Format: type(scope): description\n")
 		fmt.Fprintf(os.Stderr, "  Types:  feat fix docs refactor test chore style perf auto\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	if *folioName != "" && *all {
 		fmt.Fprintln(os.Stderr, output.Errf("--folio and --all are mutually exclusive"))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	dir := mustResolveHome()
@@ -205,7 +205,7 @@ func runHomePush(args []string) int {
 		for _, e := range errs {
 			fmt.Fprintf(os.Stderr, "  - %s\n", e)
 		}
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	var pushErr error
@@ -213,7 +213,7 @@ func runHomePush(args []string) int {
 		entries, err := list.Scan(dir)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-			return 1
+			return dendrik.ExitUserError
 		}
 		var match *list.Entry
 		for i, e := range entries {
@@ -224,7 +224,7 @@ func runHomePush(args []string) int {
 		}
 		if match == nil {
 			fmt.Fprintln(os.Stderr, output.Errf("folio %q not found", *folioName))
-			return 1
+			return dendrik.ExitUserError
 		}
 		pushErr = repo.PushScoped(dir, *msg, []string{match.Section + "/" + match.Path})
 	} else {
@@ -238,10 +238,10 @@ func runHomePush(args []string) int {
 		}
 		if errors.Is(pushErr, repo.ErrInvalidCommitMessage) {
 			fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
-			return 1
+			return dendrik.ExitUserError
 		}
 		fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Committed and pushed"))
@@ -253,7 +253,7 @@ func runHomePull(args []string) int {
 
 	if err := repo.Pull(dir); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Pulled latest"))
@@ -264,7 +264,7 @@ func runHomeArchive(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio home archive <path>\n")
 		fmt.Fprintf(os.Stderr, "  Path is relative to active/, e.g., 'ben/my-project'\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	dir := mustResolveHome()
@@ -272,7 +272,7 @@ func runHomeArchive(args []string) int {
 
 	if err := move.Archive(dir, relPath); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Archived active/%s", relPath))
@@ -283,7 +283,7 @@ func runHomeActivate(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio home activate <path>\n")
 		fmt.Fprintf(os.Stderr, "  Path is relative to archive/, e.g., 'ben/2026-02-20-my-project'\n")
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	dir := mustResolveHome()
@@ -291,7 +291,7 @@ func runHomeActivate(args []string) int {
 
 	if err := move.Activate(dir, relPath); err != nil {
 		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
-		return 1
+		return dendrik.ExitUserError
 	}
 
 	fmt.Println(output.Successf("Activated archive/%s", relPath))
