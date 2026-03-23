@@ -11,7 +11,7 @@ import (
 const defaultForestYml = `schema: 1
 
 defaults:
-  sync: push
+  sync: both
   type: Story
   project: %s
 `

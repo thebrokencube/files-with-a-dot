@@ -18,7 +18,7 @@ func TestRunInit(t *testing.T) {
 		t.Fatalf("forest.yml not created: %s", err)
 	}
 
-	want := "schema: 1\n\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"
+	want := "schema: 1\n\ndefaults:\n  sync: both\n  type: Story\n  project: TEST\n"
 	if string(content) != want {
 		t.Errorf("content mismatch\n  got:  %q\n  want: %q", string(content), want)
 	}
@@ -48,7 +48,7 @@ func TestRunInitDefaultProject(t *testing.T) {
 	}
 
 	content, _ := os.ReadFile(filepath.Join(dir, "forest.yml"))
-	want := "schema: 1\n\ndefaults:\n  sync: push\n  type: Story\n  project: BEN\n"
+	want := "schema: 1\n\ndefaults:\n  sync: both\n  type: Story\n  project: BEN\n"
 	if string(content) != want {
 		t.Errorf("content mismatch\n  got:  %q\n  want: %q", string(content), want)
 	}

@@ -15,7 +15,7 @@ import (
 func runSync(args []string) int {
 	fs := dendrik.NewFlagSet("sync")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	force := fs.Bool('f', "force", "Push as plain text if marklassian conversion fails")
+	force := fs.Bool('f', "force", "Push even if remote has content not seen locally")
 	failFast := fs.BoolLong("fail-fast", "Stop on first error")
 	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: skip)")
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be synced without side effects")
@@ -36,7 +36,7 @@ func runSync(args []string) int {
 	if err != nil {
 		// Fall through to push/pull which will print their own errors
 		fmt.Println("── Push ──")
-		pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, nil, nil)
+		pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, nil, nil, nil)
 		fmt.Println()
 		fmt.Println("── Pull ──")
 		pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, nil, nil)
@@ -94,9 +94,17 @@ func runSync(args []string) int {
 		fmt.Fprintf(os.Stderr, "\n%d conflict(s) detected. Use --resolve local|remote to resolve.\n\n", conflicts)
 	}
 
-	// Pass pre-loaded forest to push and pull
+	// First-push safety: for nodes never synced, check if Jira has content
+	// that would be overwritten. Block push unless --force.
+	var blockedKeys map[string]bool
+	blocked := 0
+	if !*force {
+		blockedKeys, blocked = checkFirstPushSafety(f, roots, state, p, *dryRun)
+	}
+
+	// Pass pre-loaded forest to push and pull (skip blocked keys)
 	fmt.Println("── Push ──")
-	pushCode := pushForest(*dir, nil, "", *force, *failFast, *dryRun, f, roots)
+	pushCode := pushForest(*dir, nil, "", false, *failFast, *dryRun, f, roots, blockedKeys)
 
 	fmt.Println()
 	fmt.Println("── Pull ──")
@@ -110,6 +118,9 @@ func runSync(args []string) int {
 	// Summary
 	fmt.Println()
 	fmt.Println("── Summary ──")
+	if blocked > 0 {
+		fmt.Printf("Blocked: %d node(s) have remote content not seen locally (use --force to override)\n", blocked)
+	}
 	if conflicts > 0 {
 		fmt.Printf("Conflicts: %d\n", conflicts)
 	}
@@ -122,7 +133,7 @@ func runSync(args []string) int {
 		}
 		fmt.Println()
 	}
-	if pushCode == 0 && pullCode == 0 && newChildren == 0 && conflicts == 0 {
+	if pushCode == 0 && pullCode == 0 && newChildren == 0 && conflicts == 0 && blocked == 0 {
 		fmt.Println("Everything up to date.")
 	}
 
@@ -130,6 +141,47 @@ func runSync(args []string) int {
 		return dendrik.ExitUserError
 	}
 	return dendrik.ExitOK
+}
+
+// checkFirstPushSafety checks push-eligible nodes that have never been synced.
+// For each, it fetches the Jira description. If Jira has content, the node is
+// blocked from pushing to prevent overwriting remote content the user hasn't seen.
+// Returns the set of blocked keys (uppercased) and the count.
+func checkFirstPushSafety(f *forest.Forest, roots []*forest.Node, state *forest.State, p *pipeline.Pipeline, dryRun bool) (map[string]bool, int) {
+	all := forest.Flatten(roots)
+	blockedKeys := make(map[string]bool)
+
+	for _, n := range all {
+		if forest.IsTBD(n.Key) || n.Sync == "pull" {
+			continue
+		}
+
+		// Only check nodes with no state (never synced)
+		if _, hasState := state.Nodes[n.Key]; hasState {
+			continue
+		}
+
+		// Fetch Jira description to see if remote has content
+		viewJSON, err := p.View(n.Key, "description", true)
+		if err != nil {
+			continue // can't reach Jira, let push proceed
+		}
+
+		adf, _ := pipeline.ExtractDescriptionADF(viewJSON)
+		if adf == nil || string(adf) == "null" {
+			continue // Jira description is empty, safe to push
+		}
+
+		// Jira has content — block this node
+		blockedKeys[strings.ToUpper(n.Key)] = true
+		if dryRun {
+			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — Jira has content not seen locally (first sync, no baseline)\n", n.Key)
+		} else {
+			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — Jira has content, skipping push (use --force to override)\n", n.Key)
+		}
+	}
+
+	return blockedKeys, len(blockedKeys)
 }
 
 // checkCompleteness queries Jira for children of each parent node and reports

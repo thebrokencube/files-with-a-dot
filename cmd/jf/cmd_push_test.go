@@ -16,7 +16,7 @@ func TestPushSingleFileNotFound(t *testing.T) {
 
 func TestPushForestNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := pushForest(dir, nil, "", false, false, false, nil, nil)
+	code := pushForest(dir, nil, "", false, false, false, nil, nil, nil)
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing forest, got %d", code)
 	}
@@ -27,7 +27,7 @@ func TestPushForestSubtreeNotFound(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
-	code := pushForest(dir, nil, "NONEXISTENT", false, false, false, nil, nil)
+	code := pushForest(dir, nil, "NONEXISTENT", false, false, false, nil, nil, nil)
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing subtree target, got %d", code)
 	}
@@ -38,7 +38,7 @@ func TestPushForestTBDSkipped(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TBD\n---\n# TBD Task\n"), 0644)
 
-	code := pushForest(dir, nil, "", false, false, false, nil, nil)
+	code := pushForest(dir, nil, "", false, false, false, nil, nil, nil)
 	if code != 0 {
 		t.Fatalf("expected exit 0 (no pushable nodes), got %d", code)
 	}

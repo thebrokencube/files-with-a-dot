@@ -6,6 +6,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
@@ -31,7 +32,7 @@ func runPush(args []string) int {
 	}
 
 	// Forest mode: discover and push
-	return pushForest(*dir, positional, *subtree, *force, *failFast, *dryRun, nil, nil)
+	return pushForest(*dir, positional, *subtree, *force, *failFast, *dryRun, nil, nil, nil)
 }
 
 func pushSingle(key, filePath string, force bool) int {
@@ -65,7 +66,7 @@ func pushSingle(key, filePath string, force bool) int {
 
 func pushForest(dir string, positional []string, subtreeTarget string,
 	force, failFast, dryRun bool,
-	f *forest.Forest, roots []*forest.Node) int {
+	f *forest.Forest, roots []*forest.Node, skipKeys map[string]bool) int {
 
 	if f == nil {
 		var err error
@@ -111,13 +112,16 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 	// Post-order traversal for push
 	ordered := forest.PostOrder(pushRoots)
 
-	// Filter to sync:push nodes (skip TBD and sync:pull)
+	// Filter to sync:push nodes (skip TBD, sync:pull, and blocked keys)
 	var toPush []*forest.Node
 	for _, n := range ordered {
 		if forest.IsTBD(n.Key) {
 			continue
 		}
 		if n.Sync == "pull" {
+			continue
+		}
+		if skipKeys != nil && skipKeys[strings.ToUpper(n.Key)] {
 			continue
 		}
 		toPush = append(toPush, n)
