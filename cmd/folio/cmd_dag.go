@@ -30,6 +30,7 @@ type dagEdge struct {
 }
 
 func runDag(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("dag")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
@@ -49,7 +50,7 @@ func runDag(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, "--status requires --branches", "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("--status requires --branches"))
+			fmt.Fprintln(os.Stderr, pal.Errf("--status requires --branches"))
 		}
 		return dendrik.ExitUserError
 	}
@@ -58,7 +59,7 @@ func runDag(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
 		}
 		return dendrik.ExitUserError
 	}
@@ -68,7 +69,7 @@ func runDag(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitUserError
 	}

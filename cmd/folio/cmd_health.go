@@ -10,7 +10,6 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/health"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -28,10 +27,11 @@ func runHealth(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
@@ -51,6 +51,7 @@ func runHomeHealth(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 	homeDir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
@@ -58,7 +59,7 @@ func runHomeHealth(args []string) int {
 
 	entries, err := list.Scan(homeDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
@@ -87,16 +88,17 @@ func runHomeHealth(args []string) int {
 }
 
 func printHealthReport(r *health.Report, color bool) {
+	pal := dendrik.NewPalette(color)
 	// Header line
 	grade := r.Grade
 	if color {
-		gradeColor := output.Green
+		gradeColor := pal.Green
 		if grade == "Needs Attention" {
-			gradeColor = output.Yellow
+			gradeColor = pal.Yellow
 		}
 		fmt.Printf("%s%-40s%s Health: %s%s%s\n",
-			output.Bold, r.Project, output.Reset,
-			gradeColor, grade, output.Reset)
+			pal.Bold, r.Project, pal.Reset,
+			gradeColor, grade, pal.Reset)
 	} else {
 		fmt.Printf("%-40s Health: %s\n", r.Project, grade)
 	}
@@ -107,7 +109,7 @@ func printHealthReport(r *health.Report, color bool) {
 	}
 	for _, w := range r.Observations.LintWarnings {
 		if color {
-			fmt.Printf("  %s⚠ %s%s\n", output.Yellow, w, output.Reset)
+			fmt.Printf("  %s⚠ %s%s\n", pal.Yellow, w, pal.Reset)
 		} else {
 			fmt.Printf("  ! %s\n", w)
 		}
@@ -153,7 +155,7 @@ func printHealthReport(r *health.Report, color bool) {
 	if untypedCount > 0 {
 		if color {
 			fmt.Printf("  %s⚠ %d files in flat reference/ — need migration to type directories%s\n",
-				output.Yellow, untypedCount, output.Reset)
+				pal.Yellow, untypedCount, pal.Reset)
 		} else {
 			fmt.Printf("  ! %d files in flat reference/ — need migration to type directories\n", untypedCount)
 		}
@@ -161,7 +163,7 @@ func printHealthReport(r *health.Report, color bool) {
 	if len(r.Unrecognized) > 0 {
 		if color {
 			fmt.Printf("  %s⚠ Unrecognized directories in reference/: %s (rename to a recognized type)%s\n",
-				output.Yellow, strings.Join(r.Unrecognized, ", "), output.Reset)
+				pal.Yellow, strings.Join(r.Unrecognized, ", "), pal.Reset)
 		} else {
 			fmt.Printf("  ! Unrecognized directories in reference/: %s (rename to a recognized type)\n",
 				strings.Join(r.Unrecognized, ", "))

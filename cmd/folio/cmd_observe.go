@@ -9,7 +9,6 @@ import (
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -30,6 +29,7 @@ func runObserve(args []string) int {
 }
 
 func runObserveAppend(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -52,16 +52,16 @@ func runObserveAppend(args []string) int {
 	}
 
 	if _, err := config.Load(*folioPath); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	if err := observe.Append(*folioPath, item); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Added: %s", item))
+	fmt.Println(pal.Successf("Added: %s", item))
 	return dendrik.ExitOK
 }
 
@@ -84,6 +84,7 @@ func runObserveList(args []string) int {
 		return dendrik.ExitUserError
 	}
 
+	pal := dendrik.NewPalette(true)
 	_ = noColor // reserved for future use
 
 	if !resolveOrDie(folioPath) {
@@ -95,7 +96,7 @@ func runObserveList(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitUserError
 	}
@@ -160,6 +161,7 @@ func runObserveList(args []string) int {
 }
 
 func runObserveResolve(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe resolve")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -179,12 +181,12 @@ func runObserveResolve(args []string) int {
 
 	removed, err := observe.Remove(*folioPath, matches)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	for _, item := range removed {
-		fmt.Println(output.Successf("Resolved: %s", item))
+		fmt.Println(pal.Successf("Resolved: %s", item))
 	}
 	return dendrik.ExitOK
 }
@@ -198,6 +200,7 @@ func runObserveTypes(args []string) int {
 }
 
 func runObserveLint(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe lint")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -211,7 +214,7 @@ func runObserveLint(args []string) int {
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
@@ -219,7 +222,7 @@ func runObserveLint(args []string) int {
 	issues := observe.Lint(folioDir, f.Observations)
 
 	if len(issues) == 0 {
-		fmt.Println(output.Successf("All observations valid"))
+		fmt.Println(pal.Successf("All observations valid"))
 		return dendrik.ExitOK
 	}
 

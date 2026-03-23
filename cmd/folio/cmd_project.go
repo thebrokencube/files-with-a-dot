@@ -27,12 +27,13 @@ func runValidate(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
 		}
 		return dendrik.ExitExternalErr
 	}
@@ -42,7 +43,7 @@ func runValidate(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, "folio.yml is not valid YAML", "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitExternalErr
 	}
@@ -77,12 +78,13 @@ func runStatus(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 
 	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
 		}
 		return dendrik.ExitUserError
 	}
@@ -92,7 +94,7 @@ func runStatus(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitUserError
 	}
@@ -110,6 +112,7 @@ func runStatus(args []string) int {
 }
 
 func runInit(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("init")
 	name := fs.String('n', "name", "", "Project name")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -118,12 +121,12 @@ func runInit(args []string) int {
 	}
 
 	if _, err := os.Stat("folio.yml"); err == nil {
-		fmt.Fprintln(os.Stderr, output.Errf("folio.yml already exists in %s", mustGetwd()))
+		fmt.Fprintln(os.Stderr, pal.Errf("folio.yml already exists in %s", mustGetwd()))
 		return dendrik.ExitUserError
 	}
 
 	if *name == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--name is required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--name is required"))
 		return dendrik.ExitUserError
 	}
 
@@ -138,10 +141,10 @@ observations: []
 `, *name)
 
 	if err := os.WriteFile("folio.yml", []byte(content), 0644); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Created folio.yml for %s%s%s", output.Bold, *name, output.Reset))
+	fmt.Println(pal.Successf("Created folio.yml for %s%s%s", pal.Bold, *name, pal.Reset))
 	return dendrik.ExitOK
 }

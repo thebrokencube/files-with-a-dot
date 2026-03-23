@@ -10,12 +10,12 @@ import (
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/jira"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runJiraCompile(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("jira compile")
 	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
 	source := fs.String('s', "source", "", "Markdown source file (- for stdin)")
@@ -26,7 +26,7 @@ func runJiraCompile(args []string) int {
 	}
 
 	if *id == "" || *source == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--id and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira compile --id KEY --source FILE\n")
 		return dendrik.ExitUserError
 	}
@@ -38,6 +38,7 @@ func runJiraCompile(args []string) int {
 }
 
 func runJiraPush(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("jira push")
 	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
 	source := fs.String('s', "source", "", "Markdown source file (- for stdin)")
@@ -47,7 +48,7 @@ func runJiraPush(args []string) int {
 	}
 
 	if *id == "" || *source == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--id and --source are required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--id and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira push --id KEY --source FILE\n")
 		return dendrik.ExitUserError
 	}
@@ -64,6 +65,7 @@ func runJiraPush(args []string) int {
 }
 
 func runJiraCreate(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("jira create")
 	jsonFile := fs.StringLong("json", "", "Creation JSON payload file")
 	source := fs.String('s', "source", "", "Markdown source file for description")
@@ -73,14 +75,14 @@ func runJiraCreate(args []string) int {
 	}
 
 	if *jsonFile == "" || *source == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--json and --source are required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--json and --source are required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira create --json FILE --source FILE\n")
 		return dendrik.ExitUserError
 	}
 
 	jsonPayload, err := readSource(*jsonFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("read %s: %s", *jsonFile, err))
+		fmt.Fprintln(os.Stderr, pal.Errf("read %s: %s", *jsonFile, err))
 		return dendrik.ExitUserError
 	}
 
@@ -88,18 +90,18 @@ func runJiraCreate(args []string) int {
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 	key, err := p.Create(jsonPayload)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("create: %s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("create: %s", err))
 		return dendrik.ExitUserError
 	}
 
 	// Delegate compile+push to jf
 	code := runJf("push", key, *source)
 	if code != 0 {
-		fmt.Fprintln(os.Stderr, output.Errf("push description for %s failed (ticket created)", key))
+		fmt.Fprintln(os.Stderr, pal.Errf("push description for %s failed (ticket created)", key))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Created %s and pushed description", key))
+	fmt.Println(pal.Successf("Created %s and pushed description", key))
 	if touched, err := autoTouch(*source); err != nil {
 		fmt.Fprintf(os.Stderr, "⚠ autoTouch: %s\n", err)
 	} else if touched > 0 {
@@ -109,6 +111,7 @@ func runJiraCreate(args []string) int {
 }
 
 func runJiraView(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("jira view")
 	id := fs.String('i', "id", "", "Jira issue key (e.g., BEN-123)")
 	fields := fs.StringLong("fields", "", "Comma-separated field list")
@@ -119,7 +122,7 @@ func runJiraView(args []string) int {
 	}
 
 	if *id == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--id is required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--id is required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira view --id KEY [--fields F] [--json]\n")
 		return dendrik.ExitUserError
 	}
@@ -127,7 +130,7 @@ func runJiraView(args []string) int {
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 	out, err := p.View(*id, *fields, *jsonOut)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
@@ -136,6 +139,7 @@ func runJiraView(args []string) int {
 }
 
 func runJiraSearch(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("jira search")
 	jql := fs.String('q', "jql", "", "JQL query string")
 	fields := fs.StringLong("fields", "", "Comma-separated field list")
@@ -146,7 +150,7 @@ func runJiraSearch(args []string) int {
 	}
 
 	if *jql == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("--jql is required"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--jql is required"))
 		fmt.Fprintf(os.Stderr, "Usage: folio jira search --jql QUERY [--fields F] [--limit N]\n")
 		return dendrik.ExitUserError
 	}
@@ -154,7 +158,7 @@ func runJiraSearch(args []string) int {
 	p := &jira.Pipeline{Run: jira.DefaultRunner}
 	out, err := p.Search(*jql, *fields, *limit)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 

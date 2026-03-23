@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runTouch(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("touch")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -33,28 +33,28 @@ func runTouch(args []string) int {
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	target, ok := f.Targets[targetID]
 	if !ok {
-		fmt.Fprintln(os.Stderr, output.Errf("target '%s' not found", targetID))
+		fmt.Fprintln(os.Stderr, pal.Errf("target '%s' not found", targetID))
 		return dendrik.ExitUserError
 	}
 
 	folioDir := filepath.Dir(*folioPath)
 	touched, err := touch.Target(folioDir, &target)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	if touched == 0 {
-		fmt.Fprintln(os.Stderr, output.Errf("target '%s' has no local output paths", targetID))
+		fmt.Fprintln(os.Stderr, pal.Errf("target '%s' has no local output paths", targetID))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Touched %d output(s) for %s", touched, targetID))
+	fmt.Println(pal.Successf("Touched %d output(s) for %s", touched, targetID))
 	return dendrik.ExitOK
 }

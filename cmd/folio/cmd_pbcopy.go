@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runPbcopy(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("pbcopy")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	if err := dendrik.Parse(fs, args); err != nil {
@@ -34,13 +34,13 @@ func runPbcopy(args []string) int {
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	target, ok := f.Targets[targetID]
 	if !ok {
-		fmt.Fprintln(os.Stderr, output.Errf("target '%s' not found", targetID))
+		fmt.Fprintln(os.Stderr, pal.Errf("target '%s' not found", targetID))
 		fmt.Fprintf(os.Stderr, "Available targets:")
 		for tid := range f.Targets {
 			fmt.Fprintf(os.Stderr, " %s", tid)
@@ -60,28 +60,28 @@ func runPbcopy(args []string) int {
 	}
 
 	if outputPath == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("target '%s' has no local output path", targetID))
+		fmt.Fprintln(os.Stderr, pal.Errf("target '%s' has no local output path", targetID))
 		return dendrik.ExitUserError
 	}
 
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		fmt.Fprintln(os.Stderr, output.Errf("output file not found: %s", outputPath))
+		fmt.Fprintln(os.Stderr, pal.Errf("output file not found: %s", outputPath))
 		return dendrik.ExitUserError
 	}
 
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("reading %s: %s", outputPath, err))
+		fmt.Fprintln(os.Stderr, pal.Errf("reading %s: %s", outputPath, err))
 		return dendrik.ExitUserError
 	}
 
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = bytes.NewReader(data)
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("pbcopy: %s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("pbcopy: %s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Copied %s to clipboard (%d bytes)", outputPath, len(data)))
+	fmt.Println(pal.Successf("Copied %s to clipboard (%d bytes)", outputPath, len(data)))
 	return dendrik.ExitOK
 }

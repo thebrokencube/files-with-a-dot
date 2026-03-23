@@ -10,68 +10,42 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
-
-const (
-	ansiRed    = "\033[0;31m"
-	ansiGreen  = "\033[0;32m"
-	ansiYellow = "\033[0;33m"
-	ansiBold   = "\033[1m"
-	ansiDim    = "\033[2m"
-	ansiReset  = "\033[0m"
-)
-
-type palette struct {
-	red, green, yellow, bold, dim, reset string
-}
-
-func newPalette(color bool) palette {
-	if !color {
-		return palette{}
-	}
-	return palette{
-		red:    ansiRed,
-		green:  ansiGreen,
-		yellow: ansiYellow,
-		bold:   ansiBold,
-		dim:    ansiDim,
-		reset:  ansiReset,
-	}
-}
 
 // PrintValidateTerminal renders validation results to a terminal.
 func PrintValidateTerminal(w io.Writer, r *validate.Result, folioPath string, color bool) {
-	p := newPalette(color)
+	p := dendrik.NewPalette(color)
 
 	if len(r.Errors) > 0 {
-		fmt.Fprintf(w, "%s%sValidation failed%s (%d error(s))\n\n", p.red, p.bold, p.reset, len(r.Errors))
+		fmt.Fprintf(w, "%s%sValidation failed%s (%d error(s))\n\n", p.Red, p.Bold, p.Reset, len(r.Errors))
 		for _, err := range r.Errors {
-			fmt.Fprintf(w, "  %s✗%s %s\n", p.red, p.reset, err)
+			fmt.Fprintf(w, "  %s✗%s %s\n", p.Red, p.Reset, err)
 		}
 	}
 
 	if len(r.Warnings) > 0 {
 		fmt.Fprintln(w)
 		for _, warn := range r.Warnings {
-			fmt.Fprintf(w, "  %s!%s %s\n", p.yellow, p.reset, warn)
+			fmt.Fprintf(w, "  %s!%s %s\n", p.Yellow, p.Reset, warn)
 		}
 	}
 
 	if len(r.Errors) == 0 {
-		fmt.Fprintf(w, "%s%sValid%s — %s\n", p.green, p.bold, p.reset, folioPath)
+		fmt.Fprintf(w, "%s%sValid%s — %s\n", p.Green, p.Bold, p.Reset, folioPath)
 	}
 }
 
 // PrintStatusTerminal renders project status to a terminal.
 func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[string]string, color bool) {
-	p := newPalette(color)
+	p := dendrik.NewPalette(color)
 
-	fmt.Fprintf(w, "%s%s%s\n", p.bold, ps.Project, p.reset)
+	fmt.Fprintf(w, "%s%s%s\n", p.Bold, ps.Project, p.Reset)
 
 	// Lifecycle summary
 	ls := ps.Lifecycle
 	fmt.Fprintf(w, "%sLifecycle:%s %d observations | %d spikes | %d designs | %d plans | %d retros | %d references\n",
-		p.dim, p.reset,
+		p.Dim, p.Reset,
 		ls.Observations, ls.Spikes, ls.Designs, ls.Plans, ls.Retros, ls.References)
 	fmt.Fprintln(w)
 
@@ -86,7 +60,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 
 	// Targets
 	if len(ps.Targets) == 0 {
-		fmt.Fprintf(w, "%sNo targets defined.%s\n", p.dim, p.reset)
+		fmt.Fprintf(w, "%sNo targets defined.%s\n", p.Dim, p.Reset)
 	} else {
 		fmt.Fprintln(w, "Targets:")
 		for _, tid := range maputil.SortedKeys(ps.Targets) {
@@ -107,7 +81,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 					annotation = fmt.Sprintf(" << %s", cause)
 				}
 
-				fmt.Fprintf(w, "  %-24s %s%s%s (%s)%s\n", tid, c, s, p.reset, detail, annotation)
+				fmt.Fprintf(w, "  %-24s %s%s%s (%s)%s\n", tid, c, s, p.Reset, detail, annotation)
 			}
 
 			// Show sources
@@ -119,7 +93,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 					}
 					srcList += s
 				}
-				fmt.Fprintf(w, "  %s                        sources: %s%s\n", p.dim, srcList, p.reset)
+				fmt.Fprintf(w, "  %s                        sources: %s%s\n", p.Dim, srcList, p.Reset)
 			}
 
 			// Show tree
@@ -135,7 +109,7 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 						connector = "└── "
 					}
 					c := statusColor(item.Status, p)
-					fmt.Fprintf(w, "    %s%s%s%s  %s → %s:%s\n", connector, c, item.Status, p.reset, item.ID, item.System, item.ExtID)
+					fmt.Fprintf(w, "    %s%s%s%s  %s → %s:%s\n", connector, c, item.Status, p.Reset, item.ID, item.System, item.ExtID)
 				}
 			}
 		}
@@ -143,10 +117,10 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 
 	// Observations
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Observations: %s%d%s\n", p.bold, ps.Lifecycle.Observations, p.reset)
+	fmt.Fprintf(w, "Observations: %s%d%s\n", p.Bold, ps.Lifecycle.Observations, p.Reset)
 }
 
-func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p palette, indent string, isLast bool) {
+func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p dendrik.Palette, indent string, isLast bool) {
 	connector := "├── "
 	if isLast {
 		connector = "└── "
@@ -160,10 +134,10 @@ func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p palette, indent s
 	c := statusColor(node.Status, p)
 	annotation := ""
 	if node.CausedBy != "" {
-		annotation = fmt.Sprintf(" %s<< %s%s", p.dim, node.CausedBy, p.reset)
+		annotation = fmt.Sprintf(" %s<< %s%s", p.Dim, node.CausedBy, p.Reset)
 	}
 
-	fmt.Fprintf(w, "%s%s%s%s%s %s%s\n", indent, connector, c, node.Status, p.reset, label, annotation)
+	fmt.Fprintf(w, "%s%s%s%s%s %s%s\n", indent, connector, c, node.Status, p.Reset, label, annotation)
 
 	childIndent := indent + "│   "
 	if isLast {
@@ -175,18 +149,18 @@ func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p palette, indent s
 	}
 }
 
-func statusColor(s string, p palette) string {
+func statusColor(s string, p dendrik.Palette) string {
 	switch s {
 	case "clean":
-		return p.green
+		return p.Green
 	case "stale":
-		return p.yellow
+		return p.Yellow
 	case "missing":
-		return p.red
+		return p.Red
 	case "unknown":
-		return p.yellow
+		return p.Yellow
 	default:
-		return p.reset
+		return p.Reset
 	}
 }
 
@@ -220,7 +194,7 @@ func OutputLabel(o config.Output) string {
 
 // PrintDAGTerminal renders the target dependency graph to a terminal.
 func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[string][]string, allTargets []string, color bool) {
-	p := newPalette(color)
+	p := dendrik.NewPalette(color)
 
 	// Include all targets, even those without edges
 	seen := make(map[string]bool)
@@ -244,12 +218,12 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 
 		deps := adj[tid]
 		if len(deps) == 0 {
-			fmt.Fprintf(w, "%s%s%s\n", p.bold, tid, p.reset)
+			fmt.Fprintf(w, "%s%s%s\n", p.Bold, tid, p.Reset)
 		} else {
 			sortedDeps := make([]string, len(deps))
 			copy(sortedDeps, deps)
 			sort.Strings(sortedDeps)
-			fmt.Fprintf(w, "%s%s%s -> [%s]\n", p.bold, tid, p.reset, strings.Join(sortedDeps, ", "))
+			fmt.Fprintf(w, "%s%s%s -> [%s]\n", p.Bold, tid, p.Reset, strings.Join(sortedDeps, ", "))
 		}
 
 		target, ok := targets[tid]
@@ -262,7 +236,7 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 			for j, s := range target.Sources {
 				labels[j] = SourceLabel(s)
 			}
-			fmt.Fprintf(w, "  %ssources:%s %s\n", p.dim, p.reset, strings.Join(labels, ", "))
+			fmt.Fprintf(w, "  %ssources:%s %s\n", p.Dim, p.Reset, strings.Join(labels, ", "))
 		}
 
 		if len(target.Outputs) > 0 {
@@ -270,7 +244,7 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 			for j, o := range target.Outputs {
 				labels[j] = OutputLabel(o)
 			}
-			fmt.Fprintf(w, "  %soutputs:%s %s\n", p.dim, p.reset, strings.Join(labels, ", "))
+			fmt.Fprintf(w, "  %soutputs:%s %s\n", p.Dim, p.Reset, strings.Join(labels, ", "))
 		}
 	}
 }
@@ -289,7 +263,7 @@ func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, sho
 		return
 	}
 
-	p := newPalette(color)
+	p := dendrik.NewPalette(color)
 
 	var printNode func(node *BranchNode, indent string, isLast bool)
 	printNode = func(node *BranchNode, indent string, isLast bool) {
@@ -301,19 +275,19 @@ func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, sho
 		statusStr := ""
 		if showStatus && node.Status != "" {
 			c := statusColor(node.Status, p)
-			statusStr = fmt.Sprintf("  %s%s%s", c, node.Status, p.reset)
+			statusStr = fmt.Sprintf("  %s%s%s", c, node.Status, p.Reset)
 			if node.StaleVia != "" {
-				statusStr += fmt.Sprintf(" %s<< %s%s", p.dim, node.StaleVia, p.reset)
+				statusStr += fmt.Sprintf(" %s<< %s%s", p.Dim, node.StaleVia, p.Reset)
 			}
 		}
 
-		fmt.Fprintf(w, "%s%s%s%s%s%s\n", indent, connector, p.bold, node.ID, p.reset, statusStr)
+		fmt.Fprintf(w, "%s%s%s%s%s%s\n", indent, connector, p.Bold, node.ID, p.Reset, statusStr)
 
 		prStr := ""
 		if node.PR != "" {
 			prStr = fmt.Sprintf("  PR: %s", node.PR)
 		}
-		fmt.Fprintf(w, "%s    %sbranch: %s (base: %s)%s%s\n", indent, p.dim, node.Branch, node.Base, prStr, p.reset)
+		fmt.Fprintf(w, "%s    %sbranch: %s (base: %s)%s%s\n", indent, p.Dim, node.Branch, node.Base, prStr, p.Reset)
 
 		childIndent := indent + "│   "
 		if isLast {
@@ -326,7 +300,7 @@ func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, sho
 	}
 
 	for _, root := range bt.Roots {
-		fmt.Fprintf(w, "%s%s%s\n", p.bold, root.Base, p.reset)
+		fmt.Fprintf(w, "%s%s%s\n", p.Bold, root.Base, p.Reset)
 		for i, kid := range root.Children {
 			printNode(kid, "", i == len(root.Children)-1)
 		}
@@ -344,7 +318,7 @@ type StaleEntry struct {
 
 // PrintStaleTerminal renders stale targets to a terminal.
 func PrintStaleTerminal(w io.Writer, entries []StaleEntry, color bool) {
-	p := newPalette(color)
+	p := dendrik.NewPalette(color)
 
 	for i, e := range entries {
 		if i > 0 {
@@ -352,14 +326,14 @@ func PrintStaleTerminal(w io.Writer, entries []StaleEntry, color bool) {
 		}
 
 		c := statusColor(e.Status, p)
-		fmt.Fprintf(w, "%s%s%s  %s%s%s\n", p.bold, e.ID, p.reset, c, e.Status, p.reset)
+		fmt.Fprintf(w, "%s%s%s  %s%s%s\n", p.Bold, e.ID, p.Reset, c, e.Status, p.Reset)
 
 		for _, out := range e.Outputs {
-			fmt.Fprintf(w, "  %soutput:%s %s\n", p.dim, p.reset, out)
+			fmt.Fprintf(w, "  %soutput:%s %s\n", p.Dim, p.Reset, out)
 		}
 
 		if e.Cause != "" {
-			fmt.Fprintf(w, "  %scause:%s %s\n", p.dim, p.reset, e.Cause)
+			fmt.Fprintf(w, "  %scause:%s %s\n", p.Dim, p.Reset, e.Cause)
 		}
 	}
 }

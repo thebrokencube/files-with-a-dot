@@ -13,33 +13,34 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func resolveHomeOrFail() (string, int) {
+	pal := dendrik.NewPalette(true)
 	dir, err := home.Dir()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return "", dendrik.ExitUserError
 	}
 	return dir, dendrik.ExitOK
 }
 
 func runHomeInit(args []string) int {
+	pal := dendrik.NewPalette(true)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
 	}
 
 	if err := home.Init(dir); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Initialized FOLIO_HOME at %s", dir))
+	fmt.Println(pal.Successf("Initialized FOLIO_HOME at %s", dir))
 	return dendrik.ExitOK
 }
 
@@ -52,6 +53,7 @@ func runHomeValidate(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
@@ -61,7 +63,7 @@ func runHomeValidate(args []string) int {
 
 	if len(errs) == 0 {
 		if color {
-			fmt.Println(output.Successf("FOLIO_HOME structure is valid (%s)", dir))
+			fmt.Println(pal.Successf("FOLIO_HOME structure is valid (%s)", dir))
 		} else {
 			fmt.Printf("FOLIO_HOME structure is valid (%s)\n", dir)
 		}
@@ -69,7 +71,7 @@ func runHomeValidate(args []string) int {
 	}
 
 	if color {
-		fmt.Fprintf(os.Stderr, "%sErrors:%s\n", output.Red, output.Reset)
+		fmt.Fprintf(os.Stderr, "%sErrors:%s\n", pal.Red, pal.Reset)
 	} else {
 		fmt.Fprintf(os.Stderr, "Errors:\n")
 	}
@@ -89,6 +91,7 @@ func runHomeList(args []string) int {
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
@@ -99,7 +102,7 @@ func runHomeList(args []string) int {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitUserError
 	}
@@ -120,7 +123,7 @@ func runHomeList(args []string) int {
 
 	if len(active) > 0 {
 		if color {
-			fmt.Printf("%sActive%s (%d)\n", output.Bold, output.Reset, len(active))
+			fmt.Printf("%sActive%s (%d)\n", pal.Bold, pal.Reset, len(active))
 		} else {
 			fmt.Printf("Active (%d)\n", len(active))
 		}
@@ -132,7 +135,7 @@ func runHomeList(args []string) int {
 			fmt.Println()
 		}
 		if color {
-			fmt.Printf("%sArchived%s (%d)\n", output.Bold, output.Reset, len(archived))
+			fmt.Printf("%sArchived%s (%d)\n", pal.Bold, pal.Reset, len(archived))
 		} else {
 			fmt.Printf("Archived (%d)\n", len(archived))
 		}
@@ -153,6 +156,7 @@ func filterEntries(entries []list.Entry, section string) []list.Entry {
 }
 
 func printEntryTable(entries []list.Entry, color bool) {
+	pal := dendrik.NewPalette(color)
 	// Calculate column widths
 	pathW, projW := 4, 7 // "Path", "Project" minimums
 	for _, e := range entries {
@@ -168,8 +172,8 @@ func printEntryTable(entries []list.Entry, color bool) {
 	sep := fmt.Sprintf("  %s  %s  %s  %s", strings.Repeat("-", pathW), strings.Repeat("-", projW), "-------", "------------")
 
 	if color {
-		fmt.Printf("%s%s%s\n", output.Dim, header, output.Reset)
-		fmt.Printf("%s%s%s\n", output.Dim, sep, output.Reset)
+		fmt.Printf("%s%s%s\n", pal.Dim, header, pal.Reset)
+		fmt.Printf("%s%s%s\n", pal.Dim, sep, pal.Reset)
 	} else {
 		fmt.Println(header)
 		fmt.Println(sep)
@@ -181,6 +185,7 @@ func printEntryTable(entries []list.Entry, color bool) {
 }
 
 func runHomePush(args []string) int {
+	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("home push")
 	msg := fs.String('m', "message", "", "Commit message: type(scope): description")
 	folioName := fs.String('f', "folio", "", "Scope commit to a single folio (shortname or path)")
@@ -196,14 +201,14 @@ func runHomePush(args []string) int {
 	}
 
 	if *msg == "" {
-		fmt.Fprintln(os.Stderr, output.Errf("commit message required (-m or positional arg)"))
+		fmt.Fprintln(os.Stderr, pal.Errf("commit message required (-m or positional arg)"))
 		fmt.Fprintf(os.Stderr, "  Format: type(scope): description\n")
 		fmt.Fprintf(os.Stderr, "  Types:  feat fix docs refactor test chore style perf auto\n")
 		return dendrik.ExitUserError
 	}
 
 	if *folioName != "" && *all {
-		fmt.Fprintln(os.Stderr, output.Errf("--folio and --all are mutually exclusive"))
+		fmt.Fprintln(os.Stderr, pal.Errf("--folio and --all are mutually exclusive"))
 		return dendrik.ExitUserError
 	}
 
@@ -214,7 +219,7 @@ func runHomePush(args []string) int {
 
 	// Validate all active folio.yml files before committing
 	if errs := validateActiveProjects(dir); len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, output.Errf("validation failed — fix before pushing:"))
+		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — fix before pushing:"))
 		for _, e := range errs {
 			fmt.Fprintf(os.Stderr, "  - %s\n", e)
 		}
@@ -225,7 +230,7 @@ func runHomePush(args []string) int {
 	if *folioName != "" {
 		entries, err := list.Scan(dir)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 			return dendrik.ExitUserError
 		}
 		var match *list.Entry
@@ -236,7 +241,7 @@ func runHomePush(args []string) int {
 			}
 		}
 		if match == nil {
-			fmt.Fprintln(os.Stderr, output.Errf("folio %q not found", *folioName))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio %q not found", *folioName))
 			return dendrik.ExitUserError
 		}
 		pushErr = repo.PushScoped(dir, *msg, []string{match.Section + "/" + match.Path})
@@ -250,33 +255,35 @@ func runHomePush(args []string) int {
 			return dendrik.ExitOK
 		}
 		if errors.Is(pushErr, repo.ErrInvalidCommitMessage) {
-			fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", pushErr))
 			return dendrik.ExitUserError
 		}
-		fmt.Fprintln(os.Stderr, output.Errf("%s", pushErr))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", pushErr))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Committed and pushed"))
+	fmt.Println(pal.Successf("Committed and pushed"))
 	return dendrik.ExitOK
 }
 
 func runHomePull(args []string) int {
+	pal := dendrik.NewPalette(true)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
 	}
 
 	if err := repo.Pull(dir); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Pulled latest"))
+	fmt.Println(pal.Successf("Pulled latest"))
 	return dendrik.ExitOK
 }
 
 func runHomeArchive(args []string) int {
+	pal := dendrik.NewPalette(true)
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio home archive <path>\n")
 		fmt.Fprintf(os.Stderr, "  Path is relative to active/, e.g., 'ben/my-project'\n")
@@ -290,15 +297,16 @@ func runHomeArchive(args []string) int {
 	relPath := args[0]
 
 	if err := move.Archive(dir, relPath); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Archived active/%s", relPath))
+	fmt.Println(pal.Successf("Archived active/%s", relPath))
 	return dendrik.ExitOK
 }
 
 func runHomeActivate(args []string) int {
+	pal := dendrik.NewPalette(true)
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: folio home activate <path>\n")
 		fmt.Fprintf(os.Stderr, "  Path is relative to archive/, e.g., 'ben/2026-02-20-my-project'\n")
@@ -312,11 +320,11 @@ func runHomeActivate(args []string) int {
 	relPath := args[0]
 
 	if err := move.Activate(dir, relPath); err != nil {
-		fmt.Fprintln(os.Stderr, output.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(output.Successf("Activated archive/%s", relPath))
+	fmt.Println(pal.Successf("Activated archive/%s", relPath))
 	return dendrik.ExitOK
 }
 
