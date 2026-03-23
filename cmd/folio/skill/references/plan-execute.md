@@ -9,7 +9,24 @@ tracks, each track can be executed independently (same or separate sessions).
 
 If you discover something unexpected during implementation that contradicts the plan, stop and consult the user rather than improvising.
 
-For each track step, execute this sequence in order. Do NOT skip or reorder steps.
+For each track, execute this sequence in order. Do NOT skip or reorder steps.
+
+0. **Spike** — before touching any code for a track:
+   1. Read the track spec (file paths, interfaces, constraints, deferral markers)
+   2. Read every file the track will modify — full contents
+   3. For each `[RESOLVE IN SPIKE]` marker: make the implementation choice, grounded in
+      actual code
+   4. Draft implementation sequence: what changes in what order
+   5. **Conflict check**: For each file path in spec — does it exist? For each type
+      signature — does it match? For each scope assumption — still valid?
+   6. If conflicts found: classify per the layered escalation table below and escalate.
+      If clean: proceed to Step 1.
+
+   Spike output is internal to the execution agent (not a separate committed artifact).
+   If the track has no `[RESOLVE IN SPIKE]` markers and all paths check out, the spike
+   is fast — just confirm and proceed.
+
+For each track step after the spike, execute:
 
 1. **Implement** one logical unit (one feature, fix, or refactor). If a step spans
    multiple concerns, split it at commit time.
@@ -75,7 +92,20 @@ Keep your review under 40 lines. Only flag real issues.
 
 **Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml observations, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
 
-If execution reveals a design-level flaw, escalate to the user — see plan.md for re-run rules.
+### Layered Escalation
+
+When the spike or implementation discovers a flaw, classify it by layer and act accordingly:
+
+| Type | Trigger | Blast radius | Action |
+|------|---------|-------------|--------|
+| Direction flaw | Goal wrong, scope boundary misdrawn, constraint infeasible | Stop ALL tracks | User re-evaluates direction. Amendment via plan.md's amend-design path. |
+| Interface flaw | File path doesn't exist, signature mismatch, cross-track dependency broken | Stop AFFECTED track | User patches interface spec. Other tracks continue. |
+| Implementation question | Technique choice, code structure within single file | No stop | Agent decides (single-file consequence) or asks user (cross-file/user-visible). |
+
+**Backward traversal**: When a flaw is discovered, record it as an observation. Classify as
+**additive** (doesn't invalidate existing decisions) or **contradictory** (invalidates).
+Additive: edit the design doc at the appropriate layer → re-run Phase 4 review only → commit.
+Contradictory: re-run from Phase 2 (direction) or Phase 5 (brief) per plan.md re-run rules.
 
 ## Phase 8: Retrospective
 
