@@ -13,31 +13,31 @@ var namePattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 var mdLinkPattern = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
 var kebabPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*\.[a-z]+$`)
 
-// ValidateLayer1 runs K1-K5 checks against a skill directory.
+// ValidateLayer1 runs Layer 1 checks (skill-exists through skill-size) against a skill directory.
 // skillDir is the absolute path to the directory containing SKILL.md (e.g., cmd/jf/skill/).
 // dirName is the expected skill name (must match frontmatter name field).
 func ValidateLayer1(skillDir, dirName string) []ValidationResult {
 	var results []ValidationResult
 
-	// K1: SKILL.md exists
+	// skill-exists: SKILL.md exists
 	skillPath := filepath.Join(skillDir, "SKILL.md")
 	content, err := os.ReadFile(skillPath)
 	if err != nil {
 		results = append(results, ValidationResult{
-			CheckID:     "K1",
+			CheckID:     "skill-exists",
 			Severity:    SeverityError,
 			Message:     "SKILL.md not found",
 			File:        "skill/SKILL.md",
 			Remediation: "Create skill/SKILL.md with YAML frontmatter containing `name` and `description`.",
 		})
-		return results // Structure gate: skip K2-K5
+		return results // Structure gate: skip remaining checks
 	}
 
 	// Parse frontmatter
 	fm, rawMap, bodyStart, parseErr := ParseFrontmatter(content)
 	if parseErr != nil {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("frontmatter parse error: %s", parseErr),
 			File:        "skill/SKILL.md",
@@ -47,21 +47,21 @@ func ValidateLayer1(skillDir, dirName string) []ValidationResult {
 		return results
 	}
 
-	// K2: Valid frontmatter fields
+	// skill-frontmatter: Valid frontmatter fields
 	results = append(results, validateName(fm.Name, dirName)...)
 	results = append(results, validateDescription(fm.Description)...)
 
-	// K2-EXT: No unexpected fields
+	// skill-extra-fields: No unexpected fields
 	results = append(results, validateUnexpectedFields(rawMap)...)
 
-	// K3: Standard markdown links resolve
+	// skill-links: Standard markdown links resolve
 	results = append(results, validateMarkdownLinks(content, skillDir)...)
 
-	// K4: Reference file naming
+	// ref-naming: Reference file naming
 	refsDir := filepath.Join(skillDir, "references")
 	results = append(results, validateReferenceNaming(refsDir)...)
 
-	// K5: Size constraints
+	// skill-size: Size constraints
 	results = append(results, validateSize(content, bodyStart)...)
 
 	return results
@@ -72,7 +72,7 @@ func validateName(name, dirName string) []ValidationResult {
 
 	if name == "" {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     "frontmatter missing required field: name",
 			File:        "skill/SKILL.md",
@@ -84,7 +84,7 @@ func validateName(name, dirName string) []ValidationResult {
 
 	if len(name) > 64 {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("name exceeds 64 characters (%d)", len(name)),
 			File:        "skill/SKILL.md",
@@ -95,7 +95,7 @@ func validateName(name, dirName string) []ValidationResult {
 
 	if !namePattern.MatchString(name) {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("name %q does not match pattern [a-z0-9-]", name),
 			File:        "skill/SKILL.md",
@@ -106,7 +106,7 @@ func validateName(name, dirName string) []ValidationResult {
 
 	if name != dirName {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("name %q does not match directory name %q", name, dirName),
 			File:        "skill/SKILL.md",
@@ -123,7 +123,7 @@ func validateDescription(desc string) []ValidationResult {
 
 	if desc == "" {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     "frontmatter missing required field: description",
 			File:        "skill/SKILL.md",
@@ -135,7 +135,7 @@ func validateDescription(desc string) []ValidationResult {
 
 	if len(desc) > 1024 {
 		results = append(results, ValidationResult{
-			CheckID:     "K2",
+			CheckID:     "skill-frontmatter",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("description exceeds 1024 characters (%d)", len(desc)),
 			File:        "skill/SKILL.md",
@@ -152,7 +152,7 @@ func validateUnexpectedFields(rawMap map[string]any) []ValidationResult {
 	for field := range rawMap {
 		if !KnownFields[field] {
 			results = append(results, ValidationResult{
-				CheckID:     "K2-EXT",
+				CheckID:     "skill-extra-fields",
 				Severity:    SeverityWarning,
 				Message:     fmt.Sprintf("unexpected frontmatter field: %q", field),
 				File:        "skill/SKILL.md",
@@ -179,11 +179,15 @@ func validateMarkdownLinks(content []byte, skillDir string) []ValidationResult {
 			if strings.HasPrefix(target, "#") {
 				continue
 			}
+			// Strip anchor fragment from path
+			if idx := strings.Index(target, "#"); idx >= 0 {
+				target = target[:idx]
+			}
 			// Resolve relative to skill dir
 			absTarget := filepath.Join(skillDir, target)
 			if _, err := os.Stat(absTarget); err != nil {
 				results = append(results, ValidationResult{
-					CheckID:     "K3",
+					CheckID:     "skill-links",
 					Severity:    SeverityError,
 					Message:     fmt.Sprintf("broken link: [%s](%s)", match[1], target),
 					File:        "skill/SKILL.md",
@@ -211,7 +215,7 @@ func validateReferenceNaming(refsDir string) []ValidationResult {
 		name := entry.Name()
 		if !kebabPattern.MatchString(name) {
 			results = append(results, ValidationResult{
-				CheckID:     "K4",
+				CheckID:     "ref-naming",
 				Severity:    SeverityWarning,
 				Message:     fmt.Sprintf("reference file %q does not follow kebab-case naming", name),
 				File:        filepath.Join("references", name),
@@ -233,7 +237,7 @@ func validateSize(content []byte, bodyStart int) []ValidationResult {
 
 	if bodyLines > 500 {
 		results = append(results, ValidationResult{
-			CheckID:     "K5",
+			CheckID:     "skill-size",
 			Severity:    SeverityError,
 			Message:     fmt.Sprintf("SKILL.md body is %d lines (max 500)", bodyLines),
 			File:        "skill/SKILL.md",
@@ -249,7 +253,7 @@ func validateSize(content []byte, bodyStart int) []ValidationResult {
 	estimatedTokens := bodyBytes / 4
 	if estimatedTokens > 5000 {
 		results = append(results, ValidationResult{
-			CheckID:     "K5",
+			CheckID:     "skill-size",
 			Severity:    SeverityWarning,
 			Message:     fmt.Sprintf("SKILL.md body estimated at ~%d tokens (guideline: ~5000)", estimatedTokens),
 			File:        "skill/SKILL.md",

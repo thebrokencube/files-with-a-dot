@@ -11,7 +11,7 @@ const (
 
 // ValidationResult represents a single validation issue.
 type ValidationResult struct {
-	CheckID     string   // e.g. "K1", "K2", "K2-EXT"
+	CheckID     string   // e.g. "skill-exists", "skill-frontmatter"
 	Severity    Severity // error or warning
 	Message     string   // what's wrong
 	File        string   // file path (relative to skill dir)
@@ -36,7 +36,7 @@ type SkillFrontmatter struct {
 }
 
 // KnownFields is the allowlist of frontmatter field names recognized by the Agent Skills spec
-// plus dendrik extensions. Used by K2-EXT to detect unexpected fields.
+// plus dendrik extensions. Used by skill-extra-fields to detect unexpected fields.
 var KnownFields = map[string]bool{
 	"name":           true,
 	"description":    true,

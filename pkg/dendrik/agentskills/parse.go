@@ -8,7 +8,7 @@ import (
 )
 
 // ParseFrontmatter extracts and parses YAML frontmatter from SKILL.md content.
-// Returns the parsed frontmatter, the raw field map (for K2-EXT), the body start line, and any error.
+// Returns the parsed frontmatter, the raw field map (for extra-fields detection), the body start line, and any error.
 func ParseFrontmatter(content []byte) (*SkillFrontmatter, map[string]any, int, error) {
 	// Find frontmatter delimiters (--- ... ---)
 	if !bytes.HasPrefix(content, []byte("---\n")) && !bytes.HasPrefix(content, []byte("---\r\n")) {
@@ -40,7 +40,7 @@ func ParseFrontmatter(content []byte) (*SkillFrontmatter, map[string]any, int, e
 		return nil, nil, 0, fmt.Errorf("invalid YAML frontmatter: %w", err)
 	}
 
-	// Parse into raw map for K2-EXT field detection
+	// Parse into raw map for skill-extra-fields detection
 	var rawMap map[string]any
 	if err := yaml.Unmarshal(fmBytes, &rawMap); err != nil {
 		return nil, nil, 0, fmt.Errorf("invalid YAML frontmatter: %w", err)

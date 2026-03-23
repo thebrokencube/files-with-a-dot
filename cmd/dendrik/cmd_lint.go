@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -48,9 +47,10 @@ type ToolData struct {
 	READMEBytes []byte       // README.md content
 
 	// Skill layer
-	SkillMD     []byte   // skill/SKILL.md content (nil if missing)
-	SkillDir    string   // absolute path to skill/ directory
-	RefFiles    []string // filenames in skill/references/
+	SkillMD      []byte            // skill/SKILL.md content (nil if missing)
+	SkillDir     string            // absolute path to skill/ directory
+	RefFiles     []string          // filenames in skill/references/
+	RefContents  map[string][]byte // reference file name -> content
 
 	// Bridge layer
 	SymlinkMap  []byte   // symlink_map.txt content (nil if missing)
@@ -174,7 +174,7 @@ func runLint(args []string) int {
 }
 
 func handleExplain(checkID string, jsonFlag, noColor bool) int {
-	entry := conventions.LookupCheck(strings.ToUpper(checkID))
+	entry := conventions.LookupCheck(checkID)
 	if entry == nil {
 		fmt.Fprintf(os.Stderr, "Unknown check: %s\n", checkID)
 		return dendrik.ExitUserError
@@ -231,11 +231,15 @@ func gatherToolData(toolDir string) (*ToolData, error) {
 	data.SkillDir = filepath.Join(toolDir, "skill")
 	data.SkillMD, _ = os.ReadFile(filepath.Join(data.SkillDir, "SKILL.md"))
 
+	data.RefContents = map[string][]byte{}
 	refsDir := filepath.Join(data.SkillDir, "references")
 	if entries, err := os.ReadDir(refsDir); err == nil {
 		for _, e := range entries {
 			if !e.IsDir() {
 				data.RefFiles = append(data.RefFiles, e.Name())
+				if content, err := os.ReadFile(filepath.Join(refsDir, e.Name())); err == nil {
+					data.RefContents[e.Name()] = content
+				}
 			}
 		}
 	}
@@ -267,7 +271,7 @@ func gatherToolData(toolDir string) (*ToolData, error) {
 		data.GoFiles = append(data.GoFiles, gf)
 	}
 
-	// cmd/*/ directories with go.mod (for B4)
+	// cmd/*/ directories with go.mod (for go-work-sync)
 	cmdDir := filepath.Join(repoRoot, "cmd")
 	if cmdEntries, err := os.ReadDir(cmdDir); err == nil {
 		for _, e := range cmdEntries {
@@ -294,8 +298,3 @@ func countSeverities(results []LintResult) (errors, warnings int) {
 	return
 }
 
-// jsonMarshal is a helper for --json output in explain mode.
-func init() {
-	// Ensure json package is used (imported for jsonOutput in runLint)
-	_ = json.Marshal
-}

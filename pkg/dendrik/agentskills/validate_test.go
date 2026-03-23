@@ -21,7 +21,7 @@ func TestValidateLayer1_ValidSkill(t *testing.T) {
 func TestValidateLayer1_NoSkillFile(t *testing.T) {
 	dir := t.TempDir()
 	results := ValidateLayer1(dir, "missing")
-	assertHasCheck(t, results, "K1", SeverityError)
+	assertHasCheck(t, results, "skill-exists", SeverityError)
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result (structure gate), got %d", len(results))
 	}
@@ -30,19 +30,19 @@ func TestValidateLayer1_NoSkillFile(t *testing.T) {
 func TestValidateLayer1_NoFrontmatter(t *testing.T) {
 	dir := testdataDir(t, "no-frontmatter")
 	results := ValidateLayer1(dir, "no-frontmatter")
-	assertHasCheck(t, results, "K2", SeverityError)
+	assertHasCheck(t, results, "skill-frontmatter", SeverityError)
 }
 
 func TestValidateLayer1_BadName(t *testing.T) {
 	dir := testdataDir(t, "bad-name")
 	results := ValidateLayer1(dir, "bad-name")
-	k2s := filterByCheck(results, "K2")
-	if len(k2s) == 0 {
-		t.Fatal("expected K2 errors for bad name")
+	fmResults := filterByCheck(results, "skill-frontmatter")
+	if len(fmResults) == 0 {
+		t.Fatal("expected skill-frontmatter errors for bad name")
 	}
 	// Should have pattern violation and directory mismatch
 	var hasPattern, hasMismatch bool
-	for _, r := range k2s {
+	for _, r := range fmResults {
 		if strings.Contains(r.Message, "does not match pattern") {
 			hasPattern = true
 		}
@@ -61,10 +61,10 @@ func TestValidateLayer1_BadName(t *testing.T) {
 func TestValidateLayer1_MissingName(t *testing.T) {
 	dir := writeSkill(t, "---\ndescription: \"test\"\n---\n# Test\n")
 	results := ValidateLayer1(dir, "test")
-	assertHasCheck(t, results, "K2", SeverityError)
+	assertHasCheck(t, results, "skill-frontmatter", SeverityError)
 	found := false
 	for _, r := range results {
-		if r.CheckID == "K2" && strings.Contains(r.Message, "missing required field: name") {
+		if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "missing required field: name") {
 			found = true
 		}
 	}
@@ -76,10 +76,10 @@ func TestValidateLayer1_MissingName(t *testing.T) {
 func TestValidateLayer1_MissingDescription(t *testing.T) {
 	dir := writeSkill(t, "---\nname: test\n---\n# Test\n")
 	results := ValidateLayer1(dir, "test")
-	assertHasCheck(t, results, "K2", SeverityError)
+	assertHasCheck(t, results, "skill-frontmatter", SeverityError)
 	found := false
 	for _, r := range results {
-		if r.CheckID == "K2" && strings.Contains(r.Message, "missing required field: description") {
+		if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "missing required field: description") {
 			found = true
 		}
 	}
@@ -94,7 +94,7 @@ func TestValidateLayer1_NameTooLong(t *testing.T) {
 	results := ValidateLayer1(dir, longName)
 	found := false
 	for _, r := range results {
-		if r.CheckID == "K2" && strings.Contains(r.Message, "exceeds 64") {
+		if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "exceeds 64") {
 			found = true
 		}
 	}
@@ -109,7 +109,7 @@ func TestValidateLayer1_DescriptionTooLong(t *testing.T) {
 	results := ValidateLayer1(dir, "test")
 	found := false
 	for _, r := range results {
-		if r.CheckID == "K2" && strings.Contains(r.Message, "exceeds 1024") {
+		if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "exceeds 1024") {
 			found = true
 		}
 	}
@@ -121,13 +121,13 @@ func TestValidateLayer1_DescriptionTooLong(t *testing.T) {
 func TestValidateLayer1_ExtraFields(t *testing.T) {
 	dir := testdataDir(t, "extra-fields")
 	results := ValidateLayer1(dir, "extra-fields")
-	k2ext := filterByCheck(results, "K2-EXT")
-	if len(k2ext) != 2 {
-		t.Fatalf("expected 2 K2-EXT warnings, got %d", len(k2ext))
+	extraFields := filterByCheck(results, "skill-extra-fields")
+	if len(extraFields) != 2 {
+		t.Fatalf("expected 2 skill-extra-fields warnings, got %d", len(extraFields))
 	}
-	for _, r := range k2ext {
+	for _, r := range extraFields {
 		if r.Severity != SeverityWarning {
-			t.Errorf("K2-EXT should be warning, got %s", r.Severity)
+			t.Errorf("skill-extra-fields should be warning, got %s", r.Severity)
 		}
 	}
 }
@@ -135,21 +135,21 @@ func TestValidateLayer1_ExtraFields(t *testing.T) {
 func TestValidateLayer1_BrokenLinks(t *testing.T) {
 	dir := testdataDir(t, "broken-links")
 	results := ValidateLayer1(dir, "broken-links")
-	k3s := filterByCheck(results, "K3")
-	if len(k3s) != 2 {
-		t.Fatalf("expected 2 broken links (not counting URL), got %d", len(k3s))
+	linkResults := filterByCheck(results, "skill-links")
+	if len(linkResults) != 2 {
+		t.Fatalf("expected 2 broken links (not counting URL), got %d", len(linkResults))
 	}
 }
 
 func TestValidateLayer1_BadRefNaming(t *testing.T) {
 	dir := testdataDir(t, "bad-ref-naming")
 	results := ValidateLayer1(dir, "bad-ref-naming")
-	k4s := filterByCheck(results, "K4")
-	if len(k4s) != 1 {
-		t.Fatalf("expected 1 K4 warning (BadName.md), got %d", len(k4s))
+	namingResults := filterByCheck(results, "ref-naming")
+	if len(namingResults) != 1 {
+		t.Fatalf("expected 1 ref-naming warning (BadName.md), got %d", len(namingResults))
 	}
-	if k4s[0].Severity != SeverityWarning {
-		t.Errorf("K4 should be warning, got %s", k4s[0].Severity)
+	if namingResults[0].Severity != SeverityWarning {
+		t.Errorf("ref-naming should be warning, got %s", namingResults[0].Severity)
 	}
 }
 
@@ -162,15 +162,15 @@ func TestValidateLayer1_Oversized(t *testing.T) {
 	}
 	dir := writeSkill(t, sb.String())
 	results := ValidateLayer1(dir, "oversized")
-	k5s := filterByCheck(results, "K5")
+	sizeResults := filterByCheck(results, "skill-size")
 	hasLineError := false
-	for _, r := range k5s {
+	for _, r := range sizeResults {
 		if r.Severity == SeverityError && strings.Contains(r.Message, "lines") {
 			hasLineError = true
 		}
 	}
 	if !hasLineError {
-		t.Error("expected K5 line count error")
+		t.Error("expected skill-size line count error")
 	}
 }
 
@@ -184,15 +184,15 @@ func TestValidateLayer1_TokenWarning(t *testing.T) {
 	}
 	dir := writeSkill(t, sb.String())
 	results := ValidateLayer1(dir, "token-test")
-	k5s := filterByCheck(results, "K5")
+	tokenResults := filterByCheck(results, "skill-size")
 	hasTokenWarning := false
-	for _, r := range k5s {
+	for _, r := range tokenResults {
 		if r.Severity == SeverityWarning && strings.Contains(r.Message, "tokens") {
 			hasTokenWarning = true
 		}
 	}
 	if !hasTokenWarning {
-		t.Error("expected K5 token warning")
+		t.Error("expected skill-size token warning")
 	}
 }
 
@@ -203,7 +203,7 @@ func TestValidateLayer1_ValidNamePatterns(t *testing.T) {
 			dir := writeSkill(t, "---\nname: "+name+"\ndescription: test\n---\n# Test\n")
 			results := ValidateLayer1(dir, name)
 			for _, r := range results {
-				if r.CheckID == "K2" && strings.Contains(r.Message, "pattern") {
+				if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "pattern") {
 					t.Errorf("name %q should be valid", name)
 				}
 			}
@@ -219,7 +219,7 @@ func TestValidateLayer1_InvalidNamePatterns(t *testing.T) {
 			results := ValidateLayer1(dir, name)
 			found := false
 			for _, r := range results {
-				if r.CheckID == "K2" && strings.Contains(r.Message, "pattern") {
+				if r.CheckID == "skill-frontmatter" && strings.Contains(r.Message, "pattern") {
 					found = true
 				}
 			}
@@ -234,9 +234,9 @@ func TestValidateLayer1_URLLinksNotFlagged(t *testing.T) {
 	content := "---\nname: url-test\ndescription: test\n---\n\n[Google](https://google.com)\n[HTTP](http://example.com)\n"
 	dir := writeSkill(t, content)
 	results := ValidateLayer1(dir, "url-test")
-	k3s := filterByCheck(results, "K3")
-	if len(k3s) != 0 {
-		t.Fatalf("URL links should not be flagged, got %d K3 results", len(k3s))
+	urlResults := filterByCheck(results, "skill-links")
+	if len(urlResults) != 0 {
+		t.Fatalf("URL links should not be flagged, got %d skill-links results", len(urlResults))
 	}
 }
 
@@ -244,9 +244,9 @@ func TestValidateLayer1_AnchorLinksNotFlagged(t *testing.T) {
 	content := "---\nname: anchor-test\ndescription: test\n---\n\n[Section](#section)\n"
 	dir := writeSkill(t, content)
 	results := ValidateLayer1(dir, "anchor-test")
-	k3s := filterByCheck(results, "K3")
-	if len(k3s) != 0 {
-		t.Fatalf("anchor links should not be flagged, got %d K3 results", len(k3s))
+	anchorResults := filterByCheck(results, "skill-links")
+	if len(anchorResults) != 0 {
+		t.Fatalf("anchor links should not be flagged, got %d skill-links results", len(anchorResults))
 	}
 }
 
