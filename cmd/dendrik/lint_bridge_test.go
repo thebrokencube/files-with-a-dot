@@ -236,6 +236,28 @@ func TestBridgeLint_NoRawJSON(t *testing.T) {
 			t.Errorf("should not flag without json flag, got %v", results)
 		}
 	})
+
+	t.Run("MustResult is not flagged", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.GoFiles = []GoFileData{
+			{Path: "cmd_foo.go", Content: []byte("package main\nvar f = fs.BoolLong(\"json\", \"JSON\")\nfmt.Print(string(out.MustResult(x)))\n")},
+		}
+		results := filterCheck(BridgeLint(data), "no-raw-json")
+		if len(results) > 0 {
+			t.Errorf("MustResult goes through envelope, should not flag, got %v", results)
+		}
+	})
+
+	t.Run("nolint comment is not flagged", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.GoFiles = []GoFileData{
+			{Path: "cmd_foo.go", Content: []byte("package main\nvar f = fs.BoolLong(\"json\", \"JSON\")\nfmt.Print(string(data)) //nolint:no-raw-json\n")},
+		}
+		results := filterCheck(BridgeLint(data), "no-raw-json")
+		if len(results) > 0 {
+			t.Errorf("nolint should suppress, got %v", results)
+		}
+	})
 }
 
 func TestBridgeLint_RunHasJSON(t *testing.T) {

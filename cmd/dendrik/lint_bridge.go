@@ -219,7 +219,7 @@ func checkNoRawJSONPassthrough(data *ToolData) []LintResult {
 		if !containsJSONFlagRegistration(content) {
 			continue
 		}
-		if strings.Contains(content, "fmt.Print(string(") {
+		if hasRawJSONPassthrough(content) {
 			results = append(results, lintResult("no-raw-json", conventions.SeverityWarning,
 				"fmt.Print(string( in "+gf.Path+" with --json flag — raw JSON passthrough",
 				gf.Path, 0,
@@ -227,6 +227,25 @@ func checkNoRawJSONPassthrough(data *ToolData) []LintResult {
 		}
 	}
 	return results
+}
+
+// hasRawJSONPassthrough checks for fmt.Print(string( patterns that bypass the
+// ResultEnvelope. Lines using MustResult or .Result( are already enveloped and
+// are not flagged. Lines with //nolint:no-raw-json are also skipped.
+func hasRawJSONPassthrough(content string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.Contains(line, "fmt.Print(string(") {
+			continue
+		}
+		if strings.Contains(line, "MustResult") || strings.Contains(line, ".Result(") {
+			continue
+		}
+		if strings.Contains(line, "//nolint:no-raw-json") {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func checkRunFunctionsHaveJSON(data *ToolData) []LintResult {
