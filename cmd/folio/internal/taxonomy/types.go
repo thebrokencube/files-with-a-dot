@@ -76,14 +76,33 @@ func StageForType(t string) LifecycleStage {
 }
 
 // InferType extracts the artifact type from a source path's directory component.
-// Examples: "reference/spike/foo.md" -> "spike", "work/active/bar/README.md" -> "brief"
+// Examples: "reference/spike/foo.md" -> "spike", "work/active/bar/README.md" -> "plan"
+//
+// For work/ paths, deeper inspection detects colocated types:
+//
+//	work/active/<topic>/reference/design/<file>.md -> "design"
+//	work/active/<topic>/reference/retro/<file>.md  -> "retro"
+//	work/active/<topic>/retro.md                   -> "retro"
+//	work/active/<topic>/design.md                  -> "design"
+//	work/active/<topic>/README.md                  -> "plan"
 func InferType(path string) string {
 	parts := strings.Split(filepath.ToSlash(path), "/")
 	if len(parts) >= 2 && parts[0] == "reference" {
 		return parts[1]
 	}
 	if len(parts) >= 2 && parts[0] == "work" {
-		return "brief"
+		// Check for colocated reference types deeper in the path
+		for i, p := range parts {
+			if p == "reference" && i+1 < len(parts) {
+				return parts[i+1]
+			}
+		}
+		// Check basename for colocatable types (e.g., retro.md, design.md)
+		base := strings.TrimSuffix(filepath.Base(path), ".md")
+		if ColocatableTypes[base] {
+			return base
+		}
+		return "plan"
 	}
 	return ""
 }

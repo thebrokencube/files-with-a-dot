@@ -64,10 +64,29 @@ func runNew(args []string) int {
 	}
 
 	colocated := false
-	if isColocatable(artifactType) {
+
+	// Plan/brief: use existing work dir if one matches the topic
+	if artifactType == "plan" || artifactType == "brief" {
 		if workDir := findWorkDir(folioDir, topic); workDir != "" {
 			rel, _ := filepath.Rel(folioDir, workDir)
-			relPath = filepath.Join(rel, artifactType+".md")
+			relPath = filepath.Join(rel, "README.md")
+			colocated = true
+		}
+	}
+
+	// Colocatable types (design, retro): colocate inside work dir
+	if !colocated && isColocatable(artifactType) {
+		workDir := findWorkDir(folioDir, topic)
+		if workDir == "" && artifactType == "design" {
+			// Design creates the work directory
+			date := time.Now().Format("2006-01-02")
+			workDir = filepath.Join(folioDir, "work", "active", date+"-"+topic)
+		}
+		if workDir != "" {
+			rel, _ := filepath.Rel(folioDir, workDir)
+			// Nested colocation: reference/<type>/YYYY-MM-DD-<topic>.md
+			date := time.Now().Format("2006-01-02")
+			relPath = filepath.Join(rel, "reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
 			colocated = true
 		}
 	}

@@ -229,8 +229,19 @@ func TestStageForType(t *testing.T) {
 func TestInferType(t *testing.T) {
 	cases := map[string]string{
 		"reference/spike/foo.md":               "spike",
-		"work/active/2026-01-01-bar/README.md": "brief",
+		"work/active/2026-01-01-bar/README.md": "plan",
 		"README.md":                            "",
+		// Colocated types inside work dirs
+		"work/active/2026-01-01-bar/reference/design/2026-01-01-bar.md": "design",
+		"work/active/2026-01-01-bar/reference/retro/2026-01-01-bar.md":  "retro",
+		"work/active/2026-01-01-bar/retro.md":                           "retro",
+		"work/active/2026-01-01-bar/design.md":                          "design",
+		// Session logs and track files default to plan
+		"work/active/2026-01-01-bar/session-1.md": "plan",
+		"work/active/2026-01-01-bar/track-1.md":   "plan",
+		// Archive paths work the same
+		"work/archive/2026-01-01-old/README.md":                          "plan",
+		"work/archive/2026-01-01-old/reference/design/2026-01-01-old.md": "design",
 	}
 	for path, want := range cases {
 		if got := InferType(path); got != want {

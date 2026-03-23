@@ -162,4 +162,3 @@ func TestRunSetupCheck(t *testing.T) {
 		t.Errorf("expected exit code 0 for --check, got %d", code)
 	}
 }
-

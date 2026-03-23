@@ -72,7 +72,7 @@ func TestRunNewSpikeCreatesFile(t *testing.T) {
 	}
 }
 
-func TestRunNewDesignCreatesFile(t *testing.T) {
+func TestRunNewDesignCreatesWorkDir(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
@@ -82,9 +82,10 @@ func TestRunNewDesignCreatesFile(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "design", "*-my-feature.md"))
+	// Design should auto-create work dir and colocate inside it
+	matches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-my-feature", "reference", "design", "*-my-feature.md"))
 	if len(matches) != 1 {
-		t.Fatalf("expected 1 file in reference/design/, got %d", len(matches))
+		t.Fatalf("expected 1 file in work/active/*-my-feature/reference/design/, got %d", len(matches))
 	}
 
 	data, _ := os.ReadFile(matches[0])
@@ -94,6 +95,12 @@ func TestRunNewDesignCreatesFile(t *testing.T) {
 	}
 	if !strings.Contains(content, "## Divergence Decisions") {
 		t.Error("design file missing Divergence Decisions section")
+	}
+
+	// folio.yml source entry should reference the work dir path
+	ymlData, _ := os.ReadFile(yml)
+	if !strings.Contains(string(ymlData), "work/active/") {
+		t.Error("folio.yml source entry should reference work/active/ path")
 	}
 }
 
@@ -213,13 +220,13 @@ func TestRunNewRetroColocated(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	// Verify file at colocated path
-	retroPath := filepath.Join(workDir, "retro.md")
-	if _, err := os.Stat(retroPath); err != nil {
-		t.Fatalf("expected retro.md at colocated path %s: %v", retroPath, err)
+	// Verify file at nested colocated path (not flat retro.md)
+	matches, _ := filepath.Glob(filepath.Join(workDir, "reference", "retro", "*-mytopic.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 retro file in work dir reference/retro/, got %d", len(matches))
 	}
 
-	data, _ := os.ReadFile(retroPath)
+	data, _ := os.ReadFile(matches[0])
 	if !strings.Contains(string(data), "## Context") {
 		t.Error("retro file missing Context section")
 	}
@@ -247,11 +254,12 @@ func TestRunNewRetroStandalone(t *testing.T) {
 	}
 }
 
-func TestRunNewDesignColocated(t *testing.T) {
+func TestRunNewDesignColocatedExistingWorkDir(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
+	// Pre-existing work dir (e.g., created by a prior plan)
 	workDir := filepath.Join(dir, "work", "active", "2026-01-01-mydesign")
 	os.MkdirAll(workDir, 0755)
 	os.WriteFile(filepath.Join(workDir, "README.md"), []byte("# Brief\n"), 0644)
@@ -261,12 +269,13 @@ func TestRunNewDesignColocated(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	designPath := filepath.Join(workDir, "design.md")
-	if _, err := os.Stat(designPath); err != nil {
-		t.Fatalf("expected design.md at colocated path %s: %v", designPath, err)
+	// Design colocates with nested format inside existing work dir
+	matches, _ := filepath.Glob(filepath.Join(workDir, "reference", "design", "*-mydesign.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file in work dir reference/design/, got %d", len(matches))
 	}
 
-	data, _ := os.ReadFile(designPath)
+	data, _ := os.ReadFile(matches[0])
 	if !strings.Contains(string(data), "## Problem") {
 		t.Error("design file missing Problem section")
 	}
@@ -278,18 +287,53 @@ func TestRunNewDesignColocated(t *testing.T) {
 	}
 }
 
-func TestRunNewDesignStandalone(t *testing.T) {
+func TestRunNewDesignAutoCreatesWorkDir(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
+	// No existing work dir — design should auto-create one
 	code := runNew([]string{"--folio", yml, "design", "standalone-design"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "design", "*-standalone-design.md"))
+	// Should NOT be in reference/design/ (old behavior)
+	oldMatches, _ := filepath.Glob(filepath.Join(dir, "reference", "design", "*-standalone-design.md"))
+	if len(oldMatches) != 0 {
+		t.Errorf("design should not create in reference/design/ (old behavior), found %d files", len(oldMatches))
+	}
+
+	// Should be in work/active/*/reference/design/
+	newMatches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-standalone-design", "reference", "design", "*-standalone-design.md"))
+	if len(newMatches) != 1 {
+		t.Fatalf("expected 1 file in auto-created work dir, got %d", len(newMatches))
+	}
+}
+
+func TestRunNewPlanUsesExistingWorkDir(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	// Create work dir (as if design created it on a different date)
+	workDir := filepath.Join(dir, "work", "active", "2026-01-15-my-topic")
+	os.MkdirAll(workDir, 0755)
+
+	code := runNew([]string{"--folio", yml, "plan", "my-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	// Plan should land in the existing work dir, not create a new one
+	readmePath := filepath.Join(workDir, "README.md")
+	if _, err := os.Stat(readmePath); err != nil {
+		t.Fatalf("expected README.md in existing work dir: %v", err)
+	}
+
+	// Should NOT create a second work dir with today's date
+	matches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-my-topic"))
 	if len(matches) != 1 {
-		t.Fatalf("expected 1 file in reference/design/, got %d", len(matches))
+		t.Errorf("expected exactly 1 work dir for topic, got %d", len(matches))
 	}
 }
