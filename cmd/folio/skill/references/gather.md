@@ -38,7 +38,7 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
 
 1. Identify what to research from the topic
 2. Search available sources (MCP tools, web, codebase). If no results found, report "no results for {topic}" — do not write an empty file.
-3. Synthesize findings (hold in memory, do not write yet)
+3. Synthesize findings (hold in memory, do not write yet). **Track sources** — for each finding, note the URL, document title, PR/ticket number, Slack channel, or repo path where it came from.
 4. **Infer type** from the research content:
    - External system/tool summary → `research`
    - Time-boxed investigation findings → `spike`
@@ -46,7 +46,7 @@ When invoked as a skill (not a URL), gather becomes a research workflow:
    - Domain knowledge capture → `domain`
    - Default for ambiguous content → `spike`
 5. **Review gate (soft)**: Present proposed type, filename, content length, and 3 key facts. "Write to {path}?"
-6. Materialize via `folio new <inferred-type> <topic>` — never raw file write. Then fill the template with synthesized content.
+6. Materialize via `folio new <inferred-type> <topic>` — never raw file write. Then fill the template with synthesized content. **Inline source attribution** throughout — cite URLs, PR numbers, ticket IDs, Slack channels, or repo paths near the claims they support. Don't batch sources into a single bibliography; weave them in where they're relevant.
    **Note:** `folio new design` is special — it creates a work directory and colocates the design inside it, not at `reference/design/`. All other reference types scaffold to `reference/<type>/`.
 7. Report what was gathered, the inferred type, and where it was placed
 
