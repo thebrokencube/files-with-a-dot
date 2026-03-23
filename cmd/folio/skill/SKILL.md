@@ -76,11 +76,11 @@ If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty,
 
 ## Workflows
 
-### /folio gather [url|topic]
+### /folio gather [url|topic|path]
 
-Bring sources into the folio. CLI scaffolds source entries from URLs; skill mode does deep research on a topic.
+Bring sources into the folio. Two skill shapes: **snapshot** (`/folio gather <topic>`) captures new knowledge; **re-seed** (`/folio gather <existing-file-path>`) updates existing research. CLI scaffolds source entries from URLs.
 
--> Read references/gather.md for full workflow (includes CLI flags and skill research mode).
+-> Read references/gather.md for full workflow (includes CLI flags, snapshot, and re-seed).
 
 ### /folio plan [topic]
 
@@ -184,7 +184,8 @@ Two gate types, proportional to risk:
 |----------|------|-----------|-------------|
 | publish | Hard | Before each push | Target, system, method, first 5 lines |
 | compose | Soft | After composition loop, before final status | Targets composed, paths, sizes (cap 5) |
-| gather (skill) | Soft | Before file write | Proposed filename, length, 3 key facts |
+| gather (snapshot) | Soft | Before file write | Proposed filename, length, 3 key facts |
+| gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
 | stack push | Hard | Before push | Branches, local vs remote tips, force-with-lease |
 | stack propagate | Soft | After propagation | Rebased branches, conflicts resolved, stale remainder |
 | stack check | None | — | Read-only |
