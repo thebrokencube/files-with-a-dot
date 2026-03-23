@@ -31,9 +31,23 @@ Before writing, read 2-3 recent archived briefs from the project's work archive
 Populate each track with execution-level detail. The brief must be self-contained — the
 execution agent reads only the brief, not the design doc or conversation history.
 
-**The 6-section structure is mandatory.** Every work plan MUST have all six sections listed
+**The 4-section structure is mandatory.** Every work plan MUST have all four sections listed
 below, in order. Archived briefs that predate this structure are NOT precedent — this spec
-supersedes them. Build & Deploy is a standalone section, not merged into Execution Conventions.
+supersedes them.
+
+**Section transition from previous 6-section format:**
+
+| Old Section (previous 6) | New Home (current 4) | Notes |
+|--------------------------|----------------------|-------|
+| Context | → Direction Summary | Compressed, 10-20 lines |
+| Agent Setup | → Execution Setup | Skill loading, repo mapping |
+| Tracks | → Track Decomposition | + deferral markers, wave grouping |
+| Build & Deploy | → Execution Setup | Validation commands subsection |
+| Execution Conventions | → Execution Setup | Commit conventions, folio integration |
+| Handoff Prompts | Eliminated | Templatable from conventions; no longer mandatory |
+
+Interface Spec is new — sourced from the design doc's Interfaces section, not remapped from
+any prior brief section.
 
 **Progressive disclosure structure.** Briefs follow the two-layer layout defined in
 `references/progressive-disclosure.md`: action layer (track instructions, top) and reference
@@ -41,39 +55,35 @@ layer (Key Reference sections, bottom). The action layer should be self-sufficie
 mechanical steps. If a track step can't be executed without a Key Reference, the track
 instruction is underspecified — add more inline detail.
 
-Every brief has six required sections, in order:
+Every brief has four required sections, in order:
 
-#### Context section (required)
+#### Direction Summary section (required)
 
-Distill the design doc into the minimum context an execution agent needs to make judgment
-calls when implementation deviates from the plan. This replaces "go read the design doc."
+Distill the design doc's Direction section into the minimum context an execution agent needs
+to make judgment calls when implementation deviates from the plan. This replaces "go read
+the design doc."
 
 Include:
 - **What this work is** (2-3 sentences): the problem, the goal, what repo(s) are involved
-- **Key design decisions** (bulleted, non-negotiable): architectural choices the execution
-  agent must not revisit. Sourced from the design doc's Architecture and Divergence Decisions
-  sections. Frame as constraints: "Do X" / "Do NOT do Y" / "X stays because Y."
-- **Scope boundary** (bulleted): what is NOT included, framed as stop signals. Sourced from
-  the design doc's What's NOT Included section.
+- **Non-negotiable decisions** (bulleted): constraints from the design doc's Non-Negotiable
+  Constraints and Chosen Approach sections. Frame as: "Do X" / "Do NOT do Y" / "X stays
+  because Y."
+- **Scope boundary** (bulleted): stop signals from the design doc's Scope Boundary section.
 
-Target: 10-15 lines. Dense, not conversational. Every line should change how the agent
+Target: 10-20 lines. Dense, not conversational. Every line should change how the agent
 behaves — if a line doesn't affect execution decisions, cut it.
 
-#### Agent Setup section (required)
+#### Interface Spec section (required)
 
-Tell the execution agent how to prepare before touching any code:
+Cross-boundary contracts that execution agents must respect. Sourced from the design doc's
+Interfaces section.
 
-1. **Skill loading**: Which skills to invoke and why — `/folio status` loads folio conventions
-   (key rule: `~/.folio` commits use `folio home push`, never raw git), `/commit` loads commit
-   format with repo-specific conventions, plus additional skills as needed.
-2. **Repo mapping**: Which tracks operate in which repos. Execution agents work in one repo
-   at a time — make the mapping unambiguous.
-3. **Escalation triggers**: When should the agent stop and ask the user? Common triggers:
-   validation failures after migration steps, file paths or signatures that don't match the
-   brief, temptation to add code not in the track, high-complexity commits, style or
-   convention questions not covered by the brief.
+Include:
+- **File change manifest**: path, action (create/modify/delete), what changes
+- **Cross-boundary type definitions** (code blocks): from design doc's Component Contracts
+- **Validation commands** (pass criteria): build, test, lint (exact commands with working directory)
 
-#### Tracks section (required)
+#### Track Decomposition section (required)
 
 **Multi-track plans MUST create track-N.md files from the start.** Do not defer to "if
 needed" — track files prevent README.md from growing unwieldy and signal clear boundaries
@@ -84,8 +94,8 @@ For each track, specify:
 - Function signatures, struct diffs, type definitions
 - Test names and what they validate; test helper signatures and shared fixtures
 - Commit message(s) and what each commit contains
-- Validation commands (build, test, lint)
-- For CLI commands: specify expected stdout/stderr format
+- Deferral markers: **`[PRE-DECIDED]`** (execution agent follows literally) vs
+  **`[RESOLVE IN SPIKE]`** (execution agent makes the call during Step 0 spike)
 - Flag creative vs mechanical steps with **"judgment required"** markers — helps execution
   agents know when to follow literally vs when to adapt
 - Wave grouping (if multiple tracks): group independent tracks into waves. Tracks within a
@@ -96,52 +106,30 @@ For each track, specify:
 signatures and test tables, Track 4 cannot be a one-liner. Thin tracks signal the brief
 author didn't think them through — flesh them out or merge them into an adjacent track.
 
-#### Build & Deploy section (required)
+#### Execution Setup section (required)
 
-How to build, test, and deploy in the target repo. An execution agent should be able to
-validate its work without guessing. Include:
-- **Build commands**: exact commands to compile/build (with working directory)
-- **Test commands**: how to run the full test suite and targeted tests
-- **Deploy/sync steps**: what to run after code changes land (e.g., `dot sync` for
-  dotfiles, `make build` for checked-in binaries, deploy commands for services)
-- **Prerequisites**: tools to install, dependencies to set up, environment to configure
+Consolidates agent setup, build/deploy, and execution conventions into a single section.
 
-This section prevents the most common handoff failure: the execution agent makes correct
-code changes but doesn't know how to validate or ship them.
+Include:
+- **Repo mapping**: which tracks operate in which repos
+- **Skill loading**: which skills to invoke and why — `/folio status` loads folio conventions
+  (key rule: `~/.folio` commits use `folio home push`, never raw git), `/commit` loads commit
+  format with repo-specific conventions, plus additional skills as needed
+- **Commit conventions**: format, scope target (max commits — typically ~5), ordered commit
+  sequence (what goes in each commit, in what order), push workflow, repo-specific patterns
+- **Validation commands** (run sequence): build, test, lint, deploy/sync steps (e.g.,
+  `dot sync` for dotfiles, `make build` for checked-in binaries)
+- **Escalation triggers**: when should the agent stop and ask? Common triggers: validation
+  failures, file paths or signatures that don't match the brief, temptation to add code not
+  in the track, high-complexity commits
+- **Folio integration**: targets to add for branches, existing observation items to resolve
+  on completion, `folio home push` checkpoints at milestones. Do not instruct agents to add
+  "completion" observations — observations are open items, not a changelog. Execution agents
+  should maintain folio state as they go — not as a final cleanup step.
 
-#### Execution Conventions section (required)
-
-Commit format, scope target (max commits — typically ~5), ordered commit sequence
-(what goes in each commit, in what order), push workflow, and repo-specific patterns.
-
-Include a **Folio integration** subsection: targets to add for branches, existing observation
-items to resolve on completion, `folio home push` checkpoints at milestones. Do not instruct
-agents to add "completion" observations — observations are open items, not a changelog.
-Execution agents should maintain folio state as they go — not as a final cleanup step.
-
-#### Handoff Prompts section (required)
-
-Copy-pasteable prompts for starting execution sessions. One prompt per independent
-session (often one per track, but coupled tracks share a session).
-
-**Structure follows progressive disclosure** — action first, context second:
-1. **Action block** (top): what to execute, which brief to read, which track(s). The
-   execution agent can start from this alone.
-2. **Context block** (below): skill invocations, build/test commands, folio checkpoints.
-   Provides setup the agent needs but wouldn't know to request.
-
-Each prompt must:
-- Point to the committed brief as the primary input
-- Name the specific track(s) to execute
-- List skill invocations to run at session start — `/folio status --folio <path>` (loads folio
-  conventions), `/commit` (loads commit format), plus any project-specific skills. These load
-  context the execution agent needs but won't know to request.
-- Include build/test/deploy commands inline (don't just say "see brief")
-- Include a subagent review step before committing (see plan-execute.md Phase 7 step 5)
-- Include folio checkpoint instructions (observations to resolve, retro trigger)
-
-The handoff prompt is the acid test of brief quality: if the prompt needs to add context
-beyond "read the brief and execute Track N," the brief is underspecified.
+**Handoff Prompts** are no longer a mandatory section. They are templatable from the
+Execution Setup conventions. Include them only when the execution session needs context
+that isn't obvious from "read the brief and execute Track N."
 
 Scaffold the work plan under `work/active/YYYY-MM-DD-<topic>/README.md`. If a work dir
 already exists for the topic (from a prior `folio new design`), use it — the design doc
@@ -171,7 +159,7 @@ contract for Agent 3.
 
 Dispatch 1 review agent (subagent_type: general-purpose, model: "sonnet") to review:
 1. **Self-containment**: Can an execution agent proceed without reading the design doc?
-2. **Convention compliance**: Does structure match recent archived briefs? All 6 sections present?
+2. **Convention compliance**: Does structure match recent archived briefs? All 4 sections present?
 3. **Completeness**: Are all design doc decisions reflected as constraints?
 
 For multi-track plans, use multi-persona review (3-4 agents with different perspectives:
