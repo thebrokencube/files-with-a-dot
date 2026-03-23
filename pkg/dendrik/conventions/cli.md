@@ -1,0 +1,179 @@
+# CLI Conventions
+
+Conventions codified from the jf and folio implementations. This is the source
+of truth for `dendrik lint` (Track 6) and `dendrik new` (Track 5).
+
+Philosophy: Sinatra, not Rails. dendrik provides functions at the points where
+convention matters. It doesn't own `main()`, dispatch, config schemas, help
+text, or subcommand routing.
+
+---
+
+## Exit Codes
+
+| Code | Constant | Meaning | Agent action |
+|------|----------|---------|-------------|
+| 0 | `ExitOK` | Success | Proceed |
+| 1 | `ExitUserError` | Bad input, missing args, invalid flags | Fix invocation and retry |
+| 2 | `ExitExternalErr` | API down, file not found, network failure | Report to user or retry later |
+| 3 | `ExitConflict` | Resource conflict (e.g., sync collision) | Resolve conflict, then retry |
+
+**Decision rules:**
+
+- Parse errors (bad flags, missing required args) → `ExitUserError`
+- File not found, YAML parse failure, validation failure → `ExitExternalErr`
+- External tool failure (jf binary, API call) → `ExitExternalErr`
+- Sync conflict where both sides changed → `ExitConflict`
+- "Stale targets found" or "lint issues found" (exit-as-signal) → `ExitUserError`
+
+dendrik CLIs never call `os.Exit()` directly. Commands return an int; the
+dispatcher in `main()` calls `os.Exit()` once.
+
+---
+
+## Flag Conventions
+
+### Global reservations
+
+These short flags have fixed meaning across all dendrik CLIs:
+
+| Flag | Long | Meaning |
+|------|------|---------|
+| `-h` | `--help` | Show help (provided by ff) |
+| `-j` | `--json` | Machine-readable JSON output |
+| `-n` | `--dry-run` | Preview without side effects |
+
+### Common long-only flags
+
+| Flag | Meaning | Notes |
+|------|---------|-------|
+| `--no-color` | Disable colored output | Respects `NO_COLOR` env var per spec |
+| `--version` | Print version | Not yet implemented; reserved |
+
+### Per-CLI flags
+
+Short flags outside the global set are CLI-specific. The same letter can mean
+different things in different CLIs. This is acceptable because CLIs are
+independent binaries — users never mix flags across them.
+
+Known collisions documented in `flag_registry.go`:
+
+| Flag | jf | folio |
+|------|-----|-------|
+| `-f` | `--force` (push/sync) | `--folio` (path to folio.yml) |
+| `-d` | `--dir` (working directory) | — (not used) |
+| `-s` | `--subtree` (push) | `--source` / `--status` / `--scope` (varies) |
+| `-m` | — | `--materialize` / `--message` (varies) |
+
+### Flag parsing
+
+- Use `dendrik.NewFlagSet()` + `dendrik.Parse()` — wraps ff v4
+- ff v4 handles interspersed flags natively (flags work in any position)
+- Short flags: `fs.String('d', "dir", ".", "description")`
+- Long-only flags: `fs.StringLong("no-color", "description")`
+- Parse errors return `error` — never `os.Exit()`
+
+### Env var fallback
+
+ff supports `ff.WithEnvVarPrefix("JF")` for automatic env→flag binding.
+Convention: prefix matches the CLI name in uppercase. Currently:
+
+| CLI | Prefix | Status |
+|-----|--------|--------|
+| jf | `JF_` | Planned, not yet wired |
+| folio | `FOLIO_` | Planned, not yet wired |
+
+`FOLIO_HOME` is a standalone env var (not a flag fallback) used to locate
+the folio home directory.
+
+---
+
+## Output Conventions
+
+### Output mode
+
+`dendrik.OutputMode(jsonFlag, plainFlag)` returns one of:
+
+| Mode | When | Format |
+|------|------|--------|
+| `"json"` | `--json` flag or non-TTY stdout | Structured JSON via `dendrik.WriteResult()` |
+| `"plain"` | `--plain` flag | Undecorated text (no ANSI, no JSON) |
+| `"human"` | TTY stdout, no flags | Colored, formatted for humans |
+
+Non-TTY defaults to JSON so agents get structured output automatically.
+
+### JSON envelope
+
+All JSON output uses `dendrik.ResultEnvelope`:
+
+```json
+{"data": ..., "error": "...", "detail": "..."}
+```
+
+- Success: `{"data": <domain-specific>}`
+- Error: `{"error": "message", "detail": "extra context"}`
+
+### Error output
+
+- Errors go to stderr, data goes to stdout
+- Human errors use `output.Errf()` (colored "Error:" prefix)
+- Structured errors use `dendrik.WriteError()` (JSON envelope)
+
+### Color
+
+- `dendrik.ColorEnabled(noColorFlag)` checks: flag → `NO_COLOR` env → TTY
+- `dendrik.Palette` provides ANSI codes with zero-value fallback for no-color
+- Commands that render colored output accept `--no-color` (long-only)
+
+---
+
+## Command Structure
+
+### What dendrik owns
+
+- Flag parsing (`NewFlagSet`, `Parse`)
+- Exit codes (`ExitOK`, `ExitUserError`, `ExitExternalErr`, `ExitConflict`)
+- Output formatting (`WriteResult`, `WriteError`, `OutputMode`)
+- Terminal detection (`IsTerminal`, `ColorEnabled`)
+- Color palette (`Palette`, `NewPalette`)
+
+### What authors own
+
+- Command dispatch (`switch` on args — too simple to abstract)
+- Config schemas (folio.yml, forest.yml are domain-specific)
+- Subcommand routing
+- Help text
+- Domain data types
+- External tool wrappers
+
+### FC;IS pattern
+
+Commands are pure functions returning data structures. The dispatch layer
+handles output mode:
+
+```go
+func statusCommand(fs *ff.FlagSet) (StatusData, error) {
+    // Pure — no I/O
+    return StatusData{...}, nil
+}
+
+func runStatus(args []string) int {
+    // Imperative shell — handles I/O at the edge
+    fs := dendrik.NewFlagSet("status")
+    jsonFlag := fs.Bool('j', "json", "JSON output")
+    if err := dendrik.Parse(fs, args); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        return dendrik.ExitUserError
+    }
+    data, err := statusCommand(fs)
+    if err != nil { return dendrik.ExitExternalErr }
+    switch dendrik.OutputMode(*jsonFlag, false) {
+    case "json":  dendrik.WriteResult(os.Stdout, data)
+    case "human": renderHumanStatus(data)
+    }
+    return dendrik.ExitOK
+}
+```
+
+This separation means commands are testable without capturing stdout, and
+TUI (future) renders the same data structures.
