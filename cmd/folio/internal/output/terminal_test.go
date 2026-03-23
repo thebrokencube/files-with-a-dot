@@ -8,72 +8,6 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 )
 
-func TestPrintStatusTerminalWithTree(t *testing.T) {
-	ps := &status.ProjectStatus{
-		Project: "Tree Project",
-		Targets: map[string]status.TargetStatus{
-			"initiative": {
-				Outputs: []status.OutputStatus{
-					{Type: "local", Path: "compiled/manifest.md", Status: "stale"},
-				},
-				TreeRoot: &status.TreeNodeStatus{
-					ID:       "PROJ-1",
-					Label:    "Initiative",
-					Status:   "stale",
-					CausedBy: "PROJ-10",
-					Children: []status.TreeNodeStatus{
-						{
-							ID:     "PROJ-10",
-							Label:  "Project A",
-							Status: "stale",
-							Children: []status.TreeNodeStatus{
-								{ID: "PROJ-100", Label: "Epic 1", Status: "clean"},
-							},
-						},
-						{ID: "PROJ-20", Label: "Project B", Status: "clean"},
-					},
-				},
-			},
-		},
-	}
-
-	var buf bytes.Buffer
-	PrintStatusTerminal(&buf, ps, nil, false)
-	out := buf.String()
-
-	// Check tree nodes are rendered
-	if !strings.Contains(out, "PROJ-1") {
-		t.Error("expected PROJ-1 in output")
-	}
-	if !strings.Contains(out, "PROJ-10") {
-		t.Error("expected PROJ-10 in output")
-	}
-	if !strings.Contains(out, "PROJ-100") {
-		t.Error("expected PROJ-100 in output")
-	}
-	if !strings.Contains(out, "PROJ-20") {
-		t.Error("expected PROJ-20 in output")
-	}
-
-	// Check labels are shown
-	if !strings.Contains(out, "Initiative") {
-		t.Error("expected Initiative label in output")
-	}
-	if !strings.Contains(out, "Project A") {
-		t.Error("expected Project A label in output")
-	}
-
-	// Check tree connectors
-	if !strings.Contains(out, "├──") && !strings.Contains(out, "└──") {
-		t.Error("expected tree connectors in output")
-	}
-
-	// Check causedBy annotation
-	if !strings.Contains(out, "<< PROJ-10") {
-		t.Error("expected causedBy annotation '<< PROJ-10' in output")
-	}
-}
-
 func TestPrintStatusTerminalNoTree(t *testing.T) {
 	ps := &status.ProjectStatus{
 		Project: "Simple Project",
@@ -184,10 +118,6 @@ func TestPrintStatusTerminalColor(t *testing.T) {
 			"target": {
 				Outputs: []status.OutputStatus{
 					{Type: "local", Path: "out.md", Status: "stale"},
-				},
-				TreeRoot: &status.TreeNodeStatus{
-					ID:     "ROOT",
-					Status: "stale",
 				},
 			},
 		},

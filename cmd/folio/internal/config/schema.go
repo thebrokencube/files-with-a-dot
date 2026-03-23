@@ -42,7 +42,6 @@ type Target struct {
 	Sources      []Source `yaml:"sources"`
 	Outputs      []Output `yaml:"outputs"`
 	Batch        *Batch   `yaml:"batch"`
-	Tree         *Tree    `yaml:"tree"`
 	Forest       *Forest  `yaml:"forest"`
 }
 
@@ -60,28 +59,6 @@ type Batch struct {
 	System      string      `yaml:"system"` // default output.external for items
 	Field       string      `yaml:"field"`  // default output.field for items
 	Items       []BatchItem `yaml:"items"`
-}
-
-// Tree represents a hierarchical target structure (e.g., Jira initiative → projects → epics).
-type Tree struct {
-	System      string   `yaml:"system"`       // default external system for all nodes
-	Field       string   `yaml:"field"`        // default output field for all nodes
-	CompiledDir string   `yaml:"compiled_dir"` // output directory for compiled node files
-	CompiledExt string   `yaml:"compiled_ext"` // file extension for compiled node files
-	Root        TreeNode `yaml:"root"`
-}
-
-// TreeNode represents a single node in a target tree.
-type TreeNode struct {
-	ID           string     `yaml:"id"`           // external system ID
-	Label        string     `yaml:"label"`        // human-readable name
-	File         string     `yaml:"file"`         // linked file path (optional for grouping nodes)
-	How          string     `yaml:"how"`          // optional, per-node composition instructions
-	Transform    string     `yaml:"transform"`    // deprecated: ignored
-	Instructions string     `yaml:"instructions"` // deprecated: use how
-	Notes        string     `yaml:"notes"`        // optional, advisory notes about this node
-	Sync         string     `yaml:"sync"`         // "push", "pull", "both" (empty = default push)
-	Children     []TreeNode `yaml:"children"`     // recursive
 }
 
 // Forest represents a jf-managed forest target. The hierarchy lives on disk
@@ -121,9 +98,3 @@ type CrossReference struct {
 	AlsoAppearsIn []string `yaml:"also_appears_in"`
 }
 
-// ValidSyncModes is the set of allowed sync values on tree nodes.
-var ValidSyncModes = map[string]bool{
-	"push": true,
-	"pull": true,
-	"both": true,
-}

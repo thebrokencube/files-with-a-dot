@@ -153,38 +153,6 @@ func TestMergeEdgesDedup(t *testing.T) {
 	}
 }
 
-func TestBuildOutputMapTree(t *testing.T) {
-	f := &config.Folio{
-		Targets: map[string]config.Target{
-			"initiative": {
-				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
-				Tree: &config.Tree{
-					System: "jira",
-					Root: config.TreeNode{
-						ID:   "PROJ-1",
-						File: "root.md",
-						Children: []config.TreeNode{
-							{ID: "PROJ-10", File: "child.md"},
-							{ID: "PROJ-100", File: "grandchild.md"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	m := BuildOutputMap(f)
-
-	// Should have: path:compiled/manifest.md + ext:jira:PROJ-1: + ext:jira:PROJ-10: + ext:jira:PROJ-100:
-	if len(m) != 4 {
-		t.Fatalf("output map len = %d, want 4 (got keys: %v)", len(m), mapKeys(m))
-	}
-	assertSingleProducer(t, m, "path:compiled/manifest.md", "initiative")
-	assertSingleProducer(t, m, "ext:jira:PROJ-1:", "initiative")
-	assertSingleProducer(t, m, "ext:jira:PROJ-10:", "initiative")
-	assertSingleProducer(t, m, "ext:jira:PROJ-100:", "initiative")
-}
-
 func TestInferEdgesFromBatchSources(t *testing.T) {
 	f := &config.Folio{
 		Targets: map[string]config.Target{
@@ -208,62 +176,6 @@ func TestInferEdgesFromBatchSources(t *testing.T) {
 	deps := edges["batch-target"]
 	if len(deps) != 1 || deps[0] != "upstream" {
 		t.Errorf("batch-target deps = %v, want [upstream]", deps)
-	}
-}
-
-func TestInferEdgesFromTreeSources(t *testing.T) {
-	f := &config.Folio{
-		Targets: map[string]config.Target{
-			"upstream": {
-				Outputs: []config.Output{{Path: "compiled/summary.md"}},
-			},
-			"tree-target": {
-				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
-				Tree: &config.Tree{
-					System: "jira",
-					Root: config.TreeNode{
-						ID:   "ROOT-1",
-						File: "root.md",
-						Children: []config.TreeNode{
-							{ID: "CHILD-1", File: "compiled/summary.md"},
-						},
-					},
-				},
-			},
-		},
-	}
-	producerMap := map[string]string{
-		"path:compiled/summary.md": "upstream",
-	}
-	edges := InferEdges(f, producerMap)
-	deps := edges["tree-target"]
-	if len(deps) != 1 || deps[0] != "upstream" {
-		t.Errorf("tree-target deps = %v, want [upstream]", deps)
-	}
-}
-
-func TestWalkTree(t *testing.T) {
-	root := config.TreeNode{
-		ID: "root",
-		Children: []config.TreeNode{
-			{ID: "a", Children: []config.TreeNode{
-				{ID: "a1"},
-			}},
-			{ID: "b"},
-		},
-	}
-	var visited []string
-	WalkTree(&root, func(n *config.TreeNode) {
-		visited = append(visited, n.ID)
-	})
-	expected := []string{"root", "a", "a1", "b"}
-	if len(visited) != len(expected) {
-		t.Fatalf("visited = %v, want %v", visited, expected)
-	}
-	for i, v := range visited {
-		if v != expected[i] {
-			t.Errorf("visited[%d] = %q, want %q", i, v, expected[i])
-		}
 	}
 }
 

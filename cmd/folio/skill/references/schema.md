@@ -62,21 +62,13 @@ targets:
           source: compiled/tab.md
           output: { id: "google-doc-id", field: "Tab Name" }
 
-    # Tree variant (mutually exclusive with batch)
-    tree:
-      system: jira                     # Required
-      field: description
-      compiled_dir: compiled/jira/     # Workflow convention (not validated by CLI)
-      compiled_ext: .json              # Workflow convention (not validated by CLI)
-      root:
-        id: "PROJ-100"
-        label: "Initiative"
-        file: README.md
-        how: "Per-node composition instructions"
-        children:
-          - id: "PROJ-200"
-            label: "Project"
-            file: project/README.md
+    # Forest variant (mutually exclusive with batch) — jf-managed Jira hierarchy
+    forest:
+      root: work/active/YYYY-MM-DD-topic   # Path to forest root (contains forest.yml)
+      how_default: "Default compilation instruction for all nodes."
+      how_overrides:
+        PROJ-100: "Initiative overview: goals, approach, and summary."
+        PROJ-200: "Epic overview: context, requirements, and scope."
 
 cross_references:
   - fact: "Description of the fact"

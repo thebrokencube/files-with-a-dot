@@ -24,16 +24,6 @@ func BuildOutputMap(f *config.Folio) map[string][]string {
 			}
 		}
 
-		// Tree node outputs
-		if target.Tree != nil {
-			WalkTree(&target.Tree.Root, func(node *config.TreeNode) {
-				if node.ID != "" && target.Tree.System != "" {
-					key := fmt.Sprintf("ext:%s:%s:%s", target.Tree.System, node.ID, target.Tree.Field)
-					m[key] = append(m[key], tid)
-				}
-			})
-		}
-
 		// Batch item outputs
 		if target.Batch != nil {
 			for _, item := range target.Batch.Items {
@@ -46,14 +36,6 @@ func BuildOutputMap(f *config.Folio) map[string][]string {
 		}
 	}
 	return m
-}
-
-// WalkTree calls fn for every node in a tree (pre-order traversal).
-func WalkTree(node *config.TreeNode, fn func(*config.TreeNode)) {
-	fn(node)
-	for i := range node.Children {
-		WalkTree(&node.Children[i], fn)
-	}
 }
 
 // SingleProducerMap returns a map from output key to single producer target ID,
@@ -70,7 +52,7 @@ func SingleProducerMap(outputMap map[string][]string) map[string]string {
 
 // InferEdges matches each target's sources against the output map to infer
 // dependency edges. Returns a map from target ID to list of upstream target IDs.
-// Checks target-level sources, batch item sources, and tree node sources.
+// Checks target-level sources and batch item sources.
 func InferEdges(f *config.Folio, producerMap map[string]string) map[string][]string {
 	edges := make(map[string][]string)
 	for tid, target := range f.Targets {
@@ -86,12 +68,6 @@ func InferEdges(f *config.Folio, producerMap map[string]string) map[string][]str
 			}
 		}
 
-		// Tree node sources
-		if target.Tree != nil {
-			WalkTree(&target.Tree.Root, func(node *config.TreeNode) {
-				addEdgeIfProduced(edges, tid, node.File, "", "", producerMap)
-			})
-		}
 	}
 	return edges
 }

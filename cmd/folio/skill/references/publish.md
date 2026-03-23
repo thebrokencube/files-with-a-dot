@@ -34,22 +34,17 @@ For ticket naming, description structure, content rules, and project field defau
 
 ## Jira Push Pipeline
 
-Tree targets with `system: jira` use `jf` (Jira Forest CLI) for push operations. `folio jira push` delegates to `jf push` under the hood.
+Forest targets use `jf` (Jira Forest CLI) for all push operations.
 
 **Level 0 (single file)**:
 ```bash
-jf push BEN-48284 epic.md
+jf push BEN-48284 foundations/package-imports/README.md
 ```
 
 **Level 1 (forest-aware)**:
 ```bash
-jf sync              # push all + pull all
+jf sync              # push all stale + pull all pull-mode nodes
 jf status --json     # check what's stale
-```
-
-**folio wrapper** (adds autoTouch for folio staleness):
-```bash
-folio jira push --id BEN-48284 --source epic.md
 ```
 
 `jf push` runs: strip frontmatter -> compile (markdown to ADF via marklassian) -> push (acli edit) -> record in `.jf/state.json`.
@@ -58,26 +53,14 @@ folio jira push --id BEN-48284 --source epic.md
 
 ## Jira Creation Pipeline
 
-> **IMPORTANT:** Always use `folio jira` for all Jira write operations. MCP Jira tools are read-only in this workflow (permitted for field discovery where acli has no equivalent). When using MCP for reads, always pass the `fields` parameter — see tooling.yml for standard/minimal/extended field sets.
+For TBD nodes (frontmatter `jira: TBD`), use jf to create the Jira tickets:
 
-For tree nodes that do not yet have a Jira key, two approaches:
-
-**Forest-level creation** (preferred for multiple TBD nodes):
 ```bash
 jf create-missing --dry-run    # preview what would be created
 jf create-missing              # create all TBD nodes (pre-order traversal)
 ```
 
-**Single-ticket creation** (folio wrapper):
-```bash
-folio jira create --json /tmp/{slug}-create.json --source {source}.md
-```
-
-Both run: Create (acli, captures key) -> Push description (via `jf push`).
-
 **Before running**, build the creation JSON per the `/jf` skill's `references/conventions.md` (Project Defaults section). Project-specific field values come from `~/.jf.yml`.
-
-After creation, rename the source file from slug to the new ticket key and clean up the creation JSON.
 
 ## Post-Push
 
@@ -85,8 +68,8 @@ After a successful push, run `folio touch <target>` to update the target's local
 This clears staleness so `folio status` reflects the push. For manual pushes (Google Docs,
 clipboard), remind the user to run `folio touch` after they've pasted.
 
-**Batch orchestration**: For tree and batch targets with multiple nodes/items, iterate through
-each node in order (bottom-up for trees). One review gate per node. Report progress as
+**Batch orchestration**: For batch targets with multiple items, iterate through
+each item in order. One review gate per item. Report progress as
 `[N/total] pushed: {id}`. On failure mid-batch, report which succeeded and which remain.
 
 ## Other Publish Targets

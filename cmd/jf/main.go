@@ -67,6 +67,8 @@ func main() {
 		os.Exit(runSearch(os.Args[2:]))
 	case "clone":
 		os.Exit(runClone(os.Args[2:]))
+	case "view":
+		os.Exit(runView(os.Args[2:]))
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", cmd)
 		printUsage()
@@ -97,6 +99,7 @@ Forest inspection:
 Ticket management:
   create-missing       Create Jira tickets for TBD nodes
   search <text>        Find Jira tickets by text/project/type
+  view <KEY>           Fetch remote issue details from Jira
   rm <KEY>...          Remove node files from forest
 
 Other:

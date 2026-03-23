@@ -47,16 +47,6 @@ targets:
       - path: README.md
     outputs:
       - path: compiled/feature.md
-    tree:
-      system: jira
-      field: description
-      root:
-        id: "ACME-200"
-        label: "Feature Root"
-        sync: pull
-        children:
-          - id: "ACME-201"
-            label: "Sub-task"
 
 cross_references:
   - fact: "Key finding"

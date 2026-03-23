@@ -34,18 +34,7 @@ type BatchItemStatus struct {
 type TargetStatus struct {
 	Sources    []string          `json:"sources"`
 	Outputs    []OutputStatus    `json:"outputs"`
-	TreeRoot   *TreeNodeStatus   `json:"tree,omitempty"`
 	BatchItems []BatchItemStatus `json:"batch_items,omitempty"`
-}
-
-// TreeNodeStatus holds derived status for a single tree node.
-type TreeNodeStatus struct {
-	ID       string           `json:"id"`
-	Label    string           `json:"label"`
-	File     string           `json:"file"`
-	Status   string           `json:"status"`              // clean, stale, missing
-	CausedBy string           `json:"caused_by,omitempty"` // child ID that caused staleness
-	Children []TreeNodeStatus `json:"children,omitempty"`
 }
 
 // SourceInfo holds classified info about a project-level source.
@@ -144,12 +133,6 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 			}
 		}
 
-		// Tree status derivation
-		if target.Tree != nil {
-			manifestMtime := getManifestMtime(folioDir, target.Outputs)
-			ts.TreeRoot = deriveTreeNodeStatus(folioDir, &target.Tree.Root, manifestMtime)
-		}
-
 		// Batch item status derivation
 		if target.Batch != nil {
 			manifestMtime := getManifestMtime(folioDir, target.Outputs)
@@ -182,50 +165,6 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 	}
 
 	return ps
-}
-
-// deriveTreeNodeStatus computes status for a tree node and its children.
-// Staleness is based on source mtime vs manifest mtime, with bottom-up propagation.
-func deriveTreeNodeStatus(folioDir string, node *config.TreeNode, manifestMtime time.Time) *TreeNodeStatus {
-	ns := &TreeNodeStatus{
-		ID:    node.ID,
-		Label: node.Label,
-		File:  node.File,
-	}
-
-	// Derive own status: source mtime vs manifest mtime
-	if node.File != "" {
-		srcPath := config.ResolvePath(folioDir, node.File)
-		srcInfo, err := os.Stat(srcPath)
-		if err != nil {
-			ns.Status = "missing"
-		} else if manifestMtime.IsZero() || srcInfo.ModTime().After(manifestMtime) {
-			ns.Status = "stale"
-		} else {
-			ns.Status = "clean"
-		}
-	} else {
-		ns.Status = "unknown"
-	}
-
-	// Recurse into children
-	for i := range node.Children {
-		childStatus := deriveTreeNodeStatus(folioDir, &node.Children[i], manifestMtime)
-		ns.Children = append(ns.Children, *childStatus)
-	}
-
-	// Bottom-up propagation: child stale/missing → parent stale
-	if ns.Status == "clean" {
-		for _, child := range ns.Children {
-			if child.Status == "stale" || child.Status == "missing" {
-				ns.Status = "stale"
-				ns.CausedBy = child.ID
-				break
-			}
-		}
-	}
-
-	return ns
 }
 
 // getManifestMtime returns the mtime of the first local output (manifest file).

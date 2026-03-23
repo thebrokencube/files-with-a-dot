@@ -1,7 +1,7 @@
 # Shared defaults — system type -> access method
 # The folio skill resolves external targets through this file.
 # Unlisted systems: pull = skip, push = manual
-# Advisory — folio jira commands internalize the Jira pipeline.
+# Advisory — jf (Jira Forest CLI) handles the Jira pipeline.
 # Entries document what each system uses for reference.
 #
 # Fallback pattern (Jira): acli is the primary tool for all write operations.
@@ -23,10 +23,9 @@
 systems:
   jira:
     pull: cli:acli
-    push: "folio jira push --id {id} --source {source}"
-    check: "acli --version"
-    compile: "folio jira compile --id {id} --source {source} --output {compiled}"
-    create: "folio jira create --json {compiled} --source {source}"
+    push: "jf push {id} {source}"
+    check: "jf --version"
+    create: "jf create-missing"
   confluence:
     pull: mcp:jira-confluence
     push: mcp:jira-confluence

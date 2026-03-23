@@ -151,7 +151,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` — scaffolds in `~/.folio/vault/`, no folio.yml registration. |
 | `/folio health` | `folio health` — project health report (types, naming, observations) |
 | `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
-| `/folio jira <cmd>` | `folio jira <subcommand>` — Jira pipeline: compile, push, create, view, search |
+| `/jf <cmd>` | Use the `/jf` skill for all Jira operations — push, sync, view, search, create |
 
 **Flag ordering**: Both `folio` and `jf` require flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` errors with a clear message. This applies to all commands in both CLIs.
 
@@ -167,7 +167,7 @@ External outputs resolve their push/pull method from `tooling.yml` (co-located w
 
 **Method types**: `cli:<tool>` = shell command, `mcp:<server>` = MCP tool call, `manual` = present to user, `manual:<hint>` = manual with guidance. Unlisted systems: pull=skip, push=manual.
 
-**Jira routing**: Use `folio jira` for ALL Jira operations — reads, writes, searches, everything. Never call MCP Jira tools directly. If `folio jira` cannot accomplish an operation, hard-stop and ask the user before falling back to MCP. Jira push pipeline and other publish methods: see references/publish.md.
+**Jira routing**: Use `jf` (Jira Forest CLI) for ALL Jira operations — push, sync, view, search, create. Never call MCP Jira tools directly for writes. If `jf` cannot accomplish an operation, hard-stop and ask the user before falling back to MCP. Jira push pipeline and other publish methods: see references/publish.md.
 
 ## Review Gates
 
@@ -210,7 +210,7 @@ they do not count as materialization.
 ## Reference Files
 
 - **references/gather.md** — Gather workflow: URL scaffold, materialize, deep research mode
-- **references/compose.md** — Compose workflow: steps, tree targets, batch targets, iteration loop
+- **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules

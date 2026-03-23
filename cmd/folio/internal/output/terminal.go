@@ -96,11 +96,6 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 				fmt.Fprintf(w, "  %s                        sources: %s%s\n", p.Dim, srcList, p.Reset)
 			}
 
-			// Show tree
-			if ts.TreeRoot != nil {
-				printTreeNode(w, ts.TreeRoot, p, "    ", true)
-			}
-
 			// Show batch items
 			if len(ts.BatchItems) > 0 {
 				for i, item := range ts.BatchItems {
@@ -118,35 +113,6 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 	// Observations
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Observations: %s%d%s\n", p.Bold, ps.Lifecycle.Observations, p.Reset)
-}
-
-func printTreeNode(w io.Writer, node *status.TreeNodeStatus, p dendrik.Palette, indent string, isLast bool) {
-	connector := "├── "
-	if isLast {
-		connector = "└── "
-	}
-
-	label := node.ID
-	if node.Label != "" {
-		label = fmt.Sprintf("%s (%s)", node.ID, node.Label)
-	}
-
-	c := statusColor(node.Status, p)
-	annotation := ""
-	if node.CausedBy != "" {
-		annotation = fmt.Sprintf(" %s<< %s%s", p.Dim, node.CausedBy, p.Reset)
-	}
-
-	fmt.Fprintf(w, "%s%s%s%s%s %s%s\n", indent, connector, c, node.Status, p.Reset, label, annotation)
-
-	childIndent := indent + "│   "
-	if isLast {
-		childIndent = indent + "    "
-	}
-
-	for i := range node.Children {
-		printTreeNode(w, &node.Children[i], p, childIndent, i == len(node.Children)-1)
-	}
 }
 
 func statusColor(s string, p dendrik.Palette) string {

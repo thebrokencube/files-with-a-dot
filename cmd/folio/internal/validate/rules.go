@@ -214,28 +214,9 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		}
 	}
 
-	// Tree, batch, and forest mutual exclusion
-	typeCount := 0
-	if target.Tree != nil {
-		typeCount++
-	}
-	if target.Batch != nil {
-		typeCount++
-	}
-	if target.Forest != nil {
-		typeCount++
-	}
-	if typeCount > 1 {
-		r.addError("Target '%s': tree, batch, and forest are mutually exclusive", tid)
-	}
-
-	// Tree validation
-	if target.Tree != nil {
-		if target.Tree.System == "" {
-			r.addError("Target '%s': tree missing required field: system", tid)
-		}
-		seenIDs := make(map[string]bool)
-		validateTreeNode(r, tid, &target.Tree.Root, target, folioDir, seenIDs)
+	// Batch and forest mutual exclusion
+	if target.Batch != nil && target.Forest != nil {
+		r.addError("Target '%s': batch and forest are mutually exclusive", tid)
 	}
 
 	// Forest validation
@@ -273,54 +254,6 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	}
 }
 
-func validateTreeNode(r *Result, tid string, node *config.TreeNode, target *config.Target, folioDir string, seenIDs map[string]bool) {
-	prefix := fmt.Sprintf("Target '%s' tree node", tid)
-	if node.ID != "" {
-		prefix = fmt.Sprintf("Target '%s' tree node '%s'", tid, node.ID)
-	}
-
-	// ID required and unique within tree
-	if node.ID == "" {
-		r.addError("%s: missing required field: id", prefix)
-	} else if seenIDs[node.ID] {
-		r.addError("%s: duplicate tree node ID", prefix)
-	}
-	seenIDs[node.ID] = true
-
-	// File optional; if present, must exist
-	if node.File != "" {
-		fullPath := config.ResolvePath(folioDir, node.File)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			r.addError("%s: file not found: %s", prefix, node.File)
-		}
-	}
-
-	// Deprecated fields
-	if node.Transform != "" {
-		r.addWarning("%s: 'transform' is deprecated and ignored — remove it", prefix)
-	}
-	if node.Instructions != "" {
-		r.addWarning("%s: 'instructions' is deprecated, rename to 'how'", prefix)
-	}
-
-	// compiled_ext mismatch: if tree has compiled_ext, check node files match
-	if target.Tree != nil && target.Tree.CompiledExt != "" && node.File != "" {
-		ext := filepath.Ext(node.File)
-		if ext != "" && ext != target.Tree.CompiledExt {
-			r.addWarning("%s: file extension %q doesn't match tree compiled_ext %q", prefix, ext, target.Tree.CompiledExt)
-		}
-	}
-
-	// Sync mode must be valid if present
-	if node.Sync != "" && !config.ValidSyncModes[node.Sync] {
-		r.addError("%s: invalid sync mode '%s' (must be: push, pull, both)", prefix, node.Sync)
-	}
-
-	// Recurse into children
-	for i := range node.Children {
-		validateTreeNode(r, tid, &node.Children[i], target, folioDir, seenIDs)
-	}
-}
 
 func (r *Result) addError(format string, args ...interface{}) {
 	r.Valid = false

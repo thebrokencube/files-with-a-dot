@@ -23,18 +23,16 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.
 
-## Tree Target Composition
+## Forest Target Composition
 
-Each node composes independently from its own file. Nodes do NOT consume child outputs. Compose bottom-up (children before parents).
+Forest targets are jf-managed Jira hierarchies. Each node composes independently from its own file. Nodes do NOT consume child outputs.
 
-1. Get per-node status from `folio status --json` (the `tree` field in target)
-2. Read tree definition from folio.yml for per-node `file` and `how`
-3. Walk bottom-up. For each stale/missing node:
-   a. Read the node's `file`
-   b. Apply node's `how` (fall back to target-level if none)
-   c. If `tree.system` is `jira`: use `jf push <KEY> <FILE>` (see references/publish.md)
-   d. Otherwise: compose and push via tooling.yml method for `tree.system`
-   e. Skip push for non-system-ID nodes (descriptive slugs — report as "no external target")
+1. Run `jf status --json` in the forest root to get per-node staleness
+2. Read `how_default` and `how_overrides` from the target's `forest:` block in folio.yml
+3. For each stale/missing node:
+   a. Read the node's markdown file
+   b. Apply the node's `how_overrides` entry (fall back to `how_default` if none)
+   c. Use `jf push <KEY> <FILE>` to compile and push (see references/publish.md)
 4. Touch the target's local `path:` output to update mtime (if one exists)
 
 ## Batch Target Composition
