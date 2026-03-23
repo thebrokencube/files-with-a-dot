@@ -229,6 +229,12 @@ Convergence criteria:
 - Trade-offs noted where proposals diverged; agreements are strong signals — keep them
 - Architectural decisions, type definitions, and key function signatures are pre-decided —
   implementation-level detail deferred to the Brief agent
+- **Per-layer convergence status**: The converge agent MUST report status for each planning
+  layer — Direction (problem/approach/scope), Interfaces (contracts/tracks/cross-cutting),
+  and Implementation (technique choices). Use the status vocabulary: EXPLORING, PROPOSED,
+  SETTLED (Round N), AMENDED (Round N), NEEDS REVIEW, DEFERRED, IN PROGRESS. A unified "converged"
+  assessment is insufficient — layer-level status enables the Session Exit gate to offer
+  early exit when direction and interfaces are settled.
 - **Option-value interactions**: When rejecting an option, note what conditions would
   reinstate it — preserves reasoning without re-running diverge-converge
 - **Conflict resolution priority** (team mode): When proposals conflict, the converge agent
@@ -323,9 +329,47 @@ doc was scaffolded after Phase 1 — it already exists at `reference/design/YYYY
 inside the work directory. Every plan produces one — lightweight for simple changes, but it
 always exists.
 
-1. Fill in from converge output: Problem, Architecture, Divergence decisions, What's NOT
-   included, Design Provenance (agent count, lens names, review findings).
-2. **Scope approval gate (hard):** Present the **What's NOT Included** section to the user
+1. Fill in the design doc using the layer-tagged template below. Source content from the
+   converge output, mapping it to the appropriate layer sections.
+
+   ```markdown
+   # [Project Name] — Design Document
+
+   ## Direction
+   ### Problem Statement
+   ### Alternatives Considered
+   ### Chosen Approach
+   ### Scope Boundary
+   ### Non-Negotiable Constraints
+
+   ## Interfaces
+   ### Component Contracts
+   [Type signatures, API shapes, data models — cross-boundary only.]
+   ### Track Decomposition
+   [Track list with file manifests, dependencies, sequencing.]
+   ### Cross-Cutting Decisions
+   [Shared types, system-wide patterns, technology choices affecting multiple tracks.]
+
+   ## Implementation Notes (optional, often empty)
+   [Per-component technique choices, only when JIT resolution is risky.]
+   [Marked as advisory, not prescriptive.]
+
+   ## Convergence Status
+   - Direction: [EXPLORING | PROPOSED | SETTLED (Round N) | AMENDED (Round N)]
+   - Interfaces: [EXPLORING | PROPOSED | SETTLED (Round N) | NEEDS REVIEW]
+   - Implementation: [DEFERRED | IN PROGRESS | SETTLED (Round N)]
+
+   ## Design Provenance
+   [Agent count, lens names, review findings, round-by-round record.]
+   ```
+
+   The Direction section captures *what* and *why*. The Interfaces section captures
+   cross-boundary contracts and track structure. Implementation Notes are optional and
+   advisory — most projects leave this empty because execution agents resolve technique
+   choices JIT via spikes. Convergence Status tracks per-layer progress across rounds.
+   Design Provenance records how the design was produced (agent count, lenses, review fixes).
+
+2. **Scope approval gate (hard):** Present the **Scope Boundary** section to the user
    for explicit sign-off before committing. This is scope negotiation, not just documentation —
    gaps here cause re-runs. Wait for "yes" before proceeding.
 3. **Provenance validation:** Before committing, verify all vault research produced during
@@ -373,6 +417,24 @@ For re-run and amend-design rules, see plan.md.
 Every session that produces design work MUST complete all four steps before ending.
 
 ### Step 1: Confidence Check
+
+Check the design doc's Convergence Status. The gate behavior depends on layer state:
+
+**When Direction and Interfaces are both SETTLED:**
+
+Present the stop-at-interfaces gate:
+
+> Interfaces settled. Options:
+> 1. **Stop here** (default) — execution agents resolve implementation JIT via spikes.
+> 2. **One focused round** — pre-specify cross-cutting implementation choices only.
+> 3. **Full implementation architecture** — pre-specify all component techniques.
+>
+> Recommendation: Stop here unless the project involves novel patterns with no codebase precedent.
+
+Option 1 proceeds to Brief phase. Option 2 runs one more design round scoped to
+Implementation layer only. Option 3 runs a full round (rare — most projects don't need it).
+
+**When Direction or Interfaces are NOT yet SETTLED:**
 
 Ask the user: **"Is this design hardened enough to move forward, or should we iterate more?"**
 
@@ -498,12 +560,13 @@ Define these before starting each phase transition. Concrete checklists, not pro
 - [ ] Key trade-offs identified (at least 2 competing approaches)
 
 ### Design Round N → Round N+1
-- [ ] Specific weak areas listed with investigation strategy
+- [ ] Specific weak areas listed **with layer tag** (direction/interface/implementation)
 - [ ] Prior round's weak areas resolved or explicitly accepted
-- [ ] No more than 3 rounds without user checkpoint
+- [ ] Per-layer round budgets respected (direction: 1-3, interface: 1-2, implementation: 0-1)
+- [ ] No more than 5 total rounds without user checkpoint
 
 ### Design → Brief
-- [ ] No open questions in design doc
+- [ ] Direction and Interfaces SETTLED in Convergence Status
 - [ ] High-risk areas validated (spike or code exploration)
-- [ ] User signed off on architecture + scope boundary
+- [ ] User signed off on scope boundary (Scope Boundary section)
 - [ ] Design doc committed via `folio home push`
