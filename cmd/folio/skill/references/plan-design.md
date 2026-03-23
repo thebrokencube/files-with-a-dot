@@ -54,6 +54,18 @@ conclusion to its source artifact: `[conclusion] <- [source path]`.
 **Live data**: Use WebFetch to verify live data (npm versions, API docs, external specs) — do
 not rely on training data. Flag facts that couldn't be live-verified.
 
+**Scaffold work directory (mandatory):** Before spawning Phase 2 agents, scaffold the design
+doc early via `folio new design <topic>`. This creates the work directory at
+`work/active/YYYY-MM-DD-<topic>/` and the design doc at
+`reference/design/YYYY-MM-DD-<topic>.md` inside it. The design doc starts as a template —
+it gets filled in during Phase 4. Early scaffolding ensures:
+- `folio new round` has a work dir to create rounds in
+- Vault research produced during Phase 2 can be registered with `depends_on` pointing to the
+  design doc path
+- The provenance chain is established incrementally, not retrofitted at the end
+
+Commit the scaffold: `folio home push -m 'docs(<topic>): scaffold design doc and work dir'`
+
 ## Phase 2: Propose
 
 Launch propose agents in parallel, each with the same context summary but a different lens.
@@ -78,6 +90,12 @@ When using team mode, each agent follows a standard protocol:
    Round Directory below). This is mandatory — agent memory is ephemeral, files survive
    context compaction and session boundaries.
 4. **Signal done** — report completion with file path and 3-5 line summary of key findings
+
+**Provenance registration (team mode):** After all propose agents complete, the lead agent
+registers any vault research files they produced as sources in folio.yml. Each vault research
+source gets a `depends_on` entry pointing to the design doc (scaffolded in Phase 1). This
+builds the provenance chain incrementally — research → design doc. Use `folio home push` to
+commit the updated folio.yml before proceeding to convergence.
 
 The convergence agent (Phase 3) reads all materialized files, not conversation summaries.
 It writes its output to `converged.md` in the same round directory.
@@ -106,7 +124,7 @@ folio new round <topic> --folio <path>
 ```
 
 This auto-increments from existing `agent-research/????-round/` directories. First round is
-`0001-round`. The work dir must already exist (design creates it in Phase 4).
+`0001-round`. The work dir is created when the design doc is scaffolded after Phase 1.
 
 Previous rounds stay intact for reference. The design doc's provenance section should note
 which round produced the final convergence.
@@ -292,16 +310,20 @@ Review output: max 40 lines. For each issue found, state: what's wrong, where, a
 Loop until the review returns zero issues. Cap at 3 iterations — if issues persist after 3
 rounds, present remaining issues to the user for judgment.
 
-**Design doc (mandatory):** After the review, commit the design doc. Every plan produces one — lightweight for simple changes, but it always exists.
+**Design doc (mandatory):** After the review, fill in and commit the design doc. The design
+doc was scaffolded after Phase 1 — it already exists at `reference/design/YYYY-MM-DD-<topic>.md`
+inside the work directory. Every plan produces one — lightweight for simple changes, but it
+always exists.
 
-1. Scaffold via `folio new design <topic>`. This auto-creates the work directory at
-   `work/active/YYYY-MM-DD-<topic>/` and colocates the design doc inside it at
-   `reference/design/YYYY-MM-DD-<topic>.md`. Registers the path in folio.yml.
-2. Fill in from converge output: Problem, Architecture, Divergence decisions, What's NOT
+1. Fill in from converge output: Problem, Architecture, Divergence decisions, What's NOT
    included, Design Provenance (agent count, lens names, review findings).
-3. **Scope approval gate (hard):** Present the **What's NOT Included** section to the user
+2. **Scope approval gate (hard):** Present the **What's NOT Included** section to the user
    for explicit sign-off before committing. This is scope negotiation, not just documentation —
    gaps here cause re-runs. Wait for "yes" before proceeding.
+3. **Provenance validation:** Before committing, verify all vault research produced during
+   the round is registered in folio.yml with `depends_on` pointing to the design doc. Check
+   that the design doc's `depends_on` list in folio.yml includes every vault research source
+   that informed it. Missing links mean broken provenance — fix before committing.
 4. If a folio project exists: commit via `folio home push`
 5. If no folio project: use `--no-register` and write to the plan file's directory instead
 6. Present to user: "Design doc committed."
