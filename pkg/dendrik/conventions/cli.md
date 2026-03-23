@@ -8,6 +8,11 @@ Philosophy: Sinatra, not Rails. dendrik provides functions at the points where
 convention matters. It doesn't own `main()`, dispatch, config schemas, help
 text, or subcommand routing.
 
+**Human-agent parity**: Every operation accessible to humans is accessible to
+agents, and vice versa. Non-TTY stdout defaults to JSON. Exit codes have
+defined agent actions. SKILL.md is the agent discovery surface; `--help` is the
+human discovery surface. Neither should duplicate the other.
+
 ---
 
 ## Exit Codes
@@ -107,12 +112,35 @@ Non-TTY defaults to JSON so agents get structured output automatically.
 
 All JSON output uses `dendrik.ResultEnvelope`:
 
-```json
-{"data": ..., "error": "...", "detail": "..."}
+```go
+type ResultEnvelope struct {
+    Data     any    `json:"data"`
+    Error    string `json:"error,omitempty"`
+    Detail   string `json:"detail,omitempty"`
+    ExitCode *int   `json:"exit_code,omitempty"`
+}
 ```
 
-- Success: `{"data": <domain-specific>}`
-- Error: `{"error": "message", "detail": "extra context"}`
+**Success** — data present, no error:
+
+```json
+{"data": {"tool": "jf", "errors": 0, "warnings": 3, "results": [...]}}
+```
+
+**Error** — error present, no data:
+
+```json
+{"error": "forest.yml not found", "detail": "run jf init to create one"}
+```
+
+**Exit-as-signal** — data present with non-zero exit (e.g., `folio stale`):
+
+```json
+{"data": {"stale": ["target-1"]}, "exit_code": 1}
+```
+
+`exit_code` is only present when non-zero. Agents should check `error` first,
+then `exit_code`, then treat presence of `data` as success.
 
 ### Error output
 

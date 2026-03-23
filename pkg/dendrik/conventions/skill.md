@@ -4,6 +4,13 @@ Conventions codified from the jf and folio skill implementations. This is the
 source of truth for the 25-check `dendrik lint` contract (see `contract.go`)
 and `dendrik new` (Track 5).
 
+**Agent Skills standard alignment**: dendrik's skill validation is grounded
+in the Agent Skills standard (agentskills.io). Layer 1 checks (`skill-exists`
+through `skill-size`) validate any SKILL.md against the standard. Layer 2
+checks (`argument-hint` through `activation-metadata`) add dendrik-specific
+conventions. The `pkg/dendrik/agentskills/` package implements Layer 1 as a
+standalone validator.
+
 ---
 
 ## SKILL.md Structure
@@ -22,10 +29,21 @@ Required fields: `name`, `description`.
 Optional fields:
 - `user_invocable: true` — skill can be invoked with `/toolname`
 - `argument-hint: "[command] [args]"` — required if `user_invocable: true`
+- `version` — skill version string
+- `compatibility` — compatibility constraints
+- `metadata` — arbitrary key-value metadata object
+- `trigger` — string or string array; custom routing condition for when to activate
+- `skip_when` — string or string array; custom routing condition for when NOT to activate
+- `related` — string or string array; cross-references to related skills
 
 The `name` field must be present even for plugin-distributed skills (confirmed
 in dendrik architecture hardening — contradicts the original replicant doc
 which proposed removing it).
+
+Conditional activation fields (`trigger`, `skip_when`, `related`) are optional.
+If present, they must be non-empty strings or string arrays (check ID:
+`activation-metadata`). These fields are not in the core Agent Skills spec but
+are supported by the dendrik validator as extension fields.
 
 ### Description guidelines
 
@@ -42,9 +60,9 @@ Examples from production:
 > repurposing), or when needing Jira conventions, project field defaults,
 > and content gotchas."
 
-> folio: "Knowledge work lifecycle — plan, compose, review. Manages project
-> structure via folio.yml with source-to-target composition and
-> diverge-converge planning for non-trivial tasks."
+> folio: "Use when planning non-trivial tasks, composing outputs, or managing
+> knowledge work projects. Lifecycle toolkit with folio.yml-driven
+> source-to-target composition and diverge-converge planning."
 
 ### Word budget
 
@@ -188,3 +206,7 @@ manipulation, API calls). Skills call CLIs via Bash tool, typically with
 - Embed CLI flag details that could drift from the actual binary
 - Duplicate information available via `{cli} --help`
 - Include code examples longer than 5 lines (put them in references/)
+- Use raw `json.NewEncoder` or `fmt.Print(string(` to output JSON (use `dendrik.Output`)
+- Hardcode file paths that vary per environment (use config or env vars)
+- Provide structured `--help` or `--capabilities` (SKILL.md IS the agent discovery layer)
+- Add `--verbose` flags (agents need full data via `--json` or minimum; verbosity is a human concept)
