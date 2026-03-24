@@ -22,8 +22,6 @@ func main() {
 		os.Exit(runSetup(os.Args[2:]))
 	case "init":
 		os.Exit(runInit(os.Args[2:]))
-	case "test":
-		os.Exit(runTest(os.Args[2:]))
 	case "schema":
 		os.Exit(runSchema(os.Args[2:]))
 	case "version":
@@ -103,9 +101,6 @@ Ticket management:
   search <text>        Find Jira tickets by text/project/type
   view <KEY>           Fetch remote issue details from Jira
   rm <KEY>...          Remove node files from forest
-
-Developer:
-  test <sub>           Safe-sync test harness (manual — hits Jira)
 
 Other:
   schema               Emit JSON Schema for forest.yml and frontmatter
