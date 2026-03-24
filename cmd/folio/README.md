@@ -54,7 +54,6 @@ Use these in Claude Code for planning and composition:
 | `folio home push` | Push project to home |
 | `folio gather <url>` | Scaffold source entry from URL |
 | `folio dag` | Show project DAG |
-| `folio jira <cmd>` | Jira pipeline (compile, push, create, view, search) |
 
 ## Code Structure
 

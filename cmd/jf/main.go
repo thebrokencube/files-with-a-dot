@@ -111,7 +111,7 @@ Other:
   schema               Emit JSON Schema for forest.yml and frontmatter
   version              Show version
 
-Flags must come before positional arguments.
+Flags may appear before or after positional arguments.
 Run 'jf <command> --help' for details.
 `)
 }
