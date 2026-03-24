@@ -7,7 +7,7 @@ import (
 
 func TestIsSubstantiveLocal(t *testing.T) {
 	tests := []struct {
-		name string
+		name  string
 		input string
 		want  bool
 	}{

@@ -30,15 +30,16 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `main.go` | Command router with three-tier dispatch (no-prereq, local-only, Jira-touching). Defines `version` constant and `printUsage()`. |
 | `helpers.go` | Shared utilities: `parseFlags()` for trailing-flag detection, `loadForest()` and `loadForestOrFail()` for forest discovery with error handling. |
 | `helpers_test.go` | Tests for `parseFlags()` — trailing flag detection, normal ordering, positional-only. |
-| `cmd_push.go` | `runPush()` — Level 0 single-file push (`pushSingle`) and forest-mode push (`pushForest`). Accepts pre-loaded `*Forest`/`[]*Node` (nil = load internally). Supports `--dry-run`. Includes `buildPlainTextPayload()` for `--force` fallback. |
-| `cmd_pull.go` | `runPull()` — Level 0 single-file pull (`pullSingle`) and forest-mode pull (`pullForest`). Accepts pre-loaded `*Forest`/`[]*Node` (nil = load internally). Supports `--dry-run`. Includes `richPull()` for ADF→markdown conversion, `mergeWithFrontmatter()` to preserve YAML frontmatter on pull, `extractExistingFrontmatter()`. |
-| `cmd_sync.go` | `runSync()` — Loads forest once, pre-scans `sync:both` nodes for conflicts via `DetectConflict()`, then passes pre-loaded forest to `pushForest()` and `pullForest()`. Supports `--dry-run`. |
+| `cmd_push.go` | `runPush()` — Level 0 single-file push (`pushSingle`) and forest-mode push (`pushForest`). Routes through engine Read-Plan-Execute pipeline. Supports `--dry-run`, `--yes`, `--json`, `--plain-text`. |
+| `cmd_pull.go` | `runPull()` — Level 0 single-file pull (`pullSingle`) and forest-mode pull (`pullForest`). Routes through engine Read-Plan-Execute pipeline. Supports `--dry-run`, `--yes`, `--json`. |
+| `cmd_sync.go` | `runSync()` — Loads forest, routes through engine Read-Plan-Execute pipeline. Supports `--dry-run`, `--yes`, `--json`, `--resolve local\|remote`. |
 | `cmd_tree.go` | `runTree()` — Forest hierarchy view with `--json` and `--verbose` flags. Includes `printTree()` for ASCII tree output with optional sync-direction icons and file paths. |
 | `cmd_list.go` | `runList()` — Flat list of all nodes with optional JSON. Includes `nodeToInfo()` to convert `Node` to `output.NodeInfo`. |
 | `cmd_show.go` | `runShow()` — Single-node detail view with state. Includes `nodeStatus()` for stale/clean/unknown and `syncDisplay()`. |
-| `cmd_status.go` | `runStatus()` — Forest-wide summary with push/pull staleness counts. |
+| `cmd_status.go` | `runStatus()` — Forest-wide summary with effective derived direction (push+pull, pull-only, push-only, empty) and staleness counts. |
 | `cmd_validate.go` | `runValidate()` — Runs `forest.Validate()` and reports issues as text or JSON. |
-| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. Supports `--sync push\|pull\|both`. Records state baseline after pulling. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
+| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. `--sync` omitted by default (derives from mutability); explicit `--sync push\|pull\|both` overrides. Records state baseline after pulling. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `cloneFrontmatter()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
+| `cmd_snapshot.go` | `runSnapshot()` — Snapshot local+remote state with tokens. Routes through engine Read-Plan, writes plan-level JSON to `.jf/snapshots/latest.json`. Supports `--json`, `--dir`, optional KEY/KEY+FILE modes. Includes `enrichBlockedEntry()`, `truncateContent()`. |
 | `cmd_search.go` | `runSearch()` — Thin JQL wrapper. Includes `buildSearchJQL()` to construct JQL from text/project/type filters. |
 | `cmd_create.go` | `runCreateMissing()` — Creates Jira tickets for TBD nodes. Includes `dryRunCreate()`, `executeCreate()`, `dedupCheck()`, `buildCreatePayload()`, `rewriteFrontmatterKey()`, `rewriteTBDLine()`, `isTBDLine()`. |
 | `cmd_init.go` | `runInit()` — Creates `forest.yml` with defaults. Uses `defaultForestYml` template. |
@@ -51,16 +52,19 @@ Jira (ticket descriptions, summaries, hierarchy)
 | File | Responsibility |
 |------|---------------|
 | `schema.go` | Core types (`Forest`, `ForestDefaults`, `Node`, `Frontmatter`). Parsing: `ParseForestFile()`, `ParseFrontmatter()`, `ParseFrontmatterFile()`. Label derivation: `DeriveLabel()`, `firstHeading()`. Frontmatter extraction: `extractFrontmatterBytes()`. Helper: `IsTBD()`. |
-| `discover.go` | Filesystem walk and tree building. `FindForest()` walks up directories for `forest.yml`. `Discover()` scans `.md` files, builds parent-child hierarchy using README.md-as-parent convention. Includes `findAncestorParent()`, `sortChildren()`. |
+| `discover.go` | Filesystem walk and tree building. `FindForest()` walks up directories for `forest.yml`. `Discover()` scans `.md` files, builds parent-child hierarchy using README.md-as-parent convention. Defaults `node.Sync` to forest default, then to `"both"` if still empty (derived sync). Includes `findAncestorParent()`, `sortChildren()`. |
 | `traverse.go` | DFS traversal utilities. `PostOrder()` (children before parents — used for push). `PreOrder()` (parents before children — used for create-missing). `Subtree()` and `Resolve()` for target lookup by key, filename stem, or file path. `Flatten()` for pre-order flat list. |
 | `validate.go` | `Validate()` orchestrates four checks: `checkKeyUniqueness()`, `checkTBDNodes()`, `checkFieldValues()`, `checkStemUniqueness()`. Defines `ValidationIssue` struct. |
-| `state.go` | State tracking in `.jf/state.json`. Types: `State`, `NodeState`, `ConflictStatus`. Methods: `LoadState()`, `SaveState()` (atomic via tempfile+rename), `IsStale()`, `RecordPush()`, `RecordPull()`, `ComputeHash()`, `DetectConflict()`, `IsPullStale()`. |
+| `state.go` | State tracking in `.jf/state.json`. Types: `State`, `NodeState`. Methods: `LoadState()`, `SaveState()` (atomic via tempfile+rename), `IsStale()`, `RecordPush()`, `RecordPull()`, `RecordSync()`, `ComputeHash()`, `IsPullStale()`, `MutabilityCache()`, `SetMutability()`. |
 
 ### `internal/pipeline/`
 
 | File | Responsibility |
 |------|---------------|
 | `acli.go` | Transport layer. `Pipeline` struct with injectable `Runner`. Methods: `Compile()`, `Push()`, `View()`, `Search()`, `Create()`. Helper: `ExtractJiraKey()`. Defines `Runner` type and `DefaultRunner`. |
+| `lint.go` | Validate restricted markdown subset. `Lint()` returns `[]LintIssue` for unsupported constructs (tables, code blocks, h1/h3+, etc.). `FormatLintIssues()` for display. |
+| `normalize.go` | Canonicalize markdown for comparison. `NormalizeMarkdown()` collapses blank lines, trims trailing whitespace. `ComputeLocalHash()` for content-addressed caching. |
+| `roundtrip.go` | Verify md→ADF→md fidelity. `CheckRoundtrip()` compiles then converts back, comparing normalized output. |
 | `adf.go` | Markdown→ADF conversion. `CompileMarkdown()` strips frontmatter and shells out to embedded `md2adf.bundle.mjs` via Node.js. `StripFrontmatter()` removes YAML fences. Script management: `ensureScript()` (write-once temp file). |
 | `adf2md.go` | ADF→markdown conversion. `ConvertADF()` shells out to embedded `adf2md.bundle.mjs` via Node.js. `ExtractDescriptionADF()` extracts `.fields.description` from acli JSON. Script management: `ensureADF2MDScript()`. |
 
@@ -110,6 +114,7 @@ Guarded by `setup.QuickCheck(setup.DefaultChecker)` — checks Node.js, acli, an
 before dispatching.
 
 ```
+snapshot       → runSnapshot()
 push           → runPush()
 pull           → runPull()
 sync           → runSync()
@@ -137,7 +142,7 @@ type Forest struct {
 }
 
 type ForestDefaults struct {
-    Sync    string `yaml:"sync"`    // push | pull
+    Sync    string `yaml:"sync"`    // push | pull | both (optional, override-only; defaults to "both")
     Type    string `yaml:"type"`    // Jira issue type (for creation)
     Field   string `yaml:"field"`   // description | comment
     Project string `yaml:"project"` // Jira project key
@@ -153,7 +158,7 @@ type Node struct {
     Key      string  // from jira: field ("ACME-123" or "TBD")
     Label    string  // from label: field, first # heading, or filename stem
     Type     string  // from type: field or defaults
-    Sync     string  // from sync: field or defaults (push | pull)
+    Sync     string  // from sync: field or defaults (push | pull | both; defaults to "both")
     Order    int     // from order: field (0 = unset, alphabetical)
     File     string  // relative path from forest root
     Parent   *Node   `yaml:"-" json:"-"` // nil for root nodes
@@ -233,10 +238,13 @@ type StatusResult struct {
     Forest    string `json:"forest"`
     Total     int    `json:"total"`
     TBD       int    `json:"tbd"`
-    PushTotal int    `json:"push_total"`
+    PushTotal int    `json:"push_total"`  // push-eligible (mutable + push-only + empty)
     PushStale int    `json:"push_stale"`
-    PullTotal int    `json:"pull_total"`
+    PullTotal int    `json:"pull_total"`  // pull-only (explicit + read-only demoted)
     PullStale int    `json:"pull_stale"`
+    Mutable   int    `json:"mutable"`
+    ReadOnly  int    `json:"read_only"`
+    Empty     int    `json:"empty"`
 }
 
 type ValidateResult struct {
@@ -282,10 +290,12 @@ type Checker func(name string, args ...string) (string, error)
 
 ### Push Pipeline
 
-The push pipeline converts local markdown to a Jira description:
+The push pipeline converts local markdown to a Jira description. Content must pass
+lint and roundtrip checks before pushing (see Lint and Mutability in USAGE.md):
 
 1. **Read source** — `os.ReadFile()` reads the `.md` file
-2. **`Pipeline.Compile(id, source, summary)`** (`acli.go:30`)
+2. **Lint + Roundtrip** — `Lint()` validates the restricted subset, `CheckRoundtrip()` verifies md→ADF→md fidelity. Nodes that fail are read-only (skip push, demote to pull-only in both mode).
+3. **`Pipeline.Compile(id, source, summary)`** (`acli.go:30`)
    - Calls `CompileMarkdown(source)` which:
      - Strips frontmatter via `StripFrontmatter()` (`adf.go:29`)
      - Writes stripped markdown to a temp file
@@ -293,15 +303,15 @@ The push pipeline converts local markdown to a Jira description:
      - Parses stdout as `json.RawMessage` (ADF document)
    - Wraps result in an acli-edit JSON payload: `{"issues": [id], "description": <ADF>}`
    - If `summary` is non-empty, adds `"summary"` field to payload
-3. **`Pipeline.Push(compiled)`** (`acli.go:48`)
+4. **`Pipeline.Push(compiled)`** (`acli.go:48`)
    - Writes compiled JSON to a temp file
    - Runs `acli jira workitem edit --from-json <tmpfile> --yes`
 
-For `--force` fallback, `buildPlainTextPayload()` wraps raw text in a minimal ADF paragraph node.
+For `--plain-text` fallback, `engine.BuildPlainTextPayload()` wraps raw text in a minimal ADF paragraph node.
 
-Forest-mode push (`pushForest`) uses `forest.PostOrder()` to push children before parents,
-filters to `sync:push` or `sync:both` nodes (skipping TBD and `sync:pull`), tracks state
-via `State.RecordPush()`, and supports `--subtree` to scope the push.
+All commands route through the engine Read-Plan-Execute pipeline. Push, pull, and sync
+use `engine.Read()` for parallel state fetching (with mutability computation),
+`engine.Plan()` for safety rule evaluation, and `engine.Execute()` for state-tracked mutations.
 
 ### Pull Pipeline
 
@@ -382,9 +392,10 @@ then emits dry-run previews for both phases.
 
 ### (e) ~~`clone` hardcodes `sync: both` for all scaffolded nodes~~ — resolved
 
-`clone` now accepts `--sync push|pull|both` (default: `both`). The flag value is used for
-both the forest default and per-node frontmatter. Clone also records a state baseline
-(skipState=false) so the first sync has real content hashes.
+`clone` now omits `sync:` from scaffolded frontmatter and forest.yml by default (derives
+from mutability at runtime). Explicit `--sync push|pull|both` overrides emit the field.
+Clone also records a state baseline (skipState=false) so the first sync has real content
+hashes.
 
 ### (f) ~~`search` outputs raw acli text with no structured output~~ — resolved
 
@@ -404,7 +415,7 @@ All four sites (`extractFrontmatterBytes`, `StripFrontmatter`, `extractExistingF
    - Tier 1 (first switch) — no external dependencies
    - Tier 2 (second switch) — needs forest, no Jira
    - Tier 3 (third switch, after `QuickCheck`) — touches Jira
-3. Use `parseFlags()` for flag parsing (enforces flags-before-arguments)
+3. Use `parseFlags()` for flag parsing (supports flags before or after positional arguments)
 4. Use `loadForestOrFail()` if the command needs a forest
 5. Use `output.Result()` for `--json` output, `output.Error()` for JSON errors
 
@@ -427,8 +438,4 @@ Similarly, inject a custom `Checker` into `setup.CheckAll()` for setup tests.
 All JSON output goes through `output.Result()` (stdout) and `output.Error()` (stderr).
 Commands that support `--json` should use the types from `internal/output/json.go`:
 `NodeInfo`, `StatusResult`, `ValidateResult`, `ErrorResult`, `NodeResult`.
-
-## Known Gaps
-
-Formatted as future observations:
 

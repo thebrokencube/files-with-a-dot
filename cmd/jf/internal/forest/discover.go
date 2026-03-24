@@ -108,6 +108,9 @@ func Discover(forest *Forest) ([]*Node, error) {
 		if node.Sync == "" {
 			node.Sync = forest.Defaults.Sync
 		}
+		if node.Sync == "" {
+			node.Sync = "both"
+		}
 
 		isREADME := strings.ToUpper(filepath.Base(path)) == "README.MD"
 

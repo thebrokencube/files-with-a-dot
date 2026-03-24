@@ -3,10 +3,7 @@ package dendrik
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"testing"
-
-	"github.com/peterbourgon/ff/v4"
 )
 
 func TestNewFlagSet(t *testing.T) {
@@ -39,16 +36,18 @@ func TestParse(t *testing.T) {
 		}
 	})
 
-	t.Run("env var fallback", func(t *testing.T) {
+	t.Run("post-positional flags", func(t *testing.T) {
 		fs := NewFlagSet("test")
-		name := fs.StringLong("name", "default", "a name")
-		os.Setenv("TEST_NAME", "from-env")
-		defer os.Unsetenv("TEST_NAME")
-		if err := Parse(fs, []string{}, ff.WithEnvVarPrefix("TEST")); err != nil {
+		token := fs.StringLong("token", "", "a token")
+		if err := Parse(fs, []string{"KEY", "FILE", "--token", "abc123"}); err != nil {
 			t.Fatalf("Parse error: %v", err)
 		}
-		if *name != "from-env" {
-			t.Fatalf("got %q, want %q", *name, "from-env")
+		if *token != "abc123" {
+			t.Fatalf("token: got %q, want %q", *token, "abc123")
+		}
+		args := fs.GetArgs()
+		if len(args) != 2 || args[0] != "KEY" || args[1] != "FILE" {
+			t.Fatalf("positional args: got %v, want [KEY FILE]", args)
 		}
 	})
 
@@ -132,8 +131,6 @@ func TestOutputMode(t *testing.T) {
 	}{
 		{"json flag wins", true, false, "json"},
 		{"plain flag wins", false, true, "plain"},
-		// non-TTY and TTY cases depend on os.Stdout which we can't mock here,
-		// but we test the flag-based logic
 		{"json over plain", true, true, "json"},
 	}
 	for _, tt := range tests {
@@ -154,8 +151,7 @@ func TestColorEnabled(t *testing.T) {
 	})
 
 	t.Run("NO_COLOR env wins", func(t *testing.T) {
-		os.Setenv("NO_COLOR", "1")
-		defer os.Unsetenv("NO_COLOR")
+		t.Setenv("NO_COLOR", "1")
 		if ColorEnabled(false) {
 			t.Fatal("expected false when NO_COLOR is set")
 		}

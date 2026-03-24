@@ -38,18 +38,18 @@ Forest targets use `jf` (Jira Forest CLI) for all push operations.
 
 **Level 0 (single file)**:
 ```bash
-jf push BEN-48284 foundations/package-imports/README.md
+jf push PROJ-123 foundations/package-imports/README.md
 ```
 
 **Level 1 (forest-aware)**:
 ```bash
-jf sync              # push all stale + pull all pull-mode nodes
+jf sync              # push all stale + pull all pull-eligible nodes
 jf status --json     # check what's stale
 ```
 
 `jf push` runs: strip frontmatter -> compile (markdown to ADF via marklassian) -> push (acli edit) -> record in `.jf/state.json`.
 
-**Supported markdown**: tables, fenced code blocks, blockquotes, nested lists, task lists, all heading levels, bold, italic, code, links. marklassian handles the full CommonMark spec. See the `/jf` skill's `references/gotchas.md` for content pitfalls (relative links, @mentions, size limits).
+**Pushable markdown**: h2 headings, paragraphs, flat lists, bold, italic, strikethrough, inline code, absolute links, horizontal rules. Content using unsupported constructs (tables, code blocks, nested lists, h1/h3+) is read-only and demoted to pull-only. See the `/jf` skill's USAGE.md "Lint and Mutability" section for the full list.
 
 ## Jira Creation Pipeline
 

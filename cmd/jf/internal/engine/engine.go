@@ -1,9 +1,7 @@
 package engine
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,21 +12,24 @@ import (
 
 // NodeReading holds both local and remote state for a single forest node.
 type NodeReading struct {
-	Node         *forest.Node
-	LocalContent []byte            // stripped of frontmatter
-	LocalHash    string
-	LocalErr     error
-	RemoteADF    json.RawMessage
-	RemoteHash   string
-	RemoteErr    error
-	Baseline     *forest.NodeState // nil if never synced
+	Node           *forest.Node
+	LocalContent   []byte // stripped of frontmatter
+	LocalHash      string
+	LocalErr       error
+	RemoteADF      json.RawMessage
+	RemoteHash     string
+	RemoteMarkdown []byte // ADF converted to markdown (first-sync only)
+	RemoteErr      error
+	Baseline       *forest.NodeState // nil if never synced
+	Mutable        bool              // lint + roundtrip passed
+	LintIssues     []pipeline.LintIssue
 }
 
 // ActionKind classifies the engine's decision for a node.
 type ActionKind int
 
 const (
-	ActionPush    ActionKind = iota
+	ActionPush ActionKind = iota
 	ActionPull
 	ActionSkip
 	ActionBlocked
@@ -105,6 +106,7 @@ type Action struct {
 type PlanOpts struct {
 	Direction string // "push" | "pull" | "both"
 	Resolve   string // "" | "local" | "remote"
+	PlainText bool   // compile-failure fallback: push as plain text
 }
 
 // Result records the outcome of executing a single action.
@@ -127,8 +129,6 @@ func resolveDirection(node *forest.Node, opts PlanOpts) string {
 
 // Read fetches both local and remote state for every node.
 // Uses a bounded worker pool (concurrency 5) for Jira API calls.
-// Side effect: writes snapshot to .jf/snapshots/latest.json after all fetches.
-// Logs warning (does not error) if snapshot write fails.
 func Read(nodes []*forest.Node, p *pipeline.Pipeline,
 	state *forest.State, forestDir string) ([]NodeReading, error) {
 
@@ -141,6 +141,7 @@ func Read(nodes []*forest.Node, p *pipeline.Pipeline,
 	// Bounded worker pool
 	sem := make(chan struct{}, readConcurrency)
 	var wg sync.WaitGroup
+	var stateMu sync.Mutex
 
 	for i, n := range nodes {
 		wg.Add(1)
@@ -149,21 +150,18 @@ func Read(nodes []*forest.Node, p *pipeline.Pipeline,
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			readings[idx] = readNode(node, p, state, forestDir)
+			readings[idx] = readNode(node, p, state, forestDir, &stateMu)
 		}(i, n)
 	}
 
 	wg.Wait()
-
-	// Write snapshot
-	writeSnapshot(readings, forestDir)
 
 	return readings, nil
 }
 
 // readNode fetches local and remote state for a single node.
 func readNode(node *forest.Node, p *pipeline.Pipeline,
-	state *forest.State, forestDir string) NodeReading {
+	state *forest.State, forestDir string, stateMu *sync.Mutex) NodeReading {
 
 	r := NodeReading{Node: node}
 
@@ -174,7 +172,41 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 		r.LocalErr = err
 	} else {
 		r.LocalContent = pipeline.StripFrontmatter(source)
-		r.LocalHash = forest.ComputeHash(r.LocalContent)
+		r.LocalHash = pipeline.ComputeLocalHash(r.LocalContent)
+	}
+
+	// Baseline from state (before mutability, which may add entries)
+	if state != nil {
+		stateMu.Lock()
+		if ns, ok := state.Nodes[node.Key]; ok {
+			r.Baseline = &ns
+		}
+		stateMu.Unlock()
+	}
+
+	// Mutability: lint + roundtrip for substantive content
+	if IsSubstantiveLocal(r.LocalContent) {
+		issues := pipeline.Lint(r.LocalContent, node.File)
+		if len(issues) > 0 {
+			r.LintIssues = issues
+			r.Mutable = false
+		} else if state != nil {
+			stateMu.Lock()
+			cached, ok := state.MutabilityCache(node.Key, r.LocalHash)
+			stateMu.Unlock()
+			if ok {
+				r.Mutable = cached
+			} else {
+				clean, err := pipeline.CheckRoundtrip(r.LocalContent)
+				r.Mutable = err == nil && clean
+				stateMu.Lock()
+				state.SetMutability(node.Key, r.LocalHash, r.Mutable)
+				stateMu.Unlock()
+			}
+		} else {
+			clean, err := pipeline.CheckRoundtrip(r.LocalContent)
+			r.Mutable = err == nil && clean
+		}
 	}
 
 	// Remote content (skip TBD keys)
@@ -193,63 +225,16 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 		}
 	}
 
-	// Baseline from state
-	if state != nil {
-		if ns, ok := state.Nodes[node.Key]; ok {
-			r.Baseline = &ns
+	// First-sync content comparison: convert remote ADF to markdown so Plan
+	// can compare normalized content without I/O. Only when no baseline and
+	// both sides have content (the first-sync blocked scenario).
+	if r.Baseline == nil && r.RemoteADF != nil && r.LocalContent != nil {
+		md, convErr := pipeline.ConvertADF(r.RemoteADF)
+		if convErr == nil {
+			r.RemoteMarkdown = md
 		}
 	}
 
 	return r
 }
 
-// snapshotEntry is the JSON format for each node in the snapshot file.
-type snapshotEntry struct {
-	Key          string          `json:"key"`
-	File         string          `json:"file"`
-	RemoteADF    json.RawMessage `json:"remote_adf,omitempty"`
-	RemoteHash   string          `json:"remote_hash,omitempty"`
-	LocalHash    string          `json:"local_hash,omitempty"`
-	LocalContent string          `json:"local_content,omitempty"` // base64-encoded
-	RemoteErr    string          `json:"remote_err,omitempty"`
-}
-
-// writeSnapshot persists a snapshot to .jf/snapshots/latest.json.
-// Warns on failure; never returns an error.
-func writeSnapshot(readings []NodeReading, forestDir string) {
-	entries := make([]snapshotEntry, len(readings))
-	for i, r := range readings {
-		e := snapshotEntry{
-			Key:        r.Node.Key,
-			File:       r.Node.File,
-			RemoteADF:  r.RemoteADF,
-			RemoteHash: r.RemoteHash,
-			LocalHash:  r.LocalHash,
-		}
-		if len(r.LocalContent) > 0 {
-			e.LocalContent = base64.StdEncoding.EncodeToString(r.LocalContent)
-		}
-		if r.RemoteErr != nil {
-			e.RemoteErr = r.RemoteErr.Error()
-		}
-		entries[i] = e
-	}
-
-	data, err := json.MarshalIndent(entries, "", "  ")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: failed to marshal snapshot: %v\n", err)
-		return
-	}
-	data = append(data, '\n')
-
-	snapDir := filepath.Join(forestDir, ".jf", "snapshots")
-	if err := os.MkdirAll(snapDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: failed to create snapshot dir: %v\n", err)
-		return
-	}
-
-	snapPath := filepath.Join(snapDir, "latest.json")
-	if err := os.WriteFile(snapPath, data, 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: failed to write snapshot: %v\n", err)
-	}
-}

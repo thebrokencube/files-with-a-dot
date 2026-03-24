@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
@@ -78,6 +79,11 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
+	state, stateErr := forest.LoadState(f.Dir)
+	if stateErr != nil {
+		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
+	}
+
 	// Track failed parents so we skip their children
 	failedKeys := make(map[*forest.Node]bool)
 	succeeded := 0
@@ -97,7 +103,6 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
 		existingKey, err := dedupCheck(p, jql)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "⚠ %s: dedup check failed: %s\n", n.Label, err)
-			// Continue with creation despite dedup failure
 		}
 
 		var newKey string
@@ -122,36 +127,66 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
 		filePath := filepath.Join(f.Dir, n.File)
 		if err := rewriteFrontmatterKey(filePath, newKey); err != nil {
 			fmt.Fprintf(os.Stderr, "⚠ %s: frontmatter rewrite failed: %s\n", newKey, err)
-			// Not fatal — ticket was created, just frontmatter not updated
 		}
 
-		// Compile and push description (skip if empty)
+		// Route push through engine pipeline
 		source, err := os.ReadFile(filePath)
-		if err == nil {
-			stripped := pipeline.StripFrontmatter(source)
-			if len(bytes.TrimSpace(stripped)) == 0 {
-				fmt.Printf("✓ Created %s %q (%s) — description empty, push skipped\n", newKey, n.Label, n.File)
-				succeeded++
-				continue
-			}
-			compiled, compileErr := p.Compile(newKey, source, "")
-			if compileErr != nil {
-				if plainText {
-					fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", newKey)
-					compiled = buildPlainTextPayload(newKey, source)
-				} else {
-					fmt.Fprintf(os.Stderr, "⚠ %s: description push skipped (compile failed: %s)\n", newKey, compileErr)
-					compiled = nil
-				}
-			}
-			if compiled != nil {
-				if pushErr := p.Push(compiled); pushErr != nil {
-					fmt.Fprintf(os.Stderr, "⚠ %s: description push failed: %s\n", newKey, pushErr)
-				}
+		if err != nil {
+			fmt.Printf("✓ Created %s %q (%s) — file read failed, push skipped\n", newKey, n.Label, n.File)
+			succeeded++
+			continue
+		}
+
+		stripped := pipeline.StripFrontmatter(source)
+
+		// Construct reading for engine: just created, remote is empty
+		reading := engine.NodeReading{
+			Node:         &forest.Node{Key: newKey, File: n.File, Sync: "push", Label: n.Label},
+			LocalContent: stripped,
+			LocalHash:    pipeline.ComputeLocalHash(stripped),
+		}
+
+		// Inline mutability check (no state cache for freshly created tickets)
+		if engine.IsSubstantiveLocal(stripped) {
+			issues := pipeline.Lint(stripped, n.File)
+			if len(issues) > 0 {
+				reading.LintIssues = issues
+				fmt.Fprintf(os.Stderr, "⚠ %s: %s (description not pushed)\n", newKey, pipeline.FormatLintIssues(issues))
+			} else {
+				clean, err := pipeline.CheckRoundtrip(stripped)
+				reading.Mutable = err == nil && clean
 			}
 		}
 
-		fmt.Printf("✓ Created %s %q (%s)\n", newKey, n.Label, n.File)
+		plan := engine.Plan([]engine.NodeReading{reading}, engine.PlanOpts{Direction: "push", PlainText: plainText})
+
+		// Check if plan says blocked (e.g., empty content)
+		if len(plan) > 0 && plan[0].Kind == engine.ActionBlocked {
+			fmt.Printf("✓ Created %s %q (%s) — description empty, push skipped\n", newKey, n.Label, n.File)
+			succeeded++
+			continue
+		}
+
+		// Execute — owns state persistence
+		results, execErr := engine.Execute(plan, p, state, f.Dir)
+		if execErr != nil {
+			fmt.Fprintf(os.Stderr, "⚠ %s\n", execErr)
+		}
+
+		pushOK := false
+		for _, r := range results {
+			if r.Success && r.Kind == engine.ActionPush {
+				pushOK = true
+			} else if r.Error != nil {
+				fmt.Fprintf(os.Stderr, "⚠ %s: description push failed: %s\n", newKey, r.Error)
+			}
+		}
+
+		if pushOK {
+			fmt.Printf("✓ Created %s %q (%s)\n", newKey, n.Label, n.File)
+		} else {
+			fmt.Printf("✓ Created %s %q (%s) — push failed\n", newKey, n.Label, n.File)
+		}
 		succeeded++
 	}
 

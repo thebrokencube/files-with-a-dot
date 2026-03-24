@@ -7,13 +7,19 @@ import (
 )
 
 func TestParseTrailingFlagsHandled(t *testing.T) {
-	// ff v4 handles interspersed flags natively, so trailing flags work
 	fs := dendrik.NewFlagSet("test")
-	fs.StringLong("dir", ".", "test flag")
+	dir := fs.StringLong("dir", ".", "test flag")
 
 	err := dendrik.Parse(fs, []string{"positional", "--dir", "/tmp"})
 	if err != nil {
-		t.Fatalf("ff v4 should handle interspersed flags, got: %s", err)
+		t.Fatalf("expected interspersed flags to work, got: %s", err)
+	}
+	if *dir != "/tmp" {
+		t.Fatalf("dir: got %q, want %q", *dir, "/tmp")
+	}
+	args := fs.GetArgs()
+	if len(args) != 1 || args[0] != "positional" {
+		t.Fatalf("positional args: got %v, want [positional]", args)
 	}
 }
 

@@ -1,24 +1,25 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
+	"golang.org/x/term"
 )
 
 func runPush(args []string) int {
 	fs := dendrik.NewFlagSet("push")
 	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
 	subtree := fs.String('s', "subtree", "", "Push node and all descendants")
-	failFast := fs.BoolLong("fail-fast", "Stop on first error")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be pushed without side effects")
+	jsonOut := fs.Bool('j', "json", "Output plan as structured JSON")
+	yes := fs.BoolLong("yes", "Proceed without confirmation in non-interactive mode")
 
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -33,7 +34,7 @@ func runPush(args []string) int {
 	}
 
 	// Forest mode: discover and push
-	return pushForest(*dir, positional, *subtree, *plainText, *failFast, *dryRun, nil, nil, nil)
+	return pushForest(*dir, positional, *subtree, *plainText, *dryRun, *jsonOut, *yes)
 }
 
 func pushSingle(key, filePath string, plainText bool) int {
@@ -44,45 +45,65 @@ func pushSingle(key, filePath string, plainText bool) int {
 	}
 
 	stripped := pipeline.StripFrontmatter(source)
-	if len(bytes.TrimSpace(stripped)) == 0 {
-		fmt.Fprintf(os.Stderr, "✗ %s: BLOCKED — empty content, refusing to push\n", key)
-		return dendrik.ExitUserError
-	}
 
+	// Construct synthetic node for engine.
+	// node.File must be relative to forestDir; engine.Execute joins them.
+	forestDir := resolveForestDir(filePath)
+	relFile, _ := filepath.Rel(forestDir, filePath)
+	if relFile == "" {
+		relFile = filePath
+	}
+	node := &forest.Node{Key: key, File: relFile, Sync: "push"}
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
-	compiled, err := p.Compile(key, source, "")
+	// Single-node Read (fetches remote state for this key)
+	readings, err := engine.Read([]*forest.Node{node}, p, nil, forestDir)
 	if err != nil {
-		if plainText {
-			fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", key)
-			compiled = buildPlainTextPayload(key, source)
-		} else {
-			fmt.Fprintf(os.Stderr, "✗ %s: marklassian conversion failed\n  %s\n", key, err)
-			return dendrik.ExitUserError
-		}
-	}
-
-	if err := p.Push(compiled); err != nil {
-		fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", key, err)
+		fmt.Fprintf(os.Stderr, "✗ %s: read failed: %s\n", key, err)
 		return dendrik.ExitExternalErr
 	}
 
-	fmt.Printf("✓ Pushed %s description (%d bytes)\n", key, len(source))
+	// Override local content from the already-read file (Read may re-read, but
+	// for Level 0 the file path IS the absolute path, not relative to forestDir)
+	readings[0].LocalContent = stripped
+	readings[0].LocalHash = pipeline.ComputeLocalHash(stripped)
+	readings[0].LocalErr = nil
+
+	plan := engine.Plan(readings, engine.PlanOpts{Direction: "push", PlainText: plainText})
+
+	displayPlan(plan)
+
+	if len(plan) == 0 {
+		return dendrik.ExitOK
+	}
+
+	// No batch gate needed — single node is never batch
+	// Execute with nil state — Level 0 has no state tracking
+	results, execErr := engine.Execute(plan, p, nil, forestDir)
+	if execErr != nil {
+		fmt.Fprintf(os.Stderr, "⚠ %s\n", execErr)
+	}
+
+	for _, r := range results {
+		if r.Success && r.Kind == engine.ActionPush {
+			fmt.Printf("✓ Pushed %s description (%d bytes)\n", key, len(source))
+		} else if r.Error != nil {
+			fmt.Fprintf(os.Stderr, "✗ %s: %s\n", key, r.Error)
+			return dendrik.ExitExternalErr
+		}
+	}
+
 	return dendrik.ExitOK
 }
 
 func pushForest(dir string, positional []string, subtreeTarget string,
-	plainText, failFast, dryRun bool,
-	f *forest.Forest, roots []*forest.Node, skipKeys map[string]bool) int {
+	plainText, dryRun, jsonOut, yes bool) int {
 
-	if f == nil {
-		var err error
-		f, roots, err = loadForest(dir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s\n", err)
-			fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
-			return dendrik.ExitUserError
-		}
+	f, roots, err := loadForest(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+		fmt.Fprintf(os.Stderr, "  For Level 0: jf push <KEY> <FILE>\n")
+		return dendrik.ExitUserError
 	}
 
 	// Validate first
@@ -119,16 +140,13 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 	// Post-order traversal for push
 	ordered := forest.PostOrder(pushRoots)
 
-	// Filter to sync:push nodes (skip TBD, sync:pull, and blocked keys)
+	// Filter to push-eligible nodes (sync:push or sync:both, skip TBD)
 	var toPush []*forest.Node
 	for _, n := range ordered {
 		if forest.IsTBD(n.Key) {
 			continue
 		}
 		if n.Sync == "pull" {
-			continue
-		}
-		if skipKeys != nil && skipKeys[strings.ToUpper(n.Key)] {
 			continue
 		}
 		toPush = append(toPush, n)
@@ -139,101 +157,49 @@ func pushForest(dir string, positional []string, subtreeTarget string,
 		return dendrik.ExitOK
 	}
 
-	if dryRun {
-		for _, n := range toPush {
-			filePath := filepath.Join(f.Dir, n.File)
-			source, err := os.ReadFile(filePath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "✗ %s: %s\n", n.Key, err)
-				continue
-			}
-			fmt.Printf("[dry-run] would push %s (%s, %d bytes)\n", n.Key, n.File, len(source))
-		}
-		return dendrik.ExitOK
-	}
-
-	// Load state for tracking
-	state, err := forest.LoadState(f.Dir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ Could not load state: %s\n", err)
+	state, stateErr := forest.LoadState(f.Dir)
+	if stateErr != nil {
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
-	succeeded := 0
-	failed := 0
 
-	for _, n := range toPush {
-		filePath := filepath.Join(f.Dir, n.File)
-		source, err := os.ReadFile(filePath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s: %s\n", n.Key, err)
-			failed++
-			if failFast {
-				break
-			}
-			continue
-		}
-
-		stripped := pipeline.StripFrontmatter(source)
-		if len(bytes.TrimSpace(stripped)) == 0 {
-			fmt.Fprintf(os.Stderr, "✗ %s: BLOCKED — empty content, refusing to push\n", n.Key)
-			failed++
-			if failFast {
-				break
-			}
-			continue
-		}
-
-		compiled, err := p.Compile(n.Key, source, n.Label)
-		if err != nil {
-			if plainText {
-				fmt.Fprintf(os.Stderr, "⚠ %s: conversion failed, pushing as plain text\n", n.Key)
-				compiled = buildPlainTextPayload(n.Key, source)
-			} else {
-				fmt.Fprintf(os.Stderr, "✗ %s: marklassian conversion failed\n  %s\n", n.Key, err)
-				failed++
-				if failFast {
-					break
-				}
-				continue
-			}
-		}
-
-		if err := p.Push(compiled); err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s: acli error\n  %s\n", n.Key, err)
-			failed++
-			if failFast {
-				break
-			}
-			continue
-		}
-
-		localHash := forest.ComputeHash(stripped)
-		state.RecordPush(n.Key, localHash, "")
-		fmt.Printf("✓ %s (%s)\n", n.Key, n.File)
-		succeeded++
+	// Engine pipeline
+	readings, err := engine.Read(toPush, p, state, f.Dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "✗ read failed: %s\n", err)
+		return dendrik.ExitExternalErr
 	}
 
-	// Save state
-	if err := forest.SaveState(f.Dir, state); err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ Could not save state: %s\n", err)
+	plan := engine.Plan(readings, engine.PlanOpts{Direction: "push", PlainText: plainText})
+
+	if jsonOut {
+		writePlanJSON(plan)
+		return dendrik.ExitOK
 	}
 
-	fmt.Printf("\nPushed %d/%d nodes", succeeded, succeeded+failed)
-	if failed > 0 {
-		fmt.Printf(" (%d failed)", failed)
-	}
-	fmt.Println()
+	displayPlan(plan)
 
-	if failed > 0 {
+	if dryRun {
+		return dendrik.ExitOK
+	}
+
+	// Batch safety gate
+	if isBatch(plan) && !term.IsTerminal(int(os.Stdin.Fd())) && !yes {
+		fmt.Fprintln(os.Stderr, "Non-interactive batch push. Run with --yes for non-interactive execution.")
+		return dendrik.ExitUserError
+	}
+
+	// Execute owns all state persistence
+	results, execErr := engine.Execute(plan, p, state, f.Dir)
+	if execErr != nil {
+		fmt.Fprintf(os.Stderr, "⚠ %s\n", execErr)
+	}
+
+	displayResults(results, 0, false)
+
+	if hasFailures(results) {
 		return dendrik.ExitUserError
 	}
 	return dendrik.ExitOK
-}
-
-func buildPlainTextPayload(key string, source []byte) []byte {
-	stripped := pipeline.StripFrontmatter(source)
-	return []byte(fmt.Sprintf(`{"issues":[%q],"description":{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":%q}]}]}}`,
-		key, string(stripped)))
 }

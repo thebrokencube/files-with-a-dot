@@ -14,15 +14,16 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 | `jf clone <KEY>` | Scaffold local forest from Jira hierarchy |
 | `jf init` | Create `forest.yml` in current directory |
 | `jf setup` | Check prerequisites (node, acli, auth) |
-| `jf push <KEY> <FILE>` | Compile markdown to ADF and push to Jira description |
-| `jf pull <KEY> <FILE>` | Pull Jira description to local markdown |
-| `jf sync` | Push all stale + pull all pull-mode nodes |
+| `jf push <KEY> <FILE>` | Compile markdown to ADF and push to Jira description (`--dry-run`, `--plain-text`) |
+| `jf pull <KEY> <FILE>` | Pull Jira description to local markdown (`--dry-run`) |
+| `jf sync` | Push all stale + pull all pull-eligible nodes (`--dry-run`, `--resolve`, `--json`) |
 | `jf tree` | Show forest hierarchy |
 | `jf list [--json]` | Flat list of all nodes |
 | `jf show <target>` | Single-node detail view |
 | `jf status [--json]` | Forest summary with staleness |
 | `jf validate` | Check forest integrity |
 | `jf create-missing` | Create Jira tickets for TBD nodes |
+| `jf snapshot [KEY]` | Snapshot local+remote state (`--json` for agents) |
 | `jf search <text> [--json]` | Find Jira tickets by text/project/type |
 | `jf rm <KEY>...` | Remove node files from forest |
 | `jf schema` | Emit JSON Schema for forest.yml and frontmatter |
@@ -30,6 +31,59 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 Most commands accept `--json` for structured output.
 
 **Flag ordering**: Flags can appear before or after positional arguments. Both `jf push --dir /tmp KEY FILE` and `jf push KEY FILE --dir /tmp` work.
+
+## Safety Model
+
+jf uses a 3-tier safety system. Every sync operation runs Read-Plan-Execute:
+1. **Read**: Snapshot both local and remote state for all nodes
+2. **Plan**: Pure function evaluates 8 rules per node, produces actions
+3. **Execute**: Only processes Plan output — no independent decisions
+
+### Tiers
+
+| Tier | Gate | Examples | Override |
+|------|------|---------|---------|
+| 1: Always safe | None | Push with baseline + local-only change + substantive content | N/A |
+| 2: Interactive | TTY prompt | First push/pull with content on other side | Human-only (not agents) |
+| 2b: Conflict | --resolve flag | Both sides changed since baseline | Re-run with --resolve local\|remote |
+| 3: Impossible | No mechanism | Push empty content; push when remote unreachable | None |
+
+### Blocked Operations
+
+When an operation is blocked, jf prints the reason AND an action hint:
+```
+BLOCKED PROJ-789: empty content — no override
+BLOCKED PROJ-456: first sync, remote has content — resolve in terminal
+BLOCKED PROJ-123: conflict — use --resolve local|remote
+```
+
+The hint tells you exactly what to do:
+- **"no override"** (Tier 3): Fix the underlying issue — add substantive content, or check network connectivity.
+- **"resolve in terminal"** (Tier 2): Requires interactive TTY confirmation from a human.
+- **"use --resolve local|remote"** (Tier 2b): Re-run with `--resolve local` (keep local) or `--resolve remote` (keep remote).
+
+### Plan Display
+
+`--dry-run` shows the plan without executing. BLOCKED items sort first; summary line at bottom:
+```
+── Plan ──────────────────────────────────────────
+  BLOCKED PROJ-789  stub.md (empty content — no override)
+  PUSH    PROJ-123  README.md (local changed)
+  SKIP    PROJ-456  sub/README.md (unchanged)
+── 1 push, 1 blocked, 1 skip ──
+```
+
+For machine-parseable output, use `--json`:
+```bash
+jf sync --dry-run --json
+```
+Returns structured JSON with action, key, file, reason, tier, and hint fields. Agents should prefer `--json` for programmatic plan inspection.
+
+### Batch Safety
+
+Multi-node operations (sync, push, pull) have a batch safety gate:
+- **TTY mode**: Plan displays, execution proceeds after `--yes` confirmation
+- **Non-TTY mode (agents)**: Use `--yes` flag to confirm batch execution, or use `--dry-run --json` to inspect the plan first
 
 ## Level Detection
 
@@ -57,7 +111,7 @@ With a `forest.yml` in the directory tree:
 
 ```bash
 jf status --json     # what's stale?
-jf sync              # push all stale + pull all pull-mode nodes
+jf sync              # push all stale + pull all pull-eligible nodes
 jf create-missing    # create tickets for TBD nodes
 ```
 
@@ -70,10 +124,25 @@ A forest is a directory tree with:
 - `.md` files with YAML frontmatter containing `jira: KEY` (or `jira: TBD`)
 - Directory `README.md` files become parent nodes; files in directories become children
 
-Frontmatter fields: `jira` (required), `label`, `type`, `sync` (push/pull/both), `order` (sibling sort).
+Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: push/pull), `order` (sibling sort).
 See [docs/USAGE.md](../docs/USAGE.md#frontmatter-reference) for field details, inheritance, and label derivation.
 
-`jf clone` scaffolds a forest with `sync: both` by default (override with `--sync push|pull|both`). Content is pulled from Jira initially; a state baseline is recorded so the first `jf sync` has real content hashes for conflict detection.
+### Sync Direction
+
+`sync:` is **override-only** — omit it for the common case. When absent, the engine derives effective direction from content mutability:
+- **Mutable content** (lint + roundtrip pass) → push+pull
+- **Read-only content** (lint or roundtrip fail) → demoted to pull-only
+- **Empty content** → blocked (Tier 3)
+
+Use `sync: pull` to force pull-only (never push even if mutable). Use `sync: push` to force push-only (never pull even if remote changes). Explicit `sync: both` is valid but equivalent to omitting — it's the default derived behavior.
+
+**Override vs mutability**: When `sync: push` is set but content is read-only (lint/roundtrip fail), the engine **skips** the node (can't push read-only content, can't pull because sync says push-only). When `sync: pull` is set, mutability is irrelevant — the node always pulls.
+
+These overrides are for specific use cases, not the default.
+
+`jf clone` scaffolds a forest without `sync:` fields (override with `--sync push|pull|both`). Content is pulled from Jira initially; a state baseline is recorded so the first `jf sync` has real content hashes for conflict detection.
+
+`jf status` shows the **effective derived direction** per node — not the raw sync field.
 
 `jf tree --json` outputs `[]NodeInfo` (same structure as `jf list --json`). `jf tree --verbose` shows sync direction icons and file paths.
 

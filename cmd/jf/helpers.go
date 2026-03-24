@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"os"
+	"path/filepath"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -41,4 +42,18 @@ func loadForestOrFail(dir string, jsonOut bool) (*forest.Forest, []*forest.Node,
 		return nil, nil, dendrik.ExitUserError
 	}
 	return f, roots, dendrik.ExitOK
+}
+
+// resolveForestDir finds the forest root for Level 0 operations.
+// Walks up from cwd looking for forest.yml. Falls back to the file's
+// parent directory for Level 0 (no forest) usage.
+func resolveForestDir(filePath string) string {
+	cwd, err := os.Getwd()
+	if err == nil {
+		f, _ := forest.FindForest(cwd)
+		if f != nil {
+			return f.Dir
+		}
+	}
+	return filepath.Dir(filePath)
 }

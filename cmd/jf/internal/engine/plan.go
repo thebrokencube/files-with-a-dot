@@ -1,8 +1,17 @@
 package engine
 
 import (
+	"bytes"
+
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 )
+
+// normalizedContentEqual returns true if two markdown byte slices are
+// semantically equal after normalization (trailing whitespace, blank lines).
+func normalizedContentEqual(a, b []byte) bool {
+	return bytes.Equal(pipeline.NormalizeMarkdown(a), pipeline.NormalizeMarkdown(b))
+}
 
 // Plan is a pure function (zero I/O). It takes readings and options,
 // returns one Action per reading. Output length always equals input length.
@@ -10,6 +19,9 @@ func Plan(readings []NodeReading, opts PlanOpts) []Action {
 	actions := make([]Action, len(readings))
 	for i, r := range readings {
 		actions[i] = planNode(r, opts)
+		if opts.PlainText && actions[i].Kind == ActionPush {
+			actions[i].PlainText = true
+		}
 	}
 	return actions
 }
@@ -21,8 +33,23 @@ func planNode(r NodeReading, opts PlanOpts) Action {
 	}
 
 	direction := resolveDirection(r.Node, opts)
+	demoted := false // true when both→pull due to read-only content
 
 	if direction == "push" || direction == "both" {
+		// Mutability gate: skip immutable content (lint or roundtrip failure)
+		if !opts.PlainText && IsSubstantiveLocal(r.LocalContent) && !r.Mutable {
+			reason := "read-only: roundtrip check failed"
+			if len(r.LintIssues) > 0 {
+				reason = "read-only: " + pipeline.FormatLintIssues(r.LintIssues)
+			}
+			if direction == "push" {
+				return Action{Node: r.Node, Kind: ActionSkip, Reason: reason}
+			}
+			// direction == "both": demote to pull-only
+			direction = "pull"
+			demoted = true
+		}
+
 		// Rule 2: Emptiness — Tier 3 block (no override ever)
 		if !IsSubstantiveLocal(r.LocalContent) {
 			if direction == "push" {
@@ -80,18 +107,26 @@ func planNode(r NodeReading, opts PlanOpts) Action {
 
 	// Rule 2 nil-guard: baseline == nil means first sync
 	if r.Baseline == nil {
-		return planFirstSync(r, direction)
+		return planFirstSync(r, direction, opts, demoted)
 	}
 
-	return planWithBaseline(r, direction, opts)
+	return planWithBaseline(r, direction, opts, demoted)
 }
 
 // planFirstSync handles nodes that have never been synced before.
-func planFirstSync(r NodeReading, direction string) Action {
+// When both sides have content, compares normalized markdown to detect
+// semantically identical content (absorbing ADF roundtrip noise).
+func planFirstSync(r NodeReading, direction string, opts PlanOpts, demoted bool) Action {
 	switch direction {
 	case "push":
-		// First push: if remote has content, block (Tier 2)
+		// First push: if remote has content, check content equivalence
 		if IsSubstantiveADF(r.RemoteADF) {
+			if r.RemoteMarkdown != nil && normalizedContentEqual(r.LocalContent, r.RemoteMarkdown) {
+				return Action{Node: r.Node, Kind: ActionPush,
+					Reason:       "first sync, content matches — establishing baseline",
+					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockFirstPush, Reason: "first sync — remote has content",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -99,12 +134,19 @@ func planFirstSync(r NodeReading, direction string) Action {
 		}
 		// Remote empty: safe to push
 		return Action{Node: r.Node, Kind: ActionPush,
-			Reason: "first sync, remote empty",
+			Reason:       "first sync, remote empty",
 			LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 
 	case "pull":
-		// First pull: if local has content, block (Tier 2)
-		if IsSubstantiveLocal(r.LocalContent) {
+		// First pull: if local has content, check content equivalence.
+		// Skip this guard when demoted from both→pull (read-only local content
+		// can't be pushed, so pulling over it is always safe).
+		if IsSubstantiveLocal(r.LocalContent) && !demoted {
+			if r.RemoteMarkdown != nil && normalizedContentEqual(r.LocalContent, r.RemoteMarkdown) {
+				return Action{Node: r.Node, Kind: ActionPull,
+					Reason:    "first sync, content matches — establishing baseline",
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockFirstPull, Reason: "first sync — local has content",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -112,13 +154,18 @@ func planFirstSync(r NodeReading, direction string) Action {
 		}
 		// Local empty: safe to pull
 		return Action{Node: r.Node, Kind: ActionPull,
-			Reason: "first sync, local empty",
+			Reason:    "first sync, local empty",
 			RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 
 	case "both":
 		// Both direction, first sync:
-		// If remote has content and local has content: block first-push
 		if IsSubstantiveADF(r.RemoteADF) {
+			if r.RemoteMarkdown != nil && normalizedContentEqual(r.LocalContent, r.RemoteMarkdown) {
+				return Action{Node: r.Node, Kind: ActionPush,
+					Reason:       "first sync, content matches — establishing baseline",
+					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockFirstPush, Reason: "first sync — remote has content",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -126,7 +173,7 @@ func planFirstSync(r NodeReading, direction string) Action {
 		}
 		// Remote empty, local has content: push
 		return Action{Node: r.Node, Kind: ActionPush,
-			Reason: "first sync, remote empty",
+			Reason:       "first sync, remote empty",
 			LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 	}
 
@@ -134,7 +181,7 @@ func planFirstSync(r NodeReading, direction string) Action {
 }
 
 // planWithBaseline handles nodes with an existing sync baseline.
-func planWithBaseline(r NodeReading, direction string, opts PlanOpts) Action {
+func planWithBaseline(r NodeReading, direction string, opts PlanOpts, demoted bool) Action {
 	localChanged := r.LocalHash != r.Baseline.LocalHash
 
 	// Empty RemoteHash from Track 1 transition: treat as "no remote baseline"
@@ -153,13 +200,13 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts) Action {
 		}
 		if localChanged {
 			return Action{Node: r.Node, Kind: ActionPush,
-				Reason: "local changed",
+				Reason:       "local changed",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 		}
 		return Action{Node: r.Node, Kind: ActionSkip, Reason: "no changes"}
 
 	case "pull":
-		if localChanged {
+		if localChanged && !demoted {
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockOverwrite, Reason: "local changed since last sync",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -167,7 +214,7 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts) Action {
 		}
 		if remoteChanged {
 			return Action{Node: r.Node, Kind: ActionPull,
-				Reason: "remote changed",
+				Reason:    "remote changed",
 				RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 		}
 		return Action{Node: r.Node, Kind: ActionSkip, Reason: "no changes"}
@@ -177,12 +224,12 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts) Action {
 			// Conflict — check --resolve
 			if opts.Resolve == "local" {
 				return Action{Node: r.Node, Kind: ActionPush,
-					Reason: "conflict resolved: local wins",
+					Reason:       "conflict resolved: local wins",
 					LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 			}
 			if opts.Resolve == "remote" {
 				return Action{Node: r.Node, Kind: ActionPull,
-					Reason: "conflict resolved: remote wins",
+					Reason:    "conflict resolved: remote wins",
 					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
@@ -192,12 +239,12 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts) Action {
 		}
 		if localChanged {
 			return Action{Node: r.Node, Kind: ActionPush,
-				Reason: "local changed",
+				Reason:       "local changed",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 		}
 		if remoteChanged {
 			return Action{Node: r.Node, Kind: ActionPull,
-				Reason: "remote changed",
+				Reason:    "remote changed",
 				RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 		}
 		return Action{Node: r.Node, Kind: ActionSkip, Reason: "no changes"}

@@ -61,7 +61,7 @@ Resolve the parking lot epic for each project in this order:
      createJiraIssue({
        cloudId: "<cloud-id>",
        projectKey: "PROJ",
-       issueType: "Epic",
+       issueTypeName: "Epic",
        summary: "[Parking Lot]",
        additional_fields: { ... any required custom fields ... }
      })

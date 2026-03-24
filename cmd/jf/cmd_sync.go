@@ -3,22 +3,27 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
+	"golang.org/x/term"
 )
 
 func runSync(args []string) int {
 	fs := dendrik.NewFlagSet("sync")
 	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	failFast := fs.BoolLong("fail-fast", "Stop on first error")
-	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: skip)")
+	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: block)")
 	dryRun := fs.Bool('n', "dry-run", "Preview what would be synced without side effects")
 	scaffold := fs.BoolLong("scaffold", "Create stub files for new Jira children")
+	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
+	jsonOut := fs.Bool('j', "json", "Output plan as structured JSON")
+	yes := fs.BoolLong("yes", "Proceed without confirmation in non-interactive mode")
 
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -30,19 +35,10 @@ func runSync(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	// Load forest once for all phases
 	f, roots, err := loadForest(*dir)
 	if err != nil {
-		// Fall through to push/pull which will print their own errors
-		fmt.Println("── Push ──")
-		pushCode := pushForest(*dir, nil, "", false, *failFast, *dryRun, nil, nil, nil)
-		fmt.Println()
-		fmt.Println("── Pull ──")
-		pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, nil, nil)
-		if pushCode != 0 || pullCode != 0 {
-			return dendrik.ExitUserError
-		}
-		return dendrik.ExitOK
+		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
+		return dendrik.ExitUserError
 	}
 
 	state, stateErr := forest.LoadState(f.Dir)
@@ -50,131 +46,287 @@ func runSync(args []string) int {
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
 	}
 
-	// Pre-scan for conflicts on sync:both nodes
 	all := forest.Flatten(roots)
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
-	conflicts := 0
 
-	for _, n := range all {
-		if n.Sync != "both" || forest.IsTBD(n.Key) {
-			continue
-		}
-
-		viewJSON, err := p.View(n.Key, "description", true)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "⚠ %s: cannot check conflict (%s)\n", n.Key, err)
-			continue
-		}
-
-		adf, _ := pipeline.ExtractDescriptionADF(viewJSON)
-		if adf == nil {
-			continue
-		}
-
-		filePath := filepath.Join(f.Dir, n.File)
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-		localContent := pipeline.StripFrontmatter(content)
-
-		status := state.DetectConflict(n.Key, localContent, adf)
-		if status == forest.ConflictBoth {
-			if *resolve == "" {
-				fmt.Fprintf(os.Stderr, "⚠ %s: CONFLICT (both local and remote changed) — skipping\n", n.Key)
-				conflicts++
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "⚠ %s: CONFLICT — resolving with --%s\n", n.Key, *resolve)
-		}
+	// Engine pipeline: Read → Plan → Execute
+	readings, err := engine.Read(all, p, state, f.Dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "✗ read failed: %s\n", err)
+		return dendrik.ExitExternalErr
 	}
 
-	if conflicts > 0 && *resolve == "" {
-		fmt.Fprintf(os.Stderr, "\n%d conflict(s) detected. Use --resolve local|remote to resolve.\n\n", conflicts)
+	opts := engine.PlanOpts{Direction: "both", Resolve: *resolve, PlainText: *plainText}
+	plan := engine.Plan(readings, opts)
+
+	if *jsonOut {
+		writePlanJSON(plan)
+		return dendrik.ExitOK
 	}
 
-	// First-push safety: for nodes never synced, check if Jira has content
-	// that would be overwritten. Always block — no bypass flag.
-	blockedKeys, blocked := checkFirstPushSafety(f, roots, state, p, *dryRun)
+	displayPlan(plan)
 
-	// Pass pre-loaded forest to push and pull (skip blocked keys)
-	fmt.Println("── Push ──")
-	pushCode := pushForest(*dir, nil, "", false, *failFast, *dryRun, f, roots, blockedKeys)
+	if *dryRun {
+		return dendrik.ExitOK
+	}
 
-	fmt.Println()
-	fmt.Println("── Pull ──")
-	pullCode := pullForest(*dir, nil, *failFast, false, *dryRun, f, roots)
+	// Batch safety gate
+	if isBatch(plan) && !term.IsTerminal(int(os.Stdin.Fd())) && !*yes {
+		fmt.Fprintln(os.Stderr, "Non-interactive batch sync. Run with --yes for non-interactive execution.")
+		return dendrik.ExitUserError
+	}
 
-	// Completeness check: discover new Jira children not in local forest
+	// Execute (owns all state persistence)
+	results, execErr := engine.Execute(plan, p, state, f.Dir)
+	if execErr != nil {
+		fmt.Fprintf(os.Stderr, "⚠ %s\n", execErr)
+	}
+
+	// Completeness check
 	fmt.Println()
 	fmt.Println("── Completeness ──")
 	newChildren := checkCompleteness(f, roots, p, *dryRun, *scaffold)
 
 	// Summary
+	displayResults(results, newChildren, *scaffold)
+
+	if hasFailures(results) {
+		return dendrik.ExitUserError
+	}
+	return dendrik.ExitOK
+}
+
+// isBatch returns true if the plan contains more than 1 mutation action (Push or Pull).
+func isBatch(actions []engine.Action) bool {
+	mutations := 0
+	for _, a := range actions {
+		if a.Kind == engine.ActionPush || a.Kind == engine.ActionPull {
+			mutations++
+			if mutations > 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// displayPlan prints the plan sorted: BLOCKED first, then PUSH/PULL, then SKIP.
+func displayPlan(actions []engine.Action) {
+	if len(actions) == 0 {
+		fmt.Println("No nodes to process.")
+		return
+	}
+
+	sorted := make([]engine.Action, len(actions))
+	copy(sorted, actions)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return actionSortKey(sorted[i]) < actionSortKey(sorted[j])
+	})
+
+	fmt.Println("── Plan ──────────────────────────────────────────")
+	for _, a := range sorted {
+		label := strings.ToUpper(a.Kind.String())
+		hint := ""
+		if a.Kind == engine.ActionBlocked {
+			hint = " (" + blockHint(a) + ")"
+		} else if a.Reason != "" {
+			hint = " (" + a.Reason + ")"
+		}
+		fmt.Printf("  %-7s %-10s %s%s\n", label, a.Node.Key, a.Node.File, hint)
+	}
+
+	// Summary line
+	counts := countActions(actions)
+	var parts []string
+	if counts[engine.ActionPush] > 0 {
+		parts = append(parts, fmt.Sprintf("%d push", counts[engine.ActionPush]))
+	}
+	if counts[engine.ActionPull] > 0 {
+		parts = append(parts, fmt.Sprintf("%d pull", counts[engine.ActionPull]))
+	}
+	if counts[engine.ActionBlocked] > 0 {
+		parts = append(parts, fmt.Sprintf("%d blocked", counts[engine.ActionBlocked]))
+	}
+	if counts[engine.ActionSkip] > 0 {
+		parts = append(parts, fmt.Sprintf("%d skip", counts[engine.ActionSkip]))
+	}
+	fmt.Printf("── %s ──\n", strings.Join(parts, ", "))
+}
+
+// Sort priorities for plan display (not exit codes).
+const (
+	sortBlocked = iota
+	sortPush
+	sortPull
+	sortSkip
+	sortOther
+)
+
+func actionSortKey(a engine.Action) int {
+	switch a.Kind {
+	case engine.ActionBlocked:
+		return sortBlocked
+	case engine.ActionPush:
+		return sortPush
+	case engine.ActionPull:
+		return sortPull
+	case engine.ActionSkip:
+		return sortSkip
+	default:
+		return sortOther
+	}
+}
+
+func countActions(actions []engine.Action) map[engine.ActionKind]int {
+	counts := make(map[engine.ActionKind]int)
+	for _, a := range actions {
+		counts[a.Kind]++
+	}
+	return counts
+}
+
+// blockHint returns a human-readable hint for blocked actions.
+func blockHint(a engine.Action) string {
+	switch a.Block {
+	case engine.BlockEmpty:
+		return "empty content — no override"
+	case engine.BlockRemoteUnknown:
+		return "remote unreachable — no override"
+	case engine.BlockFirstPush:
+		return "first sync, remote has content — resolve in terminal"
+	case engine.BlockFirstPull:
+		return "first sync, local has content — resolve in terminal"
+	case engine.BlockOverwrite:
+		return "remote changed — resolve in terminal"
+	case engine.BlockConflict:
+		return "conflict — use --resolve local|remote"
+	default:
+		return a.Reason
+	}
+}
+
+// Block tier constants for JSON output.
+const (
+	tierNoOverride  = 3 // Tier 3: no override possible
+	tierInteractive = 2 // Tier 2: interactive override or --resolve
+)
+
+// blockTier returns the tier number for a blocked action.
+func blockTier(a engine.Action) int {
+	switch a.Block {
+	case engine.BlockEmpty, engine.BlockRemoteUnknown:
+		return tierNoOverride
+	default:
+		return tierInteractive
+	}
+}
+
+// planJSON is the JSON output structure for --json.
+type planJSON struct {
+	Plan    []planEntryJSON `json:"plan"`
+	Summary planSummary     `json:"summary"`
+}
+
+type planEntryJSON struct {
+	Action string `json:"action"`
+	Key    string `json:"key"`
+	File   string `json:"file"`
+	Reason string `json:"reason"`
+	Tier   int    `json:"tier,omitempty"`
+	Hint   string `json:"hint,omitempty"`
+}
+
+type planSummary struct {
+	Push    int `json:"push"`
+	Pull    int `json:"pull"`
+	Blocked int `json:"blocked"`
+	Skip    int `json:"skip"`
+}
+
+func writePlanJSON(actions []engine.Action) {
+	counts := countActions(actions)
+	result := planJSON{
+		Plan: make([]planEntryJSON, len(actions)),
+		Summary: planSummary{
+			Push:    counts[engine.ActionPush],
+			Pull:    counts[engine.ActionPull],
+			Blocked: counts[engine.ActionBlocked],
+			Skip:    counts[engine.ActionSkip],
+		},
+	}
+
+	for i, a := range actions {
+		entry := planEntryJSON{
+			Action: a.Kind.String(),
+			Key:    a.Node.Key,
+			File:   a.Node.File,
+			Reason: a.Reason,
+		}
+		if a.Kind == engine.ActionBlocked {
+			entry.Tier = blockTier(a)
+			entry.Hint = blockHint(a)
+		}
+		result.Plan[i] = entry
+	}
+
+	dendrik.WriteResult(os.Stdout, result)
+}
+
+// displayResults prints the execution summary.
+func displayResults(results []engine.Result, newChildren int, scaffold bool) {
+	succeeded := 0
+	failed := 0
+	blocked := 0
+	skipped := 0
+	for _, r := range results {
+		switch {
+		case r.Kind == engine.ActionSkip:
+			skipped++
+		case r.Kind == engine.ActionBlocked:
+			blocked++
+		case r.Success:
+			succeeded++
+			fmt.Printf("✓ %s %s (%s)\n", r.Kind.String(), r.Node.Key, r.Node.File)
+		default:
+			failed++
+			if r.Error != nil {
+				fmt.Fprintf(os.Stderr, "✗ %s: %s\n", r.Node.Key, r.Error)
+			}
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("── Summary ──")
-	if blocked > 0 {
-		fmt.Printf("Blocked: %d node(s) — first sync with remote content (pull first to establish baseline)\n", blocked)
+	if succeeded > 0 {
+		fmt.Printf("Synced: %d node(s)\n", succeeded)
 	}
-	if conflicts > 0 {
-		fmt.Printf("Conflicts: %d\n", conflicts)
+	if blocked > 0 {
+		fmt.Printf("Blocked: %d node(s)\n", blocked)
+	}
+	if failed > 0 {
+		fmt.Printf("Failed: %d node(s)\n", failed)
 	}
 	if newChildren > 0 {
 		fmt.Printf("New children: %d", newChildren)
-		if *scaffold {
+		if scaffold {
 			fmt.Print(" (scaffolded)")
 		} else {
 			fmt.Print(" (use --scaffold to create stubs)")
 		}
 		fmt.Println()
 	}
-	if pushCode == 0 && pullCode == 0 && newChildren == 0 && conflicts == 0 && blocked == 0 {
+	if succeeded == 0 && blocked == 0 && failed == 0 && newChildren == 0 {
 		fmt.Println("Everything up to date.")
 	}
-
-	if pushCode != 0 || pullCode != 0 || (conflicts > 0 && *resolve == "") {
-		return dendrik.ExitUserError
-	}
-	return dendrik.ExitOK
 }
 
-// checkFirstPushSafety checks push-eligible nodes that have never been synced.
-// For each, it fetches the Jira description. If Jira has content, the node is
-// blocked from pushing to prevent overwriting remote content the user hasn't seen.
-// Returns the set of blocked keys (uppercased) and the count.
-func checkFirstPushSafety(f *forest.Forest, roots []*forest.Node, state *forest.State, p *pipeline.Pipeline, dryRun bool) (map[string]bool, int) {
-	all := forest.Flatten(roots)
-	blockedKeys := make(map[string]bool)
-
-	for _, n := range all {
-		if forest.IsTBD(n.Key) || n.Sync == "pull" {
-			continue
+func hasFailures(results []engine.Result) bool {
+	for _, r := range results {
+		if !r.Success && r.Kind != engine.ActionSkip && r.Kind != engine.ActionBlocked {
+			return true
 		}
-
-		// Only check nodes with no state (never synced)
-		if _, hasState := state.Nodes[n.Key]; hasState {
-			continue
-		}
-
-		// Fetch Jira description to see if remote has content
-		viewJSON, err := p.View(n.Key, "description", true)
-		if err != nil {
-			blockedKeys[strings.ToUpper(n.Key)] = true
-			fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — cannot reach Jira\n", n.Key)
-			continue
-		}
-
-		adf, _ := pipeline.ExtractDescriptionADF(viewJSON)
-		if adf == nil || string(adf) == "null" {
-			continue // Jira description is empty, safe to push
-		}
-
-		// Jira has content — block this node
-		blockedKeys[strings.ToUpper(n.Key)] = true
-		fmt.Fprintf(os.Stderr, "⚠ %s: BLOCKED — first sync, Jira has content (pull first to establish baseline)\n", n.Key)
 	}
-
-	return blockedKeys, len(blockedKeys)
+	return false
 }
 
 // checkCompleteness queries Jira for children of each parent node and reports
@@ -209,12 +361,12 @@ func checkCompleteness(f *forest.Forest, roots []*forest.Node, p *pipeline.Pipel
 		}
 	}
 
+	totalNew := 0
+
 	if len(parents) == 0 {
 		fmt.Println("No parent nodes to check.")
-		return 0
+		return totalNew
 	}
-
-	totalNew := 0
 
 	for _, parent := range parents {
 		jql := fmt.Sprintf("parent = %s ORDER BY rank", parent.Key)

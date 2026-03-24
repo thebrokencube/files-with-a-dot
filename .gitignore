@@ -19,6 +19,9 @@ local/
 .idea/
 .vscode/
 
+# jf runtime state (snapshots, state.json — per-forest, not in git)
+.jf/
+
 # Node (npm build deps)
 cmd/folio/scripts/node_modules/
 cmd/jf/scripts/node_modules/

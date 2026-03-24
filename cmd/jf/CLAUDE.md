@@ -64,6 +64,27 @@ Commands supporting `--json` use the `internal/output` package:
 Inject via `Pipeline{Run: yourFunc}` and `CheckAll(yourChecker)`.
 Substitute with fake runners in tests to avoid shelling out to acli/node.
 
+## Safe Sync Conventions
+
+- Never try to bypass blocked operations — they are blocked for safety reasons
+- When jf shows BLOCKED: report to user, don't retry with different flags
+- Conflicts require `--resolve local|remote` — pick the direction explicitly
+- Empty content never pushes — add substantive content first
+- Use `--dry-run` to preview what sync/push/pull will do before executing
+- Non-TTY batch operations are blocked — use `jf snapshot --json` + `jf push/pull --token`
+
+## Snapshot-First Development
+
+- `jf snapshot` writes plan-level JSON to `.jf/snapshots/latest.json`
+- Auto-snapshot from `engine.Read()` writes raw readings format to the same path
+- `--token` validation expects plan-level format — fails gracefully on raw format
+- `ComputeToken` lives in `engine/` (engine concern); snapshot types live in `forest/` (avoids circular import)
+- Token derivation: SHA256(snapshotID + key + localHash + remoteHash), truncated to 16 hex
+- Two JSON fields (`token` for safe ops, `approve_token` for Tier 2), one CLI flag (`--token`)
+- All `--token` responses go to stdout as structured JSON (via `dendrik.WriteResult`)
+- Token path records state after success — next snapshot sees the node as synced
+- Error codes: TOKEN_INVALID, SNAPSHOT_EXPIRED — both exit 1
+
 ## Deep Context
 
 @docs/ARCHITECTURE.md

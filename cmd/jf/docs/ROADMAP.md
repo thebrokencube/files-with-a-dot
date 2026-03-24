@@ -21,7 +21,7 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 
 - Markdown → ADF conversion via marklassian (`md2adf.bundle.mjs`)
 - Frontmatter stripping before compilation (`StripFrontmatter`)
-- `--force` fallback to plain text ADF when conversion fails
+- `--plain-text` fallback to plain text ADF when conversion fails
 - Summary field update from node label during forest push
 - acli transport: `acli jira workitem edit --from-json`
 
@@ -65,7 +65,7 @@ Feature maturity classification for jf. Each feature is categorized by readiness
 
 - `init` — create `forest.yml` with project defaults
 - `clone` — scaffold from Jira hierarchy with recursive child fetching
-- `clone --sync push|pull|both` — set sync direction at clone time (default: `both`)
+- `clone --sync push|pull|both` — override sync direction at clone time (default: omit, derives from mutability)
 - Clone records state baseline for conflict detection on first sync
 
 ### Prerequisites Checking
@@ -104,7 +104,7 @@ transitions, reparenting, and content clearing. Defined in `skill/references/lif
 ### `rm` Command
 
 Basic node file removal. Refuses if the node has children (no cascade). No confirmation
-prompt, no `--force` override, no Jira-side cleanup.
+prompt, no cascade override, no Jira-side cleanup.
 
 ## Planned
 

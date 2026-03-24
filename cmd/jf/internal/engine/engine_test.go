@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -122,12 +120,6 @@ func TestReadParallelFetch(t *testing.T) {
 		if r.LocalHash == "" {
 			t.Errorf("readings[%d]: expected LocalHash", i)
 		}
-	}
-
-	// Snapshot should exist
-	snapPath := filepath.Join(dir, ".jf", "snapshots", "latest.json")
-	if _, err := os.Stat(snapPath); os.IsNotExist(err) {
-		t.Error("snapshot not written")
 	}
 }
 
@@ -283,83 +275,3 @@ func TestReadSingleNode(t *testing.T) {
 	}
 }
 
-func TestReadSnapshotIncludesLocalContent(t *testing.T) {
-	nodeDefs := []struct{ key, file, content string }{
-		{"KEY-1", "a.md", "---\njira: KEY-1\n---\nLocal content A"},
-		{"KEY-2", "b.md", "---\njira: KEY-2\n---\nLocal content B"},
-	}
-	dir := setupTestForest(t, nodeDefs)
-
-	mock := &mockRunner{
-		responses: map[string][]byte{
-			"KEY-1": makeViewJSON(""),
-			"KEY-2": makeViewJSON(""),
-		},
-	}
-
-	nodes := make([]*forest.Node, len(nodeDefs))
-	for i, n := range nodeDefs {
-		nodes[i] = &forest.Node{Key: n.key, File: n.file, Sync: "push"}
-	}
-
-	p := &pipeline.Pipeline{Run: mock.run}
-	_, err := Read(nodes, p, &forest.State{Nodes: make(map[string]forest.NodeState)}, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	snapPath := filepath.Join(dir, ".jf", "snapshots", "latest.json")
-	data, err := os.ReadFile(snapPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var entries []snapshotEntry
-	if err := json.Unmarshal(data, &entries); err != nil {
-		t.Fatal(err)
-	}
-
-	for _, e := range entries {
-		if e.LocalContent == "" {
-			t.Errorf("%s: expected non-empty local_content in snapshot", e.Key)
-			continue
-		}
-		decoded, err := base64.StdEncoding.DecodeString(e.LocalContent)
-		if err != nil {
-			t.Errorf("%s: invalid base64: %v", e.Key, err)
-			continue
-		}
-		if len(decoded) == 0 {
-			t.Errorf("%s: decoded local_content is empty", e.Key)
-		}
-	}
-}
-
-func TestReadSnapshotWriteFailure(t *testing.T) {
-	nodeDefs := []struct{ key, file, content string }{
-		{"KEY-1", "a.md", "Content"},
-	}
-	dir := setupTestForest(t, nodeDefs)
-
-	// Make .jf directory not writable
-	jfDir := filepath.Join(dir, ".jf", "snapshots")
-	os.MkdirAll(jfDir, 0755)
-	os.Chmod(jfDir, 0000)
-	defer os.Chmod(jfDir, 0755)
-
-	mock := &mockRunner{
-		responses: map[string][]byte{"KEY-1": makeViewJSON("")},
-	}
-
-	nodes := []*forest.Node{{Key: "KEY-1", File: "a.md", Sync: "push"}}
-	p := &pipeline.Pipeline{Run: mock.run}
-
-	// Should still return readings despite snapshot write failure
-	readings, err := Read(nodes, p, &forest.State{Nodes: make(map[string]forest.NodeState)}, dir)
-	if err != nil {
-		t.Fatalf("Read should not error on snapshot write failure: %v", err)
-	}
-	if len(readings) != 1 {
-		t.Fatalf("got %d readings, want 1", len(readings))
-	}
-}

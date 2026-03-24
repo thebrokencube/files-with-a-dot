@@ -23,6 +23,10 @@ type NodeState struct {
 	LastPull   time.Time `json:"last_pull,omitempty"`
 	LocalHash  string    `json:"local_hash,omitempty"`  // sha256 of content below frontmatter
 	RemoteHash string    `json:"remote_hash,omitempty"` // sha256 of ADF JSON from Jira
+
+	// Mutability cache — content-addressed by local hash.
+	MutableClean bool   `json:"mutable_clean,omitempty"`
+	MutableHash  string `json:"mutable_hash,omitempty"`
 }
 
 // LoadState reads .jf/state.json from the forest directory.
@@ -103,34 +107,22 @@ func SaveState(forestDir string, state *State) error {
 	return os.Rename(tmpName, filepath.Join(stateDir, "state.json"))
 }
 
-// IsStale returns true if the file has been modified since last push.
-// Comparison uses time.After with nanosecond precision. On filesystems
-// with coarser mtime granularity (e.g., HFS+ at 1s), a file modified
-// within the same second as a push may appear clean.
+// IsStale returns true if the file has been modified since last sync.
+// Checks LastSync first (engine pipeline), falls back to LastPush
+// for nodes synced before the engine migration.
 func (s *State) IsStale(key string, fileMtime time.Time) bool {
 	ns, ok := s.Nodes[key]
 	if !ok {
-		return true // never pushed
+		return true // never synced
 	}
-	return fileMtime.After(ns.LastPush)
-}
-
-// RecordPush updates the state for a node after a successful push.
-func (s *State) RecordPush(key string, localHash, remoteHash string) {
-	ns := s.Nodes[key]
-	ns.LastPush = time.Now()
-	ns.LocalHash = localHash
-	ns.RemoteHash = remoteHash
-	s.Nodes[key] = ns
-}
-
-// RecordPull updates the state for a node after a successful pull.
-func (s *State) RecordPull(key string, localHash, remoteHash string) {
-	ns := s.Nodes[key]
-	ns.LastPull = time.Now()
-	ns.LocalHash = localHash
-	ns.RemoteHash = remoteHash
-	s.Nodes[key] = ns
+	ref := ns.LastSync
+	if ref.IsZero() {
+		ref = ns.LastPush
+	}
+	if ref.IsZero() {
+		return true
+	}
+	return fileMtime.After(ref)
 }
 
 // RecordSync updates the state for a node after a successful sync operation.
@@ -149,36 +141,21 @@ func ComputeHash(content []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
-// ConflictStatus represents the state of a bidirectional node.
-type ConflictStatus int
-
-const (
-	ConflictNone       ConflictStatus = iota
-	ConflictLocalOnly                 // local changed, remote unchanged
-	ConflictRemoteOnly                // remote changed, local unchanged
-	ConflictBoth                      // both sides changed
-)
-
-// DetectConflict compares current local and remote content against stored state.
-func (s *State) DetectConflict(key string, localContent, remoteADF []byte) ConflictStatus {
+// MutabilityCache returns cached mutability for a node if the hash matches.
+func (s *State) MutabilityCache(key, localHash string) (clean bool, found bool) {
 	ns, ok := s.Nodes[key]
-	if !ok {
-		return ConflictNone // never synced
+	if !ok || ns.MutableHash == "" || ns.MutableHash != localHash {
+		return false, false
 	}
+	return ns.MutableClean, true
+}
 
-	localChanged := ComputeHash(localContent) != ns.LocalHash
-	remoteChanged := ComputeHash(remoteADF) != ns.RemoteHash
-
-	switch {
-	case localChanged && remoteChanged:
-		return ConflictBoth
-	case localChanged:
-		return ConflictLocalOnly
-	case remoteChanged:
-		return ConflictRemoteOnly
-	default:
-		return ConflictNone
-	}
+// SetMutability caches a mutability result keyed by content hash.
+func (s *State) SetMutability(key, localHash string, clean bool) {
+	ns := s.Nodes[key]
+	ns.MutableClean = clean
+	ns.MutableHash = localHash
+	s.Nodes[key] = ns
 }
 
 // IsPullStale returns true if the node has never been pulled.

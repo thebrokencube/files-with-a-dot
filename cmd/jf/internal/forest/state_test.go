@@ -73,6 +73,37 @@ func TestIsStaleAfterModification(t *testing.T) {
 	}
 }
 
+func TestIsStaleUsesLastSync(t *testing.T) {
+	syncTime := time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LastSync: syncTime},
+	}}
+
+	// File modified after sync
+	if !s.IsStale("BEN-1", syncTime.Add(time.Hour)) {
+		t.Error("expected stale when file modified after sync")
+	}
+
+	// File not modified after sync
+	if s.IsStale("BEN-1", syncTime.Add(-time.Hour)) {
+		t.Error("expected not stale when file older than sync")
+	}
+}
+
+func TestIsStaleLastSyncOverridesLastPush(t *testing.T) {
+	pushTime := time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC)
+	syncTime := time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC)
+	s := &State{Nodes: map[string]NodeState{
+		"BEN-1": {LastPush: pushTime, LastSync: syncTime},
+	}}
+
+	// Between push and sync — should be clean (LastSync is the reference)
+	between := pushTime.Add(time.Hour)
+	if s.IsStale("BEN-1", between) {
+		t.Error("expected not stale: file older than LastSync even though newer than LastPush")
+	}
+}
+
 func TestLoadStateCorrupt(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".jf")
@@ -116,66 +147,33 @@ func TestSaveStateAtomic(t *testing.T) {
 	}
 }
 
-func TestRecordPush(t *testing.T) {
-	s := &State{Nodes: make(map[string]NodeState)}
-	s.RecordPush("BEN-1", "testhash", "")
+func TestMutabilityCache(t *testing.T) {
+	s := &State{Nodes: map[string]NodeState{}}
 
-	ns, ok := s.Nodes["BEN-1"]
-	if !ok {
-		t.Fatal("expected node state after RecordPush")
+	// Miss on empty
+	_, found := s.MutabilityCache("KEY-1", "abc123")
+	if found {
+		t.Error("expected miss on empty state")
 	}
-	if time.Since(ns.LastPush) > time.Second {
-		t.Error("expected LastPush to be recent")
-	}
-	if ns.LocalHash != "testhash" {
-		t.Errorf("expected LocalHash 'testhash', got %q", ns.LocalHash)
-	}
-	if ns.RemoteHash != "" {
-		t.Errorf("expected empty RemoteHash, got %q", ns.RemoteHash)
-	}
-}
 
-func TestRecordPushPreservesFields(t *testing.T) {
-	s := &State{Nodes: map[string]NodeState{
-		"BEN-1": {
-			LastPull:   time.Date(2026, 3, 21, 12, 0, 0, 0, time.UTC),
-			RemoteHash: "abc123",
-			LocalHash:  "def456",
-		},
-	}}
-	s.RecordPush("BEN-1", "newhash", "")
+	// Set and hit
+	s.SetMutability("KEY-1", "abc123", true)
+	clean, found := s.MutabilityCache("KEY-1", "abc123")
+	if !found || !clean {
+		t.Errorf("expected cache hit clean=true, got found=%v clean=%v", found, clean)
+	}
 
-	ns := s.Nodes["BEN-1"]
-	if ns.LastPull.IsZero() {
-		t.Error("RecordPush should preserve LastPull")
+	// Miss on hash change
+	_, found = s.MutabilityCache("KEY-1", "def456")
+	if found {
+		t.Error("expected miss on hash change")
 	}
-	if ns.LocalHash != "newhash" {
-		t.Error("RecordPush should set LocalHash to new value")
-	}
-	if ns.RemoteHash != "" {
-		t.Error("RecordPush should set RemoteHash to provided value")
-	}
-	if time.Since(ns.LastPush) > time.Second {
-		t.Error("expected LastPush to be recent")
-	}
-}
 
-func TestRecordPull(t *testing.T) {
-	s := &State{Nodes: make(map[string]NodeState)}
-	s.RecordPull("BEN-1", "localhash", "remotehash")
-
-	ns, ok := s.Nodes["BEN-1"]
-	if !ok {
-		t.Fatal("expected node state after RecordPull")
-	}
-	if time.Since(ns.LastPull) > time.Second {
-		t.Error("expected LastPull to be recent")
-	}
-	if ns.LocalHash != "localhash" {
-		t.Errorf("expected LocalHash 'localhash', got %q", ns.LocalHash)
-	}
-	if ns.RemoteHash != "remotehash" {
-		t.Errorf("expected RemoteHash 'remotehash', got %q", ns.RemoteHash)
+	// Dirty cache
+	s.SetMutability("KEY-1", "def456", false)
+	clean, found = s.MutabilityCache("KEY-1", "def456")
+	if !found || clean {
+		t.Errorf("expected cache hit clean=false, got found=%v clean=%v", found, clean)
 	}
 }
 
@@ -191,53 +189,6 @@ func TestComputeHash(t *testing.T) {
 	// Different content → different hash
 	if ComputeHash([]byte("hello world!")) == h {
 		t.Error("expected different hash for different content")
-	}
-}
-
-func TestDetectConflictNone(t *testing.T) {
-	local := []byte("content")
-	remote := []byte("remote")
-	s := &State{Nodes: map[string]NodeState{
-		"BEN-1": {LocalHash: ComputeHash(local), RemoteHash: ComputeHash(remote)},
-	}}
-	if s.DetectConflict("BEN-1", local, remote) != ConflictNone {
-		t.Error("expected ConflictNone")
-	}
-}
-
-func TestDetectConflictLocalOnly(t *testing.T) {
-	remote := []byte("remote")
-	s := &State{Nodes: map[string]NodeState{
-		"BEN-1": {LocalHash: ComputeHash([]byte("old")), RemoteHash: ComputeHash(remote)},
-	}}
-	if s.DetectConflict("BEN-1", []byte("new"), remote) != ConflictLocalOnly {
-		t.Error("expected ConflictLocalOnly")
-	}
-}
-
-func TestDetectConflictRemoteOnly(t *testing.T) {
-	local := []byte("content")
-	s := &State{Nodes: map[string]NodeState{
-		"BEN-1": {LocalHash: ComputeHash(local), RemoteHash: ComputeHash([]byte("old"))},
-	}}
-	if s.DetectConflict("BEN-1", local, []byte("new")) != ConflictRemoteOnly {
-		t.Error("expected ConflictRemoteOnly")
-	}
-}
-
-func TestDetectConflictBoth(t *testing.T) {
-	s := &State{Nodes: map[string]NodeState{
-		"BEN-1": {LocalHash: ComputeHash([]byte("old-local")), RemoteHash: ComputeHash([]byte("old-remote"))},
-	}}
-	if s.DetectConflict("BEN-1", []byte("new-local"), []byte("new-remote")) != ConflictBoth {
-		t.Error("expected ConflictBoth")
-	}
-}
-
-func TestDetectConflictNeverSynced(t *testing.T) {
-	s := &State{Nodes: make(map[string]NodeState)}
-	if s.DetectConflict("BEN-1", []byte("local"), []byte("remote")) != ConflictNone {
-		t.Error("expected ConflictNone for never-synced node")
 	}
 }
 

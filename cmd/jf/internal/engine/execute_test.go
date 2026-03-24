@@ -27,7 +27,9 @@ func (r *pushRecordingRunner) run(name string, args ...string) ([]byte, error) {
 			return nil, err
 		}
 		// Extract key from payload
-		var p struct{ Issues []string `json:"issues"` }
+		var p struct {
+			Issues []string `json:"issues"`
+		}
 		json.Unmarshal(payload, &p)
 		if len(p.Issues) > 0 && r.failKeys[p.Issues[0]] {
 			return nil, fmt.Errorf("mock push error for %s", p.Issues[0])
@@ -43,6 +45,11 @@ func (r *pushRecordingRunner) run(name string, args ...string) ([]byte, error) {
 		return nil, fmt.Errorf("mock: no view for %s", key)
 	}
 	return nil, fmt.Errorf("mock: unexpected %s %v", name, args)
+}
+
+// localHashOf computes the expected local hash from file content (with frontmatter).
+func localHashOf(content string) string {
+	return pipeline.ComputeLocalHash(pipeline.StripFrontmatter([]byte(content)))
 }
 
 func setupExecuteForest(t *testing.T, files map[string]string) string {
@@ -138,7 +145,8 @@ func TestExecuteNilStateSkipsRecord(t *testing.T) {
 
 	actions := []Action{
 		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
-			Kind: ActionPush, LocalContent: []byte("Content here"), LocalHash: "lh"},
+			Kind: ActionPush, LocalContent: []byte("Content here"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent here")},
 	}
 
 	// nil state — should not panic
@@ -167,11 +175,14 @@ func TestExecutePerNodeStateSave(t *testing.T) {
 
 	actions := []Action{
 		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
-			Kind: ActionPush, LocalContent: []byte("Content A"), LocalHash: "lh1"},
+			Kind: ActionPush, LocalContent: []byte("Content A"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent A")},
 		{Node: &forest.Node{Key: "KEY-2", File: "b.md", Label: "B"},
-			Kind: ActionPush, LocalContent: []byte("Content B"), LocalHash: "lh2"},
+			Kind: ActionPush, LocalContent: []byte("Content B"),
+			LocalHash: localHashOf("---\njira: KEY-2\n---\nContent B")},
 		{Node: &forest.Node{Key: "KEY-3", File: "c.md", Label: "C"},
-			Kind: ActionPush, LocalContent: []byte("Content C"), LocalHash: "lh3"},
+			Kind: ActionPush, LocalContent: []byte("Content C"),
+			LocalHash: localHashOf("---\njira: KEY-3\n---\nContent C")},
 	}
 
 	results, err := Execute(actions, p, state, dir)
@@ -230,11 +241,14 @@ func TestExecutePartialFailurePreservesState(t *testing.T) {
 
 	actions := []Action{
 		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
-			Kind: ActionPush, LocalContent: []byte("Content A"), LocalHash: "lh1"},
+			Kind: ActionPush, LocalContent: []byte("Content A"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent A")},
 		{Node: &forest.Node{Key: "KEY-2", File: "b.md", Label: "B"},
-			Kind: ActionPush, LocalContent: []byte("Content B"), LocalHash: "lh2"},
+			Kind: ActionPush, LocalContent: []byte("Content B"),
+			LocalHash: localHashOf("---\njira: KEY-2\n---\nContent B")},
 		{Node: &forest.Node{Key: "KEY-3", File: "c.md", Label: "C"},
-			Kind: ActionPush, LocalContent: []byte("Content C"), LocalHash: "lh3"},
+			Kind: ActionPush, LocalContent: []byte("Content C"),
+			LocalHash: localHashOf("---\njira: KEY-3\n---\nContent C")},
 	}
 
 	results, _ := Execute(actions, p, state, dir)
@@ -277,7 +291,8 @@ func TestExecuteStateSaveFailureReturnsError(t *testing.T) {
 
 	actions := []Action{
 		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
-			Kind: ActionPush, LocalContent: []byte("Content A"), LocalHash: "lh1"},
+			Kind: ActionPush, LocalContent: []byte("Content A"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent A")},
 	}
 
 	results, err := Execute(actions, p, state, dir)
@@ -287,6 +302,132 @@ func TestExecuteStateSaveFailureReturnsError(t *testing.T) {
 	// Mutation should still have succeeded
 	if !results[0].Success {
 		t.Errorf("push should succeed despite state save failure: %v", results[0].Error)
+	}
+}
+
+func TestExecutePushRecordsPostPushRemoteHash(t *testing.T) {
+	dir := setupExecuteForest(t, map[string]string{
+		"a.md": "---\njira: KEY-1\n---\nContent A",
+	})
+
+	// The post-push ADF differs from the pre-push ADF.
+	// This simulates: pre-push remote was old content, after push Jira has new ADF.
+	prePushADF := `{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":"old"}]}]}`
+	postPushADF := `{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":"Content A"}]}]}`
+
+	runner := &pushRecordingRunner{
+		viewResp: map[string][]byte{
+			"KEY-1": []byte(fmt.Sprintf(`{"fields":{"description":%s}}`, postPushADF)),
+		},
+	}
+	p := &pipeline.Pipeline{Run: runner.run}
+	state := &forest.State{Nodes: make(map[string]forest.NodeState)}
+
+	prePushHash := forest.ComputeHash([]byte(prePushADF))
+	postPushHash := forest.ComputeHash([]byte(postPushADF))
+
+	actions := []Action{
+		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
+			Kind: ActionPush, LocalContent: []byte("Content A"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent A"), RemoteHash: prePushHash},
+	}
+
+	results, err := Execute(actions, p, state, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !results[0].Success {
+		t.Fatalf("push should succeed: %v", results[0].Error)
+	}
+
+	// State should have the POST-push remote hash, not the pre-push one
+	ns := state.Nodes["KEY-1"]
+	if ns.RemoteHash == prePushHash {
+		t.Error("state recorded pre-push remote hash — should have re-read after push")
+	}
+	if ns.RemoteHash != postPushHash {
+		t.Errorf("state remote hash = %q, want post-push hash %q", ns.RemoteHash, postPushHash)
+	}
+}
+
+func TestExecutePushFallbackOnReReadFailure(t *testing.T) {
+	dir := setupExecuteForest(t, map[string]string{
+		"a.md": "---\njira: KEY-1\n---\nContent A",
+	})
+
+	// Runner succeeds for push (edit) but has no view response — simulates re-read failure
+	runner := &pushRecordingRunner{}
+	p := &pipeline.Pipeline{Run: runner.run}
+	state := &forest.State{Nodes: make(map[string]forest.NodeState)}
+
+	actions := []Action{
+		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},
+			Kind: ActionPush, LocalContent: []byte("Content A"),
+			LocalHash: localHashOf("---\njira: KEY-1\n---\nContent A"), RemoteHash: "old-remote-hash"},
+	}
+
+	results, err := Execute(actions, p, state, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !results[0].Success {
+		t.Fatalf("push should succeed despite re-read failure: %v", results[0].Error)
+	}
+
+	// State should NOT have the pre-push hash if the fallback worked.
+	// The fallback extracts ADF from the compiled payload — so the hash should
+	// differ from "old-remote-hash" (the pre-push hash).
+	ns := state.Nodes["KEY-1"]
+	if ns.RemoteHash == "old-remote-hash" {
+		t.Error("state recorded pre-push remote hash — fallback should have used compiled ADF hash")
+	}
+	if ns.RemoteHash == "" {
+		t.Error("state remote hash should not be empty")
+	}
+}
+
+func TestFetchRemoteHashInternal(t *testing.T) {
+	adfContent := `{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":"hello"}]}]}`
+	mock := &mockRunner{
+		responses: map[string][]byte{
+			"KEY-1": makeViewJSON(adfContent),
+			"KEY-2": makeViewJSON(""), // null description
+		},
+		errors: map[string]error{
+			"KEY-3": fmt.Errorf("connection refused"),
+		},
+	}
+	p := &pipeline.Pipeline{Run: mock.run}
+
+	// Successful fetch
+	adf, hash, err := fetchRemoteHash("KEY-1", p)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if adf == nil {
+		t.Error("expected non-nil ADF")
+	}
+	expectedHash := forest.ComputeHash([]byte(adfContent))
+	if hash != expectedHash {
+		t.Errorf("hash = %q, want %q", hash, expectedHash)
+	}
+
+	// Null description
+	adf2, hash2, err2 := fetchRemoteHash("KEY-2", p)
+	if err2 != nil {
+		t.Fatalf("unexpected error for null desc: %v", err2)
+	}
+	if adf2 != nil {
+		t.Error("expected nil ADF for null description")
+	}
+	if hash2 != "" {
+		t.Errorf("expected empty hash for null desc, got %q", hash2)
+	}
+
+	// Error
+	_, _, err3 := fetchRemoteHash("KEY-3", p)
+	if err3 == nil {
+		t.Error("expected error for KEY-3")
 	}
 }
 
@@ -309,6 +450,37 @@ func TestOverridePromptPerBlockReason(t *testing.T) {
 		if !strings.Contains(prompt, tt.contains) {
 			t.Errorf("block %v prompt missing %q:\n  got: %s", tt.block, tt.contains, prompt)
 		}
+	}
+}
+
+func TestSimpleDiff(t *testing.T) {
+	tests := []struct {
+		name string
+		from []string
+		to   []string
+		want []string
+	}{
+		{"identical", []string{"a", "b"}, []string{"a", "b"}, []string{" a", " b"}},
+		{"addition", []string{"a"}, []string{"a", "b"}, []string{" a", "+b"}},
+		{"deletion", []string{"a", "b"}, []string{"a"}, []string{" a", "-b"}},
+		{"change", []string{"a", "old", "c"}, []string{"a", "new", "c"}, []string{" a", "-old", "+new", " c"}},
+		{"empty_from", []string{}, []string{"a"}, []string{"+a"}},
+		{"empty_to", []string{"a"}, []string{}, []string{"-a"}},
+		{"both_empty", []string{}, []string{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SimpleDiff(tt.from, tt.to)
+			if len(got) != len(tt.want) {
+				t.Fatalf("SimpleDiff len=%d, want %d\n  got:  %v\n  want: %v", len(got), len(tt.want), got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("line %d: got %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
 	}
 }
 
@@ -339,4 +511,3 @@ func TestPromoteAction(t *testing.T) {
 		})
 	}
 }
-

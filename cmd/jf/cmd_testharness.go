@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
@@ -106,6 +108,7 @@ Subcommands:
   setup                 Generate test forest (Phase 1: local files)
   setup --seed-baselines Fetch remote hashes and seed state.json (Phase 2: Jira read)
   run [track]           Validate plan output against expected actions (Jira read)
+                        Results are always appended to .test-report.md
   run --execute         Full mutation round-trip (Jira write — after Track 3 only)
   reset                 Restore test forest to baseline (Jira read for re-seeding)
   teardown              Remove test forest and print Jira cleanup instructions
@@ -324,7 +327,7 @@ func runTestSeedBaselines(dir string) int {
 			return dendrik.ExitUserError
 		}
 		localContent := pipeline.StripFrontmatter(content)
-		currentLocalHash := forest.ComputeHash(localContent)
+		currentLocalHash := pipeline.ComputeLocalHash(localContent)
 
 		// Fetch current remote hash from Jira
 		remoteHash, err := fetchRemoteHash(key)
@@ -412,8 +415,24 @@ func abbrevHash(h string) string {
 	return h
 }
 
+// reportEntry captures one per-node validation result for the report.
+type reportEntry struct {
+	Node     string
+	Expected string
+	Got      string
+	Pass     bool
+}
+
+func formatAction(kind, block string) string {
+	if block != "" {
+		return kind + "(" + block + ")"
+	}
+	return kind
+}
+
 // runTestRun validates plan output against expected actions.
 // Hits Jira (read-only) to build the plan. Requires human oversight.
+// Always appends results to .test-report.md in the test forest directory.
 func runTestRun(args []string) int {
 	fs := dendrik.NewFlagSet("test run")
 	dir := fs.StringLong("dir", defaultTestDir(), "Test forest directory")
@@ -446,53 +465,201 @@ func runTestRun(args []string) int {
 	fmt.Println("WARNING: This command makes Jira API calls. Use with human oversight.")
 	fmt.Println()
 
-	// Pre-Track 2: report available vs deferred checks
 	fmt.Printf("Track filter: %s\n", displayTrack(track))
 	fmt.Printf("Test forest: %s\n", *dir)
 	fmt.Printf("Nodes: %d defined, %d need tickets\n", len(testNodes), countTicketNodes())
 	fmt.Println()
 
-	// Report check availability per track
-	checks := []struct {
-		track string
-		desc  string
-		ready bool
-	}{
-		{"0", "Forest structure and node definitions", true},
-		{"1", "Emptiness guards, --force removal, sync:both filter", false},
-		{"2", "Engine Plan output matches all 13 expected actions", false},
-		{"3", "Full pipeline plan display, batch gate behavior", false},
-		{"4", "Grep checks (no p.Push outside engine)", false},
-	}
+	var entries []reportEntry
+	runResolve := *resolve
+	exitCode := dendrik.ExitOK
 
-	available := 0
-	deferred := 0
-	for _, c := range checks {
-		if track != "" && c.track != track {
-			continue
-		}
-		if c.ready {
-			fmt.Printf("  ✓ Track %s: %s\n", c.track, c.desc)
-			available++
-		} else {
-			fmt.Printf("  ○ Track %s: %s (deferred — engine not yet built)\n", c.track, c.desc)
-			deferred++
-		}
-	}
-
-	fmt.Println()
-	fmt.Printf("Available: %d | Deferred: %d\n", available, deferred)
-
-	// Track 0 validation: check that the forest is parseable
+	// Track 0 validation: forest structure
 	if track == "" || track == "0" {
-		fmt.Println()
 		fmt.Println("── Track 0: Structure ──")
 		code := validateTrack0(cfg)
 		if code != dendrik.ExitOK {
-			return code
+			exitCode = code
 		}
 	}
 
+	// Tracks 2-3: engine validation (requires Jira read)
+	if exitCode == dendrik.ExitOK && (track == "2" || track == "3" || track == "") {
+		fmt.Println()
+		fmt.Printf("── Track %s: Engine Plan ──\n", displayTrack(track))
+		var code int
+		entries, code = validateEnginePlan(cfg, runResolve)
+		if code != dendrik.ExitOK {
+			exitCode = code
+		}
+	}
+
+	// Track 4: grep checks
+	if exitCode == dendrik.ExitOK && (track == "4" || track == "") {
+		fmt.Println()
+		fmt.Println("── Track 4: Grep checks ──")
+		code := validateGrepChecks()
+		if code != dendrik.ExitOK {
+			exitCode = code
+		}
+	}
+
+	// Always write report
+	if err := appendReport(cfg.Dir, track, runResolve, entries, exitCode); err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ report write failed: %s\n", err)
+	}
+
+	if exitCode == dendrik.ExitOK {
+		fmt.Println()
+		fmt.Println("✓ All checks passed")
+	}
+	return exitCode
+}
+
+// validateEnginePlan runs engine Read → Plan on the test forest and compares
+// each action against the expected WantKind/WantBlock from testNodes.
+// Returns per-node report entries alongside the exit code.
+func validateEnginePlan(cfg *testConfig, resolve string) ([]reportEntry, int) {
+	f, roots, err := loadForest(cfg.Dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "✗ loadForest: %s\n", err)
+		return nil, dendrik.ExitUserError
+	}
+
+	state, stateErr := forest.LoadState(f.Dir)
+	if stateErr != nil {
+		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
+	}
+
+	all := forest.Flatten(roots)
+	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
+
+	fmt.Printf("Reading %d nodes (Jira API calls)...\n", len(all))
+	readings, err := engine.Read(all, p, state, f.Dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "✗ engine.Read: %s\n", err)
+		return nil, dendrik.ExitExternalErr
+	}
+
+	opts := engine.PlanOpts{Direction: "both", Resolve: resolve}
+	plan := engine.Plan(readings, opts)
+
+	fmt.Printf("Plan generated: %d actions\n\n", len(plan))
+
+	// Build expected map: filename stem -> testNode
+	expected := make(map[string]testNode)
+	for _, tn := range testNodes {
+		expected[tn.Name] = tn
+	}
+
+	var entries []reportEntry
+	passed := 0
+	failed := 0
+	for _, a := range plan {
+		// Extract stem from file (e.g., "empty-push.md" -> "empty-push")
+		stem := strings.TrimSuffix(a.Node.File, ".md")
+
+		tn, ok := expected[stem]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "  ? %s: no expected definition\n", a.Node.File)
+			entries = append(entries, reportEntry{Node: stem, Expected: "?", Got: "unknown", Pass: false})
+			failed++
+			continue
+		}
+
+		wantKind := tn.WantKind
+		wantBlock := tn.WantBlock
+
+		// --resolve changes conflict expectation
+		if resolve == "local" && tn.Name == "conflict" {
+			wantKind = "push"
+			wantBlock = ""
+		} else if resolve == "remote" && tn.Name == "conflict" {
+			wantKind = "pull"
+			wantBlock = ""
+		}
+
+		gotKind := a.Kind.String()
+		gotBlock := a.Block.String()
+
+		kindMatch := gotKind == wantKind
+		blockMatch := gotBlock == wantBlock
+		pass := kindMatch && blockMatch
+
+		entries = append(entries, reportEntry{
+			Node:     stem,
+			Expected: formatAction(wantKind, wantBlock),
+			Got:      formatAction(gotKind, gotBlock),
+			Pass:     pass,
+		})
+
+		if pass {
+			fmt.Printf("  ✓ %-25s %s", stem, gotKind)
+			if gotBlock != "" {
+				fmt.Printf("(%s)", gotBlock)
+			}
+			fmt.Println()
+			passed++
+		} else {
+			fmt.Fprintf(os.Stderr, "  ✗ %-25s got %s", stem, gotKind)
+			if gotBlock != "" {
+				fmt.Fprintf(os.Stderr, "(%s)", gotBlock)
+			}
+			fmt.Fprintf(os.Stderr, ", want %s", wantKind)
+			if wantBlock != "" {
+				fmt.Fprintf(os.Stderr, "(%s)", wantBlock)
+			}
+			fmt.Fprintln(os.Stderr)
+			failed++
+		}
+	}
+
+	fmt.Printf("\nResults: %d passed, %d failed (of %d total)\n", passed, failed, len(plan))
+
+	if failed > 0 {
+		return entries, dendrik.ExitUserError
+	}
+	return entries, dendrik.ExitOK
+}
+
+// validateGrepChecks verifies no p.Push calls remain in cmd_*.go files.
+func validateGrepChecks() int {
+	// Check for p.Push in cmd_*.go files
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		// Try from the jf directory
+		entries, err = os.ReadDir(filepath.Join(os.Getenv("HOME"), ".dotfiles", "cmd", "jf"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "✗ cannot read cmd directory: %s\n", err)
+			return dendrik.ExitUserError
+		}
+	}
+
+	violations := 0
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "cmd_") || !strings.HasSuffix(name, ".go") {
+			continue
+		}
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		content, err := os.ReadFile(name)
+		if err != nil {
+			continue
+		}
+		if strings.Contains(string(content), "p.Push(") {
+			fmt.Fprintf(os.Stderr, "  ✗ %s: contains p.Push() call\n", name)
+			violations++
+		}
+	}
+
+	if violations > 0 {
+		fmt.Fprintf(os.Stderr, "✗ %d cmd_*.go file(s) still have p.Push() calls\n", violations)
+		return dendrik.ExitUserError
+	}
+
+	fmt.Println("  ✓ No p.Push() calls in cmd_*.go files")
 	return dendrik.ExitOK
 }
 
@@ -549,6 +716,64 @@ func defaultTestDir() string {
 		return ""
 	}
 	return filepath.Join(home, ".jf", "test", "safe-sync")
+}
+
+// appendReport appends a timestamped validation result to .test-report.md.
+func appendReport(dir, track, resolve string, entries []reportEntry, exitCode int) error {
+	path := filepath.Join(dir, ".test-report.md")
+
+	var sb strings.Builder
+
+	// Header
+	ts := time.Now().Format("2006-01-02T15:04:05")
+	outcome := "PASS"
+	if exitCode != dendrik.ExitOK {
+		outcome = "FAIL"
+	}
+	sb.WriteString(fmt.Sprintf("## %s — Track %s — %s\n\n", ts, displayTrack(track), outcome))
+
+	if resolve != "" {
+		sb.WriteString(fmt.Sprintf("Resolve: `%s`\n\n", resolve))
+	}
+
+	// Per-node table (only if engine plan ran)
+	if len(entries) > 0 {
+		passed := 0
+		failed := 0
+		for _, e := range entries {
+			if e.Pass {
+				passed++
+			} else {
+				failed++
+			}
+		}
+		sb.WriteString(fmt.Sprintf("%d passed, %d failed (%d total)\n\n", passed, failed, len(entries)))
+
+		sb.WriteString("| Node | Expected | Got | |\n")
+		sb.WriteString("|------|----------|-----|---|\n")
+		for _, e := range entries {
+			mark := "✓"
+			if !e.Pass {
+				mark = "✗"
+			}
+			sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n", e.Node, e.Expected, e.Got, mark))
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("---\n\n")
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(sb.String())
+	if err == nil {
+		fmt.Printf("Report appended to %s\n", path)
+	}
+	return err
 }
 
 // runTestReset restores the test forest to its baseline state.
