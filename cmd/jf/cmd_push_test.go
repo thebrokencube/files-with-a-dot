@@ -19,7 +19,7 @@ func TestPushSingleFileNotFound(t *testing.T) {
 
 func TestPushForestNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := pushForest(dir, nil, "", false, false, false, false)
+	code := pushForest(filepath.Join(dir, ".jf"), nil, "", false, false, false, false)
 	if code != dendrik.ExitUserError {
 		t.Fatalf("expected exit %d for missing forest, got %d", dendrik.ExitUserError, code)
 	}
@@ -27,10 +27,11 @@ func TestPushForestNoForest(t *testing.T) {
 
 func TestPushForestSubtreeNotFound(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
-	code := pushForest(dir, nil, "NONEXISTENT", false, false, false, false)
+	code := pushForest(filepath.Join(dir, ".jf"), nil, "NONEXISTENT", false, false, false, false)
 	if code != dendrik.ExitUserError {
 		t.Fatalf("expected exit %d for missing subtree target, got %d", dendrik.ExitUserError, code)
 	}
@@ -38,10 +39,11 @@ func TestPushForestSubtreeNotFound(t *testing.T) {
 
 func TestPushForestTBDSkipped(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TBD\n---\n# TBD Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TBD\n---\n# TBD Task\n"), 0644)
 
-	code := pushForest(dir, nil, "", false, false, false, false)
+	code := pushForest(filepath.Join(dir, ".jf"), nil, "", false, false, false, false)
 	if code != dendrik.ExitOK {
 		t.Fatalf("expected exit 0 (no pushable nodes), got %d", code)
 	}
@@ -77,11 +79,12 @@ func TestPushEmptyContentBlocked(t *testing.T) {
 
 func TestPushForestEmptyContentBlocked(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TEST-1\n---\n"), 0644)
 
 	// Empty content gets blocked by engine plan; dry-run shows plan and exits OK
-	code := pushForest(dir, nil, "", false, true, false, false)
+	code := pushForest(filepath.Join(dir, ".jf"), nil, "", false, true, false, false)
 	if code != dendrik.ExitOK {
 		t.Fatalf("expected exit 0 for dry-run with empty content, got %d", code)
 	}

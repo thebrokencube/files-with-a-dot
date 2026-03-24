@@ -121,9 +121,10 @@ func TestIsTBDLine(t *testing.T) {
 func TestRunCreateMissingDryRun(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# New Epic\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TBD\ntype: Task\n---\n# New Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# New Epic\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TBD\ntype: Task\n---\n# New Task\n"), 0644)
 
 	code := runCreateMissing([]string{"--dir", dir, "--dry-run"})
 	if code != 0 {
@@ -134,8 +135,9 @@ func TestRunCreateMissingDryRun(t *testing.T) {
 func TestRunCreateMissingNoTBD(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Existing\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Existing\n"), 0644)
 
 	code := runCreateMissing([]string{"--dir", dir, "--dry-run"})
 	if code != 0 {

@@ -106,17 +106,19 @@ Clone:
 jf clone <INITIATIVE_KEY> --dir ~/.jf/test/<test-name>
 ```
 
-Expected directory structure (`slugify` strips the `[jf Test]` bracket prefix, then lowercases and hyphenates):
+Expected directory structure:
 ```
-~/.jf/test/<test-name>/multi-level/
-├── forest.yml
-├── README.md                          ← initiative (root)
-├── child-project/
-│   ├── README.md                      ← project name (has children → directory)
-│   └── child-epic/
-│       ├── README.md                  ← epic (has children → directory)
-│       ├── PROJ-1003.md             ← leaf story A
-│       └── PROJ-1004.md             ← leaf story B
+~/.jf/test/<test-name>/
+├── .jf/                                ← forest root
+│   ├── forest.yml
+│   ├── state.json
+│   ├── README.md                       ← initiative (root)
+│   ├── child-project/
+│   │   ├── README.md                   ← project name (has children → directory)
+│   │   └── child-epic/
+│   │       ├── README.md               ← epic (has children → directory)
+│   │       ├── PROJ-1003.md            ← leaf story A
+│   │       └── PROJ-1004.md            ← leaf story B
 ```
 
 Verify:
@@ -136,17 +138,17 @@ jf clone <INITIATIVE_KEY> --dir ~/.jf/test/<test-name>-shallow --depth 1
 
 ### Step 2: Clone
 
-`jf clone` creates a subdirectory named by slugifying the root ticket's summary. Slugify strips any leading `[bracket prefix]`, lowercases, and replaces non-alphanumeric runs with hyphens (e.g., `[jf Test] derived-sync` → `derived-sync/`). The `--dir` flag sets the parent directory where this subdirectory is created.
+`jf clone` creates a `.jf/` subdirectory inside the `--dir` target. All forest content (forest.yml, state.json, .md node files) lives inside `.jf/`. The `--dir` flag sets the working directory (parent of `.jf/`).
 
 ```bash
 jf clone <EPIC_KEY> --dir ~/.jf/test/<test-name>
 ```
 
-The forest root (containing `forest.yml`) is at `~/.jf/test/<test-name>/<slugified-summary>/`. Use this path for all subsequent `--dir` flags (`status`, `sync`, etc. expect the forest root, not the parent).
+The forest root is at `~/.jf/test/<test-name>/.jf/`. All subsequent commands (`status`, `sync`, etc.) accept `--dir ~/.jf/test/<test-name>` — they find `.jf/forest.yml` automatically.
 
-Verify scaffolded output:
-- [ ] No `sync:` in any frontmatter (check each .md file's YAML block)
-- [ ] No `defaults.sync` in forest.yml
+Verify scaffolded output (files inside `.jf/`):
+- [ ] No `sync:` in any frontmatter (check each .jf/*.md file's YAML block)
+- [ ] No `defaults.sync` in .jf/forest.yml
 - [ ] Descriptions pulled for children with remote content (clean, table children have body text)
 - [ ] Children with empty descriptions have frontmatter only (codeblock, nested-list, empty)
 
@@ -154,7 +156,7 @@ With explicit override (for testing override path):
 ```bash
 jf clone <EPIC_KEY> --dir ~/.jf/test/<test-name>-pull --sync pull
 ```
-- [ ] `sync: pull` appears in all frontmatter and forest.yml
+- [ ] `sync: pull` appears in all frontmatter and .jf/forest.yml
 
 ### Step 3: Write Test Content
 
@@ -188,10 +190,10 @@ Leave the "empty" node untouched (no content below frontmatter).
 
 ### Step 4: Validate
 
-Use the forest root path from Step 2:
+Use the working directory from Step 2:
 
 ```bash
-jf status --dir ~/.jf/test/<test-name>/<slugified-summary>
+jf status --dir ~/.jf/test/<test-name>
 ```
 Expected output pattern:
 ```
@@ -202,7 +204,7 @@ Effective direction:
 ```
 
 ```bash
-jf sync --dry-run --dir ~/.jf/test/<test-name>/<slugified-summary>
+jf sync --dry-run --dir ~/.jf/test/<test-name>
 ```
 Verify:
 - Mutable nodes with local changes → PUSH
@@ -224,8 +226,8 @@ Jira tickets can be parked via the `/jf` skill's park workflow (see lifecycle.md
 When a forest gets into an awkward state (broken baselines, stale state.json, corrupted frontmatter), the fastest recovery is:
 
 1. Note the root key: check `forest.yml` or the root README.md frontmatter
-2. Delete the local forest directory
-3. Re-clone: `jf clone <ROOT_KEY> --dir <parent-dir>`
+2. Delete the `.jf/` directory (or the whole working directory)
+3. Re-clone: `jf clone <ROOT_KEY> --dir <working-dir>`
 4. Clone pulls all descriptions fresh and establishes clean baselines
 
 This works because Jira is the source of truth for remote content, and clone re-scaffolds everything from the hierarchy. Local-only content that hasn't been pushed is lost — push first if needed.

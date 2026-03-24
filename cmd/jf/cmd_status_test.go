@@ -12,16 +12,17 @@ func TestRunStatus(t *testing.T) {
 	dir := t.TempDir()
 
 	// forest.yml
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
 	// push node (will be stale — no state recorded)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
 	// pull node
-	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
 
 	// TBD node
-	os.WriteFile(filepath.Join(dir, "task-c.md"), []byte("---\njira: TBD\n---\n# Task C\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-c.md"), []byte("---\njira: TBD\n---\n# Task C\n"), 0644)
 
 	code := runStatus([]string{"--dir", dir})
 	if code != 0 {
@@ -32,9 +33,10 @@ func TestRunStatus(t *testing.T) {
 func TestRunStatusWithState(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\n---\n# Task B\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TEST-2\n---\n# Task B\n"), 0644)
 
 	// Record push for TEST-1 in the future so it's not stale
 	jfDir := filepath.Join(dir, ".jf")
@@ -58,8 +60,9 @@ func TestRunStatusWithState(t *testing.T) {
 
 func TestRunStatusCorruptState(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
 	// Write corrupt state — should degrade gracefully
 	jfDir := filepath.Join(dir, ".jf")
@@ -74,8 +77,9 @@ func TestRunStatusCorruptState(t *testing.T) {
 
 func TestRunStatusJSON(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()

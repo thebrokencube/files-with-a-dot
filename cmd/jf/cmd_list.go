@@ -45,7 +45,7 @@ func runList(args []string) int {
 		if n.Sync == "pull" {
 			sync = "pull"
 		}
-		fmt.Printf("%-12s %-5s %s\n", n.Key, sync, n.File)
+		fmt.Printf("%-12s %-5s %s\n", n.Key, sync, displayPath(n.File))
 	}
 	return dendrik.ExitOK
 }
@@ -60,7 +60,7 @@ func nodeToInfo(n *forest.Node) output.NodeInfo {
 		Label:    n.Label,
 		Type:     n.Type,
 		Sync:     n.Sync,
-		File:     n.File,
+		File:     displayPath(n.File),
 		Parent:   parent,
 		Children: len(n.Children),
 	}

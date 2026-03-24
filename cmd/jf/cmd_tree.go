@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/output"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -42,7 +43,7 @@ func runTree(args []string) int {
 	}
 
 	// Print header
-	fmt.Printf("Forest: %s (%d nodes)\n\n", f.Dir, len(forest.Flatten(roots)))
+	fmt.Printf("Forest: %s (%d nodes)\n\n", filepath.Dir(f.Dir), len(forest.Flatten(roots)))
 
 	printTree(roots, "", *verbose)
 	return dendrik.ExitOK
@@ -63,7 +64,7 @@ func printTree(nodes []*forest.Node, indent string, verbose bool) {
 			if n.Sync == "pull" {
 				syncIcon = "↓"
 			}
-			line = fmt.Sprintf("%s%s %s  %-20s %s  (%s)", indent, connector, syncIcon, n.Key, n.Label, n.File)
+			line = fmt.Sprintf("%s%s %s  %-20s %s  (%s)", indent, connector, syncIcon, n.Key, n.Label, displayPath(n.File))
 		} else {
 			line = fmt.Sprintf("%s%s %-12s %s", indent, connector, n.Key, n.Label)
 		}

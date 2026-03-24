@@ -59,7 +59,7 @@ func runShow(args []string) int {
 	fmt.Printf("Label:    %s\n", node.Label)
 	fmt.Printf("Type:     %s\n", node.Type)
 	fmt.Printf("Sync:     %s\n", syncDisplay(node.Sync))
-	fmt.Printf("File:     %s\n", node.File)
+	fmt.Printf("File:     %s\n", displayPath(node.File))
 	fmt.Printf("Parent:   %s\n", parentStr)
 	fmt.Printf("Children: %d\n", len(node.Children))
 	fmt.Printf("Status:   %s\n", staleStr)

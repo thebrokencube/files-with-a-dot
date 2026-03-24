@@ -154,7 +154,7 @@ func runStatus(args []string) int {
 	// (old code counted all non-pull nodes as push)
 	if *jsonOut {
 		dendrik.WriteResult(os.Stdout, output.StatusResult{
-			Forest:    f.Dir,
+			Forest:    filepath.Dir(f.Dir),
 			Total:     len(all),
 			TBD:       tbdTotal,
 			PushTotal: pushPullCount + pushOnlyCount + emptyCount,
@@ -168,7 +168,7 @@ func runStatus(args []string) int {
 		return dendrik.ExitOK
 	}
 
-	fmt.Printf("Forest: %s\n", f.Dir)
+	fmt.Printf("Forest: %s\n", filepath.Dir(f.Dir))
 	fmt.Printf("Nodes:  %d total", len(all))
 	if tbdTotal > 0 {
 		fmt.Printf(" (%d TBD)", tbdTotal)

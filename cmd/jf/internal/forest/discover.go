@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// FindForest walks up from startDir looking for forest.yml.
-// Returns parsed Forest or nil if not found.
+// FindForest walks up from startDir looking for .jf/forest.yml.
+// Returns parsed Forest with Dir set to the .jf/ directory, or nil if not found.
 func FindForest(startDir string) (*Forest, error) {
 	dir, err := filepath.Abs(startDir)
 	if err != nil {
@@ -17,7 +17,7 @@ func FindForest(startDir string) (*Forest, error) {
 	}
 
 	for {
-		path := filepath.Join(dir, "forest.yml")
+		path := filepath.Join(dir, ".jf", "forest.yml")
 		if _, err := os.Stat(path); err == nil {
 			return ParseForestFile(path)
 		}
@@ -53,10 +53,11 @@ func Discover(forest *Forest) ([]*Node, error) {
 			return err
 		}
 
-		// Skip hidden directories (e.g., .jf/, .git/).
+		// Skip hidden directories (e.g., .git/) but not the forest root itself.
+		// The forest root may be .jf/ (hidden), so we allow it as the walk root.
 		// Hidden *files* (e.g., .secret.md) are intentionally discovered
 		// if they have jira: frontmatter — only directories are skipped.
-		if info.IsDir() && strings.HasPrefix(info.Name(), ".") {
+		if info.IsDir() && strings.HasPrefix(info.Name(), ".") && path != forest.Dir {
 			return filepath.SkipDir
 		}
 		if info.IsDir() {

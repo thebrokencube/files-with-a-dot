@@ -10,10 +10,11 @@ import (
 
 func TestRunTree(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Root Epic\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "sub"), 0755)
-	os.WriteFile(filepath.Join(dir, "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Root Epic\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "sub"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -53,9 +54,10 @@ func TestRunTreeNoForest(t *testing.T) {
 
 func TestRunTreeJSON(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -84,9 +86,10 @@ func TestRunTreeJSON(t *testing.T) {
 
 func TestRunTreeVerbose(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Task B\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -116,7 +119,8 @@ func TestRunTreeVerbose(t *testing.T) {
 
 func TestRunTreeEmpty(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
 	code := runTree([]string{"--dir", dir})
 	if code != 0 {

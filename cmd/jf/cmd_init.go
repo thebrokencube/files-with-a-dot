@@ -19,18 +19,24 @@ defaults:
 func runInit(args []string) int {
 	fs := dendrik.NewFlagSet("init")
 	project := fs.String('p', "project", "BEN", "Jira project key")
-	dir := fs.String('d', "dir", ".", "Directory to create forest.yml in")
+	dir := fs.String('d', "dir", ".", "Directory to create .jf/forest.yml in")
 
 	if err := dendrik.Parse(fs, args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
 
-	path := filepath.Join(*dir, "forest.yml")
+	jfDir := filepath.Join(*dir, ".jf")
+	path := filepath.Join(jfDir, "forest.yml")
 
 	if _, err := os.Stat(path); err == nil {
-		fmt.Printf("⚠ forest.yml already exists at %s\n", path)
+		fmt.Printf("⚠ .jf/forest.yml already exists at %s\n", path)
 		return dendrik.ExitOK
+	}
+
+	if err := os.MkdirAll(jfDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "✗ Failed to create .jf/ directory: %s\n", err)
+		return dendrik.ExitUserError
 	}
 
 	content := fmt.Sprintf(defaultForestYml, *project)
@@ -39,6 +45,6 @@ func runInit(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	fmt.Printf("✓ Created forest.yml (project: %s)\n", *project)
+	fmt.Printf("✓ Created .jf/forest.yml (project: %s)\n", *project)
 	return dendrik.ExitOK
 }

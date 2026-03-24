@@ -9,8 +9,9 @@ import (
 func TestRunShow(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# My Epic\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# My Epic\n"), 0644)
 
 	// By key
 	code := runShow([]string{"--dir", dir, "TEST-1"})
@@ -28,8 +29,9 @@ func TestRunShow(t *testing.T) {
 func TestRunShowNotFound(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
 	code := runShow([]string{"--dir", dir, "NONEXISTENT"})
 	if code != 1 {
@@ -47,10 +49,11 @@ func TestRunShowNoTarget(t *testing.T) {
 func TestRunShowWithChildren(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Parent\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "sub"), 0755)
-	os.WriteFile(filepath.Join(dir, "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Parent\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "sub"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
 
 	// Show parent — should have 1 child
 	code := runShow([]string{"--dir", dir, "TEST-1"})
@@ -62,8 +65,9 @@ func TestRunShowWithChildren(t *testing.T) {
 func TestRunShowPullNode(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "pulled.md"), []byte("---\njira: TEST-5\nsync: pull\n---\n# Pulled\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "pulled.md"), []byte("---\njira: TEST-5\nsync: pull\n---\n# Pulled\n"), 0644)
 
 	code := runShow([]string{"--dir", dir, "TEST-5"})
 	if code != 0 {
@@ -74,10 +78,11 @@ func TestRunShowPullNode(t *testing.T) {
 func TestRunShowOutputFormat(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Parent Epic\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "sub"), 0755)
-	os.WriteFile(filepath.Join(dir, "sub", "child.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Child Story\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "README.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# Parent Epic\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "sub"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "sub", "child.md"), []byte("---\njira: TEST-2\nsync: pull\n---\n# Child Story\n"), 0644)
 
 	// Capture stdout
 	old := os.Stdout
@@ -103,7 +108,7 @@ func TestRunShowOutputFormat(t *testing.T) {
 		"Label:    Parent Epic",
 		"Type:     Epic",
 		"Sync:     push",
-		"File:     README.md",
+		"File:     .jf/README.md",
 		"Parent:   (root)",
 		"Children: 1",
 		"Status:   stale",
@@ -116,8 +121,9 @@ func TestRunShowOutputFormat(t *testing.T) {
 
 func TestRunShowTBDNode(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "tbd.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# Upcoming\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "tbd.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# Upcoming\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()

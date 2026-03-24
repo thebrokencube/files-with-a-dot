@@ -55,16 +55,17 @@ func localHashOf(content string) string {
 func setupExecuteForest(t *testing.T, files map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
-	// Create .jf directory for state
-	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	// Forest root is .jf/ inside the working directory
+	jfDir := filepath.Join(dir, ".jf")
+	os.MkdirAll(jfDir, 0755)
 	for name, content := range files {
-		path := filepath.Join(dir, name)
+		path := filepath.Join(jfDir, name)
 		os.MkdirAll(filepath.Dir(path), 0755)
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	return dir
+	return jfDir
 }
 
 func TestExecuteSkipAction(t *testing.T) {
@@ -201,8 +202,8 @@ func TestExecutePerNodeStateSave(t *testing.T) {
 		t.Errorf("expected 3 state entries, got %d", len(state.Nodes))
 	}
 
-	// Verify state.json exists on disk
-	statePath := filepath.Join(dir, ".jf", "state.json")
+	// Verify state.json exists on disk (inside the .jf/ forest dir)
+	statePath := filepath.Join(dir, "state.json")
 	data, err := os.ReadFile(statePath)
 	if err != nil {
 		t.Fatal(err)
@@ -284,10 +285,9 @@ func TestExecuteStateSaveFailureReturnsError(t *testing.T) {
 	p := &pipeline.Pipeline{Run: runner.run}
 	state := &forest.State{Nodes: make(map[string]forest.NodeState)}
 
-	// Make .jf directory read-only so SaveState fails
-	jfDir := filepath.Join(dir, ".jf")
-	os.Chmod(jfDir, 0444)
-	defer os.Chmod(jfDir, 0755)
+	// Make forest directory non-writable so SaveState fails (but files still readable)
+	os.Chmod(dir, 0555)
+	defer os.Chmod(dir, 0755)
 
 	actions := []Action{
 		{Node: &forest.Node{Key: "KEY-1", File: "a.md", Label: "A"},

@@ -10,8 +10,9 @@ import (
 
 func TestRunValidate(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -45,10 +46,11 @@ func TestRunValidateNoForest(t *testing.T) {
 
 func TestRunValidateWithErrors(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	// Duplicate keys
-	os.WriteFile(filepath.Join(dir, "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "b.md"), []byte("---\njira: TEST-1\n---\n# B\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "b.md"), []byte("---\njira: TEST-1\n---\n# B\n"), 0644)
 
 	code := runValidate([]string{"--dir", dir})
 	if code != 1 {
@@ -58,8 +60,9 @@ func TestRunValidateWithErrors(t *testing.T) {
 
 func TestRunValidateJSON(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()

@@ -53,7 +53,14 @@ func runClone(args []string) int {
 	total := countNodes(tree)
 	fmt.Printf("Found %d total nodes\n\n", total)
 
-	forestDir := filepath.Join(*dir, slugify(root.Summary))
+	forestDir := filepath.Join(*dir, ".jf")
+
+	// Safety: refuse to overwrite existing forest
+	if _, err := os.Stat(filepath.Join(forestDir, "forest.yml")); err == nil {
+		fmt.Fprintf(os.Stderr, "✗ .jf/forest.yml already exists in %s\n  Remove .jf/ first or use a different --dir\n", *dir)
+		return dendrik.ExitUserError
+	}
+
 	if err := scaffoldTree(forestDir, tree, "", *syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ scaffold error: %s\n", err)
 		return dendrik.ExitUserError

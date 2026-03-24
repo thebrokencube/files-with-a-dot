@@ -38,10 +38,10 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `cmd_show.go` | `runShow()` — Single-node detail view with state. Includes `nodeStatus()` for stale/clean/unknown and `syncDisplay()`. |
 | `cmd_status.go` | `runStatus()` — Forest-wide summary with effective derived direction (push+pull, pull-only, push-only, empty) and staleness counts. |
 | `cmd_validate.go` | `runValidate()` — Runs `forest.Validate()` and reports issues as text or JSON. |
-| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. `--sync` omitted by default (derives from mutability); explicit `--sync push\|pull\|both` overrides. Records state baseline after pulling. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `cloneFrontmatter()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
+| `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy into `.jf/` subdirectory of `--dir`. `--sync` omitted by default (derives from mutability); explicit `--sync push\|pull\|both` overrides. Records state baseline after pulling. Refuses to overwrite existing `.jf/forest.yml`. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `cloneFrontmatter()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
 | `cmd_search.go` | `runSearch()` — Thin JQL wrapper. Includes `buildSearchJQL()` to construct JQL from text/project/type filters. |
 | `cmd_create.go` | `runCreateMissing()` — Creates Jira tickets for TBD nodes. Includes `dryRunCreate()`, `executeCreate()`, `dedupCheck()`, `buildCreatePayload()`, `rewriteFrontmatterKey()`, `rewriteTBDLine()`, `isTBDLine()`. |
-| `cmd_init.go` | `runInit()` — Creates `forest.yml` with defaults. Uses `defaultForestYml` template. |
+| `cmd_init.go` | `runInit()` — Creates `.jf/forest.yml` with defaults. Creates `.jf/` directory if needed. Uses `defaultForestYml` template. |
 | `cmd_setup.go` | `runSetup()` — Prerequisite checker. Includes `setupCheck()` (non-interactive) and `setupInteractive()`. |
 | `cmd_schema.go` | `runSchema()` — Emits JSON Schema for forest.yml and frontmatter (input) or command output types (output). |
 | `cmd_rm.go` | `runRm()` — Removes node files from the forest. Refuses if the node has children. |
@@ -51,10 +51,10 @@ Jira (ticket descriptions, summaries, hierarchy)
 | File | Responsibility |
 |------|---------------|
 | `schema.go` | Core types (`Forest`, `ForestDefaults`, `Node`, `Frontmatter`). Parsing: `ParseForestFile()`, `ParseFrontmatter()`, `ParseFrontmatterFile()`. Label derivation: `DeriveLabel()`, `firstHeading()`. Frontmatter extraction: `extractFrontmatterBytes()`. Helper: `IsTBD()`. |
-| `discover.go` | Filesystem walk and tree building. `FindForest()` walks up directories for `forest.yml`. `Discover()` scans `.md` files, builds parent-child hierarchy using README.md-as-parent convention. Defaults `node.Sync` to forest default, then to `"both"` if still empty (derived sync). Includes `findAncestorParent()`, `sortChildren()`. |
+| `discover.go` | Filesystem walk and tree building. `FindForest()` walks up directories for `.jf/forest.yml` (dot-folder model). `Forest.Dir` is set to the `.jf/` directory. `Discover()` scans `.md` files within `.jf/`, builds parent-child hierarchy using README.md-as-parent convention. Defaults `node.Sync` to forest default, then to `"both"` if still empty (derived sync). Includes `findAncestorParent()`, `sortChildren()`. |
 | `traverse.go` | DFS traversal utilities. `PostOrder()` (children before parents — used for push). `PreOrder()` (parents before children — used for create-missing). `Subtree()` and `Resolve()` for target lookup by key, filename stem, or file path. `Flatten()` for pre-order flat list. |
 | `validate.go` | `Validate()` orchestrates four checks: `checkKeyUniqueness()`, `checkTBDNodes()`, `checkFieldValues()`, `checkStemUniqueness()`. Defines `ValidationIssue` struct. |
-| `state.go` | State tracking in `.jf/state.json`. Types: `State`, `NodeState`. Methods: `LoadState()`, `SaveState()` (atomic via tempfile+rename), `IsStale()`, `RecordPush()`, `RecordPull()`, `RecordSync()`, `ComputeHash()`, `IsPullStale()`, `MutabilityCache()`, `SetMutability()`. |
+| `state.go` | State tracking in `state.json` (directly in the `.jf/` forest dir). Types: `State`, `NodeState`. Methods: `LoadState()`, `SaveState()` (atomic via tempfile+rename), `IsStale()`, `RecordPush()`, `RecordPull()`, `RecordSync()`, `ComputeHash()`, `IsPullStale()`, `MutabilityCache()`, `SetMutability()`. |
 
 ### `internal/pipeline/`
 
@@ -96,7 +96,7 @@ version  → prints version constant
 
 ### Tier 2: Local-Only
 
-Requires a `forest.yml` (found via `FindForest()`), but no Jira connectivity.
+Requires a `.jf/forest.yml` (found via `FindForest()`), but no Jira connectivity.
 
 ```
 tree     → runTree()
@@ -124,6 +124,26 @@ clone          → runClone()
 The `QuickCheck` guard pattern: `QuickCheck()` calls `CheckAll()` which runs `checkNode()`,
 `checkAcli()`, and `checkJiraAuth()`. If any check fails, it returns a one-line error message
 (e.g., `"✗ acli not found. Run: jf setup"`). If all pass, it returns an empty string.
+
+## Directory Model
+
+jf uses a `.jf/` dot-folder convention (analogous to `.git/`). All forest content lives inside `.jf/`:
+
+```
+working-directory/           ← --dir target, working directory
+  .jf/                       ← forest root (Forest.Dir)
+    forest.yml               ← forest configuration
+    state.json               ← sync state (last push/pull timestamps, hashes)
+    README.md                ← root node
+    planning/                ← child directory
+      README.md              ← directory node
+      PROJ-123.md            ← leaf node
+  reference/                 ← non-forest files coexist cleanly
+```
+
+`FindForest()` walks up from the start directory looking for `.jf/forest.yml`.
+`Forest.Dir` is set to the `.jf/` directory. `Discover()` walks within `.jf/`.
+File paths in command output are prefixed with `.jf/` (working-dir-relative) for navigation.
 
 ## Data Models
 

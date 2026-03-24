@@ -24,7 +24,8 @@ func TestRunSyncNoForest(t *testing.T) {
 
 func TestRunSyncEmptyForest(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
 	code := runSync([]string{"--dir", dir, "--dry-run"})
 	if code != dendrik.ExitOK {
@@ -34,8 +35,9 @@ func TestRunSyncEmptyForest(t *testing.T) {
 
 func TestRunSyncTBDOnlyForest(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TBD\ntype: Task\n---\n# TBD Task\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TBD\ntype: Task\n---\n# TBD Task\n"), 0644)
 
 	code := runSync([]string{"--dir", dir, "--dry-run"})
 	if code != dendrik.ExitOK {
@@ -333,12 +335,13 @@ func TestParseCompletenessResultsEmpty(t *testing.T) {
 
 func TestCheckCompletenessAllPresent(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "parent"), 0755)
-	os.WriteFile(filepath.Join(dir, "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "parent"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
 
-	f, roots, err := loadForest(dir)
+	f, roots, err := loadForest(filepath.Join(dir, ".jf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,12 +364,13 @@ func TestCheckCompletenessAllPresent(t *testing.T) {
 
 func TestCheckCompletenessFindsNew(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "parent"), 0755)
-	os.WriteFile(filepath.Join(dir, "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "parent"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
 
-	f, roots, err := loadForest(dir)
+	f, roots, err := loadForest(filepath.Join(dir, ".jf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,12 +393,13 @@ func TestCheckCompletenessFindsNew(t *testing.T) {
 
 func TestCheckCompletenessScaffold(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: both\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "parent"), 0755)
-	os.WriteFile(filepath.Join(dir, "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: both\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf", "parent"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "README.md"), []byte("---\njira: BEN-1\n---\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "parent", "BEN-2.md"), []byte("---\njira: BEN-2\n---\n"), 0644)
 
-	f, roots, err := loadForest(dir)
+	f, roots, err := loadForest(filepath.Join(dir, ".jf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -414,7 +419,7 @@ func TestCheckCompletenessScaffold(t *testing.T) {
 		t.Errorf("expected 1 new child, got %d", count)
 	}
 
-	stubPath := filepath.Join(dir, "parent", "BEN-3.md")
+	stubPath := filepath.Join(dir, ".jf", "parent", "BEN-3.md")
 	data, err := os.ReadFile(stubPath)
 	if err != nil {
 		t.Fatalf("expected stub file at %s: %v", stubPath, err)
@@ -491,8 +496,9 @@ func TestScaffoldStubNoOverwrite(t *testing.T) {
 func setupSyncTestForest(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task.md"), []byte("---\njira: TBD\ntype: Task\n---\n# TBD Task\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "empty.md"), []byte("---\njira: TEST-1\n---\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
+	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TBD\ntype: Task\n---\n# TBD Task\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "empty.md"), []byte("---\njira: TEST-1\n---\n"), 0644)
 	return dir
 }

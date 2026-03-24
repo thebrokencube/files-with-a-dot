@@ -29,10 +29,10 @@ type NodeState struct {
 	MutableHash  string `json:"mutable_hash,omitempty"`
 }
 
-// LoadState reads .jf/state.json from the forest directory.
+// LoadState reads state.json from the forest directory (.jf/).
 // Returns empty State if the file doesn't exist or is corrupt.
 func LoadState(forestDir string) (*State, error) {
-	path := filepath.Join(forestDir, ".jf", "state.json")
+	path := filepath.Join(forestDir, "state.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -74,11 +74,10 @@ func migrateState(s *State) {
 	}
 }
 
-// SaveState writes .jf/state.json atomically via tempfile + rename.
-// Creates .jf/ directory if needed.
+// SaveState writes state.json into the forest directory (.jf/) atomically via tempfile + rename.
+// Creates the forest directory if needed.
 func SaveState(forestDir string, state *State) error {
-	stateDir := filepath.Join(forestDir, ".jf")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(forestDir, 0755); err != nil {
 		return err
 	}
 
@@ -88,7 +87,7 @@ func SaveState(forestDir string, state *State) error {
 	}
 	data = append(data, '\n')
 
-	tmp, err := os.CreateTemp(stateDir, "state-*.json.tmp")
+	tmp, err := os.CreateTemp(forestDir, "state-*.json.tmp")
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,7 @@ func SaveState(forestDir string, state *State) error {
 		return err
 	}
 
-	return os.Rename(tmpName, filepath.Join(stateDir, "state.json"))
+	return os.Rename(tmpName, filepath.Join(forestDir, "state.json"))
 }
 
 // IsStale returns true if the file has been modified since last sync.

@@ -29,7 +29,7 @@ func TestSaveAndLoadState(t *testing.T) {
 	}
 
 	// Verify file exists
-	path := filepath.Join(dir, ".jf", "state.json")
+	path := filepath.Join(dir, "state.json")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("state.json not created: %v", err)
 	}
@@ -106,9 +106,7 @@ func TestIsStaleLastSyncOverridesLastPush(t *testing.T) {
 
 func TestLoadStateCorrupt(t *testing.T) {
 	dir := t.TempDir()
-	stateDir := filepath.Join(dir, ".jf")
-	os.MkdirAll(stateDir, 0755)
-	os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("{invalid json"), 0644)
+	os.WriteFile(filepath.Join(dir, "state.json"), []byte("{invalid json"), 0644)
 
 	s, err := LoadState(dir)
 	if err != nil {
@@ -130,7 +128,7 @@ func TestSaveStateAtomic(t *testing.T) {
 	}
 
 	// Verify no temp files left behind
-	entries, _ := os.ReadDir(filepath.Join(dir, ".jf"))
+	entries, _ := os.ReadDir(dir)
 	for _, e := range entries {
 		if e.Name() != "state.json" {
 			t.Errorf("unexpected file in .jf/: %s", e.Name())

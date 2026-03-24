@@ -44,6 +44,12 @@ func loadForestOrFail(dir string, jsonOut bool) (*forest.Forest, []*forest.Node,
 	return f, roots, dendrik.ExitOK
 }
 
+// displayPath returns a file path relative to the working directory (parent of .jf/).
+// Node.File is relative to Forest.Dir (.jf/), so we prefix with ".jf/".
+func displayPath(file string) string {
+	return filepath.Join(".jf", file)
+}
+
 // resolveForestDir finds the forest root for Level 0 operations.
 // Walks up from cwd looking for forest.yml. Falls back to the file's
 // parent directory for Level 0 (no forest) usage.

@@ -13,9 +13,9 @@ func TestRunInit(t *testing.T) {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
 
-	content, err := os.ReadFile(filepath.Join(dir, "forest.yml"))
+	content, err := os.ReadFile(filepath.Join(dir, ".jf", "forest.yml"))
 	if err != nil {
-		t.Fatalf("forest.yml not created: %s", err)
+		t.Fatalf(".jf/forest.yml not created: %s", err)
 	}
 
 	want := "schema: 1\n\ndefaults:\n  sync: both\n  type: Story\n  project: TEST\n"
@@ -26,15 +26,17 @@ func TestRunInit(t *testing.T) {
 
 func TestRunInitAlreadyExists(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "forest.yml"), []byte("existing"), 0644)
+	jfDir := filepath.Join(dir, ".jf")
+	os.MkdirAll(jfDir, 0755)
+	os.WriteFile(filepath.Join(jfDir, "forest.yml"), []byte("existing"), 0644)
 
 	code := runInit([]string{"--dir", dir})
 	if code != 0 {
-		t.Fatalf("expected exit 0 for existing forest.yml, got %d", code)
+		t.Fatalf("expected exit 0 for existing .jf/forest.yml, got %d", code)
 	}
 
 	// Verify original file not overwritten
-	content, _ := os.ReadFile(filepath.Join(dir, "forest.yml"))
+	content, _ := os.ReadFile(filepath.Join(jfDir, "forest.yml"))
 	if string(content) != "existing" {
 		t.Errorf("forest.yml was overwritten, got %q", string(content))
 	}
@@ -47,7 +49,7 @@ func TestRunInitDefaultProject(t *testing.T) {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
 
-	content, _ := os.ReadFile(filepath.Join(dir, "forest.yml"))
+	content, _ := os.ReadFile(filepath.Join(dir, ".jf", "forest.yml"))
 	want := "schema: 1\n\ndefaults:\n  sync: both\n  type: Story\n  project: BEN\n"
 	if string(content) != want {
 		t.Errorf("content mismatch\n  got:  %q\n  want: %q", string(content), want)
