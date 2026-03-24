@@ -39,7 +39,7 @@ Jira (ticket descriptions, summaries, hierarchy)
 | `cmd_status.go` | `runStatus()` — Forest-wide summary with effective derived direction (push+pull, pull-only, push-only, empty) and staleness counts. |
 | `cmd_validate.go` | `runValidate()` — Runs `forest.Validate()` and reports issues as text or JSON. |
 | `cmd_clone.go` | `runClone()` — Scaffolds a local forest from a Jira hierarchy. `--sync` omitted by default (derives from mutability); explicit `--sync push\|pull\|both` overrides. Records state baseline after pulling. Includes `fetchIssue()`, `fetchTree()`, `parseSearchResults()`, `cloneFrontmatter()`, `scaffoldTree()`, `generateForestYAML()`, `slugify()`, `countNodes()`. |
-| `cmd_snapshot.go` | `runSnapshot()` — Snapshot local+remote state with tokens. Routes through engine Read-Plan, writes plan-level JSON to `.jf/snapshots/latest.json`. Supports `--json`, `--dir`, optional KEY/KEY+FILE modes. Includes `enrichBlockedEntry()`, `truncateContent()`. |
+| `cmd_snapshot.go` | `runSnapshot()` — Snapshot local+remote state. Routes through engine Read-Plan, writes plan-level JSON to `.jf/snapshots/latest.json`. Supports `--json`, `--dir`, optional KEY/KEY+FILE modes. Includes `enrichBlockedEntry()`, `truncateContent()`. |
 | `cmd_search.go` | `runSearch()` — Thin JQL wrapper. Includes `buildSearchJQL()` to construct JQL from text/project/type filters. |
 | `cmd_create.go` | `runCreateMissing()` — Creates Jira tickets for TBD nodes. Includes `dryRunCreate()`, `executeCreate()`, `dedupCheck()`, `buildCreatePayload()`, `rewriteFrontmatterKey()`, `rewriteTBDLine()`, `isTBDLine()`. |
 | `cmd_init.go` | `runInit()` — Creates `forest.yml` with defaults. Uses `defaultForestYml` template. |

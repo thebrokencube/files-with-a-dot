@@ -19,19 +19,13 @@ jf pull PROJ-123 output.md         # pull Jira description to local file
 - **Pull preserves frontmatter**: If the target file has YAML frontmatter, `jf pull` keeps
   it and only replaces content below the closing `---` fence.
 
-## Programmatic Push/Pull
+## Batch Operations
 
-For agent-driven operations using the snapshot-first workflow:
+For non-interactive (agent) use, add `--yes` to skip the TTY confirmation prompt:
 
 ```bash
-jf push KEY FILE --token TOKEN              # execute with snapshot token
-jf push KEY FILE --token TOKEN --plain-text # with plain-text fallback
-jf pull KEY FILE --token TOKEN              # pull with snapshot token
+jf push --yes                  # push all stale nodes without prompting
+jf sync --yes --dry-run --json # preview sync plan as structured JSON
 ```
 
-The `--token` flag:
-- Validates against `.jf/snapshots/latest.json` (written by `jf snapshot`)
-- Skips the internal Read phase (snapshot already captured state)
-- Records state after success (next snapshot sees the node as synced)
-- Returns structured JSON on stdout: `{"data":{"status":"ok",...}}` or `{"data":{"status":"error","code":"TOKEN_INVALID",...}}`
-- Exit code 1 on any validation failure
+Use `--dry-run --json` to inspect the plan before committing to execution.

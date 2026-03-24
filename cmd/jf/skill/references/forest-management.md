@@ -26,28 +26,14 @@ Use these decision points when the user asks about their forest:
 - **`--plain-text` on create-missing**: pushes plain text if marklassian fails, does NOT skip dedup check
 - **Node resolution**: key (case-insensitive) → filename stem → file path
 
-## Snapshot Workflow
+## Batch Operations
 
-For programmatic forest sync, use the snapshot-first approach:
+For non-interactive (agent) use:
 
 | User intent | Command | Key flags |
 |-------------|---------|-----------|
-| "Snapshot the forest" | `jf snapshot --json` | Full plan + tokens |
-| "Snapshot one ticket" | `jf snapshot KEY --json` | Single-node plan + token |
-| "Preview sync plan" | `jf snapshot` (no --json) | Human-readable plan display |
+| "Preview sync plan" | `jf sync --dry-run --json` | Machine-parseable plan |
+| "Execute without prompting" | `jf sync --yes` | Skip TTY confirmation |
+| "Push all stale" | `jf push --yes` | Batch push |
 
-### Token Lifecycle
-
-1. `jf snapshot --json` writes `.jf/snapshots/latest.json` with per-node tokens
-2. Tokens are snapshot-scoped: new snapshot invalidates all old tokens
-3. TTL: 5 minutes (file-scoped). Process-scoped snapshots (auto-snapshot in sync/push) have no TTL.
-4. Token errors: `TOKEN_INVALID` (content changed) or `SNAPSHOT_EXPIRED` (TTL exceeded)
-5. Recovery: re-run `jf snapshot --json`
-
-### Error Recovery
-
-On any token error during push/pull:
-1. Re-run `jf snapshot --json`
-2. Already-executed nodes appear as "skip" (state.json updated per-node)
-3. Re-evaluate plan: some Tier 2 blocks may have resolved
-4. If user previously approved a Tier 2 block and diff is unchanged, re-execute without re-asking
+Use `--dry-run --json` to inspect the plan before execution. Already-synced nodes appear as "skip" (state.json updated per-node).

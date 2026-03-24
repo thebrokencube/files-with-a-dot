@@ -23,7 +23,6 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 | `jf status [--json]` | Forest summary with staleness |
 | `jf validate` | Check forest integrity |
 | `jf create-missing` | Create Jira tickets for TBD nodes |
-| `jf snapshot [KEY]` | Snapshot local+remote state (`--json` for agents) |
 | `jf search <text> [--json]` | Find Jira tickets by text/project/type |
 | `jf rm <KEY>...` | Remove node files from forest |
 | `jf schema` | Emit JSON Schema for forest.yml and frontmatter |

@@ -81,10 +81,12 @@ Available globally (in any project) via [Claude Code](https://docs.anthropic.com
 | Skill | Purpose |
 |-------|---------|
 | `/folio` | Knowledge work lifecycle - plan, compose, gather, publish |
+| `/jf` | Jira Forest - push/pull/sync markdown to Jira tickets |
 | `/dotfiles` | Manage dotfiles - install, update, health, setup |
 | `/nvim` | Neovim help - plugins, config, troubleshooting |
 | `/commit` | Git commit conventions and versioning |
 | `/stacked-pr` | Stacked branch workflows and propagation |
+| `/dendrik` | Validate tool conventions and contract compliance |
 
 ## Tools
 
@@ -100,3 +102,16 @@ Knowledge work project manager — plans, references, and compiled outputs. Inte
 - Design decisions freeze before implementation begins (lock gate in plan phase)
 
 CLI commands and project details: [cmd/folio/](cmd/folio/)
+
+### jf
+
+Jira Forest CLI — maps a local filesystem of markdown files to Jira ticket descriptions. Supports ad-hoc single-file push/pull or full forest management with bidirectional sync, clone, and content lint/roundtrip checking.
+
+- `jf clone KEY` → `jf sync` → `jf push` / `jf pull`
+- Derived sync mode: direction inferred from content mutability (lint + roundtrip)
+
+CLI commands and architecture: [cmd/jf/](cmd/jf/)
+
+### dendrik
+
+Convention linter for dotfiles CLI tools — validates Go, Skill, and Bridge layer contracts. See [cmd/dendrik/](cmd/dendrik/)

@@ -52,10 +52,9 @@ jf pull ACME-456 output.md  # pull one ticket to one file
 | `jf clone <KEY>` | Scaffold local forest from Jira hierarchy |
 | `jf init` | Create `forest.yml` in current directory |
 | `jf setup` | Check prerequisites (node, acli, auth) |
-| `jf push [KEY FILE]` | Push markdown to Jira (ad-hoc or forest-wide, `--token` for agents) |
-| `jf pull [KEY FILE]` | Pull Jira description to local markdown (`--token` for agents) |
-| `jf sync` | Bidirectional sync (push stale + pull pull-mode nodes) |
-| `jf snapshot [KEY]` | Snapshot local+remote state with tokens (`--json` for agents) |
+| `jf push [KEY FILE]` | Push markdown to Jira (ad-hoc or forest-wide) |
+| `jf pull [KEY FILE]` | Pull Jira description to local markdown |
+| `jf sync` | Bidirectional sync (push stale + pull pull-eligible nodes) |
 | `jf tree` | Show forest hierarchy |
 | `jf list [--json]` | Flat list of all nodes |
 | `jf show <target>` | Single-node detail view |
