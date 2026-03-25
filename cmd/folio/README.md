@@ -90,3 +90,9 @@ Project data lives in `~/.folio/`:
 Projects source from the vault via `vault:` prefix paths (e.g., `vault:research/comparable-dvc.md`). Lifecycle types (spike, design, plan, retro) stay project-scoped; references promote to vault when proven cross-cutting.
 
 Status is derived from file modification times — no separate tracking needed.
+
+## Documentation
+
+- [Getting Started](docs/01-getting-started.md) — mental model, project anatomy, quick start
+- [Workflows](docs/02-workflows.md) — research, planning, composition, publishing patterns
+- [Reference](docs/03-reference.md) — folio.yml schema, CLI commands, artifact types

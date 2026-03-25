@@ -1,8 +1,8 @@
 # Contract Checks Reference
 
-All 25 checks in the dendrik tool contract. Use `dendrik lint --explain <id>` for rationale and remediation.
+All 29 checks in the dendrik tool contract. Use `dendrik lint --explain <id>` for rationale and remediation.
 
-## Go Layer (6 checks)
+## Go Layer (10 checks)
 
 ### go-mod-linked (Error)
 
@@ -39,6 +39,30 @@ README.md exists in the tool directory.
 README.md contains `## Install`, `## Quick Start`, `## Commands`, `## Code Structure`.
 
 **Fix**: Add the missing `##` sections. These are checked via exact string match.
+
+### claude-md-exists (Warning)
+
+CLAUDE.md exists in the tool directory.
+
+**Fix**: Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.
+
+### docs-naming (Error)
+
+All files in `docs/` match numbered kebab-case pattern (`NN-name.md`, e.g., `01-getting-started.md`).
+
+**Fix**: Rename to match the pattern. Only fires if `docs/` directory exists.
+
+### docs-getting-started (Warning)
+
+`docs/01-getting-started.md` exists when `docs/` directory is present.
+
+**Fix**: Create `docs/01-getting-started.md` as the entry point for human-progressive documentation.
+
+### readme-doc-links (Error)
+
+Links in README.md `## Documentation` section resolve to existing files.
+
+**Fix**: Ensure all `[text](path)` links in the Documentation section point to existing files.
 
 ## Skill Layer (9 checks)
 

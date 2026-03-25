@@ -1,6 +1,6 @@
 # dendrik -- Dotfiles tool contract linter
 
-Validates CLI tools against a 25-check contract across Go, Skill, and Bridge layers.
+Validates CLI tools against a 29-check contract across Go, Skill, and Bridge layers.
 
 ## Build
 
@@ -34,7 +34,7 @@ After code changes: rebuild the binary and commit it.
 
 All linters are pure functions. The orchestrator (`cmd_lint.go`) handles I/O via `gatherToolData()` which builds a `ToolData` struct, then passes it to each layer:
 
-- `lint_go.go` -- Go layer checks (6 checks)
+- `lint_go.go` -- Go layer checks (10 checks)
 - `lint_skill.go` -- Skill layer checks (9 checks)
 - `lint_bridge.go` -- Bridge layer checks (10 checks)
 

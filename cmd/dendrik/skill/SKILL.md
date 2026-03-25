@@ -1,19 +1,19 @@
 ---
 name: dendrik
-description: "Use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Runs a 25-check contract across Go, Skill, and Bridge layers."
+description: "Use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Runs a 29-check contract across Go, Skill, and Bridge layers."
 user_invocable: true
 argument-hint: "lint <path> [--json] [--strict] [--explain <id>]"
 ---
 
 # dendrik
 
-Tool contract linter for the dotfiles platform. Validates that CLI tools in `cmd/*/` follow the 25-check dendrik convention contract across three layers.
+Tool contract linter for the dotfiles platform. Validates that CLI tools in `cmd/*/` follow the 29-check dendrik convention contract across three layers.
 
 ## Quick Reference
 
 | Command | What it does |
 |---------|-------------|
-| `dendrik lint <path>` | Run all 25 checks against a tool directory |
+| `dendrik lint <path>` | Run all 29 checks against a tool directory |
 | `dendrik lint <path> --json` | Structured JSON output |
 | `dendrik lint <path> --strict` | Promote warnings to errors |
 | `dendrik lint --explain <id>` | Show rationale and remediation for a check |
