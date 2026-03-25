@@ -64,7 +64,7 @@ Commands supporting `--json` use the `internal/output` package:
 Inject via `Pipeline{Run: yourFunc}` and `CheckAll(yourChecker)`.
 Substitute with fake runners in tests to avoid shelling out to acli/node.
 
-## Safe Sync Conventions
+## Safe Operation Conventions
 
 - Never try to bypass blocked operations — they are blocked for safety reasons
 - When jf shows BLOCKED: report to user, don't retry with different flags
@@ -75,5 +75,7 @@ Substitute with fake runners in tests to avoid shelling out to acli/node.
 
 ## Deep Context
 
-@docs/ARCHITECTURE.md
-@docs/ROADMAP.md
+@docs/01-getting-started.md
+@docs/02-workflows.md
+@docs/03-reference.md
+@docs/04-architecture.md

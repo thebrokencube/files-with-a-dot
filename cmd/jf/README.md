@@ -63,6 +63,7 @@ jf pull ACME-456 output.md  # pull one ticket to one file
 | `jf create-missing` | Create Jira tickets for TBD nodes |
 | `jf search <text>` | Find Jira tickets by text/project/type |
 | `jf rm <KEY>...` | Remove node files from forest |
+| `jf view <KEY>` | Fetch remote issue details from Jira |
 | `jf schema` | Emit JSON Schema for forest.yml and frontmatter |
 
 ## Code Structure
@@ -75,7 +76,7 @@ cmd/jf/
 ├── helpers.go         # Shared utilities
 ├── internal/          # Internal packages (forest, jira, markdown)
 ├── scripts/           # Build/test scripts
-├── docs/              # USAGE.md, ARCHITECTURE.md, ROADMAP.md
+├── docs/              # 01-getting-started, 02-workflows, 03-reference, 04-architecture
 ├── skill/             # Claude Code skill (SKILL.md + references)
 ├── Makefile           # build, test, check targets
 └── testdata/          # Test fixtures
@@ -83,9 +84,10 @@ cmd/jf/
 
 ## Documentation
 
-- [docs/USAGE.md](docs/USAGE.md) — archetype workflows, command reference, frontmatter, troubleshooting
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — module structure, data models, pipeline, consolidation findings
-- [docs/ROADMAP.md](docs/ROADMAP.md) — feature maturity (stable, experimental, planned, considering)
+- [Getting Started](docs/01-getting-started.md) -- prerequisites, .jf/ directory model, quick start, levels
+- [Workflows](docs/02-workflows.md) -- archetype workflows, multi-forest management, recovery
+- [Reference](docs/03-reference.md) -- command reference, frontmatter, lint rules, safety, troubleshooting
+- [Architecture](docs/04-architecture.md) -- module structure, data models, pipeline, command routing
 
 ## Claude Code Integration
 
