@@ -218,7 +218,7 @@ func dedupCheck(p *pipeline.Pipeline, jql string) (string, error) {
 
 // buildCreatePayload builds the JSON payload for acli create.
 func buildCreatePayload(n *forest.Node, f *forest.Forest) []byte {
-	payload := fmt.Sprintf(`{"project":%q,"type":%q,"summary":%q`, f.Defaults.Project, n.Type, n.Label)
+	payload := fmt.Sprintf(`{"projectKey":%q,"type":%q,"summary":%q`, f.Defaults.Project, n.Type, n.Label)
 
 	// Add parent link if parent has a real key
 	if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {

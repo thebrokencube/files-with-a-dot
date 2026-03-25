@@ -178,7 +178,7 @@ func TestBuildCreatePayload(t *testing.T) {
 	t.Run("root node", func(t *testing.T) {
 		n := &forest.Node{Key: "TBD", Label: "My Task", Type: "Task"}
 		payload := string(buildCreatePayload(n, f))
-		want := `{"project":"TEST","type":"Task","summary":"My Task"}`
+		want := `{"projectKey":"TEST","type":"Task","summary":"My Task"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}
@@ -188,7 +188,7 @@ func TestBuildCreatePayload(t *testing.T) {
 		parent := &forest.Node{Key: "TEST-10", Label: "Parent"}
 		n := &forest.Node{Key: "TBD", Label: "Child Task", Type: "Story", Parent: parent}
 		payload := string(buildCreatePayload(n, f))
-		want := `{"project":"TEST","type":"Story","summary":"Child Task","parent":{"key":"TEST-10"}}`
+		want := `{"projectKey":"TEST","type":"Story","summary":"Child Task","parent":{"key":"TEST-10"}}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}
@@ -199,7 +199,7 @@ func TestBuildCreatePayload(t *testing.T) {
 		n := &forest.Node{Key: "TBD", Label: "Child", Type: "Story", Parent: parent}
 		payload := string(buildCreatePayload(n, f))
 		// TBD parent should NOT be included
-		want := `{"project":"TEST","type":"Story","summary":"Child"}`
+		want := `{"projectKey":"TEST","type":"Story","summary":"Child"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}
