@@ -149,7 +149,7 @@ cmd/dot/scripts/uninstall.sh (standalone leaf)
 
 **Decision**: Delete brew-cleanup.sh. Extract the Brewfile-merging logic to lib/brew.sh. cleanup.sh uses `brew bundle cleanup` with the merged Brewfile.
 
-### D5: Delete init-private.sh, move to `dot private init`
+### D5: Delete init-private.sh, move to `dot private`
 
 **Problem**: init-private.sh is a standalone script for a one-time operation. No discoverability via the `dot` CLI.
 
@@ -166,4 +166,3 @@ cmd/dot/scripts/uninstall.sh (standalone leaf)
 **Problem**: bootstrap.sh runs before the repo is cloned, so it can't source lib/.
 
 **Decision**: Keep bootstrap.sh self-contained (~60-80 lines). Its only job is: install Xcode CLT, clone repo, exec sync.sh. Homebrew prerequisite check moves to sync.sh (which can use lib/).
-

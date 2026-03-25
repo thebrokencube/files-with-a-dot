@@ -69,7 +69,7 @@ files-with-a-dot/
 │   │   ├── cleanup.sh          # dot clean
 │   │   ├── health.sh           # dot health/fix
 │   │   ├── lib/                # sourced shell functions (11 files)
-│   │   ├── ARCHITECTURE.md     # design decisions and internals
+│   │   ├── docs/               # 01-getting-started.md, 04-architecture.md
 │   │   └── scripts/            # one-offs + helpers
 │   │       ├── bootstrap.sh    # standalone first-time setup
 │   │       ├── uninstall.sh    # standalone removal
@@ -113,4 +113,9 @@ files-with-a-dot/
 
 Run `dot health` for diagnostics.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions and internals.
+## Documentation
+
+- [Getting Started](docs/01-getting-started.md) — bootstrap, first sync, private configs, multi-machine workflow
+- [Architecture](docs/04-architecture.md) — design decisions, FCIS pattern, lib/ responsibilities
+
+See [docs/04-architecture.md](docs/04-architecture.md) for design decisions and internals.

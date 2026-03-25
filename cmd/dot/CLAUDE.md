@@ -43,4 +43,5 @@ Functional Core, Imperative Shell (FCIS):
 
 ## Deep Context
 
-@ARCHITECTURE.md
+@docs/01-getting-started.md
+@docs/04-architecture.md
