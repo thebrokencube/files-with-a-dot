@@ -132,7 +132,7 @@ Workflow:
 1. `folio observe types` — get valid types and descriptions
 2. `folio observe list --json` — check existing scopes (avoid near-duplicates)
 3. `folio observe 'type(scope): description'` — append (validates format)
-4. `folio observe resolve <#N|substring>` — delete resolved items
+4. `folio observe resolve <#N|substring> [#N2 ...]` — delete resolved items. **Always batch multiple resolves in a single call** to avoid index shifting between calls.
 5. `folio observe lint` — check format + inline path refs
 
 If no text provided with the command, ask the user for the observation.
