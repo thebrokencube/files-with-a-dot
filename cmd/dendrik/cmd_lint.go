@@ -46,6 +46,10 @@ type ToolData struct {
 	HasREADME   bool         // README.md exists
 	READMEBytes []byte       // README.md content
 
+	// Docs layer
+	HasCLAUDEMD bool     // CLAUDE.md exists
+	DocsFiles   []string // filenames in docs/ (e.g., "01-getting-started.md")
+
 	// Skill layer
 	SkillMD      []byte            // skill/SKILL.md content (nil if missing)
 	SkillDir     string            // absolute path to skill/ directory
@@ -143,7 +147,7 @@ func runLint(args []string) int {
 	// Human output
 	errors, warnings := countSeverities(results)
 	if len(results) == 0 {
-		fmt.Println(out.Success("All 25 checks passed for %s", data.ToolName))
+		fmt.Println(out.Success("All %d checks passed for %s", len(conventions.Contract), data.ToolName))
 		return dendrik.ExitOK
 	}
 
@@ -225,6 +229,21 @@ func gatherToolData(toolDir string) (*ToolData, error) {
 	if content, err := os.ReadFile(readmePath); err == nil {
 		data.HasREADME = true
 		data.READMEBytes = content
+	}
+
+	// CLAUDE.md
+	if _, err := os.Stat(filepath.Join(toolDir, "CLAUDE.md")); err == nil {
+		data.HasCLAUDEMD = true
+	}
+
+	// docs/ directory
+	docsDir := filepath.Join(toolDir, "docs")
+	if docsEntries, err := os.ReadDir(docsDir); err == nil {
+		for _, e := range docsEntries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".md") {
+				data.DocsFiles = append(data.DocsFiles, e.Name())
+			}
+		}
 	}
 
 	// Skill layer

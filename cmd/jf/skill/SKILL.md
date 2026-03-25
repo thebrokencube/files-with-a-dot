@@ -124,7 +124,7 @@ A forest is a directory tree with:
 - Directory `README.md` files become parent nodes; files in directories become children
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: push/pull), `order` (sibling sort).
-See [docs/USAGE.md](../docs/USAGE.md#frontmatter-reference) for field details, inheritance, and label derivation.
+See [docs/03-reference.md](../docs/03-reference.md) for field details, inheritance, and label derivation.
 
 ### Sync Direction
 
@@ -145,7 +145,7 @@ These overrides are for specific use cases, not the default.
 
 `jf tree --json` outputs `[]NodeInfo` (same structure as `jf list --json`). `jf tree --verbose` shows sync direction icons and file paths.
 
-For architecture details (data models, pipeline internals, module structure), see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+For architecture details (data models, pipeline internals, module structure), see [docs/04-architecture.md](../docs/04-architecture.md).
 
 ## Lifecycle
 

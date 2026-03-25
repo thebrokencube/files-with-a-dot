@@ -2,10 +2,15 @@ package main
 
 import (
 	"go/ast"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
 )
+
+var docsNamingPattern = regexp.MustCompile(`^\d{2}-[a-z0-9-]+\.md$`)
 
 // GoLint validates Go layer conventions. Pure function — no I/O.
 func GoLint(data *ToolData) []LintResult {
@@ -56,7 +61,12 @@ func GoLint(data *ToolData) []LintResult {
 			"Create README.md in the tool directory."))
 	} else {
 		results = append(results, checkREADMESections(data)...)
+		results = append(results, checkREADMEDocLinks(data)...)
 	}
+
+	results = append(results, checkCLAUDEMDExists(data)...)
+	results = append(results, checkDocsNaming(data)...)
+	results = append(results, checkDocsGettingStarted(data)...)
 
 	return results
 }
@@ -193,6 +203,82 @@ func checkREADMESections(data *ToolData) []LintResult {
 		}
 	}
 
+	return results
+}
+
+func checkCLAUDEMDExists(data *ToolData) []LintResult {
+	if data.HasCLAUDEMD {
+		return nil
+	}
+	return []LintResult{lintResult("claude-md-exists", conventions.SeverityWarning,
+		"CLAUDE.md not found",
+		"CLAUDE.md", 0,
+		"Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.")}
+}
+
+func checkDocsNaming(data *ToolData) []LintResult {
+	var results []LintResult
+	for _, name := range data.DocsFiles {
+		if !docsNamingPattern.MatchString(name) {
+			results = append(results, lintResult("docs-naming", conventions.SeverityError,
+				"docs/"+name+" does not match numbered kebab-case pattern (NN-name.md)",
+				"docs/"+name, 0,
+				"Rename to match pattern: NN-kebab-case.md (e.g., 01-getting-started.md)."))
+		}
+	}
+	return results
+}
+
+func checkDocsGettingStarted(data *ToolData) []LintResult {
+	if len(data.DocsFiles) == 0 {
+		return nil // No docs/ directory — not an issue for this check
+	}
+	for _, name := range data.DocsFiles {
+		if name == "01-getting-started.md" {
+			return nil
+		}
+	}
+	return []LintResult{lintResult("docs-getting-started", conventions.SeverityWarning,
+		"docs/01-getting-started.md not found",
+		"docs/", 0,
+		"Create docs/01-getting-started.md as the entry point for new users.")}
+}
+
+// checkREADMEDocLinks parses the ## Documentation section of README.md and
+// verifies that markdown links resolve to existing files relative to the tool dir.
+func checkREADMEDocLinks(data *ToolData) []LintResult {
+	content := string(data.READMEBytes)
+
+	// Find ## Documentation section
+	idx := strings.Index(content, "## Documentation")
+	if idx == -1 {
+		return nil // No Documentation section — not an issue for this check
+	}
+
+	// Extract section content (until next ## or end)
+	section := content[idx:]
+	if nextH2 := strings.Index(section[1:], "\n## "); nextH2 != -1 {
+		section = section[:nextH2+1]
+	}
+
+	// Find markdown links: [text](path)
+	var results []LintResult
+	linkPattern := regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
+	for _, match := range linkPattern.FindAllStringSubmatch(section, -1) {
+		linkPath := match[2]
+		// Skip URLs
+		if strings.HasPrefix(linkPath, "http://") || strings.HasPrefix(linkPath, "https://") {
+			continue
+		}
+		// Resolve relative to tool dir
+		absPath := filepath.Join(data.ToolDir, linkPath)
+		if _, err := os.Stat(absPath); err != nil {
+			results = append(results, lintResult("readme-doc-links", conventions.SeverityError,
+				"README.md Documentation link broken: "+linkPath,
+				"README.md", 0,
+				"Fix the link to "+linkPath+" in the ## Documentation section."))
+		}
+	}
 	return results
 }
 

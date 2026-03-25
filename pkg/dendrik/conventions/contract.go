@@ -75,6 +75,30 @@ var Contract = []ContractEntry{
 		Rationale:   "Standard sections ensure minimum documentation quality and provide predictable navigation for readers.",
 		Remediation: "Add missing ## sections to README.md: ## Install, ## Quick Start, ## Commands, ## Code Structure.",
 	},
+	{
+		ID: "claude-md-exists", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityWarning,
+		Summary:     "CLAUDE.md exists in tool directory",
+		Rationale:   "CLAUDE.md provides build, test, and code convention context for developers modifying the tool. Claude Code auto-loads it when working in the directory.",
+		Remediation: "Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.",
+	},
+	{
+		ID: "docs-naming", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "All files in docs/ match numbered kebab-case pattern (NN-name.md)",
+		Rationale:   "Numbered kebab-case naming (01-getting-started.md, 02-workflows.md) provides consistent reading order and prevents renaming when files are added.",
+		Remediation: "Rename docs/ files to match the pattern: NN-kebab-case.md (e.g., 01-getting-started.md, 03-reference.md).",
+	},
+	{
+		ID: "docs-getting-started", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityWarning,
+		Summary:     "docs/01-getting-started.md exists",
+		Rationale:   "Every tool with docs/ should have a getting-started guide as the entry point for new users.",
+		Remediation: "Create docs/01-getting-started.md with prerequisites, quick start, and core concepts.",
+	},
+	{
+		ID: "readme-doc-links", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "Links in README.md Documentation section resolve to existing files",
+		Rationale:   "Broken documentation links in README.md prevent readers from finding detailed docs.",
+		Remediation: "Fix broken links in the ## Documentation section of README.md — ensure referenced files exist.",
+	},
 
 	// --- Skill Layer ---
 	{
