@@ -1,4 +1,15 @@
 {
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@0.0.68",
+        "--headless",
+        "--viewport-size=1280x720",
+        "--allow-unrestricted-file-access"
+      ]
+    }
+  },
   "permissions": {
     "additionalDirectories": [
       "~/.dotfiles/",
@@ -73,7 +84,12 @@
       "WebFetch",
 
       "ListMcpResourcesTool",
-      "ReadMcpResourceTool"
+      "ReadMcpResourceTool",
+
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_snapshot"
     ]
   },
   "enabledPlugins": {
