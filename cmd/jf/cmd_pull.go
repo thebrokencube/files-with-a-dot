@@ -47,8 +47,17 @@ func pullSingle(key, filePath string) int {
 	node := &forest.Node{Key: key, File: relFile, Sync: "pull"}
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
+	// Load state if inside a forest directory
+	var state *forest.State
+	if _, err := os.Stat(filepath.Join(forestDir, "forest.yml")); err == nil {
+		state, _ = forest.LoadState(forestDir)
+		if state == nil {
+			state = &forest.State{Nodes: make(map[string]forest.NodeState)}
+		}
+	}
+
 	// Single-node Read
-	readings, err := engine.Read([]*forest.Node{node}, p, nil, forestDir)
+	readings, err := engine.Read([]*forest.Node{node}, p, state, forestDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s: read failed: %s\n", key, err)
 		return dendrik.ExitExternalErr
@@ -63,8 +72,8 @@ func pullSingle(key, filePath string) int {
 	}
 
 	// No batch gate — single node
-	// Execute with nil state — Level 0 has no state tracking
-	results, execErr := engine.Execute(plan, p, nil, forestDir)
+	// Execute with state (loaded above if inside forest)
+	results, execErr := engine.Execute(plan, p, state, forestDir)
 	if execErr != nil {
 		fmt.Fprintf(os.Stderr, "⚠ %s\n", execErr)
 	}
