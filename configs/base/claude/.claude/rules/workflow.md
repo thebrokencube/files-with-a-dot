@@ -6,3 +6,4 @@
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
 - **One operation per tool call.** No chaining (`&&`, `;`, `||`), pipes, or command substitution. Use separate tool calls.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
+- **Observation management**: Always batch `folio observe resolve "#N" "#N2" ...` to avoid index shifting between calls.
