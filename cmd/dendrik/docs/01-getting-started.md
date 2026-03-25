@@ -2,7 +2,7 @@
 
 ## What dendrik Does
 
-dendrik enforces structural conventions across CLI tools in the dotfiles repo. It validates 29 checks across three layers (Go, Skill, Bridge) so that tools stay consistent as they evolve independently.
+dendrik enforces structural conventions across CLI tools in the dotfiles repo. It validates checks across three layers (Go, Skill, Bridge) so that tools stay consistent as they evolve independently.
 
 dendrik is a linter for tool structure, not code style. It checks that your tool has the right files, follows naming conventions, wires up the shared library correctly, and provides skill documentation discoverable by Claude Code (the AI coding agent).
 

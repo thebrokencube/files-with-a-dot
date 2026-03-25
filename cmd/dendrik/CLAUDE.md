@@ -1,6 +1,6 @@
 # dendrik -- Dotfiles tool contract linter
 
-Validates CLI tools against a 29-check contract across Go, Skill, and Bridge layers.
+Validates CLI tools against a convention contract across Go, Skill, and Bridge layers.
 
 ## Build
 

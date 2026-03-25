@@ -1,6 +1,6 @@
 # dendrik — Tool Contract Linter
 
-dendrik validates that CLI tools in the dotfiles repo follow the dendrik platform conventions. It runs a 29-check contract across three layers (Go, Skill, Bridge) and reports violations with actionable remediation.
+dendrik validates that CLI tools in the dotfiles repo follow the dendrik platform conventions. It runs a contract across three layers (Go, Skill, Bridge) and reports violations with actionable remediation.
 
 ## Install
 
@@ -22,7 +22,7 @@ dendrik lint --explain go-mod-linked  # show rationale for a check
 
 | Command | What it does |
 |---------|-------------|
-| `dendrik lint <path>` | Run 29-check contract validation against a tool directory |
+| `dendrik lint <path>` | Run contract validation against a tool directory |
 | `dendrik lint --json` | JSON output (ResultEnvelope format) |
 | `dendrik lint --strict` | Promote warnings to errors |
 | `dendrik lint --explain <id>` | Show rationale and remediation for a check ID |
