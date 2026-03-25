@@ -127,6 +127,18 @@ func planFirstSync(r NodeReading, direction string, opts PlanOpts, demoted bool)
 					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
 					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 			}
+			// Check --resolve before blocking
+			if opts.Resolve == "local" {
+				return Action{Node: r.Node, Kind: ActionPush,
+					Reason:       "first sync resolved: local wins",
+					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
+			if opts.Resolve == "remote" {
+				return Action{Node: r.Node, Kind: ActionPull,
+					Reason:    "first sync resolved: remote wins",
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockFirstPush, Reason: "first sync — remote has content",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -147,6 +159,16 @@ func planFirstSync(r NodeReading, direction string, opts PlanOpts, demoted bool)
 					Reason:    "first sync, content matches — establishing baseline",
 					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 			}
+			// Check --resolve before blocking
+			if opts.Resolve == "local" {
+				return Action{Node: r.Node, Kind: ActionSkip,
+					Reason: "first sync resolved: local wins (keep local)"}
+			}
+			if opts.Resolve == "remote" {
+				return Action{Node: r.Node, Kind: ActionPull,
+					Reason:    "first sync resolved: remote wins",
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
 			return Action{Node: r.Node, Kind: ActionBlocked,
 				Block: BlockFirstPull, Reason: "first sync — local has content",
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
@@ -164,6 +186,18 @@ func planFirstSync(r NodeReading, direction string, opts PlanOpts, demoted bool)
 				return Action{Node: r.Node, Kind: ActionPush,
 					Reason:       "first sync, content matches — establishing baseline",
 					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
+			// Check --resolve before blocking
+			if opts.Resolve == "local" {
+				return Action{Node: r.Node, Kind: ActionPush,
+					Reason:       "first sync resolved: local wins",
+					LocalContent: r.LocalContent, LocalHash: r.LocalHash,
+					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
+			}
+			if opts.Resolve == "remote" {
+				return Action{Node: r.Node, Kind: ActionPull,
+					Reason:    "first sync resolved: remote wins",
 					RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 			}
 			return Action{Node: r.Node, Kind: ActionBlocked,

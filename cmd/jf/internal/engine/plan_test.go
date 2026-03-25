@@ -162,6 +162,37 @@ func TestPlan(t *testing.T) {
 			RemoteMarkdown: []byte("Remote"), Mutable: true,
 		}, bothOpts, ActionBlocked, BlockFirstPush},
 
+		// First sync with --resolve
+		{"first_push_resolve_local_pushes", NodeReading{
+			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: "lh",
+			RemoteADF: substantiveADF, RemoteHash: "rh", Mutable: true,
+		}, PlanOpts{Direction: "push", Resolve: "local"}, ActionPush, BlockNone},
+
+		{"first_push_resolve_remote_pulls", NodeReading{
+			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: "lh",
+			RemoteADF: substantiveADF, RemoteHash: "rh", Mutable: true,
+		}, PlanOpts{Direction: "push", Resolve: "remote"}, ActionPull, BlockNone},
+
+		{"first_pull_resolve_local_skips", NodeReading{
+			Node: node("KEY-1", "pull"), LocalContent: localContent,
+			RemoteADF: substantiveADF, RemoteHash: "rh",
+		}, PlanOpts{Direction: "pull", Resolve: "local"}, ActionSkip, BlockNone},
+
+		{"first_pull_resolve_remote_pulls", NodeReading{
+			Node: node("KEY-1", "pull"), LocalContent: localContent,
+			RemoteADF: substantiveADF, RemoteHash: "rh",
+		}, PlanOpts{Direction: "pull", Resolve: "remote"}, ActionPull, BlockNone},
+
+		{"both_first_sync_resolve_local_pushes", NodeReading{
+			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: "lh",
+			RemoteADF: substantiveADF, RemoteHash: "rh", Mutable: true,
+		}, resolveLocal, ActionPush, BlockNone},
+
+		{"both_first_sync_resolve_remote_pulls", NodeReading{
+			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: "lh",
+			RemoteADF: substantiveADF, RemoteHash: "rh", Mutable: true,
+		}, resolveRemote, ActionPull, BlockNone},
+
 		// First sync — RemoteMarkdown nil (ADF conversion failed) still blocks
 		{"first_push_no_remote_md_still_blocks", NodeReading{
 			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: "lh",
