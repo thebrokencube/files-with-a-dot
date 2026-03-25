@@ -14,6 +14,6 @@ jq -n \
     hookSpecificOutput: {
       hookEventName: "PostCompact",
       suppressOutput: false,
-      output: ("Context was compacted. Session state:\n- Branch: " + $branch + "\n- Dirty files: " + $dirty + "\n- Re-read CLAUDE.md and any active skill references for current task context.")
+      output: ("Context was compacted. Session state:\n- Branch: " + $branch + "\n- Dirty files: " + $dirty + "\n- Re-read CLAUDE.md, ~/.claude/rules/, and any active skill references for current task context.")
     }
   }'

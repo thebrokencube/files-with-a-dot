@@ -36,8 +36,10 @@ cmd/folio/folio:$HOME/.local/bin/folio
 cmd/jf/jf:$HOME/.local/bin/jf
 cmd/dendrik/dendrik:$HOME/.local/bin/dendrik
 
-# Claude Code (granular linking to allow private skills)
+# Claude Code (granular linking to allow private skills and rules)
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
+configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
+configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
 configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
