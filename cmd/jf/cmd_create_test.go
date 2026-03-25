@@ -188,7 +188,7 @@ func TestBuildCreatePayload(t *testing.T) {
 		parent := &forest.Node{Key: "TEST-10", Label: "Parent"}
 		n := &forest.Node{Key: "TBD", Label: "Child Task", Type: "Story", Parent: parent}
 		payload := string(buildCreatePayload(n, f))
-		want := `{"projectKey":"TEST","type":"Story","summary":"Child Task","parent":{"key":"TEST-10"}}`
+		want := `{"projectKey":"TEST","type":"Story","summary":"Child Task","parentIssueId":"TEST-10"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}

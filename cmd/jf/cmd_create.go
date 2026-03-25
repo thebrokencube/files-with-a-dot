@@ -222,7 +222,7 @@ func buildCreatePayload(n *forest.Node, f *forest.Forest) []byte {
 
 	// Add parent link if parent has a real key
 	if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {
-		payload += fmt.Sprintf(`,"parent":{"key":%q}`, n.Parent.Key)
+		payload += fmt.Sprintf(`,"parentIssueId":%q`, n.Parent.Key)
 	}
 
 	payload += "}"
