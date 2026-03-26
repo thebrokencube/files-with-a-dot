@@ -46,6 +46,8 @@ func main() {
 		os.Exit(runShow(os.Args[2:]))
 	case "rm":
 		os.Exit(runRm(os.Args[2:]))
+	case "url":
+		os.Exit(runURL(os.Args[2:]))
 	}
 
 	// Prereq guard for Jira-touching commands
@@ -104,6 +106,7 @@ Ticket management:
 
 Other:
   schema               Emit JSON Schema for forest.yml and frontmatter
+  url <KEY>            Print browse URL for an issue
   version              Show version
 
 Flags may appear before or after positional arguments.

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/config"
 )
 
 // CheckResult represents the outcome of a single prerequisite check.
@@ -32,6 +34,7 @@ func CheckAll(check Checker) ([]CheckResult, bool) {
 	results = append(results, checkNode(check))
 	results = append(results, checkAcli(check))
 	results = append(results, checkJiraAuth(check))
+	results = append(results, checkConfig())
 
 	for _, r := range results {
 		if r.Status != "ok" {
@@ -116,4 +119,31 @@ func QuickCheck(check Checker) string {
 		}
 	}
 	return ""
+}
+
+func checkConfig() CheckResult {
+	cfg, err := config.Load()
+	if err != nil {
+		return CheckResult{
+			Name:   "config",
+			Status: "missing",
+			Detail: fmt.Sprintf("cannot read ~/.jf.yml: %s", err),
+			Fix:    "Check file permissions",
+		}
+	}
+
+	if cfg.Site == "" {
+		return CheckResult{
+			Name:   "config",
+			Status: "missing",
+			Detail: "site not configured in ~/.jf.yml",
+			Fix:    "Run: jf setup --discover",
+		}
+	}
+
+	return CheckResult{
+		Name:   "config",
+		Status: "ok",
+		Detail: cfg.Site + ".atlassian.net",
+	}
 }

@@ -40,8 +40,8 @@ func TestCheckAllPasses(t *testing.T) {
 		}
 		t.Fatal("expected all checks to pass")
 	}
-	if len(results) != 3 {
-		t.Fatalf("expected 3 results, got %d", len(results))
+	if len(results) != 4 {
+		t.Fatalf("expected 4 results, got %d", len(results))
 	}
 	for _, r := range results {
 		if r.Status != "ok" {
