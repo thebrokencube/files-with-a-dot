@@ -4,22 +4,32 @@ Standards for ticket structure, naming, and content. These are opinionated conve
 
 ## Ticket Naming
 
-Encode hierarchy in the summary field:
+All ticket names use conventional commit format. Higher-level tickets add a bracketed prefix for scanability in flat views.
 
-- **Tasks/Stories**: `type(scope): description` — e.g., `feat(resolver): add fallback heuristic`
-- **Epics**: `[PREFIX/Bucket] Name` — e.g., `[AUTH/Infra] Login Hardening`
-- **Project Names (buckets)**: `[PREFIX] Name` — e.g., `[AUTH] Infrastructure`
-- **Initiatives**: Plain name — e.g., `Platform Reliability`
+### Format by Level
+
+- **Stories/Tasks/Bugs**: `type(scope): description`
+  - e.g., `feat(resolver): add fallback heuristic`
+- **Epics (no parent)**: `[ACRONYM] type(scope): description`
+  - e.g., `[DPD] feat(decklet): plugin development`
+  - Acronym derived from epic name initials (Decklet Plugin Development → DPD)
+- **Epics (with parent)**: `[PARENT/Bucket] type(scope): description`
+  - e.g., `[AUTH/Infra] feat(session): add token rotation`
+  - PARENT is the parent epic's acronym
+- **Project Names (buckets)**: `[PREFIX] Name`
+  - e.g., `[AUTH] Infrastructure`
+- **Initiatives**: Plain name
+  - e.g., `Platform Reliability`
 
 ### Hierarchical Tags
 
-Use hierarchical path tags as a leading prefix to encode ancestry:
+The bracketed prefix encodes ancestry so tickets are scannable in flat Jira views (boards, JQL results):
 
-- **Bucket under initiative**: `[PREFIX] Name`
-- **Epic under bucket**: `[PREFIX/Bucket] Name`
-- **Deeper nesting**: extend the path — `[PREFIX/Bucket/Sub] Name`
+- **Top-level epic**: `[ACRONYM]` — acronym from the epic's own name
+- **Epic under bucket**: `[PARENT/Bucket]` — parent's acronym + bucket name
+- **Deeper nesting**: extend the path — `[PARENT/Bucket/Sub]`
 
-Tags are always leading (prefix position), never trailing or backtick-wrapped. The tag encodes the parent path so tickets are scannable in flat Jira views (boards, JQL results) without needing to navigate the hierarchy.
+Tags are always leading (prefix position), never trailing or backtick-wrapped.
 
 ## Description Structure
 
