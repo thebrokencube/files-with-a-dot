@@ -4,6 +4,8 @@
 - **Respect the invoked skill's tooling.** When a `/skill` command is invoked, use that skill's intended tools. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails.
 - **Keep it simple.** Start with the simplest implementation that works. No extra error handling, wrapper classes, or abstraction unless asked.
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
-- **One operation per tool call.** No chaining (`&&`, `;`, `||`), pipes, or command substitution. Use separate tool calls.
+- **NEVER chain commands.** No `&&`, `;`, `||`, pipes, or command substitution. One operation per Bash call. This is absolute — hooks and permissions break on chained commands.
+- **Use `cd` for cross-repo work.** When you need to run commands in another directory, `cd <path>` in its own Bash call first. This is required, not optional. Never use `git -C` — hooks cannot pattern-match it.
+- **One-liner commits only.** Use `git commit -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
 - **Observation management**: Always batch `folio observe resolve "#N" "#N2" ...` to avoid index shifting between calls.
