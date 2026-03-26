@@ -217,6 +217,7 @@ func planFirstSync(r NodeReading, direction string, opts PlanOpts, demoted bool)
 // planWithBaseline handles nodes with an existing sync baseline.
 func planWithBaseline(r NodeReading, direction string, opts PlanOpts, demoted bool) Action {
 	localChanged := r.LocalHash != r.Baseline.LocalHash
+	labelChanged := forest.ComputeHash([]byte(r.LocalLabel)) != r.Baseline.LabelHash
 
 	// Empty RemoteHash from Track 1 transition: treat as "no remote baseline"
 	remoteChanged := false
@@ -232,9 +233,13 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts, demoted bo
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
 				RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 		}
-		if localChanged {
+		if localChanged || labelChanged {
+			reason := "local changed"
+			if labelChanged && !localChanged {
+				reason = "label changed"
+			}
 			return Action{Node: r.Node, Kind: ActionPush,
-				Reason:       "local changed",
+				Reason:       reason,
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 		}
 		return Action{Node: r.Node, Kind: ActionSkip, Reason: "no changes"}
@@ -254,7 +259,8 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts, demoted bo
 		return Action{Node: r.Node, Kind: ActionSkip, Reason: "no changes"}
 
 	case "both":
-		if localChanged && remoteChanged {
+		localOrLabelChanged := localChanged || labelChanged
+		if localOrLabelChanged && remoteChanged {
 			// Conflict — check --resolve
 			if opts.Resolve == "local" {
 				return Action{Node: r.Node, Kind: ActionPush,
@@ -271,9 +277,13 @@ func planWithBaseline(r NodeReading, direction string, opts PlanOpts, demoted bo
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash,
 				RemoteADF: r.RemoteADF, RemoteHash: r.RemoteHash}
 		}
-		if localChanged {
+		if localOrLabelChanged {
+			reason := "local changed"
+			if labelChanged && !localChanged {
+				reason = "label changed"
+			}
 			return Action{Node: r.Node, Kind: ActionPush,
-				Reason:       "local changed",
+				Reason:       reason,
 				LocalContent: r.LocalContent, LocalHash: r.LocalHash}
 		}
 		if remoteChanged {

@@ -109,7 +109,8 @@ func executePush(a Action, p *pipeline.Pipeline, state *forest.State, forestDir 
 	if state != nil {
 		localHash := pipeline.ComputeLocalHash(pipeline.StripFrontmatter(source))
 		remoteHash := postPushRemoteHash(a.Node.Key, p, compiled, a.RemoteHash)
-		state.RecordSync(a.Node.Key, "push", localHash, remoteHash)
+		labelHash := forest.ComputeHash([]byte(a.Node.Label))
+		state.RecordSync(a.Node.Key, "push", localHash, remoteHash, labelHash)
 	}
 
 	return Result{Node: a.Node, Kind: ActionPush, Success: true}
@@ -143,7 +144,8 @@ func executePull(a Action, p *pipeline.Pipeline, state *forest.State, forestDir 
 	if state != nil {
 		localHash := pipeline.ComputeLocalHash(pipeline.StripFrontmatter(content))
 		remoteHash := forest.ComputeHash(a.RemoteADF)
-		state.RecordSync(a.Node.Key, "pull", localHash, remoteHash)
+		labelHash := forest.ComputeHash([]byte(a.Node.Label))
+		state.RecordSync(a.Node.Key, "pull", localHash, remoteHash, labelHash)
 	}
 
 	return Result{Node: a.Node, Kind: ActionPull, Success: true}

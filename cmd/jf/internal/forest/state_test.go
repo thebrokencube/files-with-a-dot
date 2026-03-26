@@ -192,7 +192,7 @@ func TestComputeHash(t *testing.T) {
 
 func TestRecordSync(t *testing.T) {
 	s := &State{Nodes: make(map[string]NodeState)}
-	s.RecordSync("BEN-1", "push", "localhash", "remotehash")
+	s.RecordSync("BEN-1", "push", "localhash", "remotehash", "labelhash")
 
 	ns, ok := s.Nodes["BEN-1"]
 	if !ok {
@@ -209,6 +209,9 @@ func TestRecordSync(t *testing.T) {
 	}
 	if ns.RemoteHash != "remotehash" {
 		t.Errorf("expected RemoteHash 'remotehash', got %q", ns.RemoteHash)
+	}
+	if ns.LabelHash != "labelhash" {
+		t.Errorf("expected LabelHash 'labelhash', got %q", ns.LabelHash)
 	}
 }
 

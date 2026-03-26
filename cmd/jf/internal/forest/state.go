@@ -23,6 +23,7 @@ type NodeState struct {
 	LastPull   time.Time `json:"last_pull,omitempty"`
 	LocalHash  string    `json:"local_hash,omitempty"`  // sha256 of content below frontmatter
 	RemoteHash string    `json:"remote_hash,omitempty"` // sha256 of ADF JSON from Jira
+	LabelHash  string    `json:"label_hash,omitempty"`  // sha256 of label string
 
 	// Mutability cache — content-addressed by local hash.
 	MutableClean bool   `json:"mutable_clean,omitempty"`
@@ -125,12 +126,13 @@ func (s *State) IsStale(key string, fileMtime time.Time) bool {
 }
 
 // RecordSync updates the state for a node after a successful sync operation.
-func (s *State) RecordSync(key, direction, localHash, remoteHash string) {
+func (s *State) RecordSync(key, direction, localHash, remoteHash, labelHash string) {
 	ns := s.Nodes[key]
 	ns.LastSync = time.Now()
 	ns.Direction = direction
 	ns.LocalHash = localHash
 	ns.RemoteHash = remoteHash
+	ns.LabelHash = labelHash
 	s.Nodes[key] = ns
 }
 

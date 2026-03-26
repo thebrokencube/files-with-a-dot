@@ -24,6 +24,8 @@ var (
 
 	baselineLocal  = "localhash123"
 	baselineRemote = "remotehash456"
+	// SHA256 of empty string — matches node() helper which creates nodes without labels
+	baselineLabelHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
 func node(key, sync string) *forest.Node {
@@ -228,13 +230,13 @@ func TestPlan(t *testing.T) {
 		{"baseline_neither_changed_skip_push", NodeReading{
 			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: baselineLocal,
 			RemoteHash: baselineRemote, Mutable: true,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
+			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote, LabelHash: baselineLabelHash},
 		}, pushOpts, ActionSkip, BlockNone},
 
 		{"baseline_neither_changed_skip_pull", NodeReading{
 			Node: node("KEY-1", "pull"), LocalHash: baselineLocal,
 			RemoteHash: baselineRemote,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
+			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote, LabelHash: baselineLabelHash},
 		}, pullOpts, ActionSkip, BlockNone},
 
 		// With baseline — both direction
@@ -253,7 +255,7 @@ func TestPlan(t *testing.T) {
 		{"both_neither_skip", NodeReading{
 			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: baselineLocal,
 			RemoteADF: substantiveADF, RemoteHash: baselineRemote, Mutable: true,
-			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
+			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote, LabelHash: baselineLabelHash},
 		}, bothOpts, ActionSkip, BlockNone},
 
 		{"both_changed_conflict", NodeReading{

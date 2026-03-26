@@ -15,6 +15,7 @@ type NodeReading struct {
 	Node           *forest.Node
 	LocalContent   []byte // stripped of frontmatter
 	LocalHash      string
+	LocalLabel     string // from node.Label (frontmatter, heading, or filename)
 	LocalErr       error
 	RemoteADF      json.RawMessage
 	RemoteHash     string
@@ -164,6 +165,7 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 	state *forest.State, forestDir string, stateMu *sync.Mutex) NodeReading {
 
 	r := NodeReading{Node: node}
+	r.LocalLabel = node.Label
 
 	// Local content
 	filePath := filepath.Join(forestDir, node.File)
