@@ -191,7 +191,7 @@ Ticket naming, description structure, content rules, and project field defaults.
 **HARD RULE**: Always use jf commands for Jira operations. If you must use MCP directly (e.g., Jira MCP tools like `editJiraIssue`, `createJiraIssue`), you MUST explain why jf cannot handle the operation BEFORE making the MCP call. Never skip this explanation.
 
 Valid reasons to use MCP directly:
-- **Parking lot repurposing**: jf has no `jf unpark` or `jf repurpose` command yet — must use MCP to update summary and parent of a parked ticket
+- **Parking lot repurposing**: jf has no `jf unpark` command yet, and acli doesn't support updating the parent field — must use MCP to reparent a parked ticket
 - **Field updates not supported by jf**: Changing status, assignee, or custom fields that jf doesn't manage
 - **Queries outside jf scope**: Complex JQL searches, field metadata discovery
 
