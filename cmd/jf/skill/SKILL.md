@@ -12,7 +12,7 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 | Command | What it does |
 |---------|-------------|
 | `jf clone <KEY>` | Scaffold local forest from Jira hierarchy |
-| `jf init` | Create `forest.yml` in current directory |
+| `jf init` | Create `.jf/forest.yml` in current directory |
 | `jf setup` | Check prerequisites (node, acli, auth) |
 | `jf push <KEY> <FILE>` | Compile markdown to ADF and push to Jira description (`--dry-run`, `--plain-text`) |
 | `jf pull <KEY> <FILE>` | Pull Jira description to local markdown (`--dry-run`) |
@@ -106,7 +106,7 @@ jf pull PROJ-123 output.md         # pull to local file
 
 ## Level 1: Forest Operations
 
-With a `forest.yml` in the directory tree:
+With a `.jf/forest.yml` in the directory tree:
 
 ```bash
 jf status --json     # what's stale?
@@ -118,10 +118,23 @@ jf create-missing    # create tickets for TBD nodes
 
 ## Forest Structure
 
-A forest is a directory tree with:
-- `forest.yml` at the root (schema version, defaults for sync/type/project)
-- `.md` files with YAML frontmatter containing `jira: KEY` (or `jira: TBD`)
-- Directory `README.md` files become parent nodes; files in directories become children
+A forest is a directory with a `.jf/` subdirectory containing:
+- `.jf/forest.yml` — schema version, defaults for sync/type/project
+- `.jf/*.md` — node files with YAML frontmatter containing `jira: KEY` (or `jira: TBD`)
+- `.jf/subdir/README.md` — directory README.md files become parent nodes; sibling files become children
+
+```
+my-project/
+├── .jf/
+│   ├── forest.yml        # config
+│   ├── README.md         # root node (epic)
+│   ├── feature-a.md      # child of root
+│   └── epics/
+│       ├── README.md     # nested parent
+│       └── story.md      # child of epics/
+```
+
+The `.jf/` directory is the forest root. All node discovery happens inside it.
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: push/pull), `order` (sibling sort).
 See [docs/03-reference.md](../docs/03-reference.md) for field details, inheritance, and label derivation.

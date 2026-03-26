@@ -177,8 +177,8 @@ func TestBuildCreatePayload(t *testing.T) {
 
 	t.Run("root node", func(t *testing.T) {
 		n := &forest.Node{Key: "TBD", Label: "My Task", Type: "Task"}
-		payload := string(buildCreatePayload(n, f))
-		want := `{"projectKey":"TEST","type":"Task","summary":"My Task"}`
+		payload := string(buildCreatePayload(n, f, nil))
+		want := `{"projectKey":"TEST","summary":"My Task","type":"Task"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}
@@ -187,8 +187,8 @@ func TestBuildCreatePayload(t *testing.T) {
 	t.Run("child node with real parent", func(t *testing.T) {
 		parent := &forest.Node{Key: "TEST-10", Label: "Parent"}
 		n := &forest.Node{Key: "TBD", Label: "Child Task", Type: "Story", Parent: parent}
-		payload := string(buildCreatePayload(n, f))
-		want := `{"projectKey":"TEST","type":"Story","summary":"Child Task","parentIssueId":"TEST-10"}`
+		payload := string(buildCreatePayload(n, f, nil))
+		want := `{"parentIssueId":"TEST-10","projectKey":"TEST","summary":"Child Task","type":"Story"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}
@@ -197,9 +197,22 @@ func TestBuildCreatePayload(t *testing.T) {
 	t.Run("child node with TBD parent", func(t *testing.T) {
 		parent := &forest.Node{Key: "TBD", Label: "TBD Parent"}
 		n := &forest.Node{Key: "TBD", Label: "Child", Type: "Story", Parent: parent}
-		payload := string(buildCreatePayload(n, f))
+		payload := string(buildCreatePayload(n, f, nil))
 		// TBD parent should NOT be included
-		want := `{"projectKey":"TEST","type":"Story","summary":"Child"}`
+		want := `{"projectKey":"TEST","summary":"Child","type":"Story"}`
+		if payload != want {
+			t.Errorf("got %s, want %s", payload, want)
+		}
+	})
+
+	t.Run("with project fields", func(t *testing.T) {
+		n := &forest.Node{Key: "TBD", Label: "My Task", Type: "Epic"}
+		fields := map[string]any{
+			"customfield_10028": map[string]any{"value": "Medium"},
+		}
+		payload := string(buildCreatePayload(n, f, fields))
+		// additionalAttributes should be included
+		want := `{"additionalAttributes":{"customfield_10028":{"value":"Medium"}},"projectKey":"TEST","summary":"My Task","type":"Epic"}`
 		if payload != want {
 			t.Errorf("got %s, want %s", payload, want)
 		}

@@ -2,14 +2,16 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
-	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -55,11 +57,18 @@ func runCreateMissing(args []string) int {
 		return dendrik.ExitOK
 	}
 
+	// Load config for project-specific fields
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ Failed to load ~/.jf.yml: %s\n", err)
+		cfg = &config.Config{}
+	}
+
 	if *dryRun {
 		return dryRunCreate(tbdNodes, f)
 	}
 
-	return executeCreate(tbdNodes, f, *plainText)
+	return executeCreate(tbdNodes, f, cfg, *plainText)
 }
 
 func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
@@ -76,12 +85,18 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 	return dendrik.ExitOK
 }
 
-func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
+func executeCreate(nodes []*forest.Node, f *forest.Forest, cfg *config.Config, plainText bool) int {
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
 	state, stateErr := forest.LoadState(f.Dir)
 	if stateErr != nil {
 		state = &forest.State{Nodes: make(map[string]forest.NodeState)}
+	}
+
+	// Get project-specific fields from config
+	var projectFields map[string]any
+	if cfg != nil && cfg.Projects != nil {
+		projectFields = cfg.Projects[f.Defaults.Project]
 	}
 
 	// Track failed parents so we skip their children
@@ -110,7 +125,7 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, plainText bool) int {
 			fmt.Fprintf(os.Stderr, "⚠ %s already exists for %q — using existing key\n", existingKey, n.Label)
 			newKey = existingKey
 		} else {
-			payload := buildCreatePayload(n, f)
+			payload := buildCreatePayload(n, f, projectFields)
 			newKey, err = p.Create(payload)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "✗ %s: creation failed: %s\n", n.Label, err)
@@ -217,16 +232,26 @@ func dedupCheck(p *pipeline.Pipeline, jql string) (string, error) {
 }
 
 // buildCreatePayload builds the JSON payload for acli create.
-func buildCreatePayload(n *forest.Node, f *forest.Forest) []byte {
-	payload := fmt.Sprintf(`{"projectKey":%q,"type":%q,"summary":%q`, f.Defaults.Project, n.Type, n.Label)
+// projectFields are additional attributes from ~/.jf.yml projects config.
+func buildCreatePayload(n *forest.Node, f *forest.Forest, projectFields map[string]any) []byte {
+	data := map[string]any{
+		"projectKey": f.Defaults.Project,
+		"type":       n.Type,
+		"summary":    n.Label,
+	}
 
 	// Add parent link if parent has a real key
 	if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {
-		payload += fmt.Sprintf(`,"parentIssueId":%q`, n.Parent.Key)
+		data["parentIssueId"] = n.Parent.Key
 	}
 
-	payload += "}"
-	return []byte(payload)
+	// Add project-specific fields as additionalAttributes
+	if len(projectFields) > 0 {
+		data["additionalAttributes"] = projectFields
+	}
+
+	payload, _ := json.Marshal(data)
+	return payload
 }
 
 // rewriteFrontmatterKey does a line-level replacement of jira: TBD with the new key.
