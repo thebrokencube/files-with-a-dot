@@ -38,7 +38,7 @@ func Init(dir string) error {
 	// Create CLAUDE.md if missing
 	claudePath := filepath.Join(dir, "CLAUDE.md")
 	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
-		if err := os.WriteFile(claudePath, []byte("# Folio Home\n"), 0644); err != nil {
+		if err := os.WriteFile(claudePath, []byte(TemplateClaude), 0644); err != nil {
 			return fmt.Errorf("write CLAUDE.md: %w", err)
 		}
 	}
@@ -46,8 +46,16 @@ func Init(dir string) error {
 	// Create README.md if missing
 	readmePath := filepath.Join(dir, "README.md")
 	if _, err := os.Stat(readmePath); os.IsNotExist(err) {
-		if err := os.WriteFile(readmePath, []byte("# Folio Home\n\nSee [CLAUDE.md](./CLAUDE.md) for details.\n"), 0644); err != nil {
+		if err := os.WriteFile(readmePath, []byte(TemplateReadme), 0644); err != nil {
 			return fmt.Errorf("write README.md: %w", err)
+		}
+	}
+
+	// Create .gitignore if missing
+	gitignorePath := filepath.Join(dir, ".gitignore")
+	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
+		if err := os.WriteFile(gitignorePath, []byte(TemplateGitignore), 0644); err != nil {
+			return fmt.Errorf("write .gitignore: %w", err)
 		}
 	}
 
