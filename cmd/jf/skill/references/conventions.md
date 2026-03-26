@@ -4,17 +4,17 @@ Standards for ticket structure, naming, and content. These are opinionated conve
 
 ## Ticket Naming
 
-All ticket names use conventional commit format. Higher-level tickets add a bracketed prefix for scanability in flat views.
+Stories/Tasks/Bugs use conventional commit format. Higher-level tickets use plain names with a bracketed prefix for scanability in flat views.
 
 ### Format by Level
 
 - **Stories/Tasks/Bugs**: `type(scope): description`
   - e.g., `feat(resolver): add fallback heuristic`
-- **Epics (no parent)**: `[ACRONYM] type(scope): description`
-  - e.g., `[DPD] feat(decklet): plugin development`
-  - Acronym derived from epic name initials (Decklet Plugin Development → DPD)
-- **Epics (with parent)**: `[PARENT/Bucket] type(scope): description`
-  - e.g., `[AUTH/Infra] feat(session): add token rotation`
+- **Epics (no parent)**: `[ACRONYM] Name`
+  - e.g., `[DPD] Decklet Plugin Development`
+  - Acronym derived from epic name initials
+- **Epics (with parent)**: `[PARENT/Bucket] Name`
+  - e.g., `[AUTH/Infra] Login Hardening`
   - PARENT is the parent epic's acronym
 - **Project Names (buckets)**: `[PREFIX] Name`
   - e.g., `[AUTH] Infrastructure`
