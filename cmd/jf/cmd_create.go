@@ -232,6 +232,7 @@ func dedupCheck(p *pipeline.Pipeline, jql string) (string, error) {
 
 // buildCreatePayload builds the JSON payload for acli create.
 // projectFields are additional attributes from ~/.jf.yml projects config.
+// Components need special formatting: ["Name"] -> [{"name": "Name"}]
 func buildCreatePayload(n *forest.Node, f *forest.Forest, projectFields map[string]any) []byte {
 	data := map[string]any{
 		"projectKey": f.Defaults.Project,
@@ -244,9 +245,31 @@ func buildCreatePayload(n *forest.Node, f *forest.Forest, projectFields map[stri
 		data["parentIssueId"] = n.Parent.Key
 	}
 
-	// Add project-specific fields as additionalAttributes
+	// Process project fields into additionalAttributes
 	if len(projectFields) > 0 {
-		data["additionalAttributes"] = projectFields
+		additionalAttrs := make(map[string]any)
+		for k, v := range projectFields {
+			switch k {
+			case "components":
+				// components needs format: [{"name": "..."}]
+				if arr, ok := v.([]any); ok {
+					var comps []map[string]string
+					for _, c := range arr {
+						if name, ok := c.(string); ok {
+							comps = append(comps, map[string]string{"name": name})
+						}
+					}
+					if len(comps) > 0 {
+						additionalAttrs["components"] = comps
+					}
+				}
+			default:
+				additionalAttrs[k] = v
+			}
+		}
+		if len(additionalAttrs) > 0 {
+			data["additionalAttributes"] = additionalAttrs
+		}
 	}
 
 	payload, _ := json.Marshal(data)

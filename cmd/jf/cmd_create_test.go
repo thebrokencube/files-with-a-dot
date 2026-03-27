@@ -217,4 +217,18 @@ func TestBuildCreatePayload(t *testing.T) {
 			t.Errorf("got %s, want %s", payload, want)
 		}
 	})
+
+	t.Run("with components formatted correctly", func(t *testing.T) {
+		n := &forest.Node{Key: "TBD", Label: "My Task", Type: "Task"}
+		fields := map[string]any{
+			"components":        []any{"Partnered Benefits"},
+			"customfield_10324": map[string]any{"value": "Bottoms Up Initiative"},
+		}
+		payload := string(buildCreatePayload(n, f, fields))
+		// components should be in additionalAttributes with name format
+		want := `{"additionalAttributes":{"components":[{"name":"Partnered Benefits"}],"customfield_10324":{"value":"Bottoms Up Initiative"}},"projectKey":"TEST","summary":"My Task","type":"Task"}`
+		if payload != want {
+			t.Errorf("got %s, want %s", payload, want)
+		}
+	})
 }
