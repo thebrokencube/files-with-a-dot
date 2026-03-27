@@ -74,8 +74,12 @@ func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {
 	fmt.Printf("Would create %d ticket(s):\n\n", len(nodes))
 	for i, n := range nodes {
 		parentKey := "(root)"
-		if n.Parent != nil && !forest.IsTBD(n.Parent.Key) {
-			parentKey = n.Parent.Key
+		if n.Parent != nil {
+			if forest.IsTBD(n.Parent.Key) {
+				parentKey = fmt.Sprintf("(will create) %s", n.Parent.Label)
+			} else {
+				parentKey = n.Parent.Key
+			}
 		}
 		fmt.Printf("  %d. %s\n", i+1, n.Label)
 		fmt.Printf("     Type: %s, Project: %s, Parent: %s\n", n.Type, f.Defaults.Project, parentKey)
@@ -112,8 +116,9 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, cfg *config.Config, p
 			continue
 		}
 
-		// Dedup check
-		jql := fmt.Sprintf(`project = %s AND summary ~ %q`, f.Defaults.Project, n.Label)
+		// Dedup check — strip JQL reserved chars from label for text search
+		sanitized := strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "(", "", ")", "").Replace(n.Label)
+		jql := fmt.Sprintf(`project = %s AND summary ~ %q`, f.Defaults.Project, sanitized)
 		existingKey, err := dedupCheck(p, jql)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "⚠ %s: dedup check failed: %s\n", n.Label, err)
