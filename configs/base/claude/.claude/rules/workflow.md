@@ -6,6 +6,7 @@
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
 - **NEVER chain commands.** No `&&`, `;`, `||`, pipes, or command substitution. One operation per Bash call. This is absolute — hooks and permissions break on chained commands.
 - **Use `cd` for cross-repo work.** When you need to run commands in another directory, `cd <path>` in its own Bash call first. This is required, not optional. Never use `git -C` — hooks cannot pattern-match it.
+- **Always use `/commit` skill for commits.** Never assume commit message conventions. The skill defines the format, trailers policy, and workflow.
 - **One-liner commits only.** Use `git commit -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
 - **Observation management**: Always batch `folio observe resolve "#N" "#N2" ...` to avoid index shifting between calls.
