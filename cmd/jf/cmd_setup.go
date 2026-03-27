@@ -18,9 +18,8 @@ func runSetup(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output as JSON (with --check)")
 	discover := fs.BoolLong("discover", "Discover and save Jira site from acli auth")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if *discover {

@@ -47,9 +47,8 @@ func runHomeInit(args []string) int {
 func runHomeValidate(args []string) int {
 	fs := dendrik.NewFlagSet("home validate")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
@@ -85,9 +84,8 @@ func runHomeList(args []string) int {
 	fs := dendrik.NewFlagSet("home list")
 	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	color := dendrik.ColorEnabled(*noColor)
@@ -190,9 +188,8 @@ func runHomePush(args []string) int {
 	msg := fs.String('m', "message", "", "Commit message: type(scope): description")
 	folioName := fs.String('f', "folio", "", "Scope commit to a single folio (shortname or path)")
 	all := fs.Bool('a', "all", "Stage all changes (current behavior, default)")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	// Allow positional args as message for convenience: folio home push "my message"

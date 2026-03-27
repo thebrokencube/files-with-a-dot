@@ -11,9 +11,8 @@ func runSetup(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("setup")
 	checkMode := fs.Bool('c', "check", "Silent mode: exit 0 if OK, exit 1 if missing")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	folioBin, err := os.Executable()

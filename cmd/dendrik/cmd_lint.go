@@ -68,9 +68,8 @@ func runLint(args []string) int {
 	explainFlag := fs.StringLong("explain", "", "Show rationale for a check ID")
 	noColor := fs.BoolLong("no-color", "Disable color output")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	// --explain mode

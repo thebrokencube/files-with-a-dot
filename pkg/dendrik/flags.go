@@ -1,6 +1,16 @@
 package dendrik
 
-import "github.com/spf13/pflag"
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/spf13/pflag"
+)
+
+// ErrHelp is returned by Parse when --help or -h is passed.
+// Callers should exit with ExitOK rather than treating it as an error.
+var ErrHelp = errors.New("help requested")
 
 // FlagSet wraps pflag.FlagSet with dendrik conventions.
 // Short names use rune (matching the old ff v4 API) and are converted
@@ -17,8 +27,29 @@ func NewFlagSet(name string) *FlagSet {
 
 // Parse parses args against the flag set. pflag supports interspersed
 // flags natively, so flags can appear before or after positional args.
+// Returns ErrHelp when --help/-h is passed (pflag prints usage to stderr).
 func Parse(fs *FlagSet, args []string) error {
-	return fs.inner.Parse(args)
+	err := fs.inner.Parse(args)
+	if errors.Is(err, pflag.ErrHelp) {
+		return ErrHelp
+	}
+	return err
+}
+
+// ParseCheck handles the common parse-then-check pattern. Returns (true, code)
+// when the caller should return immediately (help requested or parse error),
+// or (false, 0) when parsing succeeded and the caller should continue.
+// On parse error, the error is printed to stderr.
+func ParseCheck(fs *FlagSet, args []string) (bool, int) {
+	err := fs.inner.Parse(args)
+	if errors.Is(err, pflag.ErrHelp) {
+		return true, ExitOK
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return true, ExitUserError
+	}
+	return false, 0
 }
 
 // GetArgs returns positional arguments remaining after parsing.

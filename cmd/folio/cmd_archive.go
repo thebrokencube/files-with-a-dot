@@ -20,9 +20,8 @@ func runArchive(args []string) int {
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	dryRun := fs.Bool('n', "dry-run", "Print what would happen, no side effects")
 	noPush := fs.BoolLong("no-push", "Skip auto-commit")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if len(fs.GetArgs()) < 1 {

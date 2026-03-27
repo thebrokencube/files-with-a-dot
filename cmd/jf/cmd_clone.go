@@ -18,9 +18,8 @@ func runClone(args []string) int {
 	depth := fs.IntLong("depth", 0, "Max hierarchy depth (0 = unlimited)")
 	syncMode := fs.StringLong("sync", "", "Sync direction override for scaffolded nodes: push|pull|both (default: omit, derives from mutability)")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if *syncMode != "" && *syncMode != "push" && *syncMode != "pull" && *syncMode != "both" {

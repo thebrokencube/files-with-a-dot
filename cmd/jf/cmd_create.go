@@ -21,9 +21,8 @@ func runCreateMissing(args []string) int {
 	dryRun := fs.Bool('n', "dry-run", "Show what would be created without side effects")
 	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	f, roots, code := loadForestOrFail(*dir, false)

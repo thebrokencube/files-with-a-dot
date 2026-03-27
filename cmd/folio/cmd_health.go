@@ -17,9 +17,8 @@ func runHealth(args []string) int {
 	fs := dendrik.NewFlagSet("health")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {
@@ -45,9 +44,8 @@ func runHealth(args []string) int {
 func runHomeHealth(args []string) int {
 	fs := dendrik.NewFlagSet("home health")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	color := dendrik.ColorEnabled(*noColor)

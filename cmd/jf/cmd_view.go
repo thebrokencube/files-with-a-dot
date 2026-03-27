@@ -13,9 +13,8 @@ func runView(args []string) int {
 	fields := fs.String('f', "fields", "summary,status,issuetype", "Comma-separated fields to display")
 	jsonOut := fs.Bool('j', "json", "Output raw JSON from Jira")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	positional := fs.GetArgs()

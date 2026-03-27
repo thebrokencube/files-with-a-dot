@@ -32,9 +32,8 @@ func runObserveAppend(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {
@@ -79,9 +78,8 @@ func runObserveList(args []string) int {
 	scopeFilter := fs.String('s', "scope", "", "Filter by scope")
 	typeFilter := fs.String('t', "type", "", "Filter by type")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	pal := dendrik.NewPalette(true)
@@ -164,9 +162,8 @@ func runObserveResolve(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe resolve")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {
@@ -203,9 +200,8 @@ func runObserveLint(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe lint")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {

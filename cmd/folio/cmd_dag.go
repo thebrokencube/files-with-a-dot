@@ -37,9 +37,8 @@ func runDag(args []string) int {
 	branches := fs.Bool('b', "branches", "Show branch topology")
 	statusFlag := fs.Bool('s', "status", "Show staleness overlay (requires --branches)")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {

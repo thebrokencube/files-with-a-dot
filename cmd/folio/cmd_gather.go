@@ -21,9 +21,8 @@ func runGather(args []string) int {
 	typeFlag := fs.String('t', "type", "", "Reference type (spike, survey, design, ...)")
 	name := fs.String('n', "name", "", "Reference file name (default: derived from URL)")
 	read := fs.Bool('r', "read", "Read and summarize URL (requires Claude skill)")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if !resolveOrDie(folioPath) {

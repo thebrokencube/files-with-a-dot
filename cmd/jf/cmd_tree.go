@@ -17,9 +17,8 @@ func runTree(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output as JSON")
 	verbose := fs.Bool('v', "verbose", "Show sync direction and file paths")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	f, roots, code := loadForestOrFail(*dir, *jsonOut)

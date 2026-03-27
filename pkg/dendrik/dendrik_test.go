@@ -57,6 +57,51 @@ func TestParse(t *testing.T) {
 			t.Fatal("expected error for unknown flag")
 		}
 	})
+
+	t.Run("help returns ErrHelp", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		fs.StringLong("name", "", "a name")
+		err := Parse(fs, []string{"--help"})
+		if err != ErrHelp {
+			t.Fatalf("got %v, want ErrHelp", err)
+		}
+	})
+}
+
+func TestParseCheck(t *testing.T) {
+	t.Run("success returns false", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		fs.StringLong("name", "", "a name")
+		done, code := ParseCheck(fs, []string{"--name", "hello"})
+		if done {
+			t.Fatal("expected done=false for valid flags")
+		}
+		if code != 0 {
+			t.Fatalf("got code %d, want 0", code)
+		}
+	})
+
+	t.Run("help returns ExitOK", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		done, code := ParseCheck(fs, []string{"--help"})
+		if !done {
+			t.Fatal("expected done=true for --help")
+		}
+		if code != ExitOK {
+			t.Fatalf("got code %d, want ExitOK", code)
+		}
+	})
+
+	t.Run("error returns ExitUserError", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		done, code := ParseCheck(fs, []string{"--bogus"})
+		if !done {
+			t.Fatal("expected done=true for bad flag")
+		}
+		if code != ExitUserError {
+			t.Fatalf("got code %d, want ExitUserError", code)
+		}
+	})
 }
 
 func TestExitCodes(t *testing.T) {

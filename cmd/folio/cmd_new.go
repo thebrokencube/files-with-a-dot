@@ -20,9 +20,8 @@ func runNew(args []string) int {
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	noRegister := fs.BoolLong("no-register", "Skip adding source entry to folio.yml")
 	dryRun := fs.Bool('n', "dry-run", "Print what would be created, no side effects")
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if len(fs.GetArgs()) < 2 {

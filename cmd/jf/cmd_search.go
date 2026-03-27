@@ -16,9 +16,8 @@ func runSearch(args []string) int {
 	limit := fs.Int('l', "limit", 50, "Maximum results")
 	jsonOut := fs.Bool('j', "json", "Output raw JSON from Jira")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	query := fs.GetArgs()

@@ -14,9 +14,8 @@ func runValidate(args []string) int {
 	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
 	jsonOut := fs.Bool('j', "json", "Output as JSON")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	f, roots, code := loadForestOrFail(*dir, *jsonOut)

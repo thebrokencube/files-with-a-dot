@@ -21,9 +21,8 @@ func runInit(args []string) int {
 	project := fs.String('p', "project", "BEN", "Jira project key")
 	dir := fs.String('d', "dir", ".", "Directory to create .jf/forest.yml in")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	jfDir := filepath.Join(*dir, ".jf")

@@ -25,9 +25,8 @@ func runSync(args []string) int {
 	jsonOut := fs.Bool('j', "json", "Output plan as structured JSON")
 	yes := fs.BoolLong("yes", "Proceed without confirmation in non-interactive mode")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if *resolve != "" && *resolve != "local" && *resolve != "remote" {

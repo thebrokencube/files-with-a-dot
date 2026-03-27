@@ -11,9 +11,8 @@ import (
 func runURL(args []string) int {
 	fs := dendrik.NewFlagSet("url")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	posArgs := fs.GetArgs()

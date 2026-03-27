@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
@@ -12,9 +11,8 @@ func runSchema(args []string) int {
 	fs := dendrik.NewFlagSet("schema")
 	outputSchema := fs.Bool('o', "output", "Emit command output schemas instead of input schemas")
 
-	if err := dendrik.Parse(fs, args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return dendrik.ExitUserError
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
 	}
 
 	if *outputSchema {
