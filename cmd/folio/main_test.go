@@ -65,14 +65,15 @@ func TestRunStatusMinimal(t *testing.T) {
 }
 
 func TestRunInitAlreadyExists(t *testing.T) {
-	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "folio.yml"), []byte("schema: 1\n"), 0644)
+	homeDir := t.TempDir()
+	activeDir := filepath.Join(homeDir, "active")
+	os.MkdirAll(activeDir, 0755)
+	// Pre-create the target so init sees a conflict
+	os.MkdirAll(filepath.Join(activeDir, "test"), 0755)
+	os.WriteFile(filepath.Join(activeDir, "test", "folio.yml"), []byte("schema: 1\n"), 0644)
+	t.Setenv("FOLIO_HOME", homeDir)
 
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
-
-	code := runInit([]string{"--name", "Test"})
+	code := runInit([]string{"--name", "test"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for existing folio.yml, got %d", code)
 	}

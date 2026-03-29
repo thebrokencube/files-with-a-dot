@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -56,6 +57,15 @@ func Init(dir string) error {
 	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
 		if err := os.WriteFile(gitignorePath, []byte(TemplateGitignore), 0644); err != nil {
 			return fmt.Errorf("write .gitignore: %w", err)
+		}
+	}
+
+	// Initialize git repo if not already one
+	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
+		cmd := exec.Command("git", "init")
+		cmd.Dir = dir
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("git init: %w", err)
 		}
 	}
 
