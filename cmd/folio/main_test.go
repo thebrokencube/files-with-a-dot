@@ -91,6 +91,31 @@ func TestRunInitMissingName(t *testing.T) {
 }
 
 func TestRunInitCreatesFile(t *testing.T) {
+	// When FOLIO_HOME has an active/ directory, init should place the folio there.
+	homeDir := t.TempDir()
+	activeDir := filepath.Join(homeDir, "active")
+	os.MkdirAll(activeDir, 0755)
+	t.Setenv("FOLIO_HOME", homeDir)
+
+	code := runInit([]string{"--name", "my-project"})
+	if code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+
+	data, err := os.ReadFile(filepath.Join(activeDir, "my-project", "folio.yml"))
+	if err != nil {
+		t.Fatalf("folio.yml not created in FOLIO_HOME/active/my-project/: %v", err)
+	}
+	if len(data) == 0 {
+		t.Error("folio.yml is empty")
+	}
+}
+
+func TestRunInitFallsBackToCWD(t *testing.T) {
+	// When FOLIO_HOME has no active/ directory, init should fall back to CWD.
+	homeDir := t.TempDir()
+	t.Setenv("FOLIO_HOME", homeDir)
+
 	dir := t.TempDir()
 	origDir, _ := os.Getwd()
 	os.Chdir(dir)
@@ -103,7 +128,7 @@ func TestRunInitCreatesFile(t *testing.T) {
 
 	data, err := os.ReadFile(filepath.Join(dir, "folio.yml"))
 	if err != nil {
-		t.Fatalf("folio.yml not created: %v", err)
+		t.Fatalf("folio.yml not created in CWD: %v", err)
 	}
 	if len(data) == 0 {
 		t.Error("folio.yml is empty")

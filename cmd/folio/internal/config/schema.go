@@ -97,4 +97,3 @@ type CrossReference struct {
 	SourceOfTruth string   `yaml:"source_of_truth"`
 	AlsoAppearsIn []string `yaml:"also_appears_in"`
 }
-

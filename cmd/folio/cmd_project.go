@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
@@ -117,13 +119,24 @@ func runInit(args []string) int {
 		return code
 	}
 
-	if _, err := os.Stat("folio.yml"); err == nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("folio.yml already exists in %s", mustGetwd()))
+	if *name == "" {
+		fmt.Fprintln(os.Stderr, pal.Errf("--name is required"))
 		return dendrik.ExitUserError
 	}
 
-	if *name == "" {
-		fmt.Fprintln(os.Stderr, pal.Errf("--name is required"))
+	// Determine target path: prefer FOLIO_HOME/active/<slug>/ if initialized,
+	// otherwise fall back to current working directory.
+	targetPath := "folio.yml"
+	if homeDir, err := home.Dir(); err == nil {
+		activeDir := filepath.Join(homeDir, "active")
+		if fi, err := os.Stat(activeDir); err == nil && fi.IsDir() {
+			slug := strings.ToLower(strings.ReplaceAll(*name, " ", "-"))
+			targetPath = filepath.Join(activeDir, slug, "folio.yml")
+		}
+	}
+
+	if _, err := os.Stat(targetPath); err == nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("folio.yml already exists at %s", targetPath))
 		return dendrik.ExitUserError
 	}
 
@@ -137,11 +150,17 @@ targets: {}
 observations: []
 `, *name)
 
-	if err := os.WriteFile("folio.yml", []byte(content), 0644); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+
+	if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	fmt.Println(pal.Successf("Created folio.yml for %s%s%s", pal.Bold, *name, pal.Reset))
+	fmt.Printf("  %s\n", targetPath)
 	return dendrik.ExitOK
 }

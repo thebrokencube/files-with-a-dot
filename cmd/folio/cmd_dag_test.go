@@ -123,7 +123,9 @@ targets:
 		t.Errorf("expected exit code 0 for JSON mode, got %d", code)
 	}
 
-	var env struct{ Data dagJSON `json:"data"` }
+	var env struct {
+		Data dagJSON `json:"data"`
+	}
 	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
 		t.Fatalf("failed to parse JSON: %v", err)
 	}

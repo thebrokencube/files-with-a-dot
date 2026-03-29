@@ -254,7 +254,6 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	}
 }
 
-
 func (r *Result) addError(format string, args ...interface{}) {
 	r.Valid = false
 	r.Errors = append(r.Errors, fmt.Sprintf(format, args...))
