@@ -219,3 +219,4 @@ they do not count as materialization.
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/stack.md** — Stack workflow: check/propagate/push actions, stacked-pr integration
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
+- **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
