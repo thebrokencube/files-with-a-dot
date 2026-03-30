@@ -27,6 +27,7 @@ brew "bat"                      # Better cat with syntax highlighting
 # Git tools
 brew "lazygit"                  # Terminal UI for git
 brew "gh"                       # GitHub CLI
+brew "git-filter-repo"          # Git history rewriting
 
 # JSON/data tools
 brew "jq"                       # JSON processor

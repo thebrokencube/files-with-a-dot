@@ -116,16 +116,7 @@ This repo is deployment-via-clone — `dot sync` does NOT run build steps. Build
 
 Follow the conventions in the commit skill, plus dotfiles-specific rules:
 - Use conventional commits with scope: `fix(shell): correct PATH ordering`
-- Final commit message format is `v<version>: type(scope): description` — the version prefix is added automatically by the commit skill's tag detection
 - Test with `dot sync --dry-run` before committing
-
-### Versioning and Tags
-
-This repo is a **tagged repo** — every commit on main gets a semver tag. The commit skill detects this automatically and handles version bumping, message prefixing, and tag creation.
-
-Dotfiles-specific pre-commit checks:
-- Run `dot validate` before committing
-- Test with `dot sync --dry-run` to preview changes
 
 ### Testing Changes
 
