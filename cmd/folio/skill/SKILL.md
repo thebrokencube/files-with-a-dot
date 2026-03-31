@@ -167,6 +167,8 @@ External outputs resolve their push/pull method from `tooling.yml` (co-located w
 
 **Method types**: `cli:<tool>` = shell command, `mcp:<server>` = MCP tool call, `manual` = present to user, `manual:<hint>` = manual with guidance. Unlisted systems: pull=skip, push=manual.
 
+**Manual methods are inviolable.** When a target's publish method resolves to `manual` or `manual:<hint>` (e.g., `manual:paste-from-markdown`), never substitute an MCP tool or API call to push content programmatically. Compose the output file, then present it to the user (or `pbcopy` it). This applies even if an MCP tool exists that could technically write to the target system — the method type is an explicit choice about how content reaches that system, not a limitation to work around.
+
 **Jira routing**: Use `jf` (Jira Forest CLI) for ALL Jira operations — push, sync, view, search, create. Never call MCP Jira tools directly for writes. If `jf` cannot accomplish an operation, hard-stop and ask the user before falling back to MCP. Jira push pipeline and other publish methods: see references/publish.md.
 
 ## Review Gates
