@@ -13,6 +13,3 @@ cask "spotify"
 
 # Productivity
 cask "rectangle"                # Window management
-
-# Development
-cask "claude-code"              # Claude AI CLI
