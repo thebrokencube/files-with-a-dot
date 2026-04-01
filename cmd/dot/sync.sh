@@ -635,7 +635,7 @@ echo ""
 if command -v mise &>/dev/null; then
     echo "Setting up mise..."
     mise trust "$DOTFILES_DIR" 2>/dev/null || true
-    mise use --global node@lts 2>/dev/null || true
+    mise install 2>/dev/null || true
     echo ""
 fi
 

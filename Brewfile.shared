@@ -50,8 +50,5 @@ cask "obsidian"                 # Vault browser for ~/.folio
 # Diagrams
 brew "mermaid-cli"              # Mermaid diagram CLI (mmdc)
 
-# AI
-cask "claude-code"                  # Claude AI CLI
-
 # Fonts
 cask "font-inconsolata-nerd-font"
