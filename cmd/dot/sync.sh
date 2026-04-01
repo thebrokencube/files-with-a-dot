@@ -378,6 +378,7 @@ install_brew_packages() {
         echo ""
         echo "Upgrading installed packages..."
         brew upgrade || true
+        brew upgrade --cask || true
     fi
 
     if command -v mise &>/dev/null; then
