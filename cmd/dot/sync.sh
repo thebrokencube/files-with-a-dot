@@ -639,6 +639,35 @@ if command -v mise &>/dev/null; then
     echo ""
 fi
 
+# Install Claude Code (native binary)
+install_claude_code() {
+    echo "Claude Code:"
+
+    # Clean up legacy npm installation via mise
+    if [[ -n "$(mise ls "npm:@anthropic-ai/claude-code" 2>/dev/null)" ]]; then
+        info "Removing legacy npm installation from mise..."
+        mise uninstall "npm:@anthropic-ai/claude-code" 2>/dev/null || true
+        mise reshim 2>/dev/null || true
+    fi
+
+    # Check if native binary exists at expected location
+    if [[ -x "$HOME/.local/bin/claude" ]] && file "$HOME/.local/bin/claude" 2>/dev/null | grep -q "Mach-O\|ELF"; then
+        ok "Native binary installed ($(claude --version 2>/dev/null || echo 'unknown'))"
+        return 0
+    fi
+
+    # Bootstrap native installer — needs a working claude on PATH to run 'claude install'
+    if command -v claude &>/dev/null; then
+        info "Installing native binary via 'claude install'..."
+        claude install || { err "Native install failed"; return 1; }
+        ok "Native binary installed"
+    else
+        warn "Claude Code not found — install manually: https://docs.anthropic.com/en/docs/claude-code/getting-started"
+    fi
+}
+install_claude_code
+echo ""
+
 echo "============================================"
 echo -e "  ${GREEN}Sync complete!${NC}"
 echo "============================================"

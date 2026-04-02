@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --fix          Auto-fix issues where possible"
             echo "  --check NAME   Run specific check only"
             echo ""
-            echo "Available checks: tools, brew, local, nvim, setup"
+            echo "Available checks: tools, brew, local, nvim, claude, setup"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -182,6 +182,34 @@ check_nvim() {
 
 }
 
+check_claude() {
+    echo "Claude Code:"
+
+    if ! command -v claude &>/dev/null; then
+        err "Claude Code not found"
+        return
+    fi
+
+    local claude_path
+    claude_path=$(command -v claude)
+    local version
+    version=$(claude --version 2>/dev/null || echo "unknown")
+
+    # Check for legacy npm installation via mise
+    if [[ -n "$(mise ls "npm:@anthropic-ai/claude-code" 2>/dev/null)" ]]; then
+        warn "Legacy npm install found in mise (run 'dot sync' to migrate)"
+    fi
+
+    # Check if native binary
+    if [[ -x "$HOME/.local/bin/claude" ]] && file "$HOME/.local/bin/claude" 2>/dev/null | grep -q "Mach-O\|ELF"; then
+        ok "Native binary ($version) at $claude_path"
+    elif echo "$claude_path" | grep -q "node"; then
+        warn "Using npm-based claude ($version) — run 'dot sync' to migrate to native"
+    else
+        ok "Claude Code ($version) at $claude_path"
+    fi
+}
+
 # ============================================================================
 # Setup Status - checks things that may need manual action
 # ============================================================================
@@ -264,6 +292,7 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
         brew) check_brew ;;
         local) check_local ;;
         nvim) check_nvim ;;
+        claude) check_claude ;;
         setup) check_setup_status >/dev/null ;;
         *) echo "Unknown check: $SPECIFIC_CHECK"; exit 1 ;;
     esac
@@ -275,6 +304,8 @@ else
     check_local
     echo ""
     check_nvim
+    echo ""
+    check_claude
     echo ""
     check_setup_status >/dev/null
 fi
