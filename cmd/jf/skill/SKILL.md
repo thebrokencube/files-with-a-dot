@@ -137,6 +137,9 @@ my-project/
 The `.jf/` directory is the forest root. All node discovery happens inside it.
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: push/pull), `order` (sibling sort).
+
+**`label` maps to the Jira summary field.** It is updated on push/sync. This is the ticket title you see in Jira. (The name `label` is a known source of confusion — humans think "title", Jira's API calls it "summary", jf calls it "label". Consider renaming to `summary` or `title` in a future version.)
+
 See [docs/03-reference.md](../docs/03-reference.md) for field details, inheritance, and label derivation.
 
 ### Sync Direction
