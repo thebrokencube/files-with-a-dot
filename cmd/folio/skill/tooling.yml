@@ -46,3 +46,6 @@ systems:
   slack:
     pull: mcp:slack
     push: mcp:slack
+  notion:
+    pull: mcp:notion
+    push: mcp:notion
