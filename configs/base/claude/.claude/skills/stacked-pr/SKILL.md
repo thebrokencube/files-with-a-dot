@@ -196,6 +196,7 @@ When a root PR merges into main, advance the stack:
 ### Stack Presentation
 
 When creating PRs for a stack:
+- **Set `--base` to the parent branch** — `gh pr create` defaults to `main`, which is wrong for child branches. Always pass `--base <parent-branch>` explicitly.
 - Include a stack overview in each PR description showing the branch order and which PR is current
 - Mark child PRs as draft until their parent is approved
 - After propagation, update PR descriptions if the diff changed materially
