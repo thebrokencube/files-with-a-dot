@@ -37,6 +37,7 @@
     bm  = branch -m
     bd  = branch -d
     bD  = branch -D
+    gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -I{} git branch -D {}
 
     # Checkout
     co  = checkout
