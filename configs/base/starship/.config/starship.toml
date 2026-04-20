@@ -9,11 +9,10 @@ add_newline = true
 command_timeout = 500
 
 # Format - minimal for speed
-# directory + git branch + git status + prompt character
+# directory + git branch + prompt character
 format = """
 $directory\
 $git_branch\
-$git_status\
 $cmd_duration\
 $line_break\
 $character"""
@@ -40,19 +39,8 @@ vimcmd_symbol = "[❮](bold green)"
 min_time = 2000
 format = "took [$duration](bold yellow) "
 
-# Git status - fast with Git's fsmonitor enabled
 [git_status]
-style = "bold red"
-format = "[$all_status$ahead_behind]($style) "
-ahead = "⇡"
-behind = "⇣"
-diverged = "⇕"
-untracked = "?"
-modified = "!"
-staged = "+"
-deleted = "✘"
-stashed = ""
-ignore_submodules = true
+disabled = true
 
 [nodejs]
 disabled = true
