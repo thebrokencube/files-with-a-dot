@@ -75,8 +75,6 @@
       "Bash(bundle*)",
       "Bash(bin/*)",
 
-      "Bash(npx --yes @guideline-app/bamboo-cli@latest*)",
-
       "Bash(acli *)",
 
       "Bash(dot)",
