@@ -2,6 +2,9 @@
 
 - **Scope confirmation required.** Before reorganizing files, archiving work tracks, restructuring directories, or moving content between folio artifact types, confirm the scope first. Small edits within a file are fine.
 - **Skill-first for domain operations.** Before performing Jira, git commit, rebase, or other domain operations, invoke the owning skill (`/jf`, `/commit`, `/stacked-pr`). Do not use raw MCP tools or CLI commands for these domains — even if tool schemas are already loaded. The skill enforces conventions (parking lot checks, commit format, field defaults) that raw tools skip.
+- **Read `~/.jf.yml` before any jf parking lot or project-defaults operation.** The parking lot epic key and status for each project are defined there. Never query Jira or call `jf search` to discover the parking lot — it's already local.
+- **Check for a local forest before any ticket hierarchy operation.** Run `jf tree` from the relevant folio directory first. A local forest may already describe the epic hierarchy; use it rather than going to the Jira API cold. The jf skill calls this "Level Detection" — always do it.
+- **MCP explanation gate for Jira.** Before calling any Jira MCP tool directly, write one sentence explaining why `jf` cannot handle this operation. If you cannot write that sentence, use `jf` instead. Valid reasons are listed in the jf skill (e.g. reparenting tickets, field updates jf doesn't manage).
 - **Respect the invoked skill's tooling.** When a `/skill` command is invoked, use that skill's intended tools. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails.
 - **Keep it simple.** Start with the simplest implementation that works. No extra error handling, wrapper classes, or abstraction unless asked.
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
