@@ -532,7 +532,27 @@ apply_managed_files() {
         mkdir -p "$(dirname "$dest")"
 
         if [[ "$have_base" == true && "$have_overlay" == true ]]; then
-            jq -s '.[0] * .[1]' "$base_path" "$overlay_path" > "$dest"
+            jq -s '
+              def merge_deep:
+                if (.[0] | type) == "object" and (.[1] | type) == "object" then
+                  .[0] as $a | .[1] as $b |
+                  ($a | keys) + ($b | keys) | unique | map(
+                    . as $k |
+                    if ($a | has($k)) and ($b | has($k)) then
+                      {($k): ([$a[$k], $b[$k]] | merge_deep)}
+                    elif ($b | has($k)) then
+                      {($k): $b[$k]}
+                    else
+                      {($k): $a[$k]}
+                    end
+                  ) | add // {}
+                elif (.[0] | type) == "array" and (.[1] | type) == "array" then
+                  [.[0] + .[1] | unique[]]
+                else
+                  .[1]
+                end;
+              [.[0], .[1]] | merge_deep
+            ' "$base_path" "$overlay_path" > "$dest"
             ok "Merged base + private → $dest"
         elif [[ "$have_base" == true ]]; then
             cp "$base_path" "$dest"

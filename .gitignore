@@ -3,6 +3,9 @@
 .profile
 local/
 
+# Jujutsu (colocated)
+.jj/
+
 # Backups created by sync.sh
 .backup/
 
