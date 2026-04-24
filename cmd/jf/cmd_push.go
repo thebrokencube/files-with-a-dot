@@ -48,9 +48,15 @@ func pushSingle(key, filePath string, plainText bool) int {
 	// Construct synthetic node for engine.
 	// node.File must be relative to forestDir; engine.Execute joins them.
 	forestDir := resolveForestDir(filePath)
-	relFile, _ := filepath.Rel(forestDir, filePath)
-	if relFile == "" {
-		relFile = filePath
+	absFile, absErr := filepath.Abs(filePath)
+	if absErr != nil {
+		fmt.Fprintf(os.Stderr, "✗ cannot resolve path %s: %s\n", filePath, absErr)
+		return dendrik.ExitUserError
+	}
+	relFile, relErr := filepath.Rel(forestDir, absFile)
+	if relErr != nil {
+		fmt.Fprintf(os.Stderr, "✗ %s is not inside forest %s\n", absFile, forestDir)
+		return dendrik.ExitUserError
 	}
 	node := &forest.Node{Key: key, File: relFile, Sync: "push"}
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
