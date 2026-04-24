@@ -23,6 +23,7 @@ type NodeReading struct {
 	RemoteErr      error
 	Baseline       *forest.NodeState // nil if never synced
 	Mutable        bool              // lint + roundtrip passed
+	RoundtripDiff  string            // first divergent line hint (empty if clean)
 	LintIssues     []pipeline.LintIssue
 }
 
@@ -92,11 +93,12 @@ func (b BlockReason) String() string {
 
 // Action is the engine's decision for a single node.
 type Action struct {
-	Node         *forest.Node
-	Kind         ActionKind
-	Reason       string
-	Block        BlockReason
-	LocalHash    string
+	Node          *forest.Node
+	Kind          ActionKind
+	Reason        string
+	Block         BlockReason
+	RoundtripDiff string // first divergent line hint (empty if clean or not applicable)
+	LocalHash     string
 	RemoteHash   string
 	RemoteADF    json.RawMessage
 	LocalContent []byte
@@ -198,9 +200,15 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 			stateMu.Unlock()
 			if ok {
 				r.Mutable = cached
+				if !cached {
+					r.RoundtripDiff = pipeline.FirstDivergence(r.LocalContent)
+				}
 			} else {
 				clean, err := pipeline.CheckRoundtrip(r.LocalContent)
 				r.Mutable = err == nil && clean
+				if !r.Mutable {
+					r.RoundtripDiff = pipeline.FirstDivergence(r.LocalContent)
+				}
 				stateMu.Lock()
 				state.SetMutability(node.Key, r.LocalHash, r.Mutable)
 				stateMu.Unlock()
@@ -208,6 +216,9 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 		} else {
 			clean, err := pipeline.CheckRoundtrip(r.LocalContent)
 			r.Mutable = err == nil && clean
+			if !r.Mutable {
+				r.RoundtripDiff = pipeline.FirstDivergence(r.LocalContent)
+			}
 		}
 	}
 

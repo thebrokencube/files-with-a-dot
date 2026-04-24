@@ -41,9 +41,11 @@ func planNode(r NodeReading, opts PlanOpts) Action {
 			reason := "read-only: roundtrip check failed"
 			if len(r.LintIssues) > 0 {
 				reason = "read-only: " + pipeline.FormatLintIssues(r.LintIssues)
+			} else if r.RoundtripDiff != "" {
+				reason = "read-only: roundtrip diverges at " + r.RoundtripDiff
 			}
 			if direction == "push" {
-				return Action{Node: r.Node, Kind: ActionSkip, Reason: reason}
+				return Action{Node: r.Node, Kind: ActionSkip, Reason: reason, RoundtripDiff: r.RoundtripDiff}
 			}
 			// direction == "both": demote to pull-only
 			direction = "pull"

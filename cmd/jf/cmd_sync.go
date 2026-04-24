@@ -227,12 +227,13 @@ type planJSON struct {
 }
 
 type planEntryJSON struct {
-	Action string `json:"action"`
-	Key    string `json:"key"`
-	File   string `json:"file"`
-	Reason string `json:"reason"`
-	Tier   int    `json:"tier,omitempty"`
-	Hint   string `json:"hint,omitempty"`
+	Action        string `json:"action"`
+	Key           string `json:"key"`
+	File          string `json:"file"`
+	Reason        string `json:"reason"`
+	Tier          int    `json:"tier,omitempty"`
+	Hint          string `json:"hint,omitempty"`
+	RoundtripDiff string `json:"roundtrip_diff,omitempty"`
 }
 
 type planSummary struct {
@@ -264,6 +265,9 @@ func writePlanJSON(actions []engine.Action) {
 		if a.Kind == engine.ActionBlocked {
 			entry.Tier = blockTier(a)
 			entry.Hint = blockHint(a)
+		}
+		if a.RoundtripDiff != "" {
+			entry.RoundtripDiff = a.RoundtripDiff
 		}
 		result.Plan[i] = entry
 	}
