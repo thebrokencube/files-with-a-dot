@@ -33,6 +33,13 @@ func TestNormalizeMarkdown(t *testing.T) {
 		{"paren ordered marker", "Hello\n1) item\n", "Hello\n\n1) item"},
 		{"list then heading", "- item\n## Title\n", "- item\n\n## Title"},
 		{"bidirectional", "Hello\n- a\n- b\nWorld\n", "Hello\n\n- a\n- b\n\nWorld"},
+
+		// Smart quote normalization
+		{"smart single quotes", "it\u2019s a test\n", "it's a test"},
+		{"smart double quotes", "\u201CHello\u201D\n", `"Hello"`},
+		{"left single quote", "\u2018word\u2019\n", "'word'"},
+		{"en dash", "pages 1\u20135\n", "pages 1-5"},
+		{"em dash", "word\u2014another\n", "word--another"},
 	}
 
 	for _, tt := range tests {

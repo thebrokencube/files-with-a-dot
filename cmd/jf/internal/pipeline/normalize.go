@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"regexp"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
 )
@@ -26,6 +27,9 @@ func NormalizeMarkdown(content []byte) []byte {
 
 	// Collapse multiple blank lines to one
 	b = reMultipleBlanks.ReplaceAll(b, []byte("\n\n"))
+
+	// Normalize smart quotes/dashes to ASCII equivalents
+	b = []byte(normalizeQuotes(string(b)))
 
 	// Canonicalize block boundaries between paragraphs and lists
 	b = normalizeBlockBoundaries(b)
@@ -81,6 +85,21 @@ func isListMarker(line []byte) bool {
 
 func isBlank(line []byte) bool {
 	return len(bytes.TrimSpace(line)) == 0
+}
+
+// normalizeQuotes replaces Unicode smart quotes and dashes with ASCII equivalents.
+// Marklassian converts straight quotes to smart quotes during ADF compilation;
+// this absorbs that difference so roundtrip comparison passes.
+func normalizeQuotes(s string) string {
+	r := strings.NewReplacer(
+		"\u2018", "'", // left single quotation mark
+		"\u2019", "'", // right single quotation mark
+		"\u201C", `"`, // left double quotation mark
+		"\u201D", `"`, // right double quotation mark
+		"\u2013", "-", // en dash
+		"\u2014", "--", // em dash
+	)
+	return r.Replace(s)
 }
 
 // ComputeLocalHash normalizes markdown content then computes its sha256 hash.
