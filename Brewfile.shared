@@ -28,6 +28,7 @@ brew "bat"                      # Better cat with syntax highlighting
 brew "lazygit"                  # Terminal UI for git
 brew "gh"                       # GitHub CLI
 brew "git-filter-repo"          # Git history rewriting
+brew "jj"                       # Jujutsu VCS (colocated with git)
 
 # JSON/data tools
 brew "jq"                       # JSON processor
