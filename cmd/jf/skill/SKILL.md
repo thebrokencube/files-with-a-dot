@@ -84,14 +84,29 @@ Multi-node operations (sync, push, pull) have a batch safety gate:
 - **TTY mode**: Plan displays, execution proceeds after `--yes` confirmation
 - **Non-TTY mode (agents)**: Use `--yes` flag to confirm batch execution, or use `--dry-run --json` to inspect the plan first
 
-## Level Detection
+## Preflight Checklist (MANDATORY)
 
-Before any operation, detect the working level:
+Run this sequence before ANY jf operation. Do not skip steps.
 
-1. Run `jf setup --check --json` — verify environment (node, acli, JIRA_API_TOKEN)
-2. Try `jf tree --json` from the working directory
-   - If forest found: **Level 1** (forest-aware operations available)
-   - If no forest: **Level 0** (single-file push/pull only)
+1. **Config**: Read `~/.jf.yml` — get cloud_id, project defaults, parking lot epic keys
+2. **Environment**: `jf setup --check --json` — verify node, acli, JIRA_API_TOKEN
+3. **Forest**: `jf tree --json` from the working directory
+   - Forest found -> **Level 1** (forest-aware operations available)
+   - No forest -> **Level 0** (single-file push/pull only)
+4. **Status** (Level 1 only): `jf status --json` — check staleness before sync
+
+If you skip this checklist and a jf operation fails, come back here first.
+
+### When jf fails: decision tree
+
+- **"roundtrip diverges at line N"** -> The content has characters (smart quotes, special unicode) or structures (tables, code blocks) that don't survive the md-to-ADF-to-md roundtrip. Options: fix the source content, or use `--plain-text` as a fallback.
+- **"read-only: lint issue"** -> The content uses markdown features not in the supported subset (h1, h3+, tables, code blocks, blockquotes, nested lists, images). Simplify the content or set `sync: pull`.
+- **"empty content"** -> The file has no substantive content beyond frontmatter. Add content before pushing.
+- **"conflict" / "both sides changed"** -> Re-run with `--resolve local` or `--resolve remote`.
+- **"first sync, remote has content"** -> Requires interactive TTY. A human must confirm in terminal.
+- **"remote-unknown" / "cannot reach Jira"** -> Check network, JIRA_API_TOKEN, and `jf setup --check`.
+- **Path errors / file not found** -> Use absolute paths. If inside a forest, ensure you're in the right directory.
+- **Any other error** -> Run with `--dry-run --json` for structured output. Report to user with the full error.
 
 ## Level 0: Single-File Operations
 
