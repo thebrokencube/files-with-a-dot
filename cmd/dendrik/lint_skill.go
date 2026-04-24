@@ -12,6 +12,11 @@ import (
 
 var arrowRefPattern = regexp.MustCompile(`->\s+[Rr]ead\s+(references/[^\s]+)`)
 
+// workSpecificPattern matches real Jira project keys and custom field IDs
+// that should not appear in public-facing skill documentation.
+// Use generic placeholders (PROJ-123, EXAMPLE-456) instead.
+var workSpecificPattern = regexp.MustCompile(`\b(BEN|RETIRE|SRM|GUIDELINE|GUST)-\d+\b|customfield_\d+`)
+
 // SkillLint validates skill layer conventions. Pure function — no I/O.
 func SkillLint(data *ToolData) []LintResult {
 	var results []LintResult
@@ -48,6 +53,7 @@ func SkillLint(data *ToolData) []LintResult {
 	results = append(results, checkArrowRefs(data)...)
 	results = append(results, checkActivationGuidance(fm)...)
 	results = append(results, checkActivationMetadata(fm)...)
+	results = append(results, checkWorkSpecificContent(data)...)
 
 	return results
 }
@@ -131,6 +137,40 @@ func checkActivationMetadata(fm *agentskills.SkillFrontmatter) []LintResult {
 	results = append(results, validateOptionalField("skip_when", fm.SkipWhen)...)
 	results = append(results, validateOptionalField("related", fm.Related)...)
 
+	return results
+}
+
+func checkWorkSpecificContent(data *ToolData) []LintResult {
+	var results []LintResult
+
+	// Check SKILL.md
+	results = append(results, findWorkSpecific(data.SkillMD, "skill/SKILL.md")...)
+
+	// Check all reference files
+	for _, name := range data.RefFiles {
+		content, ok := data.RefContents[name]
+		if !ok {
+			continue
+		}
+		results = append(results, findWorkSpecific(content, filepath.Join("skill/references", name))...)
+	}
+
+	return results
+}
+
+func findWorkSpecific(content []byte, relFile string) []LintResult {
+	var results []LintResult
+	lines := bytes.Split(content, []byte("\n"))
+
+	for i, line := range lines {
+		matches := workSpecificPattern.FindAll(line, -1)
+		for _, match := range matches {
+			results = append(results, lintResult("work-specific-content", conventions.SeverityError,
+				"work-specific content: "+string(match),
+				relFile, i+1,
+				"Replace with generic placeholder (e.g., PROJ-123). Work-specific Jira keys must not appear in public skill docs."))
+		}
+	}
 	return results
 }
 
