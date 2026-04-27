@@ -626,6 +626,15 @@ elif has_private_overlay; then
     private_sync
 fi
 
+# Check for managed file drift before overwriting
+if [[ "$FORCE" != true ]]; then
+    if ! check_managed_drift "$DOTFILES_DIR/managed_map.txt"; then
+        echo ""
+        warn "Backfill drift to source files, then re-run. Or use --force to overwrite."
+        exit 1
+    fi
+fi
+
 # Apply managed files (base + private overlay merge)
 apply_managed_files "$DOTFILES_DIR/managed_map.txt"
 

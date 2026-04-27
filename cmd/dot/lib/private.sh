@@ -563,3 +563,92 @@ apply_managed_files() {
         fi
     done < "$map_file"
 }
+
+# Check for drift between compiled managed files and what's on disk.
+# Returns 0 if no drift, 1 if drift found.
+# Arguments: $1 = managed_map.txt path
+check_managed_drift() {
+    local map_file="$1"
+    [[ ! -f "$map_file" ]] && return 0
+    command -v jq &>/dev/null || return 0
+
+    local drift_found=false
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        local spec="${line%%:*}"
+        local dest="${line#*:}"
+        dest=$(eval echo "$dest")
+
+        local base_rel overlay_rel
+        if [[ "$spec" == *"+"* ]]; then
+            base_rel="${spec%%+*}"
+            overlay_rel="${spec#*+}"
+        else
+            base_rel="$spec"
+            overlay_rel=""
+        fi
+
+        local base_path="$DOTFILES_DIR/$base_rel"
+        local overlay_path=""
+        [[ -n "$overlay_rel" ]] && overlay_path="$PRIVATE_DIR/$overlay_rel"
+
+        local have_base=false have_overlay=false
+        [[ -f "$base_path" ]] && have_base=true
+        [[ -n "$overlay_path" && -f "$overlay_path" ]] && have_overlay=true
+
+        [[ "$have_base" == false && "$have_overlay" == false ]] && continue
+        [[ ! -f "$dest" ]] && continue
+
+        # Compute expected output
+        local expected
+        if [[ "$have_base" == true && "$have_overlay" == true ]]; then
+            expected=$(jq -s '
+              def merge_deep:
+                if (.[0] | type) == "object" and (.[1] | type) == "object" then
+                  .[0] as $a | .[1] as $b |
+                  ($a | keys) + ($b | keys) | unique | map(
+                    . as $k |
+                    if ($a | has($k)) and ($b | has($k)) then
+                      {($k): ([$a[$k], $b[$k]] | merge_deep)}
+                    elif ($b | has($k)) then
+                      {($k): $b[$k]}
+                    else
+                      {($k): $a[$k]}
+                    end
+                  ) | add // {}
+                elif (.[0] | type) == "array" and (.[1] | type) == "array" then
+                  [.[0] + .[1] | unique[]]
+                else
+                  .[1]
+                end;
+              [.[0], .[1]] | merge_deep
+            ' "$base_path" "$overlay_path")
+        elif [[ "$have_base" == true ]]; then
+            expected=$(cat "$base_path")
+        else
+            expected=$(cat "$overlay_path")
+        fi
+
+        # Normalize both sides for semantic JSON comparison
+        # Sort object keys and array elements to ignore ordering differences
+        local sort_filter='def sort_all: if type == "object" then to_entries | sort_by(.key) | map(.value |= sort_all) | from_entries elif type == "array" then [.[] | sort_all] | sort_by(tostring) else . end; sort_all'
+        local expected_norm actual_norm
+        expected_norm=$(echo "$expected" | jq -S "$sort_filter" 2>/dev/null) || expected_norm="$expected"
+        actual_norm=$(jq -S "$sort_filter" "$dest" 2>/dev/null) || actual_norm=$(cat "$dest")
+
+        if [[ "$expected_norm" != "$actual_norm" ]]; then
+            if [[ "$drift_found" == false ]]; then
+                drift_found=true
+                warn "Managed file drift detected — on-disk files have changes not in sources:"
+            fi
+            echo ""
+            echo "  $(basename "$dest"):"
+            diff <(echo "$expected_norm") <(echo "$actual_norm") | sed 's/^/    /' || true
+        fi
+    done < "$map_file"
+
+    [[ "$drift_found" == true ]] && return 1
+    return 0
+}

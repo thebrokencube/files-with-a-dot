@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --fix          Auto-fix issues where possible"
             echo "  --check NAME   Run specific check only"
             echo ""
-            echo "Available checks: tools, brew, local, nvim, claude, setup"
+            echo "Available checks: tools, brew, local, nvim, claude, managed, setup"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -43,6 +43,8 @@ source "$DOT_DIR/lib/logging.sh"
 source "$DOT_DIR/lib/config.sh"
 # shellcheck source=lib/prompt.sh
 source "$DOT_DIR/lib/prompt.sh"
+# shellcheck source=lib/private.sh
+source "$DOT_DIR/lib/private.sh"
 
 MACHINE_TYPE="$(read_machine_type)"
 MACHINE_TYPE="${MACHINE_TYPE:-unknown}"
@@ -182,6 +184,25 @@ check_nvim() {
 
 }
 
+check_managed() {
+    echo "Managed files:"
+
+    if ! command -v jq &>/dev/null; then
+        warn "jq not found — cannot check managed file drift"
+        return
+    fi
+
+    local map_file="$DOTFILES_DIR/managed_map.txt"
+    if [[ ! -f "$map_file" ]]; then
+        ok "No managed_map.txt"
+        return
+    fi
+
+    if check_managed_drift "$map_file"; then
+        ok "No drift detected"
+    fi
+}
+
 check_claude() {
     echo "Claude Code:"
 
@@ -293,6 +314,7 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
         local) check_local ;;
         nvim) check_nvim ;;
         claude) check_claude ;;
+        managed) check_managed ;;
         setup) check_setup_status >/dev/null ;;
         *) echo "Unknown check: $SPECIFIC_CHECK"; exit 1 ;;
     esac
@@ -306,6 +328,8 @@ else
     check_nvim
     echo ""
     check_claude
+    echo ""
+    check_managed
     echo ""
     check_setup_status >/dev/null
 fi
