@@ -105,6 +105,11 @@ func gitQuiet(dir string, args ...string) error {
 	return cmd.Run()
 }
 
+// GitOutput runs a git command in dir and captures stdout.
+func GitOutput(dir string, args ...string) (string, error) {
+	return gitOutput(dir, args...)
+}
+
 // gitOutput runs a git command and captures stdout.
 func gitOutput(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)

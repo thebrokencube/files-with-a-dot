@@ -4,7 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"path/filepath"
 
@@ -322,6 +326,187 @@ func runHomeActivate(args []string) int {
 	}
 
 	fmt.Println(pal.Successf("Activated archive/%s", relPath))
+	return dendrik.ExitOK
+}
+
+var statDatePrefixRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-`)
+
+func runHomeStats(args []string) int {
+	fs := dendrik.NewFlagSet("home stats")
+	noColor := fs.BoolLong("no-color", "Disable colored output")
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
+	}
+
+	color := dendrik.ColorEnabled(*noColor)
+	pal := dendrik.NewPalette(color)
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
+
+	// Total commits
+	out, err := repo.GitOutput(dir, "rev-list", "--count", "HEAD")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("git rev-list: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	totalCommits, _ := strconv.Atoi(strings.TrimSpace(out))
+
+	if totalCommits == 0 {
+		fmt.Println("No commits yet.")
+		return dendrik.ExitOK
+	}
+
+	// First commit date (via root commit)
+	out, err = repo.GitOutput(dir, "rev-list", "--max-parents=0", "HEAD")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("git rev-list: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	rootHash := strings.TrimSpace(out)
+	out, err = repo.GitOutput(dir, "log", "--format=%aI", "-1", rootHash)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("git log: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	firstDate, _ := time.Parse(time.RFC3339, strings.TrimSpace(out))
+
+	// Latest commit date
+	out, err = repo.GitOutput(dir, "log", "--format=%aI", "--max-count=1")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("git log: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	latestDate, _ := time.Parse(time.RFC3339, strings.TrimSpace(out))
+
+	elapsedDays := int(latestDate.Sub(firstDate).Hours() / 24)
+
+	// Summary
+	if color {
+		fmt.Printf("%sRepository%s  %s\n", pal.Bold, pal.Reset, dir)
+		fmt.Printf("%sCommits%s     %d  (%s → %s, %d days)\n", pal.Bold, pal.Reset,
+			totalCommits, firstDate.Format("2006-01-02"), latestDate.Format("2006-01-02"), elapsedDays)
+	} else {
+		fmt.Printf("Repository  %s\n", dir)
+		fmt.Printf("Commits     %d  (%s → %s, %d days)\n",
+			totalCommits, firstDate.Format("2006-01-02"), latestDate.Format("2006-01-02"), elapsedDays)
+	}
+
+	if elapsedDays > 0 {
+		perDay := float64(totalCommits) / float64(elapsedDays)
+		perWeek := perDay * 7
+		fmt.Printf("Rate        %.1f/day  %.1f/week\n", perDay, perWeek)
+	} else {
+		fmt.Printf("Rate        —\n")
+	}
+
+	// Per-folio breakdown
+	entries, err := list.Scan(dir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("scan: %s", err))
+		return dendrik.ExitExternalErr
+	}
+
+	if len(entries) == 0 {
+		return dendrik.ExitOK
+	}
+
+	type folioStat struct {
+		Path      string
+		Section   string
+		Commits   int
+		FirstDate time.Time
+		PerDay    float64
+		PerWeek   float64
+	}
+
+	var stats []folioStat
+	for _, e := range entries {
+		// Build pathspecs for git
+		var pathspecs []string
+		sectionPath := e.Section + "/" + e.Path
+		pathspecs = append(pathspecs, sectionPath)
+
+		// For archived folios, also include the original active path
+		if e.Section == "archive" {
+			leaf := filepath.Base(e.Path)
+			if statDatePrefixRe.MatchString(leaf) {
+				origLeaf := leaf[11:]
+				parent := filepath.Dir(e.Path)
+				var origPath string
+				if parent == "." {
+					origPath = "active/" + origLeaf
+				} else {
+					origPath = "active/" + parent + "/" + origLeaf
+				}
+				pathspecs = append(pathspecs, origPath)
+			}
+		}
+
+		// Commit count
+		gitArgs := append([]string{"rev-list", "--count", "HEAD", "--"}, pathspecs...)
+		out, err := repo.GitOutput(dir, gitArgs...)
+		if err != nil {
+			continue
+		}
+		count, _ := strconv.Atoi(strings.TrimSpace(out))
+
+		// First commit date for this folio (last line of git log output = oldest)
+		gitArgs = append([]string{"log", "--format=%aI", "--"}, pathspecs...)
+		out, err = repo.GitOutput(dir, gitArgs...)
+		if err != nil || strings.TrimSpace(out) == "" {
+			stats = append(stats, folioStat{Path: e.Path, Section: e.Section, Commits: count})
+			continue
+		}
+		lines := strings.Split(strings.TrimSpace(out), "\n")
+		fd, _ := time.Parse(time.RFC3339, lines[len(lines)-1])
+
+		fs := folioStat{Path: e.Path, Section: e.Section, Commits: count, FirstDate: fd}
+		folioDays := int(latestDate.Sub(fd).Hours() / 24)
+		if folioDays > 0 {
+			fs.PerDay = float64(count) / float64(folioDays)
+			fs.PerWeek = fs.PerDay * 7
+		}
+		stats = append(stats, fs)
+	}
+
+	// Sort by commit count descending
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].Commits > stats[j].Commits
+	})
+
+	fmt.Printf("Folios      %d  (avg %.1f commits each)\n", len(stats), float64(totalCommits)/float64(len(stats)))
+	fmt.Println()
+
+	// Column widths
+	pathW := 4
+	for _, s := range stats {
+		if len(s.Path) > pathW {
+			pathW = len(s.Path)
+		}
+	}
+
+	header := fmt.Sprintf("  %-*s  %-8s  %7s  %8s  %8s", pathW, "Path", "Section", "Commits", "/day", "/week")
+	sep := fmt.Sprintf("  %s  %s  %s  %s  %s", strings.Repeat("-", pathW), "--------", "-------", "--------", "--------")
+	if color {
+		fmt.Printf("%s%s%s\n", pal.Dim, header, pal.Reset)
+		fmt.Printf("%s%s%s\n", pal.Dim, sep, pal.Reset)
+	} else {
+		fmt.Println(header)
+		fmt.Println(sep)
+	}
+
+	for _, s := range stats {
+		rateDay := "—"
+		rateWeek := "—"
+		if s.PerDay > 0 {
+			rateDay = fmt.Sprintf("%.1f", s.PerDay)
+			rateWeek = fmt.Sprintf("%.1f", s.PerWeek)
+		}
+		fmt.Printf("  %-*s  %-8s  %7d  %8s  %8s\n", pathW, s.Path, s.Section, s.Commits, rateDay, rateWeek)
+	}
+
 	return dendrik.ExitOK
 }
 
