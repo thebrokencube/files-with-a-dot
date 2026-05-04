@@ -48,5 +48,8 @@ configs/base/claude/.claude/skills/stacked-pr:$HOME/.claude/skills/stacked-pr
 cmd/jf/skill:$HOME/.claude/skills/jf
 cmd/dendrik/skill:$HOME/.claude/skills/dendrik
 
+# Jujutsu VCS
+configs/base/jj/.config/jj/config.toml:$HOME/.config/jj/config.toml
+
 # Mise (version manager)
 configs/base/mise/.config/mise/config.toml:$HOME/.config/mise/config.toml

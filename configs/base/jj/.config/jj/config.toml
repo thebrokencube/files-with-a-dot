@@ -1,0 +1,18 @@
+#:schema https://docs.jj-vcs.dev/latest/config-schema.json
+
+[user]
+name = "Sapan Upadhyay"
+email = "sapan.upadhyay@gusto.com"
+
+[ui]
+# Use `true` as editor so operations like squash don't hang waiting
+# for an interactive editor in non-interactive contexts (e.g., Claude Code).
+# For interactive use, override with JJ_EDITOR=vim or jj --edit.
+editor = "true"
+
+# Default diff format
+diff.format = "git"
+
+[git]
+# Auto-track remote branches when fetching
+auto-local-bookmark = false
