@@ -13,9 +13,15 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
    a. Read source files from target's `sources`
    b. Read `how` from folio.yml
    c. Compose per the target's `how` field. **For targets with external outputs** (Jira, Slack,
-      Google Docs): if `how` does not specify audience or tone, ask the user before composing.
-      Framing matters — exploratory vs definitive vs FYI produces very different output. One
-      prompt at the start of composition saves multiple correction rounds.
+      Google Docs): if `how` does not specify audience or tone, read `references/grill.md` and
+      run the alignment grill protocol with:
+      - Budget: 4
+      - Grounding: target's source files, `how` field
+      - Target: ephemeral how-amendment (session-scoped annotation to `how`, not persisted)
+      - Hard constraints: any explicit framing already in `how`
+      For multi-target DAGs: grill fires once at the batch start (first external target
+      missing audience/tone), not per-target. Local-only targets (`path:` outputs) skip
+      the grill entirely.
    d. **Local outputs** (`path:`): write compiled file
    e. **External outputs** (`external:`): resolve push method from tooling.yml
 5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output.
