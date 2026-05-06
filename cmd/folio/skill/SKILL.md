@@ -272,6 +272,7 @@ is how provenance chains break.
 
 ## Reference Files
 
+- **references/grill.md** — Alignment grill protocol: claim-first questioning, invocation contract, user responses
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
