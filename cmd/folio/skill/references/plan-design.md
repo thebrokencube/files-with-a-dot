@@ -358,8 +358,19 @@ one — lightweight for simple changes, but it always exists.
    choices JIT via spikes. Convergence Status tracks per-layer progress across rounds.
    Design Provenance records how the design was produced (agent count, lenses, review fixes).
 
-**Do NOT commit or proceed to review until the design doc is fully filled.** The review
-agent reviews the design doc as written — not the converge output.
+**Source verification (mandatory before proceeding to review):**
+
+Before moving to Phase 4b, run the Source Declaration Checklist from SKILL.md:
+1. List every source consumed during Phases 1-3 (spikes, vault entries, codebase files,
+   external references, propose agent findings)
+2. Verify each is registered in folio.yml `sources:` with `depends_on` pointing to the
+   design doc
+3. Run `folio validate` to catch broken `depends_on` references
+4. If any synthesis came from conversation context alone, materialize it first
+
+**Do NOT commit or proceed to review until the design doc is fully filled AND source
+verification passes.** The review agent reviews the design doc as written — not the
+converge output.
 
 ## Phase 4b: Review Design Doc (hard gate — blocks commit)
 

@@ -14,3 +14,4 @@
 - **One-liner commits only.** Use `git commit -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
 - **Observation management**: Always batch `folio observe resolve "#N" "#N2" ...` to avoid index shifting between calls.
+- **Source declaration before artifact creation.** Before creating any folio artifact (design doc, spike, retro, brief), list the sources you consumed and verify they're registered in folio.yml with `depends_on`. See SKILL.md "Source Declaration Checklist" for the full procedure. No orphan synthesis — if sources exist only in conversation context, materialize them first.

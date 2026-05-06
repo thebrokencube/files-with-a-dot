@@ -241,6 +241,23 @@ before the next phase begins. This is enforced by the skill, not optional.
 via `folio home push`. Agent memory and conversation context are ephemeral —
 they do not count as materialization.
 
+## Source Declaration Checklist
+
+Before creating or updating any folio artifact (design doc, spike, retro, brief), verify:
+
+1. **List sources read.** Enumerate every file, vault entry, or external reference you
+   consumed to produce this artifact. If you cannot list them, you haven't done the work.
+2. **Register in folio.yml.** Every source must appear in `sources:` with a `depends_on`
+   pointing to the artifact being created. Use `folio home push` to commit.
+3. **Verify sources exist.** Every path in `depends_on` must resolve to a real file.
+   Run `folio validate` to catch broken references.
+4. **No orphan synthesis.** If the artifact synthesizes from conversation context alone
+   (no file sources), STOP — materialize the source knowledge first (spike, gather),
+   then create the artifact from the materialized source.
+
+This checklist applies at every materialization point in the table above. Skipping it
+is how provenance chains break.
+
 ## Reference Files
 
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
