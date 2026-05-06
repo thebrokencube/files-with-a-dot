@@ -134,7 +134,19 @@ description: When to use this skill (for Claude's context)
 
 ### Build Artifacts
 
-This repo is deployment-via-clone — `dot sync` does NOT run build steps. Build artifacts (binaries, JS bundles) must be checked into git so they work immediately after clone/pull. Only gitignore transient dev state like `node_modules/`. When changing code that produces a build artifact, always rebuild and commit the artifact in the same commit.
+This repo is deployment-via-clone — `dot sync` does NOT run build steps. Build
+artifacts (binaries, JS bundles) must be checked into git so they work immediately
+after clone/pull. Only gitignore transient dev state like `node_modules/`.
+
+**Go CLIs** (`folio`, `jf`, `dendrik`) each have a Makefile in `cmd/<tool>/`:
+- `make check` — fmt, vet, test (run before committing)
+- `make build` — compile binary in-tree (`cmd/<tool>/<tool>`)
+- `make clean` — remove binary
+
+When changing Go source, always `make check && make build` and commit the binary
+alongside the source changes. `dot sync` symlinks these binaries to `~/.local/bin/`.
+Never `go build` directly to `~/.local/bin/` — that bypasses the checked-in artifact
+and `dot sync` will overwrite it.
 
 ### Commit Conventions
 

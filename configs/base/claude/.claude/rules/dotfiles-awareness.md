@@ -12,3 +12,8 @@ appropriate conventions.
 - Run `dot sync --dry-run` before committing dotfiles changes to preview
 - Run `dot validate` (pre-existing shellcheck warnings in unrelated files are expected)
 - Follow dotfiles skill conventions (conventional commits)
+
+**Rebuilding CLI tools** (`folio`, `jf`, `dendrik`): Each has a Makefile in
+`cmd/<tool>/`. Use `make check` (fmt + vet + test) then `make build` to produce
+the binary in-tree. Commit the binary alongside source changes. Then `dot sync`
+to re-link. Never `go build` directly to `~/.local/bin/`.
