@@ -166,6 +166,18 @@ Workflow:
 
 If no text provided with the command, ask the user for the observation.
 
+**Type disambiguation**: When the observation text has investigation depth — multiple
+sentences, describes a problem space, mentions alternatives or approaches — read
+`references/grill.md` and run the alignment grill protocol before routing:
+- Budget: 2
+- Grounding: the observation text, existing observations (`folio observe list --json`)
+- Target: routing decision (observation vs spike)
+- Hard constraints: none
+If the grill routes to spike, derive the topic from the grill's claim/recommendation
+(the problem space identified during questioning) and use the grill's full output as
+the spike's initial content via `folio new spike <topic>`. One-liner observations pass
+through to `folio observe` untouched — no grill needed.
+
 ### CLI Pass-Throughs
 
 These slash commands run the corresponding CLI command and report results:
