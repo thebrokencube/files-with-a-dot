@@ -7,41 +7,43 @@ Read by Agent 1 (Design). Self-contained for design sessions.
 Gather context before spawning any agents. This happens in the main conversation.
 
 1. Identify the task scope from the user's request (or `<topic>` argument)
-2. **Scope interview** (fires when task replaces or removes functionality): Ask the user
-   "What should be preserved? What can be dropped? What needs to change?" Capture answers
-   as hard constraints for the context summary.
-3. Read relevant files — entry points, existing implementations, tests, CLAUDE.md
-4. Search for related patterns in the codebase (Grep/Glob)
-5. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and observations.
-6. **Present folio findings to the user.** If a project matched: summarize project name, key
+2. Read relevant files — entry points, existing implementations, tests, CLAUDE.md
+3. Search for related patterns in the codebase (Grep/Glob)
+4. **Check for folio context**: Run `folio home list` to find active projects. If any project is relevant to the task, read its `folio.yml` and pull in relevant sources, cross-references, and observations.
+5. **Present folio findings to the user.** If a project matched: summarize project name, key
    sources pulled in, relevant observations. Wait for confirmation before continuing. If no
    project matched: list the active projects that were considered, ask if any of them are
    relevant (the user may see a match the search missed), and ask if a new folio project
    should be created to track this work. Only proceed without folio context after explicit
    user confirmation.
-7. **Check source freshness — MUST run if folio project matched.** For every source with a
+6. **Check source freshness — MUST run if folio project matched.** For every source with a
    `derived_from` entry, compare the `cached` date against today. If any source is >14 days
    stale, STOP and present the list to the user: "These sources may be outdated: [list with
    ages]. Refresh before planning?" Wait for the user's response. If yes, use the gather
    workflow (see `references/gather.md`) per stale source. If no, note staleness in the
    context summary so lenses can account for it. Do not auto-run gather. Do not proceed to
-   step 8 until the user has acknowledged or dismissed the staleness report.
-8. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
+   step 7 until the user has acknowledged or dismissed the staleness report.
+7. **Pin hard constraints**: Separate the user's stated decisions and explicit preferences
    (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
    of the context summary.
-9. **Extensibility interview** (fires for tooling/infra tasks): Ask the user "What's coming
-   next for this area?" Capture answers as soft context — they inform lens trade-offs but
-   are not hard constraints.
-10. Compile a **context summary** (max 30 lines): pinned hard constraints first, then what
-    exists, what needs to change, key trade-offs, and relevant folio context (if any)
-11. **Source coverage check**: Before spawning propose agents, verify the problem space is
+8. **Alignment grill** — read `references/grill.md` and run the protocol with:
+   - Budget: 7
+   - Grounding: folio sources from step 4, codebase files from step 2
+   - Target: context summary (update hard constraints and soft context inline)
+   - Hard constraints: pinned decisions from step 7
+   Skip for lightweight plans (existing lightweight threshold applies).
+   The grill subsumes the scope interview (what to preserve/drop/change), extensibility
+   interview (what's coming next), and framing confirmation (conceptual model check) — do
+   not run those as separate steps. The grill's final question should be the framing
+   confirmation: "I believe the pieces fit together like X because Y — right?"
+9. Compile a **context summary** (max 30 lines): pinned hard constraints first, then grill
+   decisions, what exists, what needs to change, key trade-offs, and relevant folio context
+   (if any). Grill decisions are already materialized inline — no separate capture step needed.
+10. **Source coverage check**: Before spawning propose agents, verify the problem space is
     understood. If the topic involves a domain the agent has not spiked on, STOP and suggest
     `/folio gather` first. Evidence of sufficient gathering: at least one spike or research
     reference in folio.yml sources for each key domain the task touches.
-12. **Framing gate (hard):** Present the conceptual model — how the pieces fit together,
-    what changes, what stays — to the user. Wait for confirmation before spawning propose
-    agents. This catches misalignment before diverge-converge, not after.
 
 **Context checkpoint**: If Phase 1 involved substantial research, compact findings into the
 context summary before spawning Phase 2 agents — they receive a distilled summary, not raw
