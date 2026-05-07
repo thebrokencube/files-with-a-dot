@@ -59,7 +59,7 @@ Composition is rarely one-shot. The compose-review-re-compose loop handles two d
 - **New source** (changes the DAG): gather additional source material, then re-compose. Staleness tracking handles this automatically — new/updated sources make targets stale.
 - **Reframe** (same DAG, different lens): update the target's `how` field, then re-compose with `--force`. `how` isn't tracked for staleness, so reframes require an explicit force flag.
 
-After composing, review the output — run `/folio review local` explicitly, not as a suggestion. If the output needs work, determine which type of iteration applies and loop back.
+After composing, review the output — run `folio validate` and `folio status` to check for issues. If the output needs work, determine which type of iteration applies and loop back.
 
 ## Error Handling
 

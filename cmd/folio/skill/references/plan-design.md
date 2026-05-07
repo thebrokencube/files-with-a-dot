@@ -484,7 +484,7 @@ Three possible outcomes:
 |----------|--------|
 | **Ship it** | Proceed to Brief phase (Agent 2) or implementation |
 | **Iterate** | Produce iteration handoff (Step 3b) identifying weak areas for next round |
-| **Not sure** | Run `/folio review` on the design doc to surface gaps, then re-ask |
+| **Not sure** | Run `folio validate` and `folio health` to surface gaps, then re-ask |
 
 Planning is iterative. A single round of diverge-converge rarely produces a hardened plan.
 It's perfectly fine — expected, even — to loop through multiple sessions before moving to

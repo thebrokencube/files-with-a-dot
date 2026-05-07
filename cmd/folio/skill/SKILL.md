@@ -4,14 +4,14 @@ description: "Use when planning non-trivial tasks, composing outputs, or managin
   knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
   composition and diverge-converge planning."
 user_invocable: true
-argument-hint: "[gather|plan|compose|publish|review|status|...] [args]"
+argument-hint: "[gather|plan|compose|publish|status|...] [args]"
 ---
 
 # Folio
 
 Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
 
-**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, review, observe). Each workflow's full instructions live in a reference file — read only what you need.
+**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
 
 **Process narration**: Before starting any multi-step workflow or phase transition, state what you're about to do and why. Example: "Starting Phase 2 — spawning two propose agents with pragmatic and thorough lenses." This prevents ambiguity about which phase you're in and lets the user course-correct before work begins, not after.
 
@@ -110,16 +110,6 @@ Send composed output to external systems (Jira, Google Docs, Slack). Resolves pu
 
 -> Read references/publish.md for full workflow (includes Jira push pipeline).
 
-### /folio review [scope]
-
-Project health check — like `git status` for the compilation system. Reports status without fixing anything.
-
-Scope: no arg or `local` = local checks only. `external` = also fetch and compare. Specific target ID = just that target.
-
-Previously: `/folio audit`
-
--> Read references/review.md for full workflow.
-
 ### /folio observe
 
 Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the grill protocol for complex observations.
@@ -177,7 +167,6 @@ Two gate types, proportional to risk:
 | compose | Soft | After composition loop, before final status | Targets composed, paths, sizes (cap 5) |
 | gather (snapshot) | Soft | Before file write | Proposed filename, length, 3 key facts |
 | gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
-| review | None | — | Read-only |
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
 
@@ -223,7 +212,6 @@ is how provenance chains break.
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
-- **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
