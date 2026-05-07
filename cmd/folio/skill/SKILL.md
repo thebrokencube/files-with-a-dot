@@ -114,29 +114,49 @@ Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All
 
 -> Read references/observe.md for full workflow (CLI commands, type disambiguation, grill routing).
 
-### CLI Pass-Throughs
+### CLI Quick Reference
 
-These slash commands run the corresponding CLI command and report results:
+The `folio` binary handles all deterministic operations. Run `folio --help` for the full list. Key commands by category:
 
-| Command | Runs |
+**Data** — query project state (read-only, safe to run anytime):
+
+| Command | Purpose |
 |---|---|
-| `/folio setup` | `folio setup` |
-| `/folio status` | `folio status` (mention `/folio compose` if stale targets exist) |
-| `/folio validate` | `folio validate` |
-| `/folio init` | `folio init --name "Name" [--path rel/path]` (ask for name if not provided; `--path` overrides the auto-derived slug under `active/`) |
-| `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
-| `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` — scaffolds in `~/.folio/vault/`, no folio.yml registration. |
-| `/folio health` | `folio health` — project health report (types, naming, observations) |
-| `/folio home <cmd>` | `folio home <subcommand>` — run `folio home --help` for available commands |
-| `/jf <cmd>` | Use the `/jf` skill for all Jira operations — push, sync, view, search, create |
+| `folio validate` | Check folio.yml structural integrity |
+| `folio status` | Derive and display target state (mention `/folio compose` if stale) |
+| `folio stale` | List stale/missing/unknown targets |
+| `folio dag` | Show target dependency graph |
+| `folio health` | Project health report (types, naming, observations) |
 
-**Flag ordering**: Both `folio` and `jf` require flags **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` errors with a clear message. This applies to all commands in both CLIs.
+**Composition** — create and manage artifacts:
+
+| Command | Purpose |
+|---|---|
+| `folio new <type> <topic>` | Scaffold typed artifact (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` |
+| `folio gather <url>` | Add source entry from URL (`--materialize --type <type>` or `--name` as needed) |
+| `folio touch <target>` | Mark a target as current |
+| `folio observe` | Observation management (add, list, resolve, lint, types) |
+| `folio archive` | Move work track from active to archive |
+
+**Management** — setup and home operations:
+
+| Command | Purpose |
+|---|---|
+| `folio init --name "Name"` | Bootstrap new folio.yml (`--path` overrides the auto-derived slug) |
+| `folio setup` | Check folio dependencies (`--check` for non-interactive) |
+| `folio home <cmd>` | FOLIO_HOME operations (list, push, pull, archive, activate, health) |
+
+Some commands have corresponding skill workflows that add creative/judgmental work on top: `gather` (snapshot/re-seed), `observe` (type disambiguation via grill).
+
+**Flag ordering**: Flags go **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` does not.
 
 If any CLI command fails, run `folio setup --check` first.
 
 ### Git Operations for ~/.folio
 
 All git operations on `~/.folio` MUST use `folio home` subcommands (`push`, `pull`, etc.) — never raw `git add`, `git commit`, or `git push`. The CLI enforces conventional commit validation and handles remote sync.
+
+**Jira operations**: Use the `/jf` skill for all Jira work — push, sync, view, search, create.
 
 ## Tooling Resolution
 
