@@ -179,7 +179,7 @@ These slash commands run the corresponding CLI command and report results:
 | `/folio setup` | `folio setup` |
 | `/folio status` | `folio status` (mention `/folio compose` if stale targets exist) |
 | `/folio validate` | `folio validate` |
-| `/folio init` | `folio init --name "Name"` (ask for name if not provided) |
+| `/folio init` | `folio init --name "Name" [--path rel/path]` (ask for name if not provided; `--path` overrides the auto-derived slug under `active/`) |
 | `/folio gather <url>` | `folio gather <url>` (add `--materialize --type <type>` or `--name` as needed) |
 | `/folio new <type> <topic>` | `folio new <type> <topic>` — scaffold typed artifact at correct path (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` — scaffolds in `~/.folio/vault/`, no folio.yml registration. |
 | `/folio health` | `folio health` — project health report (types, naming, observations) |

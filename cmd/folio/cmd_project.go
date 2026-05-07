@@ -115,6 +115,7 @@ func runInit(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("init")
 	name := fs.String('n', "name", "", "Project name")
+	pathFlag := fs.String('p', "path", "", "Relative path under active/ (e.g., ret/kafka)")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
@@ -130,7 +131,10 @@ func runInit(args []string) int {
 	if homeDir, err := home.Dir(); err == nil {
 		activeDir := filepath.Join(homeDir, "active")
 		if fi, err := os.Stat(activeDir); err == nil && fi.IsDir() {
-			slug := strings.ToLower(strings.ReplaceAll(*name, " ", "-"))
+			slug := *pathFlag
+			if slug == "" {
+				slug = strings.ToLower(strings.ReplaceAll(*name, " ", "-"))
+			}
 			targetPath = filepath.Join(activeDir, slug, "folio.yml")
 		}
 	}
