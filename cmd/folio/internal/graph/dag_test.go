@@ -115,13 +115,13 @@ func TestInferEdgesNoSelfEdge(t *testing.T) {
 func TestMergeEdges(t *testing.T) {
 	f := &config.Folio{
 		Targets: map[string]config.Target{
-			"a": {BlockedBy: []string{"b"}},
+			"a": {},
 			"b": {},
 			"c": {},
 		},
 	}
 	inferred := map[string][]string{
-		"a": {"c"},
+		"a": {"b", "c"},
 	}
 	merged := MergeEdges(f, inferred)
 	deps := merged["a"]
@@ -140,12 +140,12 @@ func TestMergeEdges(t *testing.T) {
 func TestMergeEdgesDedup(t *testing.T) {
 	f := &config.Folio{
 		Targets: map[string]config.Target{
-			"a": {BlockedBy: []string{"b"}},
+			"a": {},
 			"b": {},
 		},
 	}
 	inferred := map[string][]string{
-		"a": {"b"}, // same as explicit
+		"a": {"b", "b"}, // duplicate
 	}
 	merged := MergeEdges(f, inferred)
 	if len(merged["a"]) != 1 {

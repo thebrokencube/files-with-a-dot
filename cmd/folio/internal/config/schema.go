@@ -36,9 +36,6 @@ type Target struct {
 	How          string   `yaml:"how"`
 	Instructions string   `yaml:"instructions"` // deprecated: use how
 	Transform    string   `yaml:"transform"`    // deprecated: ignored
-	BlockedBy    []string `yaml:"blocked_by"`
-	Branch       string   `yaml:"branch"`
-	PR           string   `yaml:"pr"`
 	Sources      []Source `yaml:"sources"`
 	Outputs      []Output `yaml:"outputs"`
 	Batch        *Batch   `yaml:"batch"`

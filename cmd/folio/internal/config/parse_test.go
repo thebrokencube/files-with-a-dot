@@ -69,8 +69,8 @@ func TestParseFull(t *testing.T) {
 	}
 
 	// Targets
-	if len(f.Targets) != 3 {
-		t.Fatalf("targets len = %d, want 3", len(f.Targets))
+	if len(f.Targets) != 2 {
+		t.Fatalf("targets len = %d, want 2", len(f.Targets))
 	}
 	summary, ok := f.Targets["summary"]
 	if !ok {
@@ -90,23 +90,10 @@ func TestParseFull(t *testing.T) {
 	if !ok {
 		t.Fatal("missing target 'jira-update'")
 	}
-	if len(jiraUpdate.BlockedBy) != 1 || jiraUpdate.BlockedBy[0] != "summary" {
-		t.Errorf("jira-update.blocked_by = %v", jiraUpdate.BlockedBy)
-	}
 	if len(jiraUpdate.Outputs) != 2 {
 		t.Errorf("jira-update outputs len = %d", len(jiraUpdate.Outputs))
 	}
 
-	featureBranch, ok := f.Targets["feature-branch"]
-	if !ok {
-		t.Fatal("missing target 'feature-branch'")
-	}
-	if featureBranch.Branch != "feat/my-feature" {
-		t.Errorf("feature-branch.branch = %q, want %q", featureBranch.Branch, "feat/my-feature")
-	}
-	if featureBranch.PR != "#42" {
-		t.Errorf("feature-branch.pr = %q, want %q", featureBranch.PR, "#42")
-	}
 	// Cross references
 	if len(f.CrossReferences) != 1 {
 		t.Errorf("cross_references len = %d", len(f.CrossReferences))
@@ -288,32 +275,5 @@ observations: []
 	}
 	if bt.Batch.Field != "description" {
 		t.Errorf("batch.field = %q, want description", bt.Batch.Field)
-	}
-}
-
-func TestParseTargetWithBranchAndPR(t *testing.T) {
-	data := []byte(`
-schema: 1
-project: "Branch Test"
-sources: []
-targets:
-  my-target:
-    how: "Target with branch"
-    branch: "feat/my-branch"
-    pr: "#123"
-    sources: []
-    outputs: []
-observations: []
-`)
-	f, err := Parse(data)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	tgt := f.Targets["my-target"]
-	if tgt.Branch != "feat/my-branch" {
-		t.Errorf("branch = %q, want %q", tgt.Branch, "feat/my-branch")
-	}
-	if tgt.PR != "#123" {
-		t.Errorf("pr = %q, want %q", tgt.PR, "#123")
 	}
 }

@@ -90,17 +90,9 @@ func addEdgeIfProduced(edges map[string][]string, tid, path, external, id string
 	}
 }
 
-// MergeEdges combines explicit blocked_by edges with inferred edges into
-// a unified adjacency list. Deduplicates edges.
+// MergeEdges deduplicates inferred edges into a unified adjacency list.
 func MergeEdges(f *config.Folio, inferred map[string][]string) map[string][]string {
 	merged := make(map[string][]string)
-
-	// Add explicit blocked_by
-	for tid, target := range f.Targets {
-		for _, dep := range target.BlockedBy {
-			merged[tid] = append(merged[tid], dep)
-		}
-	}
 
 	// Add inferred edges
 	for tid, deps := range inferred {

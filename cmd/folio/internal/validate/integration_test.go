@@ -116,14 +116,14 @@ sources: []
 targets:
   a:
     how: "A"
-    blocked_by: [b]
-    sources: []
+    sources:
+      - path: compiled/b.md
     outputs:
       - path: compiled/a.md
   b:
     how: "B"
-    blocked_by: [a]
-    sources: []
+    sources:
+      - path: compiled/a.md
     outputs:
       - path: compiled/b.md
 `)
@@ -361,30 +361,6 @@ targets: {}
 	}
 }
 
-func TestIntegrationTargetWithBranchAndPR(t *testing.T) {
-	dir := t.TempDir()
-	writeFixture(t, dir, "compiled/.gitkeep", "")
-	writeFixture(t, dir, "README.md", "# Test")
-	writeFixture(t, dir, "folio.yml", `
-schema: 1
-project: "Branch Integration"
-sources: []
-targets:
-  my-target:
-    how: "Target with branch metadata"
-    branch: "feat/my-branch"
-    pr: "#456"
-    sources:
-      - path: README.md
-    outputs:
-      - path: compiled/out.md
-observations: []
-`)
-	r := loadAndValidate(t, dir)
-	if !r.Valid {
-		t.Errorf("expected valid target with branch/pr, got errors: %v", r.Errors)
-	}
-}
 
 func hasWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {

@@ -260,30 +260,6 @@ func TestValidatePrecompileRule(t *testing.T) {
 	}
 }
 
-func TestValidateBlockedByNonexistent(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"my-target": {
-				How:       "Test",
-				BlockedBy: []string{"nonexistent"},
-				Outputs:   []config.Output{{Path: "compiled/out.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for nonexistent blocked_by")
-	}
-	if !containsError(r, "non-existent target") {
-		t.Errorf("expected blocked_by error, got: %v", r.Errors)
-	}
-}
-
 func TestValidateExternalOutputMissingID(t *testing.T) {
 	dir := t.TempDir()
 
@@ -333,35 +309,6 @@ func TestValidateOutputCollision(t *testing.T) {
 	}
 	if !containsError(r, "Output collision") {
 		t.Errorf("expected collision error, got: %v", r.Errors)
-	}
-}
-
-func TestValidateCycleDetection(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"a": {
-				How:       "Test A",
-				BlockedBy: []string{"b"},
-				Outputs:   []config.Output{{Path: "compiled/a.md"}},
-			},
-			"b": {
-				How:       "Test B",
-				BlockedBy: []string{"a"},
-				Outputs:   []config.Output{{Path: "compiled/b.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for cycle")
-	}
-	if !containsError(r, "cycle") {
-		t.Errorf("expected cycle error, got: %v", r.Errors)
 	}
 }
 
@@ -566,107 +513,6 @@ func TestValidateAmbiguousSource(t *testing.T) {
 	}
 	if !containsWarning(r, "both 'path' and 'external' set") {
 		t.Errorf("expected ambiguity warning, got warnings: %v", r.Warnings)
-	}
-}
-
-func TestValidatePRWithoutBranch(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"my-target": {
-				How:     "Test",
-				PR:      "#123",
-				Outputs: []config.Output{{Path: "compiled/out.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for PR without branch")
-	}
-	if !containsError(r, "pr set without branch") {
-		t.Errorf("expected PR-without-branch error, got: %v", r.Errors)
-	}
-}
-
-func TestValidatePRWithBranch(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"my-target": {
-				How:     "Test",
-				Branch:  "feat-test",
-				PR:      "#123",
-				Outputs: []config.Output{{Path: "compiled/out.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if containsError(r, "pr set without branch") {
-		t.Errorf("should be valid with both branch and PR, got: %v", r.Errors)
-	}
-}
-
-func TestValidateDuplicateBranch(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"first": {
-				How:     "Test first",
-				Branch:  "feat-shared",
-				Outputs: []config.Output{{Path: "compiled/a.md"}},
-			},
-			"second": {
-				How:     "Test second",
-				Branch:  "feat-shared",
-				Outputs: []config.Output{{Path: "compiled/b.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if r.Valid {
-		t.Error("expected invalid for duplicate branch")
-	}
-	if !containsError(r, "Duplicate branch") {
-		t.Errorf("expected duplicate branch error, got: %v", r.Errors)
-	}
-}
-
-func TestValidateUniqueBranches(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	f := &config.Folio{
-		Schema:  1,
-		Project: "Test",
-		Targets: map[string]config.Target{
-			"first": {
-				How:     "Test first",
-				Branch:  "feat-a",
-				Outputs: []config.Output{{Path: "compiled/a.md"}},
-			},
-			"second": {
-				How:     "Test second",
-				Branch:  "feat-b",
-				Outputs: []config.Output{{Path: "compiled/b.md"}},
-			},
-		},
-	}
-	r := Validate(f, dir)
-	if containsError(r, "Duplicate branch") {
-		t.Errorf("should be valid with unique branches, got: %v", r.Errors)
 	}
 }
 

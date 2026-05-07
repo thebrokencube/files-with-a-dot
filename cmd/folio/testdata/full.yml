@@ -29,7 +29,6 @@ targets:
 
   jira-update:
     how: "Push summary to Jira"
-    blocked_by: [summary]
     sources:
       - path: compiled/summary.md
     outputs:
@@ -37,16 +36,6 @@ targets:
         id: "ACME-123"
         field: description
       - path: compiled/jira-update.md
-
-  feature-branch:
-    how: "Compile feature to PR"
-    blocked_by: [summary]
-    branch: "feat/my-feature"
-    pr: "#42"
-    sources:
-      - path: README.md
-    outputs:
-      - path: compiled/feature.md
 
 cross_references:
   - fact: "Key finding"
