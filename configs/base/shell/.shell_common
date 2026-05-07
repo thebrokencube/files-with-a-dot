@@ -61,6 +61,11 @@ alias gc='git commit'
 alias gp='git push'
 alias gpl='git pull'
 
+# jj shortcuts
+alias jst='jj status'
+alias jl='jj log -r "trunk()..@ | ancestors(bookmarks(), 2)"'
+alias jd='jj diff'
+
 # Directory navigation
 alias ..='cd ..'
 alias ...='cd ../..'
