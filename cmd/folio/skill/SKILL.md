@@ -78,32 +78,9 @@ If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty,
 
 ### /folio find <query>
 
-Search across folio knowledge for a topic. Vault-first — cross-cutting references are checked before project-scoped content.
+Search across folio knowledge for a topic. Vault-first, then current project, then all active projects.
 
-**Search order:**
-1. **Vault** (`~/.folio/vault/`) — filenames and content across all labels (research, domain, guide, insight)
-2. **Current project** — if a folio.yml is in scope, search its `reference/` and `work/` trees
-3. **All active projects** (`~/.folio/active/`) — broaden to every project's references and work dirs
-
-**How to search:**
-- Grep for the query (case-insensitive) in filenames first, then file contents
-- For each tier, report matches before moving to the next tier
-- Stop expanding scope when results are sufficient (user has what they need)
-
-**Output format:**
-```
-Vault matches:
-  - vault/research/2026-03-22-background-agent-landscape.md — [first line or title]
-  - vault/domain/agent-ecosystem-map.md — [first line or title]
-
-Project matches (current: files-with-a-dot):
-  - reference/spike/2026-03-01-migration-written-culture.md — [first line or title]
-
-Cross-project matches:
-  - ret/guideline-written-culture/reference/research/2026-02-01-openai-harness.md — [title]
-```
-
-Present results as a compact list with file paths and titles. Offer to read any match in detail.
+-> Read references/find.md for full workflow (search order, output format).
 
 ### /folio gather [url|topic|path]
 
@@ -145,30 +122,9 @@ Previously: `/folio audit`
 
 ### /folio observe
 
-Manage observations in folio.yml. Observations are an **open-items queue** — things that need attention (bugs, gaps, ideas, debt, tasks). Resolve them when addressed. Do not add observations to record completed work; that's what retros and commit history are for.
+Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the grill protocol for complex observations.
 
-**Do NOT edit the `observations:` list in folio.yml by hand** — not to add, remove, reorder, or reformat entries. All mutations go through CLI commands, which enforce format validation. `folio home push` runs lint as a gate and will reject malformed observations.
-
-Workflow:
-1. `folio observe types` — get valid types and descriptions
-2. `folio observe list --json` — check existing scopes (avoid near-duplicates)
-3. `folio observe 'type(scope): description'` — append (validates format)
-4. `folio observe resolve <#N|substring> [#N2 ...]` — delete resolved items. **Always batch multiple resolves in a single call** to avoid index shifting between calls.
-5. `folio observe lint` — check format + inline path refs
-
-If no text provided with the command, ask the user for the observation.
-
-**Type disambiguation**: When the observation text has investigation depth — multiple
-sentences, describes a problem space, mentions alternatives or approaches — read
-`references/grill.md` and run the alignment grill protocol before routing:
-- Budget: 2
-- Grounding: the observation text, existing observations (`folio observe list --json`)
-- Target: routing decision (observation vs spike)
-- Hard constraints: none
-If the grill routes to spike, derive the topic from the grill's claim/recommendation
-(the problem space identified during questioning) and use the grill's full output as
-the spike's initial content via `folio new spike <topic>`. One-liner observations pass
-through to `folio observe` untouched — no grill needed.
+-> Read references/observe.md for full workflow (CLI commands, type disambiguation, grill routing).
 
 ### CLI Pass-Throughs
 
@@ -261,6 +217,8 @@ is how provenance chains break.
 
 ## Reference Files
 
+- **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
+- **references/observe.md** — Observe workflow: CLI commands, type disambiguation, grill routing for complex observations
 - **references/grill.md** — Alignment grill protocol: claim-first questioning, invocation contract, user responses
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
@@ -268,4 +226,5 @@ is how provenance chains break.
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
+- **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
