@@ -3,13 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -34,23 +32,12 @@ func runDag(args []string) int {
 	fs := dendrik.NewFlagSet("dag")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
 	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	branches := fs.Bool('b', "branches", "Show branch topology")
-	statusFlag := fs.Bool('s', "status", "Show staleness overlay (requires --branches)")
 	noColor := fs.BoolLong("no-color", "Disable colored output")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
 
 	if !resolveOrDie(folioPath) {
-		return dendrik.ExitUserError
-	}
-
-	if *statusFlag && !*branches {
-		if *jsonMode {
-			dendrik.WriteError(os.Stdout, "--status requires --branches", "")
-		} else {
-			fmt.Fprintln(os.Stderr, pal.Errf("--status requires --branches"))
-		}
 		return dendrik.ExitUserError
 	}
 
@@ -71,23 +58,6 @@ func runDag(args []string) int {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		}
 		return dendrik.ExitUserError
-	}
-
-	if *branches {
-		bt := output.BuildBranchTopology(f.Targets)
-
-		if *statusFlag {
-			folioDir := filepath.Dir(*folioPath)
-			_, causedBy := status.DeriveWithDAG(f, folioDir)
-			output.AnnotateBranchStatus(bt, f, filepath.Dir(*folioPath), causedBy)
-		}
-
-		if *jsonMode {
-			output.PrintBranchDAGJSON(os.Stdout, bt)
-		} else {
-			output.PrintBranchDAGFromTopology(os.Stdout, bt, !*noColor, *statusFlag)
-		}
-		return dendrik.ExitOK
 	}
 
 	outputMap := graph.BuildOutputMap(f)

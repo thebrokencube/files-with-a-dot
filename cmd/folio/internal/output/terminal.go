@@ -215,69 +215,10 @@ func PrintDAGTerminal(w io.Writer, targets map[string]config.Target, adj map[str
 	}
 }
 
-// PrintBranchDAG renders branch topology derived from targets with Branch set.
-// Convenience wrapper that builds topology internally.
-func PrintBranchDAG(w io.Writer, targets map[string]config.Target, color bool) {
-	bt := BuildBranchTopology(targets)
-	PrintBranchDAGFromTopology(w, bt, color, false)
-}
-
-// PrintBranchDAGFromTopology renders a pre-built branch topology to a terminal.
-// When showStatus is true, status and stale_via annotations are included.
-func PrintBranchDAGFromTopology(w io.Writer, bt *BranchTopology, color bool, showStatus bool) {
-	if len(bt.Roots) == 0 {
-		return
-	}
-
-	p := dendrik.NewPalette(color)
-
-	var printNode func(node *BranchNode, indent string, isLast bool)
-	printNode = func(node *BranchNode, indent string, isLast bool) {
-		connector := "├── "
-		if isLast {
-			connector = "└── "
-		}
-
-		statusStr := ""
-		if showStatus && node.Status != "" {
-			c := statusColor(node.Status, p)
-			statusStr = fmt.Sprintf("  %s%s%s", c, node.Status, p.Reset)
-			if node.StaleVia != "" {
-				statusStr += fmt.Sprintf(" %s<< %s%s", p.Dim, node.StaleVia, p.Reset)
-			}
-		}
-
-		fmt.Fprintf(w, "%s%s%s%s%s%s\n", indent, connector, p.Bold, node.ID, p.Reset, statusStr)
-
-		prStr := ""
-		if node.PR != "" {
-			prStr = fmt.Sprintf("  PR: %s", node.PR)
-		}
-		fmt.Fprintf(w, "%s    %sbranch: %s (base: %s)%s%s\n", indent, p.Dim, node.Branch, node.Base, prStr, p.Reset)
-
-		childIndent := indent + "│   "
-		if isLast {
-			childIndent = indent + "    "
-		}
-
-		for i, kid := range node.Children {
-			printNode(kid, childIndent, i == len(node.Children)-1)
-		}
-	}
-
-	for _, root := range bt.Roots {
-		fmt.Fprintf(w, "%s%s%s\n", p.Bold, root.Base, p.Reset)
-		for i, kid := range root.Children {
-			printNode(kid, "", i == len(root.Children)-1)
-		}
-	}
-}
-
 // StaleEntry holds display data for a single stale target.
 type StaleEntry struct {
 	ID      string   `json:"id"`
 	Status  string   `json:"status"`
-	Branch  string   `json:"branch,omitempty"`
 	Outputs []string `json:"outputs"`
 	Cause   string   `json:"cause"`
 }

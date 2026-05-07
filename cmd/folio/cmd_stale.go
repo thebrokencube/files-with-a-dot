@@ -66,7 +66,6 @@ func runStale(args []string) int {
 		entry := output.StaleEntry{
 			ID:     tid,
 			Status: worst,
-			Branch: target.Branch,
 		}
 
 		// Collect output labels

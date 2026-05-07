@@ -19,11 +19,6 @@ func PrintValidateJSON(w io.Writer, r *validate.Result) {
 	dendrik.WriteResult(w, r)
 }
 
-// PrintBranchDAGJSON renders branch topology as JSON.
-func PrintBranchDAGJSON(w io.Writer, bt *BranchTopology) {
-	dendrik.WriteResult(w, bt)
-}
-
 // PrintStatusJSON renders project status as JSON.
 func PrintStatusJSON(w io.Writer, ps *status.ProjectStatus) {
 	// Per-target slices may still be nil (depends on target definition)
