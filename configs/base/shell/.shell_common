@@ -82,6 +82,68 @@ alias path='echo $PATH | tr ":" "\n"'
 alias week='date +%V'
 
 # ============================================================================
+# jj workspace functions
+# ============================================================================
+
+# Initialize jj in a repo (colocate or detect reftable)
+jj-init() {
+  local repo="${1:-.}"
+  repo="$(cd "$repo" && pwd)"
+
+  if [ -d "$repo/.jj" ]; then
+    echo "Already initialized: $repo"
+    return 0
+  fi
+
+  if [ ! -d "$repo/.git" ]; then
+    echo "Not a git repo: $repo"
+    return 1
+  fi
+
+  # Check for reftable (refs stored as file, not directory)
+  if [ -f "$repo/.git/refs" ] || [ ! -d "$repo/.git/refs" ]; then
+    local name
+    name="$(basename "$repo")"
+    local target="$HOME/workspace/jj/$name"
+    echo "Reftable detected — fresh clone required"
+    echo "Target: $target"
+    echo "Run: jj git clone <remote-url> $target"
+    return 1
+  fi
+
+  (cd "$repo" && jj git init --colocate)
+  echo "Colocated jj repo initialized: $repo"
+}
+
+# Show VCS adoption status across workspace
+vcs-status() {
+  local repos=()
+  repos+=("$HOME/.dotfiles")
+  repos+=("$HOME/.folio")
+
+  local d
+  for d in "$HOME/workspace"/*/; do
+    [ -d "$d/.git" ] || [ -d "$d/.jj" ] && repos+=("${d%/}")
+  done
+  for d in "$HOME/workspace/guideline"/*/; do
+    [ -d "$d/.git" ] || [ -d "$d/.jj" ] && repos+=("${d%/}")
+  done
+
+  printf "Workspace VCS status:\n"
+  local repo name
+  for repo in "${repos[@]}"; do
+    name="${repo/#$HOME\//~/}"
+    if [ -d "$repo/.jj" ] && [ -d "$repo/.git" ]; then
+      printf "  \033[32m%-30s jj (colocated)\033[0m\n" "$name"
+    elif [ -d "$repo/.jj" ]; then
+      printf "  \033[32m%-30s jj (non-colocated)\033[0m\n" "$name"
+    else
+      printf "  \033[2m%-30s git only\033[0m\n" "$name"
+    fi
+  done
+}
+
+# ============================================================================
 # Load local/sensitive configuration
 # ============================================================================
 
