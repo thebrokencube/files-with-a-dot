@@ -78,7 +78,7 @@ each item in order. One review gate per item. Report progress as
 |------------|-----------------|
 | Google Docs | `manual:paste-from-markdown` — copy compiled output, paste into doc. **Review normalization**: when pulling Google Docs content for diff, strip escaped chars and normalize whitespace before comparing. |
 | Slack | `mcp:slack` — send message via Slack MCP tool |
-| Clipboard | `folio pbcopy <target>` — copies first local output to clipboard for manual paste |
+| Clipboard | `pbcopy < <output-file>` — copy compiled output to clipboard for manual paste |
 | Confluence | `mcp:jira-confluence` — update page via Confluence MCP tool |
 
 ## Error Handling

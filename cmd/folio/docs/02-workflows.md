@@ -79,7 +79,7 @@ Publish sends composed output to Jira, Google Docs, Slack, or Confluence.
 Push methods vary by target:
 - **Jira**: always through `jf` (the Jira forest CLI -- never direct API calls)
 - **Google Docs**: via gdrive tools in Claude Code
-- **Manual**: copy output to clipboard with `folio pbcopy`
+- **Manual**: copy output to clipboard with `pbcopy < output-file`
 
 There is a mandatory review gate before every external push. Post-push, `folio touch` clears staleness so `folio status` reflects the current state.
 

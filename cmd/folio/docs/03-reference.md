@@ -130,7 +130,6 @@ Schema 2 replaced `pending` and `tasks` sections with `observations`. Design doc
 | `folio dag` | `folio dag [--branches]` | Show project dependency DAG |
 | `folio touch` | `folio touch [--folio PATH]` | Clear staleness after manual publish |
 | `folio archive` | `folio archive [--dry-run]` | Move project to archive |
-| `folio pbcopy` | `folio pbcopy <path>` | Copy file to clipboard |
 | `folio home list` | `folio home list` | List home-synced projects |
 | `folio home push` | `folio home push` | Commit and push to ~/.folio remote |
 | `folio home pull` | `folio home pull` | Pull from ~/.folio remote |

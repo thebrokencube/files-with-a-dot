@@ -39,8 +39,6 @@ func main() {
 		os.Exit(runArchive(os.Args[2:]))
 
 	// Top-level utility commands
-	case "pbcopy":
-		os.Exit(runPbcopy(os.Args[2:]))
 	case "setup":
 		os.Exit(runSetup(os.Args[2:]))
 	case "version":
@@ -130,7 +128,6 @@ Composition:
   touch        Mark a target as current
   observe      Observation management (add, list, resolve, lint, types)
   archive      Move work track from active to archive
-  pbcopy       Copy target output to clipboard
 
 Management:
   home         FOLIO_HOME commands (list, push, pull, archive, activate, health)

@@ -361,7 +361,6 @@ targets: {}
 	}
 }
 
-
 func hasWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {
