@@ -218,3 +218,7 @@ Invalid reasons (use jf instead):
 - Pushing descriptions → `jf push` or `jf sync`
 - Pulling descriptions → `jf pull` or `jf sync`
 - Searching tickets → `jf search`
+
+## Testing
+
+-> See references/testing.md for clone-based integration testing (setup, sync validation, teardown).
