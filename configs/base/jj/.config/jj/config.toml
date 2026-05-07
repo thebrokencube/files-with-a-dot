@@ -5,14 +5,21 @@ name = "Sapan Upadhyay"
 email = "sapan.upadhyay@gusto.com"
 
 [ui]
-# Use `true` as editor so operations like squash don't hang waiting
-# for an interactive editor in non-interactive contexts (e.g., Claude Code).
-# For interactive use, override with JJ_EDITOR=vim or jj --edit.
-editor = "true"
-
-# Default diff format
+editor = "nvim"
+pager = "less -FRX"
 diff.format = "git"
 
+[signing]
+behavior = "own"
+backend = "ssh"
+
 [git]
-# Auto-track remote branches when fetching
 auto-local-bookmark = false
+
+[revset-aliases]
+'trunk()' = 'latest(remote_bookmarks(exact:"main", exact:"origin"))'
+
+[aliases]
+l = ["log", "-r", "trunk()..@ | ancestors(bookmarks(), 2)"]
+s = ["status"]
+d = ["diff"]
