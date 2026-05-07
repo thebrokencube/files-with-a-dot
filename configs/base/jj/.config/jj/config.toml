@@ -9,10 +9,6 @@ editor = "nvim"
 pager = "less -FRX"
 diff.format = "git"
 
-[signing]
-behavior = "own"
-backend = "ssh"
-
 [git]
 auto-local-bookmark = false
 
