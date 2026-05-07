@@ -133,14 +133,6 @@ Send composed output to external systems (Jira, Google Docs, Slack). Resolves pu
 
 -> Read references/publish.md for full workflow (includes Jira push pipeline).
 
-### /folio stack [check|propagate|push]
-
-Unified stack management — morning standup view, propagation, and push in one workflow. Bridges folio topology (`dag --branches`) with stacked-pr skill mechanics.
-
-Default action is `check`. Requires targets with `branch` fields in folio.yml.
-
--> Read references/stack.md for full workflow (includes check/propagate/push actions).
-
 ### /folio review [scope]
 
 Project health check — like `git status` for the compilation system. Reports status without fixing anything.
@@ -229,9 +221,6 @@ Two gate types, proportional to risk:
 | compose | Soft | After composition loop, before final status | Targets composed, paths, sizes (cap 5) |
 | gather (snapshot) | Soft | Before file write | Proposed filename, length, 3 key facts |
 | gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
-| stack push | Hard | Before push | Branches, local vs remote tips, force-with-lease |
-| stack propagate | Soft | After propagation | Rebased branches, conflicts resolved, stale remainder |
-| stack check | None | — | Read-only |
 | review | None | — | Read-only |
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
@@ -278,6 +267,5 @@ is how provenance chains break.
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
 - **references/review.md** — Review workflow: steps, output format, cross-reference checks
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
-- **references/stack.md** — Stack workflow: check/propagate/push actions, stacked-pr integration
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns

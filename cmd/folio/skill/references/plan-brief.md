@@ -122,7 +122,7 @@ Include:
 - **Escalation triggers**: when should the agent stop and ask? Common triggers: validation
   failures, file paths or signatures that don't match the brief, temptation to add code not
   in the track, high-complexity commits
-- **Folio integration**: targets to add for branches, existing observation items to resolve
+- **Folio integration**: existing observation items to resolve
   on completion, `folio home push` checkpoints at milestones. Do not instruct agents to add
   "completion" observations — observations are open items, not a changelog. Execution agents
   should maintain folio state as they go — not as a final cleanup step.
