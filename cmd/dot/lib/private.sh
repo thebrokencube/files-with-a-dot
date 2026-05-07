@@ -532,27 +532,38 @@ apply_managed_files() {
         mkdir -p "$(dirname "$dest")"
 
         if [[ "$have_base" == true && "$have_overlay" == true ]]; then
-            jq -s '
-              def merge_deep:
-                if (.[0] | type) == "object" and (.[1] | type) == "object" then
-                  .[0] as $a | .[1] as $b |
-                  ($a | keys) + ($b | keys) | unique | map(
-                    . as $k |
-                    if ($a | has($k)) and ($b | has($k)) then
-                      {($k): ([$a[$k], $b[$k]] | merge_deep)}
-                    elif ($b | has($k)) then
-                      {($k): $b[$k]}
+            if [[ "$dest" == *.toml ]]; then
+                # TOML merge via yq (overlay wins on key conflicts)
+                if ! command -v yq &>/dev/null; then
+                    warn "yq not found — skipping TOML merge for $(basename "$dest")"
+                    continue
+                fi
+                yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+                    -p toml -o toml "$base_path" "$overlay_path" > "$dest"
+            else
+                # JSON merge via jq (deep merge, overlay wins)
+                jq -s '
+                  def merge_deep:
+                    if (.[0] | type) == "object" and (.[1] | type) == "object" then
+                      .[0] as $a | .[1] as $b |
+                      ($a | keys) + ($b | keys) | unique | map(
+                        . as $k |
+                        if ($a | has($k)) and ($b | has($k)) then
+                          {($k): ([$a[$k], $b[$k]] | merge_deep)}
+                        elif ($b | has($k)) then
+                          {($k): $b[$k]}
+                        else
+                          {($k): $a[$k]}
+                        end
+                      ) | add // {}
+                    elif (.[0] | type) == "array" and (.[1] | type) == "array" then
+                      [.[0] + .[1] | unique[]]
                     else
-                      {($k): $a[$k]}
-                    end
-                  ) | add // {}
-                elif (.[0] | type) == "array" and (.[1] | type) == "array" then
-                  [.[0] + .[1] | unique[]]
-                else
-                  .[1]
-                end;
-              [.[0], .[1]] | merge_deep
-            ' "$base_path" "$overlay_path" > "$dest"
+                      .[1]
+                    end;
+                  [.[0], .[1]] | merge_deep
+                ' "$base_path" "$overlay_path" > "$dest"
+            fi
             ok "Merged base + private → $dest"
         elif [[ "$have_base" == true ]]; then
             cp "$base_path" "$dest"
@@ -604,39 +615,50 @@ check_managed_drift() {
         # Compute expected output
         local expected
         if [[ "$have_base" == true && "$have_overlay" == true ]]; then
-            expected=$(jq -s '
-              def merge_deep:
-                if (.[0] | type) == "object" and (.[1] | type) == "object" then
-                  .[0] as $a | .[1] as $b |
-                  ($a | keys) + ($b | keys) | unique | map(
-                    . as $k |
-                    if ($a | has($k)) and ($b | has($k)) then
-                      {($k): ([$a[$k], $b[$k]] | merge_deep)}
-                    elif ($b | has($k)) then
-                      {($k): $b[$k]}
+            if [[ "$dest" == *.toml ]]; then
+                expected=$(yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+                    -p toml -o toml "$base_path" "$overlay_path")
+            else
+                expected=$(jq -s '
+                  def merge_deep:
+                    if (.[0] | type) == "object" and (.[1] | type) == "object" then
+                      .[0] as $a | .[1] as $b |
+                      ($a | keys) + ($b | keys) | unique | map(
+                        . as $k |
+                        if ($a | has($k)) and ($b | has($k)) then
+                          {($k): ([$a[$k], $b[$k]] | merge_deep)}
+                        elif ($b | has($k)) then
+                          {($k): $b[$k]}
+                        else
+                          {($k): $a[$k]}
+                        end
+                      ) | add // {}
+                    elif (.[0] | type) == "array" and (.[1] | type) == "array" then
+                      [.[0] + .[1] | unique[]]
                     else
-                      {($k): $a[$k]}
-                    end
-                  ) | add // {}
-                elif (.[0] | type) == "array" and (.[1] | type) == "array" then
-                  [.[0] + .[1] | unique[]]
-                else
-                  .[1]
-                end;
-              [.[0], .[1]] | merge_deep
-            ' "$base_path" "$overlay_path")
+                      .[1]
+                    end;
+                  [.[0], .[1]] | merge_deep
+                ' "$base_path" "$overlay_path")
+            fi
         elif [[ "$have_base" == true ]]; then
             expected=$(cat "$base_path")
         else
             expected=$(cat "$overlay_path")
         fi
 
-        # Normalize both sides for semantic JSON comparison
-        # Sort object keys and array elements to ignore ordering differences
-        local sort_filter='def sort_all: if type == "object" then to_entries | sort_by(.key) | map(.value |= sort_all) | from_entries elif type == "array" then [.[] | sort_all] | sort_by(tostring) else . end; sort_all'
+        # Normalize and compare
         local expected_norm actual_norm
-        expected_norm=$(echo "$expected" | jq -S "$sort_filter" 2>/dev/null) || expected_norm="$expected"
-        actual_norm=$(jq -S "$sort_filter" "$dest" 2>/dev/null) || actual_norm=$(cat "$dest")
+        if [[ "$dest" == *.toml ]]; then
+            # TOML: normalize via yq round-trip
+            expected_norm=$(echo "$expected" | yq -p toml -o toml 'sort_keys(..)' 2>/dev/null) || expected_norm="$expected"
+            actual_norm=$(yq -p toml -o toml 'sort_keys(..)' "$dest" 2>/dev/null) || actual_norm=$(cat "$dest")
+        else
+            # JSON: sort object keys and array elements
+            local sort_filter='def sort_all: if type == "object" then to_entries | sort_by(.key) | map(.value |= sort_all) | from_entries elif type == "array" then [.[] | sort_all] | sort_by(tostring) else . end; sort_all'
+            expected_norm=$(echo "$expected" | jq -S "$sort_filter" 2>/dev/null) || expected_norm="$expected"
+            actual_norm=$(jq -S "$sort_filter" "$dest" 2>/dev/null) || actual_norm=$(cat "$dest")
+        fi
 
         if [[ "$expected_norm" != "$actual_norm" ]]; then
             if [[ "$drift_found" == false ]]; then
