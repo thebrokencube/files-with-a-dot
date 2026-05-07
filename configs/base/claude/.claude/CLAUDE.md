@@ -13,4 +13,4 @@
 - Do NOT add Co-Authored-By or other trailers to commits
 - Use conventional commits: `type(scope): description` (see commit skill)
 - One logical change per commit — don't mix refactoring with features. Refactors before features; deps in own commits.
-- Stacked branches: follow propagation and fixup rules (see stacked-pr skill)
+- Stacked branches: follow propagation and fixup rules (see commit skill, git-stacking or jj-stacking reference)
