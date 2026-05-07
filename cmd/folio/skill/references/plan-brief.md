@@ -118,7 +118,8 @@ Include:
 - **Commit conventions**: format, scope target (max commits — typically ~5), ordered commit
   sequence (what goes in each commit, in what order), push workflow, repo-specific patterns
 - **Validation commands** (run sequence): build, test, lint, deploy/sync steps (e.g.,
-  `dot sync` for dotfiles, `make build` for checked-in binaries)
+  `dot sync` for dotfiles, `make build` for checked-in binaries, `dot validate` after
+  any skill or symlink deletion)
 - **Escalation triggers**: when should the agent stop and ask? Common triggers: validation
   failures, file paths or signatures that don't match the brief, temptation to add code not
   in the track, high-complexity commits
