@@ -100,8 +100,6 @@ Custom lenses can be specified naturally in the topic text; defaults to pragmati
 
 Compose sources into targets in DAG order. Composition is creative assembly — sources are working memory; targets are communication condensed for their audience.
 
-Previously: `/folio compile`
-
 -> Read references/compose.md for full workflow. See references/schema.md for folio.yml structure.
 
 ### /folio publish [target]
