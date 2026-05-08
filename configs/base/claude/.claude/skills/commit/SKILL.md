@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Conventional commit format, message conventions, green commit rules, rebase-before-commit workflow. Use when creating commits, writing commit messages, or deciding how to structure git history. Applies to all repositories.
+description: Conventional commit format, message conventions, green commit rules, and VCS history structuring for both git and jj (Jujutsu). Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, or deciding how to decompose work into commits. Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
 user_invocable: false
 ---
 
@@ -15,6 +15,8 @@ Check `jj root 2>/dev/null`:
   exit 0 → jj repo, use jj sections below
   non-zero → git repo, use git sections below
 ```
+
+**Colocated repos** (both `.jj` and `.git` present) use jj conventions since `jj root` succeeds. jj is the preferred VCS when available.
 
 ## Commit Message Format
 
@@ -95,7 +97,7 @@ feat(checkout): add stripe payment processor with tests
 
 - [ ] Check status: `git status` to see what's changed
 - [ ] Check if behind: `git fetch origin` then `git log HEAD..origin/main --oneline`
-- [ ] If behind: **NEVER auto-rebase.** Ask the user first.
+- [ ] If behind: **NEVER auto-rebase.** Ask the user first — rebasing behind the user's back can silently break stacked branches or discard in-progress work.
 - [ ] Stage thoughtfully: Group related changes, don't just `git add -A`
 - [ ] Write message: Follow conventional commit format with scope
 - [ ] No trailers: Do NOT add Co-Authored-By or other trailers
@@ -109,8 +111,8 @@ feat(checkout): add stripe payment processor with tests
 - **In a stack**: Any amend or interactive rebase requires propagating descendant branches. See `references/git-stacking.md` Propagation Workflow.
 
 ### Rebase
-- If behind: **NEVER auto-rebase.** Ask the user first.
-- Use `--force-with-lease` for feature branches. **NEVER** force push main/master without explicit user confirmation.
+- If behind: **NEVER auto-rebase.** Ask the user first — rebasing behind the user's back can silently break stacked branches or discard in-progress work.
+- Use `--force-with-lease` for feature branches. **NEVER** force push main/master without explicit user confirmation — this rewrites shared history and can break everyone's local state.
 
 ## jj: Single Change
 

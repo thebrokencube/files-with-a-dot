@@ -1,7 +1,7 @@
 # Workflow
 
 - **Scope confirmation required.** Before reorganizing files, archiving work tracks, restructuring directories, or moving content between folio artifact types, confirm the scope first. Small edits within a file are fine.
-- **Skill-first for domain operations.** Before performing Jira, git commit, rebase, or other domain operations, invoke the owning skill (`/jf`, `/commit`). Do not use raw MCP tools or CLI commands for these domains — even if tool schemas are already loaded. The skill enforces conventions (parking lot checks, commit format, field defaults) that raw tools skip.
+- **Skill-first for domain operations.** Before performing Jira, VCS commit, rebase, or other domain operations, invoke the owning skill (`/jf`, `/commit`). Do not use raw MCP tools or CLI commands for these domains — even if tool schemas are already loaded. The skill enforces conventions (parking lot checks, commit format, field defaults) that raw tools skip.
 - **Read `~/.jf.yml` before any jf parking lot or project-defaults operation.** The parking lot epic key and status for each project are defined there. Never query Jira or call `jf search` to discover the parking lot — it's already local.
 - **Check for a local forest before any ticket hierarchy operation.** Run `jf tree` from the relevant folio directory first. A local forest may already describe the epic hierarchy; use it rather than going to the Jira API cold. The jf skill calls this "Level Detection" — always do it.
 - **MCP explanation gate for Jira.** Before calling any Jira MCP tool directly, write one sentence explaining why `jf` cannot handle this operation. If you cannot write that sentence, use `jf` instead. Valid reasons are listed in the jf skill (e.g. reparenting tickets, field updates jf doesn't manage). **Even when MCP is justified, load `/jf` first and apply its conventions** — especially ticket naming format (`type(scope): description` for Tasks/Stories/Bugs). The gate checks whether jf can do the operation; it does not excuse ignoring jf's standards.
@@ -10,8 +10,8 @@
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
 - **NEVER chain commands.** No `&&`, `;`, `||`, pipes, or command substitution. One operation per Bash call. This is absolute — hooks and permissions break on chained commands.
 - **Use `cd` for cross-repo work.** When you need to run commands in another directory, `cd <path>` in its own Bash call first. This is required, not optional. Never use `git -C` — hooks cannot pattern-match it.
-- **Always use `/commit` skill for commits.** Never assume commit message conventions. The skill defines the format, trailers policy, and workflow.
-- **One-liner commits only.** Use `git commit -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines.
+- **Always use `/commit` skill for commits.** Never assume commit message conventions. The skill defines the format, trailers policy, VCS detection, and workflow.
+- **One-liner commit messages only.** In git repos: `git commit -m "message"`. In jj repos: `jj describe -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines. The `/commit` skill's VCS Detection section determines which to use.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
 - **Observation management**: Always batch `folio observe resolve "#N" "#N2" ...` to avoid index shifting between calls.
 - **Source declaration before artifact creation.** Before creating any folio artifact (design doc, spike, retro, brief), list the sources you consumed and verify they're registered in folio.yml with `depends_on`. See SKILL.md "Source Declaration Checklist" for the full procedure. No orphan synthesis — if sources exist only in conversation context, materialize them first.

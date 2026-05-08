@@ -202,6 +202,55 @@ jj op restore <op-id>
 
 Every `jj` command is an operation. If propagation, squash, or rebase goes wrong, `jj op undo` restores the entire repo state in one step.
 
+## Conflict Resolution
+
+Three categories with different handling — same taxonomy as git stacking.
+
+### Mechanical Conflicts
+
+Whitespace changes and trivially resolvable markers. Does NOT include import reordering.
+
+**Action**: Resolve and continue. In jj, conflicts are materialized in the working copy — edit the conflict markers, then the change auto-snapshots clean.
+
+### Semantic Conflicts
+
+Logic changes from a parent change affect code in a child change. The child's assumptions about behavior may no longer hold.
+
+**Action**: Pause and confirm with the user. Describe what changed in the parent and what the child assumes. jj makes this easier to inspect: `jj diff -r <parent-change>` shows exactly what changed.
+
+### Generated Conflicts
+
+Conflicts in `auto:` changes — lockfiles, codegen output, schema files.
+
+**Action**: Abandon the change and re-run the command from its description. NEVER merge generated content manually.
+
+```bash
+jj abandon <generated-change-id>
+jj new <parent>
+# re-run command
+jj describe -m "auto(scope): <same command>"
+```
+
+## Decomposition
+
+Same ordering principle as git: foundational changes first, then implementation, then integration, then consumer-facing.
+
+- **Within a change**: refactor → implement → wire → UI/API
+- **Within a stack**: root change absorbs structural risk; children make the now-easy changes
+- **Each change MUST be independently reviewable and mergeable**
+- Stack when total diff > ~400 lines with natural layers; single change otherwise
+
+## Common Failure Modes
+
+| Symptom | Cause | Recovery |
+|---------|-------|----------|
+| Bookmark not on expected change | Forgot `jj bookmark set` after extending | `jj bookmark set <name> -r <change-id>` |
+| Orphaned change after squash-merge | GitHub squash-merge creates new commit jj doesn't recognize | `jj abandon <change-id>`, rebase children onto main |
+| Push rejected | Remote bookmark diverged (someone else pushed) | `jj git fetch`, inspect with `jj log`, decide with user |
+| Wrong change edited | `jj edit <wrong-id>` then made edits | `jj op undo` restores previous state cleanly |
+| Bookmark deleted accidentally | `jj bookmark delete` on wrong name | `jj op undo` to restore |
+| Stack shows conflicts after parent edit | Child changes have semantic dependency on parent | Resolve conflicts in each child's working copy (edit into the change), or `jj op undo` and ask user |
+
 ## Useful Revsets
 
 ```bash
