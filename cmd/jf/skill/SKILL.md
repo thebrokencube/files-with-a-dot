@@ -1,6 +1,6 @@
 ---
 name: jf
-description: "Use when managing Jira tickets, creating/editing issues, pushing descriptions, searching with JQL, managing ticket lifecycle (parking, repurposing), or when needing Jira conventions, project field defaults, and content gotchas."
+description: "Use when managing Jira tickets, creating/editing issues, pushing descriptions and titles, searching with JQL, managing ticket lifecycle (parking, repurposing), or when needing Jira conventions, project field defaults, and content gotchas."
 ---
 
 # Jira Forest (jf)
@@ -14,7 +14,7 @@ Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local
 | `jf clone <KEY>` | Scaffold local forest from Jira hierarchy |
 | `jf init` | Create `.jf/forest.yml` in current directory |
 | `jf setup` | Check prerequisites (node, acli, auth) |
-| `jf push <KEY> <FILE>` | Compile markdown to ADF and push to Jira description (`--dry-run`, `--plain-text`) |
+| `jf push <KEY> <FILE>` | Push description + title to Jira (`--dry-run`, `--plain-text`) |
 | `jf pull <KEY> <FILE>` | Pull Jira description to local markdown (`--dry-run`) |
 | `jf sync` | Push all stale + pull all pull-eligible nodes (`--dry-run`, `--resolve`, `--json`) |
 | `jf tree` | Show forest hierarchy |
@@ -153,7 +153,7 @@ The `.jf/` directory is the forest root. All node discovery happens inside it.
 
 Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: push/pull), `order` (sibling sort).
 
-**`label` maps to the Jira summary field.** It is updated on push/sync. This is the ticket title you see in Jira. (The name `label` is a known source of confusion — humans think "title", Jira's API calls it "summary", jf calls it "label". Consider renaming to `summary` or `title` in a future version.)
+**`label` maps to the Jira summary field (the ticket title).** `jf push` and `jf sync` update both the description (from the markdown body) and the title (from `label`). Do not use MCP to update the summary separately — changing `label` and pushing is the correct workflow. (The name `label` is a known source of confusion — humans think "title", Jira's API calls it "summary", jf calls it "label". Consider renaming to `summary` or `title` in a future version.)
 
 See [docs/03-reference.md](../docs/03-reference.md) for field details, inheritance, and label derivation.
 
@@ -216,6 +216,7 @@ Valid reasons to use MCP directly:
 Invalid reasons (use jf instead):
 - Creating new tickets → `jf create-missing`
 - Pushing descriptions → `jf push` or `jf sync`
+- Updating ticket title/summary → change `label` in frontmatter, then `jf push` (push updates both description and title)
 - Pulling descriptions → `jf pull` or `jf sync`
 - Searching tickets → `jf search`
 
