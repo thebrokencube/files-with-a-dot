@@ -24,3 +24,5 @@ jj workspace add "$WS_DIR" -r main -R "$HOME/.folio" 2>/dev/null
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo "export FOLIO_HOME=\"$WS_DIR\"" >> "$CLAUDE_ENV_FILE"
 fi
+
+echo "folio workspace: $WS_DIR"
