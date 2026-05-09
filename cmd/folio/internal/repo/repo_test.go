@@ -197,6 +197,72 @@ func TestHasJJRemoteFalse(t *testing.T) {
 	}
 }
 
+func TestJJPushCreatesCommit(t *testing.T) {
+	dir := initTestJJRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+
+	if err := Push(dir, "test(repo): add file"); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+
+	// Verify commit exists on main bookmark
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "main", "--no-graph", "-T", "description")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log: %s", out)
+	}
+	if !strings.Contains(string(out), "test(repo): add file") {
+		t.Errorf("jj log = %q, want commit message", string(out))
+	}
+}
+
+func TestJJPushNothingToCommit(t *testing.T) {
+	dir := initTestJJRepo(t)
+	// Write, push, then try again with no changes
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+	if err := Push(dir, "test(repo): initial"); err != nil {
+		t.Fatalf("initial Push: %v", err)
+	}
+
+	err := Push(dir, "test(repo): no changes")
+	if !errors.Is(err, ErrNothingToCommit) {
+		t.Errorf("err = %v, want ErrNothingToCommit", err)
+	}
+}
+
+func TestJJPushCreatesNewChange(t *testing.T) {
+	dir := initTestJJRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+
+	if err := Push(dir, "test(repo): first"); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+
+	// After push, @ should be empty (jj new created fresh change)
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "@", "--no-graph",
+		"-T", `if(empty, "empty", "changed")`)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log: %s", out)
+	}
+	if strings.TrimSpace(string(out)) != "empty" {
+		t.Errorf("@ after push = %q, want empty", string(out))
+	}
+}
+
+func TestJJPullNoRemote(t *testing.T) {
+	dir := initTestJJRepo(t)
+	err := Pull(dir)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "no remote") {
+		t.Errorf("err = %q, want 'no remote'", err)
+	}
+}
+
 func TestValidateCommitMessage(t *testing.T) {
 	tests := []struct {
 		name    string

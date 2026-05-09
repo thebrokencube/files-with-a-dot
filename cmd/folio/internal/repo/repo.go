@@ -45,6 +45,10 @@ func Push(home, message string) error {
 		return err
 	}
 
+	if IsJJ(home) {
+		return jjPush(home, message)
+	}
+
 	// git add -A
 	if err := gitIn(home, "add", "-A"); err != nil {
 		return fmt.Errorf("git add: %w", err)
@@ -72,11 +76,65 @@ func Push(home, message string) error {
 
 // Pull runs git pull in the FOLIO_HOME directory.
 func Pull(home string) error {
+	if IsJJ(home) {
+		return jjPull(home)
+	}
+
 	if !hasRemote(home) {
 		return fmt.Errorf("no remote configured")
 	}
 	if err := gitIn(home, "pull"); err != nil {
 		return fmt.Errorf("git pull: %w", err)
+	}
+	return nil
+}
+
+// jjPush describes @, sets bookmark, pushes, and creates fresh @.
+func jjPush(home, message string) error {
+	// Check if @ is empty
+	out, err := jjOutput(home, "log", "-r", "@", "--no-graph", "-T", `if(empty, "empty", "changed")`)
+	if err != nil {
+		return fmt.Errorf("jj log: %w", err)
+	}
+	if strings.TrimSpace(out) == "empty" {
+		return ErrNothingToCommit
+	}
+
+	// Describe the change
+	if err := jjIn(home, "describe", "-m", message); err != nil {
+		return fmt.Errorf("jj describe: %w", err)
+	}
+
+	// Set bookmark to current change
+	if err := jjIn(home, "bookmark", "set", "main", "-r", "@"); err != nil {
+		return fmt.Errorf("jj bookmark set: %w", err)
+	}
+
+	// Push if remote exists
+	if hasJJRemote(home) {
+		if err := jjIn(home, "git", "push", "--bookmark", "main"); err != nil {
+			return fmt.Errorf("jj git push: %w (try: jj rebase -d main@origin && retry)", err)
+		}
+	}
+
+	// Fresh @ for next operation
+	if err := jjIn(home, "new"); err != nil {
+		return fmt.Errorf("jj new: %w", err)
+	}
+
+	return nil
+}
+
+// jjPull fetches and rebases onto main@origin.
+func jjPull(home string) error {
+	if !hasJJRemote(home) {
+		return fmt.Errorf("no remote configured")
+	}
+	if err := jjIn(home, "git", "fetch"); err != nil {
+		return fmt.Errorf("jj git fetch: %w", err)
+	}
+	if err := jjIn(home, "rebase", "-d", "main@origin"); err != nil {
+		return fmt.Errorf("jj rebase: %w", err)
 	}
 	return nil
 }
