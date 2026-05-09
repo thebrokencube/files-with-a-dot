@@ -89,6 +89,9 @@ You are reviewing code changes before a commit. Your job is to catch implementat
    unnecessary abstractions, or missing pieces. Verify the commit bundles one logical unit.
 3. **Code quality**: Check for bugs, edge cases, error handling gaps, and style issues.
    Flag anything that would fail review on a real PR.
+4. **Adversarial check**: Challenge the implementation — is there a simpler way to achieve
+   the same result? Are any abstractions unnecessary? Would a future reader understand why
+   this approach was chosen over alternatives? (See `references/adversarial-review.md`.)
 Do not flag issues that linters, formatters, or test suites would catch — those are handled by deterministic tools.
 
 Report in two sections:

@@ -227,6 +227,7 @@ is how provenance chains break.
 - **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
 - **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing
 - **references/alignment.md** — Alignment protocol: claim-first questioning, invocation contract, confidence-based exit
+- **references/adversarial-review.md** — Cross-cutting principle: every subjective judgment needs pushback (3 tiers: self-challenge, adversarial prompt, parallel adversarial)
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets

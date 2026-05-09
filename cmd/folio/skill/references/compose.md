@@ -25,7 +25,7 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
       alignment (no external audience to align on).
    d. **Local outputs** (`path:`): write compiled file
    e. **External outputs** (`external:`): resolve push method from tooling.yml
-5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output.
+5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output. When reviewing, apply adversarial check: is the composition the right framing for its audience? Could it be shorter? Does it include content that belongs in a different target? (See `references/adversarial-review.md`.)
 6. Run `folio status` again to report final state.
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.

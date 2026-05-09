@@ -377,24 +377,45 @@ converge output.
 ## Phase 4b: Review Design Doc (hard gate — blocks commit)
 
 **Prerequisite: Phase 4a complete.** The design doc must be filled before review begins.
-The review agent reviews the actual design doc artifact, not the converge output — this
+The review agents review the actual design doc artifact, not the converge output — this
 ensures the committed artifact is the one that was validated.
 
-Launch 1 agent (subagent_type: general-purpose, model: opus) to review the design doc. The review covers:
+See `references/adversarial-review.md` for the cross-cutting principle behind this review.
+Phase 4b uses the **parallel adversarial** tier: 2 agents with opposing lenses.
 
-1. **Accuracy**: Does the design doc reference correct file paths, function names, and APIs? Are assumptions about existing code valid? Read the actual source files to verify.
-2. **Feasibility**: Can each step actually be implemented as described? Are there missing dependencies or ordering issues?
-3. **Scope**: Is everything in the design doc necessary for the task? **Meta-review: should any of this work not exist?** Flag anything that's over-engineered, gold-plated, or solving a problem the user didn't ask about.
-4. **Completeness**: Are there gaps between the converge output and the design doc — decisions that were made during convergence but lost during fill?
+Launch 2 agents in parallel (subagent_type: general-purpose, model: opus):
 
-Review output: max 40 lines. For each issue found, state: what's wrong, where, and a suggested fix.
+1. **Devil's advocate agent** — challenges the design's right to exist:
+   - **Scope**: Is everything necessary? Should any part of this design NOT exist?
+   - **Over-engineering**: Flag premature abstractions, YAGNI, gold-plating
+   - **Simpler alternatives**: Could the same outcome be achieved with less?
+   - **Scope creep**: Has the design grown beyond the original ask?
+   - **Completeness**: Are any architectural decisions or interface contracts missing?
 
-Loop: fix issues in the design doc, re-run review. Cap at 5 iterations — if issues persist
-after 5 rounds, present remaining issues to the user for judgment.
+2. **Blast radius agent** — verifies the design survives contact with the codebase:
+   - **Accuracy**: Do file paths, function names, and APIs exist? Read actual files.
+   - **Feasibility**: Can each step be implemented? Missing dependencies or ordering issues?
+   - **Integration risk**: Read every codebase file the design touches. Check regex-based
+     manipulations, hardcoded lists, test coverage gaps, integration seams.
+   - **What breaks**: Will existing code paths handle the new fields/behavior?
+
+After both agents return, merge their findings: deduplicate, assign severity
+(critical/significant/minor), and present as a single review output.
+
+Review output: max 80 lines combined (dedup during merge is expected to compress).
+For each issue: what's wrong, severity, and a fix.
+
+Loop: fix issues in the design doc, re-run both review agents. Cap at 3 iterations — if
+issues persist after 3 rounds, present remaining issues to the user for judgment.
+
+**Lightweight mode exception**: When the design doc qualifies for lightweight mode (<=5
+files, clear implementation), use 1 opus agent with the adversarial prompt tier instead
+of 2 parallel agents. The single agent covers all 6 dimensions (accuracy, feasibility,
+scope, completeness + devil's advocate + blast radius) in one pass. Cap at 3 iterations.
 
 ### Review Gate Checklist (must pass before commit)
 
-- [ ] Review agent returned zero issues, OR 5 iterations completed AND user judged remaining issues
+- [ ] Both review agents returned zero issues, OR 3 iterations completed AND user judged remaining issues
 - [ ] All review fixes applied to the design doc (not just noted)
 
 **After the review gate passes:**
@@ -412,12 +433,12 @@ after 5 rounds, present remaining issues to the user for judgment.
 
 The committed design doc is the contract for Agent 2.
 
-### Review Agent Prompt
+### Devil's Advocate Prompt
 
-Use with `subagent_type: "general-purpose"` and `model: "opus"`. Needs file access to verify claims.
+Use with `subagent_type: "general-purpose"` and `model: "opus"`. Needs file access.
 
 ```
-You are reviewing a design document. Your job is to find problems before the design is committed and handed off to implementation.
+You are reviewing a design document. Your job is to be genuinely adversarial — find the strongest arguments against this design, identify risks the authors haven't considered, and challenge whether parts should exist at all.
 
 ## Original Task
 {task_description}
@@ -430,25 +451,58 @@ You are reviewing a design document. Your job is to find problems before the des
 {If round 1: "This is the first review round. No prior issues."}
 
 ## Instructions
-Read the design doc at the path above. Review it against the actual codebase:
+Read the design doc at the path above. Challenge it:
 
-1. **Accuracy**: Verify file paths, function names, and API references exist and are correct. Read the actual files.
-2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
-3. **Scope**: Is everything necessary? Meta-review: should any part of this design NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
-4. **Completeness**: Are any architectural decisions or interface contracts missing? Could an execution agent implement from this doc alone?
-Do not flag issues that linters, formatters, or test suites would catch — those are handled by deterministic tools.
+1. **Scope**: Is everything necessary? Should any part of this design NOT exist? Flag over-engineering, unnecessary abstractions, or work the user didn't ask for.
+2. **Simpler alternatives**: Could the same outcome be achieved with fewer files, less abstraction, or a more direct approach? Name the alternative.
+3. **Scope creep**: Has the design grown beyond the original ask? Is it solving adjacent problems that should be separate efforts?
+4. **YAGNI**: Are there forward declarations, stubs, or "designed-for-the-future" elements that aren't justified by current requirements?
+5. **Completeness**: Are any architectural decisions or interface contracts missing? Could an execution agent implement from this doc alone?
+Do not flag issues that linters, formatters, or test suites would catch.
 
-Report in two sections:
-1. **Prior fix verification**: For each prior issue, state RESOLVED or STILL PRESENT with evidence.
-2. **New findings**: Issues not in the prior list. For each: what's wrong, where, and a concrete fix.
-Keep your review under 40 lines. Only flag real issues — don't nitpick style or add suggestions beyond the task scope.
+For each issue: state what's wrong, severity (critical/significant/minor), and a concrete fix.
+Keep your review under 40 lines. Only flag real issues — don't nitpick.
 ```
 
-### Multi-Perspective Review (`--pe-review`)
+### Blast Radius Prompt
 
-When `/folio plan --pe-review` is specified, replace the single Phase 4b review agent with 5
-parallel agents (API surface, blast radius, migration risk, test coverage, UX). Converge their
-findings before the design doc commit. Use for high-stakes or cross-cutting changes.
+Use with `subagent_type: "general-purpose"` and `model: "opus"`. Needs file access to read all touched files.
+
+```
+You are reviewing a design document for integration risk. Your job is to find places where this design touches existing systems in ways that could break things.
+
+## Original Task
+{task_description}
+
+## Design Doc Path
+{design_doc_path}
+
+## Prior Issues (verify these are resolved)
+{If round > 1: list of issues from previous review round}
+{If round 1: "This is the first review round. No prior issues."}
+
+## Instructions
+Read the design doc at the path above. For every file it proposes to create or modify, read the ACTUAL file in the codebase and check for conflicts:
+
+1. **Accuracy**: Verify file paths, function names, and API references exist and are correct. Read the actual files — don't trust the design doc's claims.
+2. **Feasibility**: Can each step be implemented as described? Are there missing imports, wrong method signatures, or ordering issues?
+3. **Integration risk**: Check regex-based manipulations, hardcoded lists, and assumptions about file structure. Will existing code paths handle new fields/behavior? Are there callers or consumers the design doesn't account for?
+4. **Test coverage**: What tests exist for the files being changed? What new tests are needed?
+Do not flag issues that linters, formatters, or test suites would catch.
+
+For each issue: state what could break, severity (critical/significant/minor), and the fix.
+Keep your review under 40 lines. Only flag real issues.
+```
+
+### Deep Review (`--deep-review`)
+
+When `/folio plan --deep-review` is specified, add up to 3 task-specific review agents
+alongside the 2 default agents (devil's advocate + blast radius). The additional lenses
+are inferred from the design doc's domain — e.g., migration risk, API surface, UX,
+performance, security. The user can also specify custom lenses in the flag argument.
+
+Total: 3-5 agents. The 2 defaults always run; the extras are additive and task-specific.
+Converge all findings before the design doc commit.
 
 For re-run and amend-design rules, see plan.md.
 

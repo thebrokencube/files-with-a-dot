@@ -132,7 +132,7 @@ Use the strongest available agent mode per phase, with graceful degradation:
 | Phase 2 (Propose) | Agent team (parallel lenses) | 2 sequential subagents | Divergence benefits from independence |
 | Phase 3 (Converge) | Single agent | Single agent | Convergence is inherently serial |
 | Phase 4a (Fill) | Single agent | Single agent | Mechanical mapping from converge output |
-| Phase 4b (Review) | Agent team (multi-persona) | 1 opus subagent | Multiple perspectives catch more |
+| Phase 4b (Review) | 2 parallel opus subagents (devil's advocate + blast radius) | 1 opus subagent with adversarial prompt (lightweight mode) | Adversarial perspectives catch what accuracy checks miss |
 | Phase 5-6 (Brief) | Single agent | Single agent | Serial work, no parallelism benefit |
 | Phase 7 (Execute) | Single agent per track | Single agent per track | Execution is focused, bounded |
 | Phase 8 (Retro) | Single agent | Single agent | Reflection is serial |

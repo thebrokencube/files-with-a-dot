@@ -162,6 +162,9 @@ Dispatch 1 review agent (subagent_type: general-purpose, model: "sonnet") to rev
 1. **Self-containment**: Can an execution agent proceed without reading the design doc?
 2. **Convention compliance**: Does structure match recent archived briefs? All 4 sections present?
 3. **Completeness**: Are all design doc decisions reflected as constraints?
+4. **Adversarial check**: Challenge the brief's own conclusions — is the track decomposition
+   the right one? Could fewer tracks achieve the same result? Are any tracks solving
+   problems the design doc didn't ask for? (See `references/adversarial-review.md`.)
 
 For multi-track plans, use multi-persona review (3-4 agents with different perspectives:
 accuracy, scope, completeness, executability). Single-track plans use 1 agent.
