@@ -110,7 +110,7 @@ Send composed output to external systems (Jira, Google Docs, Slack). Resolves pu
 
 ### /folio observe
 
-Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the alignment protocol for complex observations.
+Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the alignment protocol.
 
 -> Read references/observe.md for full workflow (CLI commands, type disambiguation, alignment routing).
 
@@ -225,7 +225,7 @@ is how provenance chains break.
 ## Reference Files
 
 - **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
-- **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing for complex observations
+- **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing
 - **references/alignment.md** — Alignment protocol: claim-first questioning, invocation contract, confidence-based exit
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop

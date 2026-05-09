@@ -16,11 +16,12 @@ If no text provided with the command, ask the user for the observation.
 
 ## Type Disambiguation
 
-When the observation text has investigation depth — multiple sentences, describes a problem space, mentions alternatives or approaches — read `references/alignment.md` and run the alignment protocol before routing:
+Read `references/alignment.md` and run the alignment protocol before routing:
 
-- Budget: 2
+- Minimum: 2
+- Categories: routing decision (observation vs spike), scope assessment
 - Grounding: the observation text, existing observations (`folio observe list --json`)
 - Target: routing decision (observation vs spike)
 - Hard constraints: none
 
-If the alignment routes to spike, derive the topic from the alignment's claim/recommendation (the problem space identified during questioning) and use the alignment's full output as the spike's initial content via `folio new spike <topic>`. One-liner observations pass through to `folio observe` untouched — no alignment needed.
+If alignment routes to spike, derive the topic from the alignment's claim/recommendation (the problem space identified during questioning) and use the alignment's full output as the spike's initial content via `folio new spike <topic>`.

@@ -5,11 +5,12 @@ Not a standalone skill — always invoked with parameters from the calling workf
 
 ## Invocation Contract
 
-The calling workflow provides four parameters as prose context in its step instruction:
+The calling workflow provides five parameters as prose context in its step instruction:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| budget | int | Default question count (caller sets; user can exit early with "enough" or extend with "keep going") |
+| minimum | int | Minimum questions before exit is eligible (caller sets) |
+| categories | list | Decision categories that must reach CONFIRMED before exit |
 | grounding | list | Sources to ground against (file paths, vault refs, folio sources) |
 | target | string | What to update with decisions (e.g., "context summary", "ephemeral how-amendment") |
 | hard_constraints | list | User-stated decisions that are non-negotiable (alignment must not re-evaluate) |
@@ -36,7 +37,7 @@ Five response types, each with a specific outcome:
 - **Override** — user's version replaces the claim and becomes the decision
 - **"Figure it out"** — AI adopts its own recommendation, tagged `[AI-DECIDED]` in the target
 - **"Skip"** — question dropped, no decision recorded
-- **"Enough"** — exit the alignment, remaining questions dropped
+- **"Enough"** — exit the alignment (only after minimum count reached), remaining categories marked UNRESOLVED
 
 ## Behavioral Rules
 
@@ -47,19 +48,43 @@ Five response types, each with a specific outcome:
    presenting the next. Do not batch questions.
 3. **Inline materialization.** Each resolved question updates the target immediately.
    Do not accumulate decisions for a batch update at the end.
-4. **Budget pause.** At the budget count, pause and ask "Continue or wrap up?" Do not
-   silently stop asking questions. Do not silently continue past the budget.
+4. **Confidence checkpoint.** After the minimum count, check category coverage. When all
+   categories are CONFIRMED (or AI-DECIDED), present the Confidence Checkpoint and wait
+   for "Proceed" before continuing. Do not silently move on.
+5. **Gap recovery.** If the user identifies an unresolved category after the checkpoint
+   ("wait, we didn't cover X"), resume alignment from that category without restarting.
+   Back-reference the checkpoint in the updated summary.
 
-## Budget Mechanics
+## Confidence-Based Exit
 
-The budget is a default, not a hard cap. The user controls the actual duration:
+The alignment runs until all decision categories reach CONFIRMED or AI-DECIDED status —
+not until a fixed count is reached. The minimum prevents premature exit.
 
-- **"Enough"** at any point exits early — remaining questions are dropped
-- **"Keep going"** after the budget pause extends the alignment
-- At the budget count, always pause: "Continue or wrap up?"
+- After minimum count: check category coverage. If all categories resolved, present
+  the Confidence Checkpoint. If categories remain, continue questioning.
+- **"Enough"** after the minimum exits early — the checkpoint shows unresolved categories
+  as `[UNRESOLVED — user exited]`. "Enough" is not available before the minimum.
+- There is no "Keep going" mechanic. If categories remain unresolved, the alignment
+  continues naturally. If all are resolved and the user wants to go deeper, gap recovery
+  handles it.
 
-The calling workflow sets the budget based on alignment depth needed (e.g., 7 for plan,
-4 for compose, 2 for observe). The user's response overrides this in either direction.
+## Confidence Checkpoint
+
+Present this when all categories are resolved (or after "Enough"):
+
+```
+Alignment checkpoint:
+- [Category 1]: CONFIRMED (Q[N] — [one-line rationale])
+- [Category 2]: CONFIRMED (Q[N] — [one-line rationale])
+- [Category 3]: [AI-DECIDED] (Q[N] — [one-line rationale])
+- Uncovered: [category] ([reason — e.g., "not applicable at this scope"])
+
+I believe we're aligned on the key decisions. Proceed?
+```
+
+Each CONFIRMED line MUST back-reference the question number that resolved it.
+Uncovered categories are explicit acknowledgments, not failures. `[AI-DECIDED]`
+entries display distinctly so the user can see which decisions they delegated.
 
 ## AI-DECIDED Tagging
 

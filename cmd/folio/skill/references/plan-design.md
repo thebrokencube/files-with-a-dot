@@ -28,15 +28,15 @@ Gather context before spawning any agents. This happens in the main conversation
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
    of the context summary.
 8. **Alignment** — read `references/alignment.md` and run the protocol with:
-   - Budget: 7
+   - Minimum: 5 (lightweight: 3)
+   - Categories: scope boundary, approach rationale, key trade-offs, framing, extensibility
+     (lightweight: scope boundary, key trade-offs)
    - Grounding: folio sources from step 4, codebase files from step 2
    - Target: context summary (update hard constraints and soft context inline)
    - Hard constraints: pinned decisions from step 7
-   Skip for lightweight plans (existing lightweight threshold applies).
    The alignment subsumes the scope interview (what to preserve/drop/change), extensibility
    interview (what's coming next), and framing confirmation (conceptual model check) — do
-   not run those as separate steps. The alignment's final question should be the framing
-   confirmation: "I believe the pieces fit together like X because Y — right?"
+   not run those as separate steps. Framing is a decision category, not a fixed final question.
 9. Compile a **context summary** (max 30 lines): pinned hard constraints first, then alignment
    decisions, what exists, what needs to change, key trade-offs, and relevant folio context
    (if any). Alignment decisions are already materialized inline — no separate capture step needed.
