@@ -141,6 +141,14 @@
           { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/post-compact.sh" }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/folio-session-start.sh" }
+        ]
+      }
     ]
   }
 }
