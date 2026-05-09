@@ -96,6 +96,8 @@ func main() {
 			os.Exit(runHomeHealth(os.Args[3:]))
 		case "stats":
 			os.Exit(runHomeStats(os.Args[3:]))
+		case "workspace":
+			os.Exit(runHomeWorkspace(os.Args[3:]))
 		case "--help", "-h", "help":
 			printHomeUsage()
 			os.Exit(0)
@@ -165,5 +167,6 @@ Commands:
   activate   Move archive path to active, strip date prefix
   health     Aggregate health report across all active projects
   stats      Commit statistics for the home repository
+  workspace  Manage jj workspaces (create|list|cleanup)
 `)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
@@ -507,6 +508,114 @@ func runHomeStats(args []string) int {
 		fmt.Printf("  %-*s  %-8s  %7d  %8s  %8s\n", pathW, s.Path, s.Section, s.Commits, rateDay, rateWeek)
 	}
 
+	return dendrik.ExitOK
+}
+
+func runHomeWorkspace(args []string) int {
+	pal := dendrik.NewPalette(true)
+
+	if len(args) == 0 {
+		fmt.Fprintf(os.Stderr, "Usage: folio home workspace <create|list|cleanup>\n")
+		return dendrik.ExitUserError
+	}
+
+	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return code
+	}
+
+	// Workspace commands require jj
+	if !repo.IsJJ(dir) {
+		fmt.Fprintln(os.Stderr, pal.Errf("workspace requires jj — no .jj directory in %s", dir))
+		return dendrik.ExitUserError
+	}
+
+	switch args[0] {
+	case "create":
+		return runWorkspaceCreate(dir, pal)
+	case "list":
+		return runWorkspaceList(dir, pal)
+	case "cleanup":
+		return runWorkspaceCleanup(dir, args[1:], pal)
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown workspace command: %s\n", args[0])
+		return dendrik.ExitUserError
+	}
+}
+
+func runWorkspaceCreate(homeDir string, pal dendrik.Palette) int {
+	wsID := fmt.Sprintf("folio-ws-%d-%d", time.Now().Unix(), os.Getpid())
+	wsDir := filepath.Join(os.TempDir(), wsID)
+
+	cmd := exec.Command("jj", "--no-pager", "workspace", "add", wsDir, "-r", "main", "-R", homeDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("jj workspace add: %s", err))
+		return dendrik.ExitExternalErr
+	}
+
+	fmt.Println(wsDir)
+	return dendrik.ExitOK
+}
+
+func runWorkspaceList(homeDir string, pal dendrik.Palette) int {
+	cmd := exec.Command("jj", "--no-pager", "workspace", "list", "-R", homeDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("jj workspace list: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	return dendrik.ExitOK
+}
+
+func runWorkspaceCleanup(homeDir string, args []string, pal dendrik.Palette) int {
+	// Determine workspace path: from args, or from FOLIO_HOME if it's a workspace
+	var wsDir string
+	if len(args) > 0 {
+		wsDir = args[0]
+	} else {
+		// Use current FOLIO_HOME if it looks like a workspace
+		folio := os.Getenv("FOLIO_HOME")
+		if folio == "" || !strings.HasPrefix(filepath.Base(folio), "folio-ws-") {
+			fmt.Fprintln(os.Stderr, pal.Errf("specify workspace path or set FOLIO_HOME to a workspace"))
+			return dendrik.ExitUserError
+		}
+		wsDir = folio
+	}
+
+	wsName := filepath.Base(wsDir)
+
+	// Check for unpushed changes
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "@", "--no-graph",
+		"-T", `if(empty, "empty", "changed")`, "-R", wsDir)
+	out, err := cmd.Output()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("cannot check workspace status: %s", err))
+		return dendrik.ExitExternalErr
+	}
+	if strings.TrimSpace(string(out)) != "empty" {
+		fmt.Fprintln(os.Stderr, pal.Errf("workspace has unpushed changes — run 'folio home push' first"))
+		return dendrik.ExitUserError
+	}
+
+	// Forget the workspace
+	forgetCmd := exec.Command("jj", "--no-pager", "--quiet", "workspace", "forget", wsName, "-R", homeDir)
+	forgetCmd.Stdout = os.Stdout
+	forgetCmd.Stderr = os.Stderr
+	if err := forgetCmd.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("jj workspace forget: %s", err))
+		return dendrik.ExitExternalErr
+	}
+
+	// Remove directory
+	if err := os.RemoveAll(wsDir); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("rm workspace dir: %s", err))
+		return dendrik.ExitExternalErr
+	}
+
+	fmt.Println(pal.Successf("Cleaned up workspace %s", wsName))
 	return dendrik.ExitOK
 }
 
