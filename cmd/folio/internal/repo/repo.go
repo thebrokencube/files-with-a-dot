@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -116,4 +117,40 @@ func gitOutput(dir string, args ...string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	return string(out), err
+}
+
+// IsJJ returns true if dir contains a .jj directory (jj-managed repo).
+func IsJJ(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, ".jj"))
+	return err == nil
+}
+
+// jjIn runs a jj command in dir with --no-pager --quiet.
+// Stdout and stderr go to os.Stdout/os.Stderr.
+func jjIn(dir string, args ...string) error {
+	full := append([]string{"--no-pager", "--quiet"}, args...)
+	cmd := exec.Command("jj", full...)
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// jjOutput runs a jj command in dir with --no-pager and captures stdout.
+// Does NOT use --quiet (callers need to parse output).
+func jjOutput(dir string, args ...string) (string, error) {
+	full := append([]string{"--no-pager"}, args...)
+	cmd := exec.Command("jj", full...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	return string(out), err
+}
+
+// hasJJRemote checks if a jj git remote is configured.
+func hasJJRemote(dir string) bool {
+	out, err := jjOutput(dir, "git", "remote", "list")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) != ""
 }

@@ -147,6 +147,56 @@ func TestPushScopedNothingToCommit(t *testing.T) {
 	}
 }
 
+// skipWithoutJJ skips the test if jj is not installed.
+func skipWithoutJJ(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not installed, skipping jj tests")
+	}
+}
+
+// initTestJJRepo creates a temporary jj repo (not colocated).
+func initTestJJRepo(t *testing.T) string {
+	t.Helper()
+	skipWithoutJJ(t)
+	dir := t.TempDir()
+	cmd := exec.Command("jj", "git", "init")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("jj git init: %s", out)
+	}
+	return dir
+}
+
+func TestIsJJTrue(t *testing.T) {
+	skipWithoutJJ(t)
+	dir := initTestJJRepo(t)
+	if !IsJJ(dir) {
+		t.Error("IsJJ = false, want true for jj repo")
+	}
+}
+
+func TestIsJJFalseOnGit(t *testing.T) {
+	dir := initTestRepo(t)
+	if IsJJ(dir) {
+		t.Error("IsJJ = true, want false for git-only repo")
+	}
+}
+
+func TestIsJJFalseOnEmpty(t *testing.T) {
+	dir := t.TempDir()
+	if IsJJ(dir) {
+		t.Error("IsJJ = true, want false for empty dir")
+	}
+}
+
+func TestHasJJRemoteFalse(t *testing.T) {
+	dir := initTestJJRepo(t)
+	if hasJJRemote(dir) {
+		t.Error("hasJJRemote = true, want false on local jj repo")
+	}
+}
+
 func TestValidateCommitMessage(t *testing.T) {
 	tests := []struct {
 		name    string
