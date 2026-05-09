@@ -263,6 +263,105 @@ func TestJJPullNoRemote(t *testing.T) {
 	}
 }
 
+func TestJJPushThenModifyAndPush(t *testing.T) {
+	// Two sequential pushes with modifications between them
+	dir := initTestJJRepo(t)
+
+	// First push
+	os.WriteFile(filepath.Join(dir, "a.txt"), []byte("first"), 0644)
+	if err := Push(dir, "test(repo): first file"); err != nil {
+		t.Fatalf("first Push: %v", err)
+	}
+
+	// Second push
+	os.WriteFile(filepath.Join(dir, "b.txt"), []byte("second"), 0644)
+	if err := Push(dir, "test(repo): second file"); err != nil {
+		t.Fatalf("second Push: %v", err)
+	}
+
+	// Verify both commits exist on main
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "root()..main", "--no-graph", "-T", "description ++ \"\\n\"")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log: %s", out)
+	}
+	if !strings.Contains(string(out), "first file") || !strings.Contains(string(out), "second file") {
+		t.Errorf("jj log = %q, want both commit messages", string(out))
+	}
+}
+
+func TestJJPushScopedInScope(t *testing.T) {
+	// PushScoped under jj succeeds when all changes are within allowed paths
+	dir := initTestJJRepo(t)
+	os.MkdirAll(filepath.Join(dir, "a"), 0755)
+	os.WriteFile(filepath.Join(dir, "a", "file.txt"), []byte("scoped"), 0644)
+
+	if err := PushScoped(dir, "test(repo): scoped push", []string{"a"}); err != nil {
+		t.Fatalf("PushScoped: %v", err)
+	}
+}
+
+func TestJJPushScopedOutOfScope(t *testing.T) {
+	// PushScoped under jj errors when changes exist outside allowed paths
+	dir := initTestJJRepo(t)
+	os.MkdirAll(filepath.Join(dir, "a"), 0755)
+	os.MkdirAll(filepath.Join(dir, "b"), 0755)
+	os.WriteFile(filepath.Join(dir, "a", "file.txt"), []byte("in scope"), 0644)
+	os.WriteFile(filepath.Join(dir, "b", "file.txt"), []byte("out of scope"), 0644)
+
+	err := PushScoped(dir, "test(repo): should fail", []string{"a"})
+	if err == nil {
+		t.Fatal("expected error for out-of-scope changes, got nil")
+	}
+	if !strings.Contains(err.Error(), "change outside scope") {
+		t.Errorf("err = %q, want 'change outside scope'", err)
+	}
+}
+
+func TestJJPushInvalidMessage(t *testing.T) {
+	dir := initTestJJRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+
+	err := Push(dir, "bad message")
+	if !errors.Is(err, ErrInvalidCommitMessage) {
+		t.Errorf("err = %v, want ErrInvalidCommitMessage", err)
+	}
+}
+
+func TestGitPushStillWorks(t *testing.T) {
+	// Regression guard: git repos must continue working
+	dir := initTestRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+
+	if err := Push(dir, "test(repo): git still works"); err != nil {
+		t.Fatalf("git Push after jj code added: %v", err)
+	}
+
+	// Verify it used git (not jj)
+	out, err := exec.Command("git", "-C", dir, "log", "--oneline").CombinedOutput()
+	if err != nil {
+		t.Fatalf("git log: %s", out)
+	}
+	if !strings.Contains(string(out), "git still works") {
+		t.Errorf("git log = %q, want commit message", string(out))
+	}
+}
+
+func TestIsJJDispatchCorrectly(t *testing.T) {
+	// Verify that a git-only repo doesn't accidentally take jj path
+	dir := initTestRepo(t)
+	if IsJJ(dir) {
+		t.Fatal("IsJJ returned true for git-only repo")
+	}
+
+	// Verify push uses git path (no jj commands should run)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("dispatch"), 0644)
+	if err := Push(dir, "test(repo): dispatch check"); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+}
+
 func TestValidateCommitMessage(t *testing.T) {
 	tests := []struct {
 		name    string
