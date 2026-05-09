@@ -170,6 +170,82 @@ func TestRewriteFrontmatterKey(t *testing.T) {
 	}
 }
 
+func TestRenameNodeFile(t *testing.T) {
+	t.Run("renames descriptive name to key", func(t *testing.T) {
+		dir := t.TempDir()
+		jfDir := filepath.Join(dir, ".jf")
+		os.MkdirAll(jfDir, 0755)
+		oldPath := filepath.Join(jfDir, "publish-path-bug.md")
+		os.WriteFile(oldPath, []byte("---\njira: RETIRE-9189\n---\n# Content\n"), 0644)
+
+		n := &forest.Node{Key: "RETIRE-9189", File: ".jf/publish-path-bug.md"}
+		newFile, err := renameNodeFile(dir, n)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if newFile != ".jf/RETIRE-9189.md" {
+			t.Errorf("got %q, want .jf/RETIRE-9189.md", newFile)
+		}
+		if _, err := os.Stat(filepath.Join(dir, ".jf", "RETIRE-9189.md")); err != nil {
+			t.Error("renamed file should exist")
+		}
+		if _, err := os.Stat(oldPath); err == nil {
+			t.Error("old file should not exist")
+		}
+	})
+
+	t.Run("skips README.md", func(t *testing.T) {
+		dir := t.TempDir()
+		jfDir := filepath.Join(dir, ".jf")
+		os.MkdirAll(jfDir, 0755)
+		oldPath := filepath.Join(jfDir, "README.md")
+		os.WriteFile(oldPath, []byte("---\njira: BEN-1\n---\n# Root\n"), 0644)
+
+		n := &forest.Node{Key: "BEN-1", File: ".jf/README.md"}
+		newFile, err := renameNodeFile(dir, n)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if newFile != ".jf/README.md" {
+			t.Errorf("README.md should not be renamed, got %q", newFile)
+		}
+	})
+
+	t.Run("skips if already named correctly", func(t *testing.T) {
+		dir := t.TempDir()
+		jfDir := filepath.Join(dir, ".jf")
+		os.MkdirAll(jfDir, 0755)
+		oldPath := filepath.Join(jfDir, "BEN-123.md")
+		os.WriteFile(oldPath, []byte("---\njira: BEN-123\n---\n# Done\n"), 0644)
+
+		n := &forest.Node{Key: "BEN-123", File: ".jf/BEN-123.md"}
+		newFile, err := renameNodeFile(dir, n)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if newFile != ".jf/BEN-123.md" {
+			t.Errorf("already correct name should be unchanged, got %q", newFile)
+		}
+	})
+
+	t.Run("handles subdirectory nodes", func(t *testing.T) {
+		dir := t.TempDir()
+		subDir := filepath.Join(dir, ".jf", "epics")
+		os.MkdirAll(subDir, 0755)
+		oldPath := filepath.Join(subDir, "my-feature.md")
+		os.WriteFile(oldPath, []byte("---\njira: TEST-42\n---\n# Feature\n"), 0644)
+
+		n := &forest.Node{Key: "TEST-42", File: ".jf/epics/my-feature.md"}
+		newFile, err := renameNodeFile(dir, n)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if newFile != ".jf/epics/TEST-42.md" {
+			t.Errorf("got %q, want .jf/epics/TEST-42.md", newFile)
+		}
+	})
+}
+
 func TestBuildCreatePayload(t *testing.T) {
 	f := &forest.Forest{
 		Defaults: forest.ForestDefaults{Project: "TEST", Type: "Story"},

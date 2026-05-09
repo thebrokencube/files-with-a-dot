@@ -12,7 +12,7 @@ func TestRunValidate(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "TEST-1.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -62,7 +62,7 @@ func TestRunValidateJSON(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
-	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ".jf", "TEST-1.md"), []byte("---\njira: TEST-1\n---\n# Task A\n"), 0644)
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()

@@ -148,6 +148,14 @@ func executeCreate(nodes []*forest.Node, f *forest.Forest, cfg *config.Config, p
 			fmt.Fprintf(os.Stderr, "⚠ %s: frontmatter rewrite failed: %s\n", newKey, err)
 		}
 
+		// Rename file to match key (e.g. publish-path-bug.md → RETIRE-9189.md)
+		if newFile, err := renameNodeFile(f.Dir, n); err != nil {
+			fmt.Fprintf(os.Stderr, "⚠ %s: file rename failed: %s\n", newKey, err)
+		} else if newFile != n.File {
+			n.File = newFile
+			filePath = filepath.Join(f.Dir, newFile)
+		}
+
 		// Route push through engine pipeline
 		source, err := os.ReadFile(filePath)
 		if err != nil {
@@ -279,6 +287,29 @@ func buildCreatePayload(n *forest.Node, f *forest.Forest, projectFields map[stri
 
 	payload, _ := json.Marshal(data)
 	return payload
+}
+
+// renameNodeFile renames a node file to match its Jira key (e.g. publish-path-bug.md → RETIRE-9189.md).
+// README.md files are exempt. Returns the new relative file path, or the original if no rename needed.
+func renameNodeFile(baseDir string, n *forest.Node) (string, error) {
+	base := filepath.Base(n.File)
+	if strings.EqualFold(base, "README.md") {
+		return n.File, nil
+	}
+	stem := strings.TrimSuffix(base, filepath.Ext(base))
+	if strings.EqualFold(stem, n.Key) {
+		return n.File, nil
+	}
+
+	dir := filepath.Dir(n.File)
+	newRel := filepath.Join(dir, n.Key+".md")
+	oldAbs := filepath.Join(baseDir, n.File)
+	newAbs := filepath.Join(baseDir, newRel)
+
+	if err := os.Rename(oldAbs, newAbs); err != nil {
+		return n.File, err
+	}
+	return newRel, nil
 }
 
 // rewriteFrontmatterKey does a line-level replacement of jira: TBD with the new key.

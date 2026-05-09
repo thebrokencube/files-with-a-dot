@@ -34,6 +34,7 @@ func Validate(roots []*Node, forest *Forest) []ValidationIssue {
 	issues = append(issues, checkTBDNodes(all)...)
 	issues = append(issues, checkFieldValues(all)...)
 	issues = append(issues, checkStemUniqueness(all)...)
+	issues = append(issues, checkFileNameMatchesKey(all)...)
 
 	return issues
 }
@@ -108,6 +109,33 @@ func checkFieldValues(nodes []*Node) []ValidationIssue {
 				Message: fmt.Sprintf("invalid order %d (must be >= 0)", n.Order),
 			})
 		}
+	}
+
+	return issues
+}
+
+// checkFileNameMatchesKey warns when a node file's stem doesn't match its Jira key.
+// README.md and TBD nodes are exempt.
+func checkFileNameMatchesKey(nodes []*Node) []ValidationIssue {
+	var issues []ValidationIssue
+
+	for _, n := range nodes {
+		if IsTBD(n.Key) {
+			continue
+		}
+		base := filepath.Base(n.File)
+		if strings.EqualFold(base, "README.md") {
+			continue
+		}
+		stem := strings.TrimSuffix(base, filepath.Ext(base))
+		if strings.EqualFold(stem, n.Key) {
+			continue
+		}
+		issues = append(issues, ValidationIssue{
+			Level:   "warning",
+			File:    n.File,
+			Message: fmt.Sprintf("filename %q does not match key %s — rename to %s.md", base, n.Key, n.Key),
+		})
 	}
 
 	return issues
