@@ -99,10 +99,10 @@ type Action struct {
 	Block         BlockReason
 	RoundtripDiff string // first divergent line hint (empty if clean or not applicable)
 	LocalHash     string
-	RemoteHash   string
-	RemoteADF    json.RawMessage
-	LocalContent []byte
-	PlainText    bool // compile-failure fallback: push as plain text
+	RemoteHash    string
+	RemoteADF     json.RawMessage
+	LocalContent  []byte
+	PlainText     bool // compile-failure fallback: push as plain text
 }
 
 // PlanOpts configures Plan behavior.
@@ -250,4 +250,3 @@ func readNode(node *forest.Node, p *pipeline.Pipeline,
 
 	return r
 }
-

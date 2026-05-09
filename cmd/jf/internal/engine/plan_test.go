@@ -218,7 +218,7 @@ func TestPlan(t *testing.T) {
 		{"push_remote_changed_blocked", NodeReading{
 			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: "newhash",
 			RemoteHash: "newremote", Mutable: true,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
+			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
 		}, pushOpts, ActionBlocked, BlockOverwrite},
 
 		{"pull_local_changed_blocked", NodeReading{
@@ -230,7 +230,7 @@ func TestPlan(t *testing.T) {
 		{"baseline_neither_changed_skip_push", NodeReading{
 			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: baselineLocal,
 			RemoteHash: baselineRemote, Mutable: true,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote, LabelHash: baselineLabelHash},
+			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote, LabelHash: baselineLabelHash},
 		}, pushOpts, ActionSkip, BlockNone},
 
 		{"baseline_neither_changed_skip_pull", NodeReading{
@@ -243,7 +243,7 @@ func TestPlan(t *testing.T) {
 		{"both_local_only_push", NodeReading{
 			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: "newhash",
 			RemoteHash: baselineRemote, Mutable: true,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
+			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
 		}, bothOpts, ActionPush, BlockNone},
 
 		{"both_remote_only_pull", NodeReading{
@@ -280,7 +280,7 @@ func TestPlan(t *testing.T) {
 		{"baseline_empty_remote_hash_no_false_conflict", NodeReading{
 			Node: node("KEY-1", "push"), LocalContent: localContent, LocalHash: "newhash",
 			RemoteHash: "anyhash", Mutable: true,
-			Baseline:   &forest.NodeState{LocalHash: baselineLocal, RemoteHash: ""},
+			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: ""},
 		}, pushOpts, ActionPush, BlockNone},
 
 		// Direction resolution: "both" opts respects node sync mode
@@ -302,7 +302,7 @@ func TestPlan(t *testing.T) {
 			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: baselineLocal,
 			RemoteADF: substantiveADF, RemoteHash: "newremote",
 			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
-			Mutable: false, LintIssues: []pipeline.LintIssue{{Line: 1, Message: "tables not supported"}},
+			Mutable:  false, LintIssues: []pipeline.LintIssue{{Line: 1, Message: "tables not supported"}},
 		}, bothOpts, ActionPull, BlockNone},
 
 		{"roundtrip_only_failure_skipped", NodeReading{
@@ -332,7 +332,7 @@ func TestPlan(t *testing.T) {
 			Node: node("KEY-1", "both"), LocalContent: localContent, LocalHash: "newhash",
 			RemoteADF: substantiveADF, RemoteHash: "newremote",
 			Baseline: &forest.NodeState{LocalHash: baselineLocal, RemoteHash: baselineRemote},
-			Mutable: false, LintIssues: []pipeline.LintIssue{{Line: 1, Message: "tables not supported"}},
+			Mutable:  false, LintIssues: []pipeline.LintIssue{{Line: 1, Message: "tables not supported"}},
 		}, bothOpts, ActionPull, BlockNone},
 	}
 

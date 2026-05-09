@@ -9,10 +9,10 @@ import (
 
 // Config represents the ~/.jf.yml configuration file.
 type Config struct {
-	Site        string                       `yaml:"site,omitempty"`
-	CloudID     string                       `yaml:"cloud_id,omitempty"`
-	Projects    map[string]map[string]any    `yaml:"projects,omitempty"`
-	ParkingLots map[string]ParkingLotConfig  `yaml:"parking_lots,omitempty"`
+	Site        string                      `yaml:"site,omitempty"`
+	CloudID     string                      `yaml:"cloud_id,omitempty"`
+	Projects    map[string]map[string]any   `yaml:"projects,omitempty"`
+	ParkingLots map[string]ParkingLotConfig `yaml:"parking_lots,omitempty"`
 }
 
 // ParkingLotConfig holds per-project parking lot settings.

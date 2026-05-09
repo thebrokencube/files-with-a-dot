@@ -274,4 +274,3 @@ func TestReadSingleNode(t *testing.T) {
 		t.Fatalf("got %d readings, want 1", len(readings))
 	}
 }
-

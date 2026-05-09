@@ -14,10 +14,10 @@ type LintIssue struct {
 }
 
 var (
-	reFencedCode  = regexp.MustCompile("^\\s*```")
-	reImage       = regexp.MustCompile(`!\[`)
-	reCheckbox    = regexp.MustCompile(`^\s*[-*+]\s+\[([ xX])\]`)
-	reLink = regexp.MustCompile(`\]\(([^)]+)\)`)
+	reFencedCode = regexp.MustCompile("^\\s*```")
+	reImage      = regexp.MustCompile(`!\[`)
+	reCheckbox   = regexp.MustCompile(`^\s*[-*+]\s+\[([ xX])\]`)
+	reLink       = regexp.MustCompile(`\]\(([^)]+)\)`)
 )
 
 // Lint validates that markdown uses only the restricted subset supported by
