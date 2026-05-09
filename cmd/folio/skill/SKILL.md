@@ -144,13 +144,20 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 |---|---|
 | `folio init --name "Name"` | Bootstrap new folio.yml (`--path` overrides the auto-derived slug) |
 | `folio setup` | Check folio dependencies (`--check` for non-interactive) |
-| `folio home <cmd>` | FOLIO_HOME operations (list, push, pull, archive, activate, health) |
+| `folio home <cmd>` | FOLIO_HOME operations (list, push, pull, archive, activate, health, workspace) |
+| `folio home workspace list` | List jj workspaces (one per active Claude session) |
+| `folio home workspace create` | Manually create a jj workspace |
+| `folio home workspace cleanup [path]` | Remove a workspace — errors if unpushed changes exist |
 
 Some commands have corresponding skill workflows that add creative/judgmental work on top: `gather` (snapshot/re-seed), `observe` (type disambiguation via alignment).
 
 **Flag ordering**: Flags go **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` does not.
 
 If any CLI command fails, run `folio setup --check` first.
+
+## Terminology Note
+
+**"workspace"** in folio CLI always means a **jj workspace** (a session-isolated checkout of `~/.folio`). It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
 
 ## Session Lifecycle
 
