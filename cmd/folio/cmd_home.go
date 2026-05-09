@@ -30,6 +30,9 @@ func resolveHomeOrFail() (string, int) {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return "", dendrik.ExitUserError
 	}
+	if strings.HasPrefix(filepath.Base(dir), "folio-ws-") {
+		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, dir, pal.Reset)
+	}
 	return dir, dendrik.ExitOK
 }
 
