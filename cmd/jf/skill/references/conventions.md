@@ -31,6 +31,23 @@ The bracketed prefix encodes ancestry so tickets are scannable in flat Jira view
 
 Tags are always leading (prefix position), never trailing or backtick-wrapped.
 
+## PR Title Format
+
+When creating PRs for work tracked in Jira, prefix the title with the ticket key in brackets:
+
+```
+[PROJ-123] type(scope): description
+```
+
+The ticket key goes at the **beginning**, not the end. The rest follows conventional commit format (same as ticket naming). Examples:
+
+```
+[RETIRE-3108] feat(plans): add plan category system
+[BEN-1234] fix(enrollment): handle missing SSN gracefully
+```
+
+If the branch name contains a ticket key (e.g., `RETIRE-3108-plan-categories`), extract it from there. If no ticket is associated, omit the prefix — don't invent one.
+
 ## Description Structure
 
 By hierarchy level:
