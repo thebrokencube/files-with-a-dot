@@ -27,19 +27,19 @@ Gather context before spawning any agents. This happens in the main conversation
    (hard constraints) from open trade-offs. Hard constraints are non-negotiable — lenses
    must not re-evaluate them. Include pinned constraints as a distinct section at the top
    of the context summary.
-8. **Alignment grill** — read `references/grill.md` and run the protocol with:
+8. **Alignment** — read `references/alignment.md` and run the protocol with:
    - Budget: 7
    - Grounding: folio sources from step 4, codebase files from step 2
    - Target: context summary (update hard constraints and soft context inline)
    - Hard constraints: pinned decisions from step 7
    Skip for lightweight plans (existing lightweight threshold applies).
-   The grill subsumes the scope interview (what to preserve/drop/change), extensibility
+   The alignment subsumes the scope interview (what to preserve/drop/change), extensibility
    interview (what's coming next), and framing confirmation (conceptual model check) — do
-   not run those as separate steps. The grill's final question should be the framing
+   not run those as separate steps. The alignment's final question should be the framing
    confirmation: "I believe the pieces fit together like X because Y — right?"
-9. Compile a **context summary** (max 30 lines): pinned hard constraints first, then grill
+9. Compile a **context summary** (max 30 lines): pinned hard constraints first, then alignment
    decisions, what exists, what needs to change, key trade-offs, and relevant folio context
-   (if any). Grill decisions are already materialized inline — no separate capture step needed.
+   (if any). Alignment decisions are already materialized inline — no separate capture step needed.
 10. **Source coverage check**: Before spawning propose agents, verify the problem space is
     understood. If the topic involves a domain the agent has not spiked on, STOP and suggest
     `/folio gather` first. Evidence of sufficient gathering: at least one spike or research

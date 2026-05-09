@@ -1,4 +1,4 @@
-# Alignment Grill Protocol
+# Alignment Protocol
 
 Read by host workflows (plan, compose, observe) at their alignment points.
 Not a standalone skill — always invoked with parameters from the calling workflow.
@@ -12,7 +12,7 @@ The calling workflow provides four parameters as prose context in its step instr
 | budget | int | Default question count (caller sets; user can exit early with "enough" or extend with "keep going") |
 | grounding | list | Sources to ground against (file paths, vault refs, folio sources) |
 | target | string | What to update with decisions (e.g., "context summary", "ephemeral how-amendment") |
-| hard_constraints | list | User-stated decisions that are non-negotiable (grill must not re-evaluate) |
+| hard_constraints | list | User-stated decisions that are non-negotiable (alignment must not re-evaluate) |
 
 ## Question Format
 
@@ -36,7 +36,7 @@ Five response types, each with a specific outcome:
 - **Override** — user's version replaces the claim and becomes the decision
 - **"Figure it out"** — AI adopts its own recommendation, tagged `[AI-DECIDED]` in the target
 - **"Skip"** — question dropped, no decision recorded
-- **"Enough"** — exit the grill, remaining questions dropped
+- **"Enough"** — exit the alignment, remaining questions dropped
 
 ## Behavioral Rules
 
@@ -55,7 +55,7 @@ Five response types, each with a specific outcome:
 The budget is a default, not a hard cap. The user controls the actual duration:
 
 - **"Enough"** at any point exits early — remaining questions are dropped
-- **"Keep going"** after the budget pause extends the grill
+- **"Keep going"** after the budget pause extends the alignment
 - At the budget count, always pause: "Continue or wrap up?"
 
 The calling workflow sets the budget based on alignment depth needed (e.g., 7 for plan,

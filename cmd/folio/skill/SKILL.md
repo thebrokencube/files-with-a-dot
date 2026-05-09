@@ -110,9 +110,9 @@ Send composed output to external systems (Jira, Google Docs, Slack). Resolves pu
 
 ### /folio observe
 
-Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the grill protocol for complex observations.
+Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the alignment protocol for complex observations.
 
--> Read references/observe.md for full workflow (CLI commands, type disambiguation, grill routing).
+-> Read references/observe.md for full workflow (CLI commands, type disambiguation, alignment routing).
 
 ### CLI Quick Reference
 
@@ -146,7 +146,7 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio setup` | Check folio dependencies (`--check` for non-interactive) |
 | `folio home <cmd>` | FOLIO_HOME operations (list, push, pull, archive, activate, health) |
 
-Some commands have corresponding skill workflows that add creative/judgmental work on top: `gather` (snapshot/re-seed), `observe` (type disambiguation via grill).
+Some commands have corresponding skill workflows that add creative/judgmental work on top: `gather` (snapshot/re-seed), `observe` (type disambiguation via alignment).
 
 **Flag ordering**: Flags go **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` does not.
 
@@ -225,8 +225,8 @@ is how provenance chains break.
 ## Reference Files
 
 - **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
-- **references/observe.md** — Observe workflow: CLI commands, type disambiguation, grill routing for complex observations
-- **references/grill.md** — Alignment grill protocol: claim-first questioning, invocation contract, user responses
+- **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing for complex observations
+- **references/alignment.md** — Alignment protocol: claim-first questioning, invocation contract, confidence-based exit
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
