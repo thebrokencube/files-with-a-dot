@@ -152,6 +152,29 @@ Some commands have corresponding skill workflows that add creative/judgmental wo
 
 If any CLI command fails, run `folio setup --check` first.
 
+## Session Lifecycle
+
+When `~/.folio` uses jj (has `.jj` directory), each Claude session gets its own jj workspace
+via the SessionStart hook. `FOLIO_HOME` points to the workspace, not `~/.folio` directly.
+
+**What this means for sessions:**
+- `folio home push` commits to the session's workspace and pushes to the shared repo
+- `folio home pull` fetches and rebases the workspace onto `main@origin`
+- All other `folio` commands work normally — they read `FOLIO_HOME`
+
+**Mandatory cleanup at session end:**
+Before ending a session that used folio, run:
+```
+folio home workspace cleanup
+```
+This errors if unpushed changes exist (run `folio home push` first), then removes the workspace.
+Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
+
+**Workspace commands:**
+- `folio home workspace create` — manually create a workspace (usually done by hook)
+- `folio home workspace list` — list all workspaces
+- `folio home workspace cleanup [path]` — remove a workspace (requires empty @)
+
 ### Git Operations for ~/.folio
 
 All git operations on `~/.folio` MUST use `folio home` subcommands (`push`, `pull`, etc.) — never raw `git add`, `git commit`, or `git push`. The CLI enforces conventional commit validation and handles remote sync.
