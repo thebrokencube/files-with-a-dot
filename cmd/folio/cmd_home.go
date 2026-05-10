@@ -263,6 +263,11 @@ func runHomePush(args []string) int {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", pushErr))
 			return dendrik.ExitUserError
 		}
+		if errors.Is(pushErr, repo.ErrConflict) {
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", pushErr))
+			fmt.Fprintf(os.Stderr, "  Resolve conflicts, then retry: folio home push -m \"...\"\n")
+			return dendrik.ExitExternalErr
+		}
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", pushErr))
 		return dendrik.ExitUserError
 	}

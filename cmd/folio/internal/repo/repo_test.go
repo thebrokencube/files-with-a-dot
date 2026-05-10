@@ -252,14 +252,28 @@ func TestJJPushCreatesNewChange(t *testing.T) {
 	}
 }
 
-func TestJJPullNoRemote(t *testing.T) {
+func TestJJPullNoRemoteNoBookmark(t *testing.T) {
 	dir := initTestJJRepo(t)
 	err := Pull(dir)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "no remote") {
-		t.Errorf("err = %q, want 'no remote'", err)
+	if !strings.Contains(err.Error(), "no remote configured and no main bookmark") {
+		t.Errorf("err = %q, want 'no remote configured and no main bookmark'", err)
+	}
+}
+
+func TestJJPullLocalOnly(t *testing.T) {
+	// After a push creates the main bookmark, pull (no remote) should rebase onto it
+	dir := initTestJJRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+	if err := Push(dir, "test(repo): initial"); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+
+	// Pull should succeed (rebase onto local main)
+	if err := Pull(dir); err != nil {
+		t.Fatalf("Pull: %v", err)
 	}
 }
 

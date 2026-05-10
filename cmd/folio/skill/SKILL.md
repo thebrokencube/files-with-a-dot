@@ -163,13 +163,20 @@ If any CLI command fails, run `folio setup --check` first.
 
 ## Session Lifecycle
 
-When `~/.folio` uses jj (has `.jj` directory), each Claude session gets its own jj workspace
-via the SessionStart hook. `FOLIO_HOME` points to the workspace, not `~/.folio` directly.
+Before any folio operation, ensure a jj workspace exists for this session:
 
-**What this means for sessions:**
-- `folio home push` commits to the session's workspace and pushes to the shared repo
-- `folio home pull` fetches and rebases the workspace onto `main@origin` (only works if a remote is configured)
-- All other `folio` commands work normally — they read `FOLIO_HOME`
+1. If `~/.folio/.jj` does not exist: skip (git-based home, no workspace needed)
+2. If `FOLIO_HOME` is already set to a workspace path (starts with `folio-ws-`): skip (already initialized)
+3. Run `folio home workspace create` and capture the printed path
+4. Write `export FOLIO_HOME="<path>"` to `$CLAUDE_ENV_FILE` (if set)
+5. If create fails: surface the error, do not proceed
+
+After init, `FOLIO_HOME` points to the session workspace for all subsequent commands.
+
+**Push and pull behavior:**
+- `folio home push` rebases @ onto `main` before setting the bookmark. Concurrent sessions
+  cannot cause bookmark divergence. On content conflict: errors with instructions to resolve.
+- `folio home pull` fetches + rebases if a remote exists; rebases onto local `main` if not.
 
 **Path convention:** Always use `$FOLIO_HOME/` (or the `--folio` flag) to reference folio
 files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio` is the default
@@ -183,9 +190,10 @@ folio home workspace cleanup
 ```
 This errors if unpushed changes exist (run `folio home push` first), then removes the workspace.
 Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
+Sessions that never invoked `/folio` have nothing to clean up.
 
 **Workspace commands:**
-- `folio home workspace create` — manually create a workspace (usually done by hook)
+- `folio home workspace create` — create a workspace (called by skill on first `/folio` invocation)
 - `folio home workspace list` — list all workspaces
 - `folio home workspace cleanup [path]` — remove a workspace (requires empty @)
 

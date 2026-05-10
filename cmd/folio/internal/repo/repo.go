@@ -16,6 +16,9 @@ var ErrNothingToCommit = errors.New("nothing to commit")
 // ErrInvalidCommitMessage is returned when a commit message doesn't follow conventional commit format.
 var ErrInvalidCommitMessage = errors.New("invalid commit message")
 
+// ErrConflict is returned when a rebase produces content conflicts.
+var ErrConflict = errors.New("rebase conflict")
+
 var commitMsgRe = regexp.MustCompile(`^(feat|fix|docs|refactor|test|chore|style|perf|auto)\([a-z][a-z0-9._-]*\): [a-z].+$`)
 
 // ValidateCommitMessage checks that message follows conventional commit format:
@@ -105,6 +108,18 @@ func jjPush(home, message string) error {
 		return fmt.Errorf("jj describe: %w", err)
 	}
 
+	// Rebase onto main to prevent bookmark divergence (skip if main doesn't exist yet)
+	if hasBookmark(home, "main") {
+		if err := jjIn(home, "rebase", "-d", "main"); err != nil {
+			// Check if rebase produced conflicts
+			cout, cerr := jjOutput(home, "log", "-r", "@", "--no-graph", "-T", "conflict")
+			if cerr == nil && strings.TrimSpace(cout) == "true" {
+				return fmt.Errorf("%w: resolve conflicts in %s, then retry folio home push", ErrConflict, home)
+			}
+			return fmt.Errorf("jj rebase: %w", err)
+		}
+	}
+
 	// Set bookmark to current change
 	if err := jjIn(home, "bookmark", "set", "main", "-r", "@"); err != nil {
 		return fmt.Errorf("jj bookmark set: %w", err)
@@ -113,7 +128,7 @@ func jjPush(home, message string) error {
 	// Push if remote exists
 	if hasJJRemote(home) {
 		if err := jjIn(home, "git", "push", "--bookmark", "main"); err != nil {
-			return fmt.Errorf("jj git push: %w (try: jj rebase -d main@origin && retry)", err)
+			return fmt.Errorf("jj git push: %w", err)
 		}
 	}
 
@@ -125,16 +140,21 @@ func jjPush(home, message string) error {
 	return nil
 }
 
-// jjPull fetches and rebases onto main@origin.
+// jjPull fetches and rebases onto main@origin, or rebases onto local main if no remote.
 func jjPull(home string) error {
-	if !hasJJRemote(home) {
-		return fmt.Errorf("no remote configured")
-	}
-	if err := jjIn(home, "git", "fetch"); err != nil {
-		return fmt.Errorf("jj git fetch: %w", err)
-	}
-	if err := jjIn(home, "rebase", "-d", "main@origin"); err != nil {
-		return fmt.Errorf("jj rebase: %w", err)
+	if hasJJRemote(home) {
+		if err := jjIn(home, "git", "fetch"); err != nil {
+			return fmt.Errorf("jj git fetch: %w", err)
+		}
+		if err := jjIn(home, "rebase", "-d", "main@origin"); err != nil {
+			return fmt.Errorf("jj rebase: %w", err)
+		}
+	} else if hasBookmark(home, "main") {
+		if err := jjIn(home, "rebase", "-d", "main"); err != nil {
+			return fmt.Errorf("jj rebase: %w", err)
+		}
+	} else {
+		return fmt.Errorf("no remote configured and no main bookmark")
 	}
 	return nil
 }
@@ -202,6 +222,15 @@ func jjOutput(dir string, args ...string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	return string(out), err
+}
+
+// hasBookmark checks if a jj bookmark exists.
+func hasBookmark(dir, name string) bool {
+	out, err := jjOutput(dir, "bookmark", "list", name)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) != ""
 }
 
 // hasJJRemote checks if a jj git remote is configured.
