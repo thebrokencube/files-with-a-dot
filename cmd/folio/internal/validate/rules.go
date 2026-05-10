@@ -23,8 +23,8 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	r := &Result{Valid: true}
 
 	// Schema version
-	if f.Schema != 1 && f.Schema != 2 {
-		r.addError("Missing or invalid schema version (expected: 1 or 2, got: %d)", f.Schema)
+	if f.Schema < 1 || f.Schema > 3 {
+		r.addError("Missing or invalid schema version (expected: 1, 2, or 3, got: %d)", f.Schema)
 	}
 
 	// Project name
@@ -59,6 +59,38 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	if sourceDAG := graph.BuildSourceDAG(f.Sources); len(sourceDAG) > 0 {
 		if cycle := graph.DetectCycle(sourceDAG); cycle != nil {
 			r.addError("Source dependency cycle detected: %s", strings.Join(cycle, " -> "))
+		}
+	}
+
+	// Validate type and status fields (schema v3)
+	validTypes := map[string]bool{
+		"design": true, "plan": true, "track": true,
+		"spike": true, "retro": true,
+	}
+	tier1Types := map[string]bool{
+		"design": true, "plan": true, "track": true,
+	}
+	validStatuses := map[string]bool{
+		"active": true, "done": true,
+	}
+
+	for _, src := range f.Sources {
+		if src.Path == "" {
+			continue // skip external sources — no lifecycle state
+		}
+		if src.Type != "" && !validTypes[src.Type] {
+			r.addError("Source '%s': invalid type '%s' (expected: design, plan, track, spike, retro)", src.Path, src.Type)
+		}
+		if src.Status != "" {
+			if !validStatuses[src.Status] {
+				r.addError("Source '%s': invalid status '%s' (expected: active, done)", src.Path, src.Status)
+			}
+			if src.Type != "" && !tier1Types[src.Type] {
+				r.addError("Source '%s': status is only valid on design, plan, or track types (got type '%s')", src.Path, src.Type)
+			}
+			if src.Type == "" {
+				r.addError("Source '%s': status requires an explicit type field", src.Path)
+			}
 		}
 	}
 

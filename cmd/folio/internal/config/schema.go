@@ -20,6 +20,8 @@ type Source struct {
 	Notes       string        `yaml:"notes"`
 	DerivedFrom []DerivedFrom `yaml:"derived_from"`
 	DependsOn   []string      `yaml:"depends_on"`
+	Type        string        `yaml:"type,omitempty"`
+	Status      string        `yaml:"status,omitempty"`
 }
 
 // DerivedFrom records the provenance of a derived source.

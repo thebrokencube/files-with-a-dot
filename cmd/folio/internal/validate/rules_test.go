@@ -646,6 +646,285 @@ func TestValidateMinimalWithEmptyCollections(t *testing.T) {
 	}
 }
 
+func TestValidateSchema3Valid(t *testing.T) {
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+	}
+	r := Validate(f, t.TempDir())
+	if !r.Valid {
+		t.Errorf("expected valid for schema 3, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateSchema4Rejected(t *testing.T) {
+	f := &config.Folio{
+		Schema:  4,
+		Project: "Test",
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for schema 4")
+	}
+	if !containsError(r, "schema version") {
+		t.Errorf("expected schema error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateSchema0Rejected(t *testing.T) {
+	f := &config.Folio{
+		Schema:  0,
+		Project: "Test",
+	}
+	r := Validate(f, t.TempDir())
+	if r.Valid {
+		t.Error("expected invalid for schema 0")
+	}
+	if !containsError(r, "schema version") {
+		t.Errorf("expected schema error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateTypeStatusDesignActive(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "design.md"), []byte("# Design"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "design.md", Type: "design", Status: "active"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for design+active, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateTypeStatusPlanDone(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "plan.md"), []byte("# Plan"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "plan.md", Type: "plan", Status: "done"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for plan+done, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateTypeStatusTrackActive(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "track.md"), []byte("# Track"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "track.md", Type: "track", Status: "active"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for track+active, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateInvalidType(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "foo.md"), []byte("# Foo"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "foo.md", Type: "foo"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for type 'foo'")
+	}
+	if !containsError(r, "invalid type 'foo'") {
+		t.Errorf("expected type error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateInvalidStatus(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "design.md"), []byte("# Design"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "design.md", Type: "design", Status: "pending"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for status 'pending'")
+	}
+	if !containsError(r, "invalid status 'pending'") {
+		t.Errorf("expected status error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateStatusOnSpike(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "spike.md"), []byte("# Spike"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "spike.md", Type: "spike", Status: "active"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for status on spike")
+	}
+	if !containsError(r, "status is only valid on design, plan, or track") {
+		t.Errorf("expected tier1 error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateStatusOnRetro(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "retro.md"), []byte("# Retro"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "retro.md", Type: "retro", Status: "done"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for status on retro")
+	}
+	if !containsError(r, "status is only valid on design, plan, or track") {
+		t.Errorf("expected tier1 error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateStatusWithoutType(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "doc.md"), []byte("# Doc"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "doc.md", Status: "active"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid for status without type")
+	}
+	if !containsError(r, "status requires an explicit type field") {
+		t.Errorf("expected type-required error, got: %v", r.Errors)
+	}
+}
+
+func TestValidateTypeWithoutStatus(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "spike.md"), []byte("# Spike"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "spike.md", Type: "spike"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for type without status, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateOmittedTypeAndStatus(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "readme.md"), []byte("# Readme"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "readme.md"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for omitted type and status, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateSchema2WithTypeField(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "design.md"), []byte("# Design"), 0644)
+
+	f := &config.Folio{
+		Schema:  2,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "design.md", Type: "design"},
+		},
+	}
+	r := Validate(f, dir)
+	if !r.Valid {
+		t.Errorf("expected valid for schema 2 with type field, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateTypeOnExternalSource(t *testing.T) {
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{External: "github", ID: "repo-1", Type: "design"},
+		},
+	}
+	r := Validate(f, t.TempDir())
+	// Type on external sources is silently ignored (no path to validate against)
+	// Should not produce type/status errors — only the normal external source validation
+	if containsError(r, "invalid type") {
+		t.Errorf("should not validate type on external sources, got: %v", r.Errors)
+	}
+}
+
+func TestValidateMultipleErrorsSameSource(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "bad.md"), []byte("# Bad"), 0644)
+
+	f := &config.Folio{
+		Schema:  3,
+		Project: "Test",
+		Sources: []config.Source{
+			{Path: "bad.md", Type: "foo", Status: "pending"},
+		},
+	}
+	r := Validate(f, dir)
+	if r.Valid {
+		t.Error("expected invalid")
+	}
+	typeErr := containsError(r, "invalid type")
+	statusErr := containsError(r, "invalid status")
+	if !typeErr || !statusErr {
+		t.Errorf("expected both type and status errors, got: %v", r.Errors)
+	}
+}
+
 func containsWarning(r *Result, substr string) bool {
 	for _, w := range r.Warnings {
 		if strings.Contains(w, substr) {
