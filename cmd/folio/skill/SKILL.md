@@ -70,7 +70,9 @@ When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just
    - Active projects live at `~/.folio/active/<path>/folio.yml`
    - Archived projects live at `~/.folio/archive/<path>/folio.yml`
    - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
-   - Suggest next actions based on what's stale, has observations, or is ready to compose/publish
+   - Suggest next actions using lifecycle derivation (type/status fields on sources) and stale detection
+
+     -> Read references/lifecycle.md for derivation rules, stale detection, schema migration hints, and fallback behavior.
 
 If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, check if the intent is a knowledge lookup (keywords like "find", "search", "look for", "stuff about", "anything on"). If so, route to `/folio find` with the extracted query. Otherwise, treat it as freeform discussion about the folio system — answer the question directly.
 
@@ -264,4 +266,5 @@ is how provenance chains break.
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
+- **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, schema migration hints
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
