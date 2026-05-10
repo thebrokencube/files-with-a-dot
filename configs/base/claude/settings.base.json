@@ -15,7 +15,8 @@
       "~/.dotfiles/",
       "~/.dotfiles.private/",
       "~/.folio/",
-      "~/workspace/"
+      "~/workspace/",
+      "/tmp/"
     ],
     "allow": [
       "Read",
