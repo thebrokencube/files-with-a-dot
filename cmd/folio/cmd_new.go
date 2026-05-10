@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
@@ -210,15 +211,15 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 		return dendrik.ExitUserError
 	}
 
-	home, err := os.UserHomeDir()
+	folioHome, err := home.Dir()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("cannot determine home directory: %s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("cannot determine folio home: %s", err))
 		return dendrik.ExitUserError
 	}
 
 	today := time.Now().Format("2006-01-02")
 	filename := today + "-" + topic + ".md"
-	absPath := filepath.Join(home, ".folio", "vault", label, filename)
+	absPath := filepath.Join(folioHome, "vault", label, filename)
 
 	if _, err := os.Stat(absPath); err == nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("file already exists: vault/%s/%s", label, filename))

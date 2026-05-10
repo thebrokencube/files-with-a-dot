@@ -1,9 +1,10 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 )
 
 const vaultPrefix = "vault:"
@@ -14,11 +15,11 @@ const vaultPrefix = "vault:"
 func ResolvePath(folioDir, path string) string {
 	if strings.HasPrefix(path, vaultPrefix) {
 		remainder := strings.TrimPrefix(path, vaultPrefix)
-		home, err := os.UserHomeDir()
+		folioHome, err := home.Dir()
 		if err != nil {
 			return filepath.Join(folioDir, path)
 		}
-		return filepath.Join(home, ".folio", "vault", remainder)
+		return filepath.Join(folioHome, "vault", remainder)
 	}
 	return filepath.Join(folioDir, path)
 }

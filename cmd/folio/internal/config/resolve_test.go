@@ -1,17 +1,18 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 )
 
 func TestResolvePath(t *testing.T) {
-	home, err := os.UserHomeDir()
+	folioHome, err := home.Dir()
 	if err != nil {
-		t.Fatalf("cannot get home dir: %v", err)
+		t.Fatalf("cannot get folio home: %v", err)
 	}
-	vaultBase := filepath.Join(home, ".folio", "vault")
+	vaultBase := filepath.Join(folioHome, "vault")
 
 	tests := []struct {
 		name     string
