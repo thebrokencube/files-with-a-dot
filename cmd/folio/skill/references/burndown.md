@@ -34,7 +34,8 @@ when the approach is proven. Each wave definition includes:
 - **Expected ratchet delta** — how much the ratchet should improve
 - **"What we expect to learn"** — Toyota Kata pre-commitment (prediction before execution)
 
-Wave ordering is revisable only at wave checkpoints, never mid-wave.
+Wave ordering is typically revisited at checkpoints, but can be adjusted
+mid-wave if learnings warrant it.
 
 ## Execution Loop
 
