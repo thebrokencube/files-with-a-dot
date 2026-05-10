@@ -116,19 +116,30 @@ func TestRunGatherMaterializeWithName(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "--type", "spike", "--name", "my-ref", "https://example.com/page"})
+	code := runGather([]string{"--folio", yml, "--materialize", "--type", "guide", "--name", "my-ref", "https://example.com/page"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
 
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "spike", "*-my-ref.md"))
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "guide", "*-my-ref.md"))
 	if len(matches) != 1 {
 		t.Fatal("reference file was not created with custom name in type directory")
 	}
 
 	data, _ := os.ReadFile(yml)
-	if !strings.Contains(string(data), "path: reference/spike/") {
+	if !strings.Contains(string(data), "path: reference/guide/") {
 		t.Error("expected typed path in folio.yml")
+	}
+}
+
+func TestRunGatherMaterializeSpikeRejected(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
+
+	code := runGather([]string{"--folio", yml, "--materialize", "--type", "spike", "https://example.com/page"})
+	if code == 0 {
+		t.Error("expected non-zero exit for spike (no longer a reference type)")
 	}
 }
 

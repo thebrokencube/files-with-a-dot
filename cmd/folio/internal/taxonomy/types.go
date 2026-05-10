@@ -91,13 +91,19 @@ func InferType(path string) string {
 		return parts[1]
 	}
 	if len(parts) >= 2 && parts[0] == "work" {
-		// Check for colocated reference types deeper in the path
+		// Check for colocated reference types deeper in the path (old pattern: work/.../reference/design/)
 		for i, p := range parts {
 			if p == "reference" && i+1 < len(parts) {
 				return parts[i+1]
 			}
 		}
-		// Check basename for colocatable types (e.g., retro.md, design.md)
+		// Check for flat lifecycle type subdirectories (new pattern: work/.../spike/, work/.../retro/, work/.../design/)
+		for i, p := range parts {
+			if (p == "spike" || p == "retro" || p == "design") && i+1 < len(parts) {
+				return p
+			}
+		}
+		// Check basename for colocatable types (e.g., retro.md, design.md — old single-file pattern)
 		base := strings.TrimSuffix(filepath.Base(path), ".md")
 		if ColocatableTypes[base] {
 			return base
@@ -109,27 +115,29 @@ func InferType(path string) string {
 
 // ReferenceTypes lists all valid reference-layer type names.
 var ReferenceTypes = []string{
-	"spike", "survey",
+	"survey",
 	"synthesis", "domain",
-	"pattern", "guide", "review", "retro",
+	"pattern", "guide", "review",
 }
 
 // ValidTypes maps every valid type name to true.
 var ValidTypes map[string]bool
 
 func init() {
-	ValidTypes = make(map[string]bool, len(ReferenceTypes)+1)
+	ValidTypes = make(map[string]bool, len(ReferenceTypes)+5) // +5 for brief, design, plan, spike, retro
 	for _, t := range ReferenceTypes {
 		ValidTypes[t] = true
 	}
 	ValidTypes["brief"] = true
 	ValidTypes["design"] = true
 	ValidTypes["plan"] = true
+	ValidTypes["spike"] = true // lifecycle type, not reference
+	ValidTypes["retro"] = true // lifecycle type, not reference
 }
 
 // IsReferenceType returns true if t is a recognized reference-layer type.
 func IsReferenceType(t string) bool {
-	if t == "brief" || t == "plan" || t == "design" {
+	if t == "brief" || t == "plan" || t == "design" || t == "spike" || t == "retro" {
 		return false
 	}
 	return ValidTypes[t]
@@ -150,7 +158,7 @@ var ColocatableTypes = map[string]bool{
 
 // IsWorkType returns true if t is a recognized work-layer type.
 func IsWorkType(t string) bool {
-	return t == "brief" || t == "plan"
+	return t == "brief" || t == "plan" || t == "spike" || t == "retro"
 }
 
 // FindWorkDir returns the path to a work directory matching the given topic,
@@ -174,14 +182,22 @@ func FindWorkDir(folioDir, topic string) string {
 // The path is relative to the folio directory (where folio.yml lives).
 func TypePath(artifactType, topic string) string {
 	date := time.Now().Format("2006-01-02")
+	slug := fmt.Sprintf("%s-%s", date, topic)
+
 	if artifactType == "design" {
-		return filepath.Join("reference", "design", fmt.Sprintf("%s-%s.md", date, topic))
+		return filepath.Join("reference", "design", fmt.Sprintf("%s.md", slug))
 	}
+
+	// Lifecycle types → work/ (lightweight work track)
+	if artifactType == "spike" || artifactType == "retro" {
+		return filepath.Join("work", "active", slug, artifactType, fmt.Sprintf("%s.md", slug))
+	}
+
 	if IsReferenceType(artifactType) {
 		return filepath.Join("reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
 	}
 	if artifactType == "plan" || artifactType == "brief" {
-		return filepath.Join("work", "active", fmt.Sprintf("%s-%s", date, topic), "README.md")
+		return filepath.Join("work", "active", slug, "README.md")
 	}
 	return ""
 }

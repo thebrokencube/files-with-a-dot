@@ -48,10 +48,10 @@ func TestRunNewSpikeCreatesFile(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	// Check file exists in reference/spike/
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "spike", "*-test-topic.md"))
+	// Check file exists in work/active/*/spike/
+	matches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-test-topic", "spike", "*-test-topic.md"))
 	if len(matches) != 1 {
-		t.Fatalf("expected 1 file in reference/spike/, got %d", len(matches))
+		t.Fatalf("expected 1 file in work/active/*/spike/, got %d", len(matches))
 	}
 
 	// Check content has spike template
@@ -62,7 +62,7 @@ func TestRunNewSpikeCreatesFile(t *testing.T) {
 
 	// Check folio.yml was updated
 	ymlData, _ := os.ReadFile(yml)
-	if !strings.Contains(string(ymlData), "reference/spike/") {
+	if !strings.Contains(string(ymlData), "work/active/") {
 		t.Error("folio.yml missing source entry")
 	}
 
@@ -152,15 +152,15 @@ func TestRunNewNoRegister(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	// File should exist
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "spike", "*-no-reg.md"))
+	// File should exist in work/active/*/spike/
+	matches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-no-reg", "spike", "*-no-reg.md"))
 	if len(matches) != 1 {
 		t.Fatal("expected file to be created")
 	}
 
 	// folio.yml should NOT have the entry
 	data, _ := os.ReadFile(yml)
-	if strings.Contains(string(data), "reference/spike/") {
+	if strings.Contains(string(data), "work/active/") {
 		t.Error("folio.yml should not contain source entry with --no-register")
 	}
 }
@@ -181,7 +181,7 @@ func TestRunNewPreservesExistingSources(t *testing.T) {
 	if !strings.Contains(content, "path: existing.md") {
 		t.Error("existing source entry was lost")
 	}
-	if !strings.Contains(content, "reference/spike/") {
+	if !strings.Contains(content, "work/active/") {
 		t.Error("new source entry not added")
 	}
 
@@ -248,9 +248,10 @@ func TestRunNewRetroStandalone(t *testing.T) {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
 
-	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "retro", "*-standalone-topic.md"))
+	// Standalone retro creates a lightweight work track
+	matches, _ := filepath.Glob(filepath.Join(dir, "work", "active", "*-standalone-topic", "retro", "*-standalone-topic.md"))
 	if len(matches) != 1 {
-		t.Fatalf("expected 1 file in reference/retro/, got %d", len(matches))
+		t.Fatalf("expected 1 file in work/active/*/retro/, got %d", len(matches))
 	}
 }
 

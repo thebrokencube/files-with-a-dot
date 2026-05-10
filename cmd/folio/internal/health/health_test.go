@@ -24,20 +24,20 @@ func TestAnalyzeEmptyProject(t *testing.T) {
 func TestAnalyzeTypedReferences(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create typed reference files
-	for _, typ := range []string{"spike", "design"} {
+	// Create typed reference files (spike/retro are no longer reference types)
+	for _, typ := range []string{"survey", "design"} {
 		typeDir := filepath.Join(dir, "reference", typ)
 		os.MkdirAll(typeDir, 0755)
 	}
-	os.WriteFile(filepath.Join(dir, "reference", "spike", "2026-01-01-foo.md"), []byte("# Foo"), 0644)
-	os.WriteFile(filepath.Join(dir, "reference", "spike", "2026-01-02-bar.md"), []byte("# Bar"), 0644)
+	os.WriteFile(filepath.Join(dir, "reference", "survey", "2026-01-01-foo.md"), []byte("# Foo"), 0644)
+	os.WriteFile(filepath.Join(dir, "reference", "survey", "2026-01-02-bar.md"), []byte("# Bar"), 0644)
 	os.WriteFile(filepath.Join(dir, "reference", "design", "2026-01-01-baz.md"), []byte("# Baz"), 0644)
 
 	f := &config.Folio{Project: "typed"}
 	r := Analyze(f, dir)
 
-	if r.Reference["spike"] != 2 {
-		t.Errorf("spike count = %d, want 2", r.Reference["spike"])
+	if r.Reference["survey"] != 2 {
+		t.Errorf("survey count = %d, want 2", r.Reference["survey"])
 	}
 	if r.Reference["design"] != 1 {
 		t.Errorf("design count = %d, want 1", r.Reference["design"])
@@ -125,9 +125,9 @@ func TestAnalyzeObservationsLintWarnings(t *testing.T) {
 
 func TestAnalyzeNaming(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "reference", "spike"), 0755)
-	os.WriteFile(filepath.Join(dir, "reference", "spike", "2026-01-01-good.md"), []byte("# Good"), 0644)
-	os.WriteFile(filepath.Join(dir, "reference", "spike", "no-date-prefix.md"), []byte("# Bad"), 0644)
+	os.MkdirAll(filepath.Join(dir, "reference", "survey"), 0755)
+	os.WriteFile(filepath.Join(dir, "reference", "survey", "2026-01-01-good.md"), []byte("# Good"), 0644)
+	os.WriteFile(filepath.Join(dir, "reference", "survey", "no-date-prefix.md"), []byte("# Bad"), 0644)
 
 	f := &config.Folio{Project: "naming"}
 	r := Analyze(f, dir)

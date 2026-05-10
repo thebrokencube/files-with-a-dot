@@ -42,15 +42,21 @@ func TestIsWorkType(t *testing.T) {
 	if !IsWorkType("brief") {
 		t.Error("IsWorkType(brief) = false, want true")
 	}
-	if IsWorkType("spike") {
-		t.Error("IsWorkType(spike) = true, want false")
+	if !IsWorkType("spike") {
+		t.Error("IsWorkType(spike) = false, want true")
+	}
+	if !IsWorkType("retro") {
+		t.Error("IsWorkType(retro) = false, want true")
 	}
 }
 
-func TestTypePathReference(t *testing.T) {
+func TestTypePathSpike(t *testing.T) {
 	path := TypePath("spike", "test-topic")
-	if !strings.HasPrefix(path, "reference/spike/") {
-		t.Errorf("TypePath(spike) = %s, want prefix reference/spike/", path)
+	if !strings.HasPrefix(path, "work/active/") {
+		t.Errorf("TypePath(spike) = %s, want prefix work/active/", path)
+	}
+	if !strings.Contains(path, "/spike/") {
+		t.Errorf("TypePath(spike) = %s, want to contain /spike/", path)
 	}
 	if !strings.HasSuffix(path, "-test-topic.md") {
 		t.Errorf("TypePath(spike) = %s, want suffix -test-topic.md", path)
@@ -152,6 +158,13 @@ func TestIsReferenceDirDesign(t *testing.T) {
 	}
 	if IsReferenceDir("unknown") {
 		t.Error("IsReferenceDir(unknown) = true, want false")
+	}
+	// spike and retro are no longer reference dirs — they belong in work/
+	if IsReferenceDir("spike") {
+		t.Error("IsReferenceDir(spike) = true, want false")
+	}
+	if IsReferenceDir("retro") {
+		t.Error("IsReferenceDir(retro) = true, want false")
 	}
 }
 
@@ -295,5 +308,106 @@ func TestTemplateRetroHasExpectedSections(t *testing.T) {
 		if !strings.Contains(tmpl, section) {
 			t.Errorf("retro template missing section %q", section)
 		}
+	}
+}
+
+func TestTypePathRetro(t *testing.T) {
+	path := TypePath("retro", "session-findings")
+	if !strings.HasPrefix(path, "work/active/") {
+		t.Errorf("TypePath(retro) = %s, want prefix work/active/", path)
+	}
+	if !strings.Contains(path, "/retro/") {
+		t.Errorf("TypePath(retro) = %s, want to contain /retro/", path)
+	}
+	if !strings.HasSuffix(path, "-session-findings.md") {
+		t.Errorf("TypePath(retro) = %s, want suffix -session-findings.md", path)
+	}
+}
+
+func TestTypePathDesignUnchanged(t *testing.T) {
+	path := TypePath("design", "topic")
+	if !strings.HasPrefix(path, "reference/design/") {
+		t.Errorf("TypePath(design) = %s, want prefix reference/design/ (regression)", path)
+	}
+}
+
+func TestTypePathPlanUnchanged(t *testing.T) {
+	path := TypePath("plan", "topic")
+	if !strings.HasPrefix(path, "work/active/") {
+		t.Errorf("TypePath(plan) = %s, want prefix work/active/ (regression)", path)
+	}
+	if !strings.HasSuffix(path, "/README.md") {
+		t.Errorf("TypePath(plan) = %s, want suffix /README.md (regression)", path)
+	}
+}
+
+func TestTypePathSurveyUnchanged(t *testing.T) {
+	path := TypePath("survey", "topic")
+	if !strings.HasPrefix(path, "reference/survey/") {
+		t.Errorf("TypePath(survey) = %s, want prefix reference/survey/ (regression)", path)
+	}
+}
+
+func TestIsReferenceTypeSpikeFalse(t *testing.T) {
+	if IsReferenceType("spike") {
+		t.Error("IsReferenceType(spike) = true, want false")
+	}
+}
+
+func TestIsReferenceTypeRetroFalse(t *testing.T) {
+	if IsReferenceType("retro") {
+		t.Error("IsReferenceType(retro) = true, want false")
+	}
+}
+
+func TestIsReferenceTypeSurveyTrue(t *testing.T) {
+	if !IsReferenceType("survey") {
+		t.Error("IsReferenceType(survey) = false, want true (regression)")
+	}
+}
+
+func TestIsReferenceTypeGuideTrue(t *testing.T) {
+	if !IsReferenceType("guide") {
+		t.Error("IsReferenceType(guide) = false, want true (regression)")
+	}
+}
+
+func TestValidTypesIncludesSpike(t *testing.T) {
+	if !ValidTypes["spike"] {
+		t.Error("ValidTypes[spike] = false, want true")
+	}
+}
+
+func TestValidTypesIncludesRetro(t *testing.T) {
+	if !ValidTypes["retro"] {
+		t.Error("ValidTypes[retro] = false, want true")
+	}
+}
+
+func TestInferTypeFlatSubdirectories(t *testing.T) {
+	cases := map[string]string{
+		"work/active/2026-01-01-foo/spike/2026-01-01-foo.md":  "spike",
+		"work/active/2026-01-01-foo/retro/2026-01-01-foo.md":  "retro",
+		"work/active/2026-01-01-foo/design/2026-01-01-foo.md": "design",
+		"work/archive/2026-01-01-foo/spike/2026-01-01-foo.md": "spike",
+		// Old patterns still work
+		"work/active/2026-01-01-bar/retro.md": "retro",
+	}
+	for path, want := range cases {
+		if got := InferType(path); got != want {
+			t.Errorf("InferType(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
+
+func TestIsReferenceDirSurveyStillTrue(t *testing.T) {
+	if !IsReferenceDir("survey") {
+		t.Error("IsReferenceDir(survey) = false, want true (regression)")
+	}
+}
+
+func TestColocatableTypesRetroStillTrue(t *testing.T) {
+	if !ColocatableTypes["retro"] {
+		t.Error("ColocatableTypes[retro] = false, want true (kept for old single-file pattern)")
 	}
 }
