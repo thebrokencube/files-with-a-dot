@@ -167,18 +167,14 @@ When `~/.folio` uses jj (has `.jj` directory), each Claude session gets its own 
 via the SessionStart hook. `FOLIO_HOME` points to the workspace, not `~/.folio` directly.
 
 **What this means for sessions:**
-- `folio home pull` fetches and rebases the workspace onto `main@origin`
 - `folio home push` commits to the session's workspace and pushes to the shared repo
+- `folio home pull` fetches and rebases the workspace onto `main@origin` (only works if a remote is configured)
 - All other `folio` commands work normally — they read `FOLIO_HOME`
 
-**First action in any session that uses folio:** Run `folio home pull` before reading any
-folio files. The workspace starts from the jj state at creation time, which may be behind
-main. Without pulling, files created by other sessions (work tracks, briefs) won't exist.
-
 **Path convention:** Always use `$FOLIO_HOME/` (or the `--folio` flag) to reference folio
-files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio` is the main
-repo; the session workspace lives at a different path. Handoffs between sessions must use
-`$FOLIO_HOME/` or folio shortnames, not absolute `~/.folio/` paths.
+files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio` is the default
+workspace and may be at a different jj change than the session workspace. Handoffs between
+sessions must use `$FOLIO_HOME/` or folio shortnames, not absolute `~/.folio/` paths.
 
 **Mandatory cleanup at session end:**
 Before ending a session that used folio, run:
