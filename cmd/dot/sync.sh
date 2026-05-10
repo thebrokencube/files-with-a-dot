@@ -329,6 +329,15 @@ handle_git_pull() {
     [[ "$SKIP_PULL" == true ]] && return 0
     [[ "$is_first_time" == true ]] && return 0
 
+    # jj-managed repos: HEAD is detached, git pull doesn't work
+    if [[ -d "$DOTFILES_DIR/.jj" ]]; then
+        echo "Pulling latest dotfiles..."
+        jj git fetch -R "$DOTFILES_DIR"
+        jj bookmark set main -r "main@origin" -R "$DOTFILES_DIR" 2>/dev/null || true
+        echo ""
+        return 0
+    fi
+
     if [[ "$FORCE_PULL" == true ]]; then
         echo "Pulling latest dotfiles..."
         git pull --rebase
