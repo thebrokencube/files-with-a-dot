@@ -150,3 +150,4 @@ against context compaction in long sessions.
 -> Read references/plan-design.md for Phases 1-4 (Design agent)
 -> Read references/plan-brief.md for Phases 5-6 (Brief agent)
 -> Read references/plan-execute.md for Phases 7-8 (Execute agent)
+-> Read references/burndown.md when plan brief declares shape: burndown (replaces Phase 7 step loop)

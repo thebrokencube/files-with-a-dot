@@ -11,6 +11,14 @@ If you discover something unexpected during implementation that contradicts the 
 
 For each track, execute this sequence in order. Do NOT skip or reorder steps.
 
+### Shape Dispatch
+
+Before starting Step 0, check the work plan's `shape:` field:
+- `shape: burndown` → Read references/burndown.md. It replaces the per-track
+  step sequence (Steps 0-7 within Phase 7) with a wave-based batch loop.
+  Validation and review gates still apply per-group. Phase 8 (Retro) still applies.
+- No shape field → Continue with Steps 0-7 below.
+
 0. **Spike** — before touching any code for a track:
    1. Read the track spec (file paths, interfaces, constraints, deferral markers)
    2. Read every file the track will modify — full contents

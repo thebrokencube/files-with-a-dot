@@ -281,3 +281,4 @@ is how provenance chains break.
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
 - **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, schema migration hints
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
+- **references/burndown.md** — Burndown execution: wave-based batch work with ratchet, checkpoints, and flywheel learning
