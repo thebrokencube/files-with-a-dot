@@ -6,7 +6,7 @@ Validation and review gates from plan-execute.md still apply per-group.
 
 ## When to Use
 
-A track is burndown-shaped when it has >6 homogeneous items with measurable completion
+A track is burndown-shaped when it has homogeneous items with measurable completion
 criteria, and each iteration improves context for the next. Examples: migrating N files,
 fixing N lint violations, converting N models. Declare `shape: burndown` in the track
 header of the execution brief.
@@ -86,13 +86,10 @@ you WHY. The ordering update tells you WHAT comes next.
 
 ## Scale Guidance
 
-| Items | Waves | Notes |
-|-------|-------|-------|
-| ≤6 | 1 | Minimal overhead. Consider skipping burndown shape. |
-| 7-30 | 2-3 | Pilot wave of 1-2 groups, then batch the rest. |
-| 30-50+ | 4-6 | Strict ratchet targets per wave. Pilot is non-negotiable. |
-
 Always start with a pilot wave (1-2 groups) to learn the pattern before batching.
+Wave count is a judgment call at planning time — more waves means more checkpoints
+and more flywheel turns, fewer waves means less overhead. Let complexity and
+uncertainty guide the split, not item count.
 
 ## State Tracking
 
