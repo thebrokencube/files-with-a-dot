@@ -147,10 +147,19 @@ analyze_state() {
         exit 1
     }
 
-    # Check git status
+    # Check git/jj status
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking git status..."
     if [[ "$SKIP_PULL" == false ]]; then
-        if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        if [[ -d "$DOTFILES_DIR/.jj" ]]; then
+            # jj repo: check if working copy (@) has uncommitted changes
+            local jj_wc
+            jj_wc=$(jj log -r "@" --no-graph -T 'if(empty, "empty", "changed")' -R "$DOTFILES_DIR" 2>/dev/null || echo "unknown")
+            if [[ "$jj_wc" == "changed" ]]; then
+                FRICTIONS+=("Uncommitted changes in repo - commit or abandon before pulling")
+            else
+                DONE_INFRA+=("Git repo up to date")
+            fi
+        elif ! git rev-parse --is-inside-work-tree &>/dev/null; then
             FRICTIONS+=("Not a git repository")
         elif ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
             FRICTIONS+=("Uncommitted changes in repo - commit or stash before pulling")
