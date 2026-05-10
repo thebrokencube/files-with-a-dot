@@ -553,7 +553,7 @@ func runHomeWorkspace(args []string) int {
 
 func runWorkspaceCreate(homeDir string, pal dendrik.Palette) int {
 	wsID := fmt.Sprintf("folio-ws-%d-%d", time.Now().Unix(), os.Getpid())
-	wsDir := filepath.Join(os.TempDir(), wsID)
+	wsDir := filepath.Join("/tmp", wsID)
 
 	cmd := exec.Command("jj", "--no-pager", "workspace", "add", wsDir, "-r", "main", "-R", homeDir)
 	cmd.Stdout = os.Stdout
