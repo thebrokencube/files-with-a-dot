@@ -45,7 +45,8 @@ For each group in the current wave:
    completed state that isn't deferred
 2. **Execute** — implement the group's work
 3. **Validate** — `folio validate` (or brief-specified validation commands)
-4. **Record** — write per-group file: state + one-line note
+4. **Record** — write per-group file with full Kata: target condition, actual condition,
+   gap, adjustments
 5. **Commit** — `folio home push`
 
 Plan-execute.md gates carry forward: validation gate and review gate apply per-group.
@@ -55,15 +56,17 @@ Burndown replaces the *selection and iteration* pattern, not the safety checks.
 
 ## Wave Checkpoint
 
-Run at wave boundary. Write to `progress/groups/wave-NN-checkpoint.md`:
+Run at wave boundary. Synthesizes across per-group findings. Write to
+`progress/groups/wave-NN-checkpoint.md`:
 
 1. **Target condition** — what did we expect from this wave? (from the wave definition)
 2. **Actual condition** — run the ratchet command. Report the number.
-3. **Gap** — what caused the difference between target and actual?
+3. **Patterns** — what systemic findings emerged across groups?
 4. **Adjustments** — what changes for the next wave? Re-order groups, update reference
    docs, defer items, split or merge groups.
 
-Per-group files are lightweight (state + note). The full Kata depth lives here only.
+Per-group files use the same Kata format. The wave checkpoint synthesizes across
+groups — patterns, systemic findings, ordering changes.
 
 ## Advance & Re-scope
 
@@ -101,7 +104,7 @@ work/active/<slug>/
   progress/
     waves.md                       # wave table with status, counts, ratchet
     groups/
-      wave-NN-<group-slug>.md      # per-group: state + note
+      wave-NN-<group-slug>.md      # per-group: full Kata (target/actual/gap/adjustments)
       wave-NN-checkpoint.md        # wave checkpoint (full Kata)
 ```
 
