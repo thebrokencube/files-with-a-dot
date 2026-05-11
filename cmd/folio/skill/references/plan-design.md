@@ -536,7 +536,7 @@ Three possible outcomes:
 
 | Response | Action |
 |----------|--------|
-| **Ship it** | Proceed to Brief phase (Agent 2) or implementation |
+| **Ship it** | Proceed to Brief phase (Agent 2). **NEVER skip the brief — execution cannot begin without a committed work plan.** |
 | **Iterate** | Produce iteration handoff (Step 3b) identifying weak areas for next round |
 | **Not sure** | Run `folio validate` and `folio health` to surface gaps, then re-ask |
 

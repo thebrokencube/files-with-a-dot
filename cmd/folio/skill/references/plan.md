@@ -44,6 +44,8 @@ The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate 
 
 **Invocation**: Agent 1 is invoked by `/folio plan`. Agents 2 and 3 are separate sessions — the user starts them after reviewing the prior agent's committed output.
 
+**Hard rule: execution REQUIRES a committed work plan.** The lifecycle is Design → Brief → Execute. No phase can be skipped. Even if the work seems "simple enough" or "just file edits," the brief must exist as a committed `README.md` in the work directory before any execution begins. This applies equally to lightweight mode — the combined design+brief doc IS the brief. If you find yourself starting execution without a committed work plan, STOP and write the brief first.
+
 ## Iteration Across Sessions
 
 Planning is often iterative — a single session rarely produces a fully hardened design. The Design phase (Agent 1) can loop across multiple sessions:
@@ -105,7 +107,10 @@ the acid test: if it needs context beyond "read the doc and execute," the doc is
 underspecified.
 
 Commit checkpoints are still mandatory: the combined design+brief doc must be committed before
-execution begins. Lightweight mode reduces agents, not checkpoints.
+execution begins. Lightweight mode reduces agents, not checkpoints. **Lightweight mode does NOT
+mean "skip the brief" — it means the brief sections are written inside the design doc instead
+of a separate file. The 4 required brief sections (Direction Summary, Interface Spec, Track
+Decomposition, Execution Setup) must still exist before execution begins.**
 
 ## Re-run Rule
 
