@@ -15,6 +15,13 @@ Periodic knowledge integrity pass across folio projects. Two-layer scan (CLI det
    folio init --name "Folio Hygiene"
    ```
 3. Record the folio-hygiene folio.yml path for use throughout.
+4. **Check for in-progress pass**: Look for an open (non-archived) lint work track in folio-hygiene — a spike or design under `work/lint-pass*`. If found, present routing options before proceeding:
+
+   - **Continue** — Resume execution from the existing cleanup plan (skip to Phase 3). Requires a design with unresolved items.
+   - **Re-scan** — Discard prior findings and start a fresh Phase 1 scan.
+   - **Review** — Display the existing spike/design findings so the user can decide next steps.
+
+   If the existing work track has a spike but no design yet, offer Continue (resume at Phase 2 plan creation) or Re-scan. If no open work track exists, proceed directly to Phase 1.
 
 ## Phase 1 — Scan
 
