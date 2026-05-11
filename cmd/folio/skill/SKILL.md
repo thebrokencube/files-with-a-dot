@@ -176,27 +176,33 @@ If any CLI command fails, run `folio setup --check` first.
 Before any folio operation, ensure a jj workspace exists for this session:
 
 1. If `~/.folio/.jj` does not exist: skip (git-based home, no workspace needed)
-2. If `FOLIO_HOME` is already set to a workspace path (starts with `folio-ws-`): skip (already initialized)
-3. Run `folio home workspace create` and capture the printed path
-4. Write `export FOLIO_HOME="<path>"` to `$CLAUDE_ENV_FILE` (if set)
+2. If you already have a workspace path from this session: skip (already initialized)
+3. Run `folio home workspace create` and capture the printed path (last line of output)
+4. **Store the path as a literal string** — do NOT rely on env vars. Each Bash call starts
+   a fresh shell, so `export FOLIO_HOME=...` does not persist between calls.
 5. If create fails: surface the error, do not proceed
 
-After init, `FOLIO_HOME` points to the session workspace for all subsequent commands.
+After init, use the captured workspace path in two ways:
+
+- **Bash calls**: prefix every `folio` command with `FOLIO_HOME=<path>`, e.g.
+  `FOLIO_HOME=/tmp/folio-ws-123 folio status`. This sets the var for that single command.
+- **Edit/Read/Write tools**: use the literal path, e.g.
+  `/tmp/folio-ws-123/active/my-project/folio.yml`. Never use `$FOLIO_HOME` in tool
+  file_path parameters — those tools do not expand shell variables.
 
 **Push and pull behavior:**
 - `folio home push` rebases @ onto `main` before setting the bookmark. Concurrent sessions
   cannot cause bookmark divergence. On content conflict: errors with instructions to resolve.
 - `folio home pull` fetches + rebases if a remote exists; rebases onto local `main` if not.
 
-**Path convention:** Always use `$FOLIO_HOME/` (or the `--folio` flag) to reference folio
-files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio` is the default
-workspace and may be at a different jj change than the session workspace. Handoffs between
-sessions must use `$FOLIO_HOME/` or folio shortnames, not absolute `~/.folio/` paths.
+**Path convention:** Always use the captured workspace path (or the `--folio` flag) to
+reference folio files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio`
+is the default workspace and may be at a different jj change than the session workspace.
 
 **Mandatory cleanup at session end:**
 Before ending a session that used folio, run:
 ```
-folio home workspace cleanup
+FOLIO_HOME=<path> folio home workspace cleanup <path>
 ```
 This errors if unpushed changes exist (run `folio home push` first), then removes the workspace.
 Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
