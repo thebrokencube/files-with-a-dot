@@ -12,7 +12,7 @@ Every parked ticket MUST match this spec. The park workflow enforces it; the aud
 | `description` | empty ADF doc | `{"version": 1, "type": "doc", "content": []}` |
 | `status` | per `parking_lots.<PROJ>.status` | Varies by project — check `~/.jf.yml` |
 | `parent` | per `parking_lots.<PROJ>.epic` | Parking lot epic |
-| `issuetype` | Task | If above Task level (Epic, Project Name, Initiative), demote to Task. Task/Story/Bug left as-is. |
+| `issuetype` | Task | Convert all non-Task types (Story, Bug, Epic, Project Name, Initiative) to Task. Parked tickets are blank placeholders — type is meaningless. |
 | `assignee` | null | No one responsible |
 | `labels` | `[]` | No phantom label pollution |
 | `fixVersions` | `[]` | No false version commitments |
@@ -113,7 +113,7 @@ For each key:
 
 **3a. Type demotion** (if needed):
 
-If the ticket's `issuetype` is above Task level (Epic, Project Name, Initiative), convert to Task:
+If the ticket's `issuetype` is not Task, convert to Task:
 ```
 editJiraIssue({
   cloudId: "<cloud-id>",
@@ -123,7 +123,7 @@ editJiraIssue({
   }
 })
 ```
-Task, Story, Bug, Design Task — leave as-is.
+Already a Task — skip this step.
 
 **3b. Transition to target status:**
 ```
@@ -242,7 +242,7 @@ Detect drift from the canonical parked state. Run ad-hoc when you suspect incons
 3. **Check each ticket** against the canonical state table. Collect violations:
    - Summary != `[parked]` (exact match, case-sensitive)
    - Status != expected status from config
-   - Type is above Task level (Epic, Project Name, Initiative)
+   - Type is not Task
    - Assignee is set
    - Labels non-empty
    - fixVersions non-empty
