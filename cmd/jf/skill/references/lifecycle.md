@@ -10,13 +10,13 @@ Every parked ticket MUST match this spec. The park workflow enforces it; the aud
 |---|---|---|
 | `summary` | `[parked]` | Lowercase, no trailing text |
 | `description` | empty ADF doc | `{"version": 1, "type": "doc", "content": []}` |
-| `status` | per `parking_lots.<PROJ>.status` | Varies by project (e.g. Triage for BEN, Backlog for RETIRE) |
+| `status` | per `parking_lots.<PROJ>.status` | Varies by project — check `~/.jf.yml` |
 | `parent` | per `parking_lots.<PROJ>.epic` | Parking lot epic |
 | `issuetype` | Task | If above Task level (Epic, Project Name, Initiative), demote to Task. Task/Story/Bug left as-is. |
 | `assignee` | null | No one responsible |
 | `labels` | `[]` | No phantom label pollution |
 | `fixVersions` | `[]` | No false version commitments |
-| `components` | `[]` | Re-apply project defaults on repurpose |
+| `components` | project default (or `[]` if not required) | Required in some projects. Leave as project default if clearing fails. |
 
 Required custom fields (fields Jira won't let you clear) are left unchanged. Optional custom fields are left unchanged — not worth the API calls to discover and clear per-ticket.
 
@@ -156,8 +156,7 @@ editJiraIssue({
     "parent": { "key": "PROJ-999" },
     "assignee": null,
     "labels": [],
-    "fixVersions": [],
-    "components": []
+    "fixVersions": []
   }
 })
 ```
@@ -247,7 +246,6 @@ Detect drift from the canonical parked state. Run ad-hoc when you suspect incons
    - Assignee is set
    - Labels non-empty
    - fixVersions non-empty
-   - Components non-empty
    - Status = Done (flag separately — these may need deletion, not re-parking)
 
 4. **Report** violations per ticket: key, which fields are non-canonical, current values.
