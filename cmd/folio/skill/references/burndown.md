@@ -52,7 +52,21 @@ For each group in the current wave:
 Plan-execute.md gates carry forward: validation gate and review gate apply per-group.
 Burndown replaces the *selection and iteration* pattern, not the safety checks.
 
-**Resuming**: read `waves.md`, find the ACTIVE wave, continue from first unresolved group.
+**Resuming**: read `waves.md`, find the ACTIVE wave, then run the **scope check**
+before executing the first group. Things change between sessions — files move, new
+items appear, planned items get resolved elsewhere.
+
+### Scope Check
+
+Run before starting any wave (including resuming a partially-completed one):
+
+1. **Re-run the ratchet command.** Compare against the last recorded value in `waves.md`.
+   If it changed, something moved outside the burndown — update the baseline and investigate.
+2. **Spot-check the next wave's group list.** For each group, verify the items still exist
+   and still need migration/fixing. A sample of 2-3 items is sufficient for small waves;
+   check all items if the wave has fewer than 10.
+3. **If scope changed**: update the wave definition in `waves.md` before executing.
+   This may trigger **Rebalancing** if the change is structural.
 
 ## Wave Checkpoint
 
