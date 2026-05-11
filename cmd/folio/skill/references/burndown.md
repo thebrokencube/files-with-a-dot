@@ -41,13 +41,24 @@ Wave ordering is a starting hypothesis. Evaluate it at every checkpoint — see
 
 For each group in the current wave:
 
-1. **Next-task** — read group files in `progress/groups/`, pick first group without a
-   completed state that isn't deferred
-2. **Execute** — implement the group's work
-3. **Validate** — `folio validate` (or brief-specified validation commands)
-4. **Record** — write per-group file with full Kata: target condition, actual condition,
-   gap, adjustments
-5. **Commit** — `folio home push`
+1. **Next-task** — scan `progress/groups/` for existing `wave-NN-<group-slug>.md`
+   files. A group is taken when its file exists (any status). Pick the first
+   group in the wave definition that has no file and isn't deferred
+2. **Claim** — write `progress/groups/wave-NN-<group-slug>.md` with
+   `status: claimed` and the session/workspace identifier. `folio home push`.
+   If push conflicts on this file, another session claimed it first — discard
+   and return to step 1 for the next unclaimed group
+3. **Execute** — implement the group's work
+4. **Validate** — `folio validate` (or brief-specified validation commands)
+5. **Record** — update the group file: set `status: done`, write the full Kata
+   (target condition, actual condition, gap, adjustments)
+6. **Commit** — `folio home push`
+
+Each group's loop is atomic — no interleaving steps across groups.
+Groups within a wave are independent by default and may run in parallel across
+separate jj workspaces/sessions. The claim-then-push pattern prevents duplicate
+work: the first session to push the claim file wins, others pick the next group.
+The wave checkpoint gates on all groups showing `status: done`.
 
 Plan-execute.md gates carry forward: validation gate and review gate apply per-group.
 Burndown replaces the *selection and iteration* pattern, not the safety checks.
