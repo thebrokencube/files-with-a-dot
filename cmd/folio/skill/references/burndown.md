@@ -34,8 +34,8 @@ when the approach is proven. Each wave definition includes:
 - **Expected ratchet delta** — how much the ratchet should improve
 - **"What we expect to learn"** — Toyota Kata pre-commitment (prediction before execution)
 
-Wave ordering is typically revisited at checkpoints, but can be adjusted
-mid-wave if learnings warrant it.
+Wave ordering is a starting hypothesis. Evaluate it at every checkpoint — see
+**Rebalancing** for triggers and mechanics.
 
 ## Execution Loop
 
@@ -63,10 +63,51 @@ Run at wave boundary. Synthesizes across per-group findings. Write to
 2. **Actual condition** — run the ratchet command. Report the number.
 3. **Patterns** — what systemic findings emerged across groups?
 4. **Adjustments** — what changes for the next wave? Re-order groups, update reference
-   docs, defer items, split or merge groups.
+   docs, defer items. For structural changes (splitting, merging, reordering waves),
+   run the **Rebalancing** protocol.
 
 Per-group files use the same Kata format. The wave checkpoint synthesizes across
 groups — patterns, systemic findings, ordering changes.
+
+## Rebalancing
+
+Wave structure is a hypothesis — the initial decomposition reflects what you know at
+planning time. Checkpoints are where you learn whether it still holds. Rebalancing
+means splitting, merging, or reordering remaining waves based on what execution revealed.
+
+### Triggers
+
+Evaluate rebalancing at every wave checkpoint. These signals suggest the current
+decomposition is wrong:
+
+| Signal | Example | Likely action |
+|--------|---------|---------------|
+| **Size imbalance** — a remaining wave is >2x the average of completed waves | Waves 1-5 averaged 15 items; Wave 6 has 105 | Split by risk tier or dependency boundary |
+| **Risk heterogeneity** — a wave mixes items with different risk profiles | Low-risk retro moves + high-risk cluster moves in one wave | Separate into distinct waves ordered by risk |
+| **Dependency tiers** — items within a wave have ordering constraints on each other | Independent items must finish before dependent items can move | Split into waves that respect the dependency order |
+| **Approach divergence** — different items in a wave need different execution strategies | Some items are mechanical moves, others need classification judgment | Group by strategy, execute simpler strategy first |
+
+### Mechanics
+
+1. **Assess** — at the checkpoint, compare remaining work against completed waves.
+   Look for the triggers above.
+2. **Propose** — draft new wave boundaries. Each new wave must have: group list,
+   expected delta, "what we expect to learn", and a clear dependency ordering
+   relative to other new waves.
+3. **Validate the split** — check three properties:
+   - **Dependency ordering**: no wave depends on artifacts that move in a later wave
+   - **Atomic clusters**: items connected by `depends_on` chains stay in the same wave
+   - **Size balance**: no single wave is >2x the median of all waves (including completed)
+4. **Update tracking** — revise the wave table in `waves.md` with a restructure note
+   explaining why. Old wave numbers stay; new waves get the next sequential numbers.
+
+### Anti-patterns
+
+- **Splitting for splitting's sake** — if a wave is large but homogeneous and low-risk,
+  don't split it. Split when risk tiers or dependencies demand it.
+- **Merging independent projects into one wave** — projects with no shared dependencies
+  should be separate waves even if individually small. Keeps blast radius contained and
+  checkpoints meaningful.
 
 ## Advance & Re-scope
 
