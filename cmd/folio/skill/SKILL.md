@@ -4,7 +4,7 @@ description: "Use when planning non-trivial tasks, composing outputs, or managin
   knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
   composition and diverge-converge planning."
 user_invocable: true
-argument-hint: "[gather|plan|compose|publish|status|...] [args]"
+argument-hint: "[gather|plan|compose|publish|lint|find|observe|status|...] [args]"
 ---
 
 # Folio
@@ -109,6 +109,12 @@ Compose sources into targets in DAG order. Composition is creative assembly — 
 Send composed output to external systems (Jira, Google Docs, Slack). Resolves push method from tooling.yml.
 
 -> Read references/publish.md for full workflow (includes Jira push pipeline).
+
+### /folio lint [project]
+
+Periodic knowledge integrity pass. Two-layer scan (CLI deterministic + LLM semantic) across active projects, producing a structured cleanup plan before acting. Findings tracked in a persistent `folio-hygiene` project. Scoped mode (`/folio lint <project>`) runs on a single project.
+
+-> Read references/lint.md for full workflow (phases, scoped mode, guardrails).
 
 ### /folio observe
 
@@ -236,6 +242,9 @@ Two gate types, proportional to risk:
 | gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
+| lint | Hard | Before Phase 3 execution | Cleanup plan summary, action count by effort level |
+| lint | Hard | Before cross-project mutation | Proposed command, target project |
+| lint | Soft | At 20 observations | Finding count, confirmation to continue |
 
 ## Materialization Invariants
 
@@ -274,6 +283,7 @@ is how provenance chains break.
 ## Reference Files
 
 - **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
+- **references/lint.md** — Lint workflow: periodic knowledge integrity pass, two-layer scan, cleanup plan, folio-hygiene project
 - **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing
 - **references/alignment.md** — Alignment protocol: claim-first questioning, invocation contract, confidence-based exit
 - **references/adversarial-review.md** — Cross-cutting principle: every subjective judgment needs pushback (3 tiers: self-challenge, adversarial prompt, parallel adversarial)
