@@ -15,9 +15,10 @@ Periodic knowledge integrity pass across folio projects. Two-layer scan (CLI det
    folio init --name "Folio Hygiene"
    ```
 3. Record the folio-hygiene folio.yml path for use throughout.
-4. **Check for in-progress pass**: Look for an open (non-archived) lint work track in folio-hygiene — a spike or design under `work/lint-pass*`. If found, present routing options before proceeding:
+4. **Check for in-progress pass**: Look for an open (non-archived) lint work track in folio-hygiene — a spike or design under `work/lint-pass*`. If found, check for burndown state (`progress/waves.md` with PENDING or ACTIVE waves) and present routing options:
 
-   - **Continue** — Resume execution from the existing cleanup plan (skip to Phase 3). Requires a design with unresolved items.
+   - **Execute** — Resume burndown execution from the current wave. Only offered when `progress/waves.md` exists with incomplete waves. This is the primary resumption path.
+   - **Continue** — Resume planning from the existing cleanup plan (skip to Phase 2 plan creation or Phase 3 mechanical items). Offered when a design exists but no burndown is in progress.
    - **Re-scan** — Discard prior findings and start a fresh Phase 1 scan.
    - **Review** — Display the existing spike/design findings so the user can decide next steps.
 
@@ -91,7 +92,7 @@ Group actions by effort level:
 - **Mechanical** (no judgment): Resolve confirmed-stale observations, archive completed work tracks, fix naming issues. These batch-execute with user confirmation.
 - **Judgment required**: Vault promotion decisions, lifecycle progression nudges (should this spike become a design?), cross-project pattern responses. Present one at a time.
 - **Deeper work (external)**: Findings that reveal a need in another project's domain (e.g., "this project's spike has gone stale — it may need a design or a conclusion"). These become observations in the target project via `folio observe` — lint surfaces the need, the target project owns execution.
-- **Deeper work (hygiene)**: Findings where the work IS knowledge organization — restructuring projects, reclassifying archives, splitting monolithic projects. These stay in folio-hygiene and use `/folio plan` for proper lifecycle (diverge-converge, design doc, execution tracks). Lint owns this end-to-end.
+- **Deeper work (hygiene)**: Findings where the work IS knowledge organization — restructuring projects, reclassifying archives, splitting monolithic projects. These stay in folio-hygiene and use `/folio plan` for proper lifecycle (diverge-converge, design doc, burndown). Lint owns this end-to-end. **All plan artifacts colocate inside the lint work track** — design doc at `reference/design/`, agent research at `agent-research/`, execution brief as `README.md`, burndown progress at `progress/waves.md`. Do NOT create a separate work track for hygiene items.
 
 For large finding sets, structure execution as burndown waves per `references/burndown.md`. Use judgment on when this is appropriate, not a fixed threshold.
 
@@ -103,7 +104,14 @@ Cap at 20 observations per pass. If findings exceed 20, present a soft confirmat
 
 ### Session handoff
 
-The spike + design pair is the handoff artifact. If the pass spans sessions, the next session reads them to resume.
+The lint work track IS the handoff artifact. Everything lives inside it — spike, cleanup plan, design docs for hygiene items, execution brief, burndown progress. A new session runs `/folio lint`, the preflight detects the work track's state, and routes accordingly:
+
+- Spike only → offer Continue (Phase 2) or Re-scan
+- Spike + cleanup plan → offer Continue (Phase 3) or Re-scan
+- Spike + cleanup plan + `progress/waves.md` with incomplete waves → offer **Execute** (resume burndown)
+- All waves complete → offer Retro (Phase 4)
+
+No handoff document needed. The work track state is self-describing.
 
 ## Phase 3 — Execute
 
@@ -112,7 +120,7 @@ For each item in the cleanup plan:
 - **Mechanical items**: Batch-resolve with `folio observe resolve`. Use `folio archive` for completed work tracks. Present batch before executing.
 - **Judgment items**: Present one at a time. User decides.
 - **Deeper work (external)**: Add observation to target project via `folio observe`. This enforces type disambiguation and alignment — no direct folio.yml edits.
-- **Deeper work (hygiene)**: Run `/folio plan` within folio-hygiene. The lint design doc's findings are the input; the plan workflow produces a proper design doc and execution tracks. Lint stays in the driver's seat — this is not deferred.
+- **Deeper work (hygiene)**: Run `/folio plan` within folio-hygiene. The lint spike's findings are the input; the plan workflow produces a design doc, execution brief, and burndown tracking — all colocated inside the lint work track (not a separate work track). Lint stays in the driver's seat — this is not deferred. When execution uses burndown waves, `progress/waves.md` becomes the resumption signal for the preflight's **Execute** routing.
 
 **Cross-project mutation gate (hard)**: Lint never directly writes to another project's folio.yml without explicit user confirmation. Present the proposed command and wait.
 
