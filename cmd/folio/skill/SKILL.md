@@ -137,7 +137,11 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio new <type> <topic>` | Scaffold typed artifact (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` |
 | `folio gather <url>` | Add source entry from URL (`--materialize --type <type>` or `--name` as needed) |
 | `folio touch <target>` | Mark a target as current |
-| `folio observe` | Observation management (add, list, resolve, lint, types) |
+| `folio observe 'type(scope): description'` | Add observation. Types: `idea`, `gap`, `bug`, `debt`, `task`. Example: `folio observe 'bug(folio-cli): validate crashes on empty sources'` |
+| `folio observe list` | List all observations (add `--json` for structured output) |
+| `folio observe resolve "#N" "#N2" ...` | Resolve by index. **Batch multiple in one call** to avoid index shift |
+| `folio observe types` | Show valid types and descriptions |
+| `folio observe lint` | Check format and inline path refs |
 | `folio archive` | Move work track from active to archive |
 
 **Management** — setup and home operations:
