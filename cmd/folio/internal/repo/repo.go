@@ -98,6 +98,13 @@ func isWorkspace(dir string) bool {
 	return strings.HasPrefix(filepath.Base(dir), "folio-ws-")
 }
 
+// isColocated returns true if dir has both .jj and .git (jj+git colocated repo).
+func isColocated(dir string) bool {
+	_, jjErr := os.Stat(filepath.Join(dir, ".jj"))
+	_, gitErr := os.Stat(filepath.Join(dir, ".git"))
+	return jjErr == nil && gitErr == nil
+}
+
 // defaultWorkspaceRoot returns the default workspace root for a jj repo.
 func defaultWorkspaceRoot(dir string) (string, error) {
 	out, err := jjOutput(dir, "workspace", "root", "--name", "default")
@@ -158,6 +165,12 @@ func jjPush(home, message string) error {
 		if root, err := defaultWorkspaceRoot(home); err == nil {
 			if rebErr := jjIn(root, "rebase", "-r", "@", "-d", "main"); rebErr != nil {
 				fmt.Fprintf(os.Stderr, "warning: could not rebase default workspace: %s\n", rebErr)
+			}
+			// Re-attach git HEAD to main in colocated repos so git status
+			// shows "on branch main" instead of detached HEAD.
+			// Uses symbolic-ref (not checkout) to avoid touching the working tree.
+			if isColocated(root) {
+				_ = gitIn(root, "symbolic-ref", "HEAD", "refs/heads/main")
 			}
 		}
 	}

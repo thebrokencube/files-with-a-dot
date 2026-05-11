@@ -500,6 +500,38 @@ func TestJJPushFromWorkspaceRebasesDefault(t *testing.T) {
 	if !strings.Contains(string(out), "main") {
 		t.Errorf("default workspace @ parent = %q, want parent to be main", strings.TrimSpace(string(out)))
 	}
+
+	// Verify git HEAD is attached to main (not detached) in the colocated repo
+	cmd = exec.Command("git", "symbolic-ref", "HEAD")
+	cmd.Dir = repoDir
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git symbolic-ref HEAD: %s", out)
+	}
+	if strings.TrimSpace(string(out)) != "refs/heads/main" {
+		t.Errorf("git HEAD = %q, want refs/heads/main", strings.TrimSpace(string(out)))
+	}
+}
+
+func TestIsColocated(t *testing.T) {
+	// jj git init creates a colocated repo (.jj + .git)
+	skipWithoutJJ(t)
+	dir := initTestJJRepo(t)
+	if !isColocated(dir) {
+		t.Error("isColocated = false, want true for jj git init repo")
+	}
+
+	// plain git repo is not colocated
+	gitDir := initTestRepo(t)
+	if isColocated(gitDir) {
+		t.Error("isColocated = true, want false for git-only repo")
+	}
+
+	// empty dir is not colocated
+	emptyDir := t.TempDir()
+	if isColocated(emptyDir) {
+		t.Error("isColocated = true, want false for empty dir")
+	}
 }
 
 func TestJJPushFromRepoRootSkipsRebase(t *testing.T) {
