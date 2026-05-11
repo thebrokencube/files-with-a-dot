@@ -282,3 +282,4 @@ is how provenance chains break.
 - **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, schema migration hints
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
 - **references/burndown.md** — Burndown execution: wave-based batch work with ratchet, checkpoints, and flywheel learning
+- **references/migrate.md** — Migration guide: moving lifecycle artifacts from reference/ to work/, classification framework, cluster moves, per-artifact checklist
