@@ -90,7 +90,8 @@ Group actions by effort level:
 
 - **Mechanical** (no judgment): Resolve confirmed-stale observations, archive completed work tracks, fix naming issues. These batch-execute with user confirmation.
 - **Judgment required**: Vault promotion decisions, lifecycle progression nudges (should this spike become a design?), cross-project pattern responses. Present one at a time.
-- **Deeper work**: Findings that reveal a real project need. These become observations in the target project via `folio observe` — lint surfaces the need, does not create forward work.
+- **Deeper work (external)**: Findings that reveal a need in another project's domain (e.g., "this project's spike has gone stale — it may need a design or a conclusion"). These become observations in the target project via `folio observe` — lint surfaces the need, the target project owns execution.
+- **Deeper work (hygiene)**: Findings where the work IS knowledge organization — restructuring projects, reclassifying archives, splitting monolithic projects. These stay in folio-hygiene and use `/folio plan` for proper lifecycle (diverge-converge, design doc, execution tracks). Lint owns this end-to-end.
 
 For large finding sets, structure execution as burndown waves per `references/burndown.md`. Use judgment on when this is appropriate, not a fixed threshold.
 
@@ -110,7 +111,8 @@ For each item in the cleanup plan:
 
 - **Mechanical items**: Batch-resolve with `folio observe resolve`. Use `folio archive` for completed work tracks. Present batch before executing.
 - **Judgment items**: Present one at a time. User decides.
-- **Deeper work**: Add observation to target project via `folio observe`. This enforces type disambiguation and alignment — no direct folio.yml edits.
+- **Deeper work (external)**: Add observation to target project via `folio observe`. This enforces type disambiguation and alignment — no direct folio.yml edits.
+- **Deeper work (hygiene)**: Run `/folio plan` within folio-hygiene. The lint design doc's findings are the input; the plan workflow produces a proper design doc and execution tracks. Lint stays in the driver's seat — this is not deferred.
 
 **Cross-project mutation gate (hard)**: Lint never directly writes to another project's folio.yml without explicit user confirmation. Present the proposed command and wait.
 
@@ -150,7 +152,7 @@ Useful after completing a big work track, or when a project's observation count 
 |-----------|-----------|
 | User-steered depth | User selects up to 3 projects for LLM review |
 | Cross-project mutation | Hard confirmation gate — lint proposes commands, user authorizes |
-| Cleanup vs forward work | Lint resolves/archives. New design work becomes an observation in the target project. |
+| Cleanup vs forward work | Lint resolves/archives. Work belonging to another project's domain → observation in that project. Work that IS hygiene (restructuring, reclassification) → `/folio plan` within folio-hygiene. |
 | Observe alignment | Cross-project observations go through `folio observe` (enforces type disambiguation) |
 | Self-cleaning | Resolved items marked done during execution; work track archived after retro |
 | Self-linting | folio-hygiene is included in future lint scans like any project |
