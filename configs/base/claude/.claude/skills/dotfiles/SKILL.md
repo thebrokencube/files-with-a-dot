@@ -64,6 +64,7 @@ Managed files drift when external tools modify the destination file after compil
 ```
 ~/.dotfiles/
 ├── cmd/
+│   ├── dendrik/                # Convention linter (Go CLI)
 │   ├── dot/                    # dot CLI + engine
 │   │   ├── dot                 # entrypoint (shell dispatcher)
 │   │   ├── sync.sh             # dot sync/pull/links
@@ -71,7 +72,8 @@ Managed files drift when external tools modify the destination file after compil
 │   │   ├── health.sh           # dot health/fix
 │   │   ├── lib/                # sourced shell functions
 │   │   └── scripts/            # one-offs + helpers
-│   └── folio/                  # Go CLI
+│   ├── folio/                  # Knowledge work CLI (Go)
+│   └── jf/                     # Jira Forest CLI (Go)
 ├── configs/
 │   ├── base/                   # always-applied configs
 │   │   ├── <app>/              # One directory per app

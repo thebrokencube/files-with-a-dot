@@ -80,12 +80,11 @@ Available globally (in any project) via [Claude Code](https://docs.anthropic.com
 
 | Skill | Purpose |
 |-------|---------|
-| `/folio` | Knowledge work lifecycle - plan, compose, gather, publish |
+| `/folio` | Knowledge work lifecycle - plan, compose, gather, lint, publish |
 | `/jf` | Jira Forest - push/pull/sync markdown to Jira tickets |
 | `/dotfiles` | Manage dotfiles - install, update, health, setup |
 | `/nvim` | Neovim help - plugins, config, troubleshooting |
 | `/commit` | Git commit conventions and versioning |
-| `/stacked-pr` | Stacked branch workflows and propagation |
 | `/dendrik` | Validate tool conventions and contract compliance |
 
 ## Tools
