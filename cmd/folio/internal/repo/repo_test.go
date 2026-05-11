@@ -416,3 +416,205 @@ func TestValidateCommitMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestIsWorkspace(t *testing.T) {
+	tests := []struct {
+		dir  string
+		want bool
+	}{
+		{"/tmp/folio-ws-1234567890-12345", true},
+		{"/tmp/folio-ws-0-0", true},
+		{"/Users/me/.folio", false},
+		{"/tmp/other-dir", false},
+		{"", false},
+		{"/tmp/folio-ws-", true}, // edge: empty suffix still has prefix
+	}
+	for _, tt := range tests {
+		t.Run(tt.dir, func(t *testing.T) {
+			if got := isWorkspace(tt.dir); got != tt.want {
+				t.Errorf("isWorkspace(%q) = %v, want %v", tt.dir, got, tt.want)
+			}
+		})
+	}
+}
+
+// initTestJJRepoWithWorkspace creates a jj repo and a workspace named "folio-ws-test"
+// so isWorkspace() returns true. Returns (repoDir, workspaceDir).
+func initTestJJRepoWithWorkspace(t *testing.T) (string, string) {
+	t.Helper()
+	return initTestJJRepoWithNamedWorkspace(t, "folio-ws-test")
+}
+
+// initTestJJRepoWithNamedWorkspace creates a jj repo and a workspace with the given name.
+// Returns (repoDir, workspaceDir).
+func initTestJJRepoWithNamedWorkspace(t *testing.T, wsName string) (string, string) {
+	t.Helper()
+	skipWithoutJJ(t)
+
+	base := t.TempDir()
+	repoDir := filepath.Join(base, "repo")
+	wsDir := filepath.Join(base, wsName)
+
+	os.MkdirAll(repoDir, 0755)
+
+	cmd := exec.Command("jj", "git", "init")
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("jj git init: %s", out)
+	}
+
+	// Create initial commit so main bookmark exists
+	os.WriteFile(filepath.Join(repoDir, "init.txt"), []byte("init"), 0644)
+	if err := Push(repoDir, "test(repo): initial"); err != nil {
+		t.Fatalf("initial Push: %v", err)
+	}
+
+	// Create workspace
+	cmd = exec.Command("jj", "--no-pager", "workspace", "add", wsDir, "-r", "main", "-R", repoDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("jj workspace add: %v", err)
+	}
+
+	return repoDir, wsDir
+}
+
+func TestJJPushFromWorkspaceRebasesDefault(t *testing.T) {
+	repoDir, wsDir := initTestJJRepoWithWorkspace(t)
+
+	// Write a file in the workspace and push
+	os.WriteFile(filepath.Join(wsDir, "from-ws.txt"), []byte("workspace change"), 0644)
+	if err := Push(wsDir, "test(repo): push from workspace"); err != nil {
+		t.Fatalf("Push from workspace: %v", err)
+	}
+
+	// Verify default workspace's @ parent is main
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "@", "--no-graph",
+		"-T", `separate(" ", parents.map(|p| if(p.bookmarks().len() > 0, p.bookmarks(), "none")))`)
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log: %s", out)
+	}
+	if !strings.Contains(string(out), "main") {
+		t.Errorf("default workspace @ parent = %q, want parent to be main", strings.TrimSpace(string(out)))
+	}
+}
+
+func TestJJPushFromRepoRootSkipsRebase(t *testing.T) {
+	// When pushing from the repo root (not a workspace), no rebase should happen
+	// This is a regression guard — isWorkspace should return false for repo root
+	dir := initTestJJRepo(t)
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0644)
+
+	// Should succeed without errors (no workspace rebase attempted)
+	if err := Push(dir, "test(repo): from root"); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+}
+
+func TestJJPushFromTwoWorkspacesSequential(t *testing.T) {
+	// Simulate two sessions pushing sequentially — default should track main after each
+	skipWithoutJJ(t)
+
+	base := t.TempDir()
+	repoDir := filepath.Join(base, "repo")
+	wsA := filepath.Join(base, "folio-ws-session-a")
+	wsB := filepath.Join(base, "folio-ws-session-b")
+
+	os.MkdirAll(repoDir, 0755)
+
+	cmd := exec.Command("jj", "git", "init")
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("jj git init: %s", out)
+	}
+
+	// Bootstrap main
+	os.WriteFile(filepath.Join(repoDir, "init.txt"), []byte("init"), 0644)
+	if err := Push(repoDir, "test(repo): initial"); err != nil {
+		t.Fatalf("initial Push: %v", err)
+	}
+
+	// Create two workspaces
+	for _, ws := range []string{wsA, wsB} {
+		cmd = exec.Command("jj", "--no-pager", "workspace", "add", ws, "-r", "main", "-R", repoDir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("jj workspace add %s: %v", ws, err)
+		}
+	}
+
+	// Session A pushes
+	os.WriteFile(filepath.Join(wsA, "a.txt"), []byte("from A"), 0644)
+	if err := Push(wsA, "test(repo): session a push"); err != nil {
+		t.Fatalf("Push from A: %v", err)
+	}
+
+	// Verify default is on main after A's push
+	cmd = exec.Command("jj", "--no-pager", "log", "-r", "@", "--no-graph",
+		"-T", `separate(" ", parents.map(|p| if(p.bookmarks().len() > 0, p.bookmarks(), "none")))`)
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log after A: %s", out)
+	}
+	if !strings.Contains(string(out), "main") {
+		t.Errorf("after A: default @ parent = %q, want main", strings.TrimSpace(string(out)))
+	}
+
+	// Session B pushes (main has moved since B was created)
+	os.WriteFile(filepath.Join(wsB, "b.txt"), []byte("from B"), 0644)
+	if err := Push(wsB, "test(repo): session b push"); err != nil {
+		t.Fatalf("Push from B: %v", err)
+	}
+
+	// Verify default is still on main after B's push
+	cmd = exec.Command("jj", "--no-pager", "log", "-r", "@", "--no-graph",
+		"-T", `separate(" ", parents.map(|p| if(p.bookmarks().len() > 0, p.bookmarks(), "none")))`)
+	cmd.Dir = repoDir
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log after B: %s", out)
+	}
+	if !strings.Contains(string(out), "main") {
+		t.Errorf("after B: default @ parent = %q, want main", strings.TrimSpace(string(out)))
+	}
+}
+
+func TestJJPushFromWorkspaceDefaultDirty(t *testing.T) {
+	// If default workspace has uncommitted changes, push should still succeed
+	// (rebase is best-effort — warn but don't fail)
+	repoDir, wsDir := initTestJJRepoWithWorkspace(t)
+
+	// Dirty the default workspace
+	os.WriteFile(filepath.Join(repoDir, "dirty.txt"), []byte("uncommitted"), 0644)
+
+	// Push from workspace — should succeed despite dirty default
+	os.WriteFile(filepath.Join(wsDir, "ws.txt"), []byte("workspace"), 0644)
+	if err := Push(wsDir, "test(repo): push with dirty default"); err != nil {
+		t.Fatalf("Push should succeed even with dirty default: %v", err)
+	}
+}
+
+func TestJJPushFromWorkspaceNoDefault(t *testing.T) {
+	// If the default workspace has been forgotten, push should still succeed
+	// (repoRoot fails, best-effort skips rebase)
+	repoDir, wsDir := initTestJJRepoWithWorkspace(t)
+
+	// Forget the default workspace
+	cmd := exec.Command("jj", "--no-pager", "--quiet", "workspace", "forget", "default", "-R", repoDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("jj workspace forget: %v", err)
+	}
+
+	// Push from workspace — should succeed without default workspace
+	os.WriteFile(filepath.Join(wsDir, "ws.txt"), []byte("workspace"), 0644)
+	if err := Push(wsDir, "test(repo): push without default"); err != nil {
+		t.Fatalf("Push should succeed even without default workspace: %v", err)
+	}
+}

@@ -92,6 +92,21 @@ func Pull(home string) error {
 	return nil
 }
 
+// isWorkspace returns true if dir is a jj workspace (not the repo root).
+// Workspaces are created in /tmp with a "folio-ws-" prefix.
+func isWorkspace(dir string) bool {
+	return strings.HasPrefix(filepath.Base(dir), "folio-ws-")
+}
+
+// defaultWorkspaceRoot returns the default workspace root for a jj repo.
+func defaultWorkspaceRoot(dir string) (string, error) {
+	out, err := jjOutput(dir, "workspace", "root", "--name", "default")
+	if err != nil {
+		return "", fmt.Errorf("jj workspace root: %w", err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // jjPush describes @, sets bookmark, pushes, and creates fresh @.
 func jjPush(home, message string) error {
 	// Check if @ is empty
@@ -135,6 +150,16 @@ func jjPush(home, message string) error {
 	// Fresh @ for next operation
 	if err := jjIn(home, "new"); err != nil {
 		return fmt.Errorf("jj new: %w", err)
+	}
+
+	// If pushing from a workspace, rebase the default workspace onto main
+	// so it stays current without manual intervention.
+	if isWorkspace(home) {
+		if root, err := defaultWorkspaceRoot(home); err == nil {
+			if rebErr := jjIn(root, "rebase", "-r", "@", "-d", "main"); rebErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not rebase default workspace: %s\n", rebErr)
+			}
+		}
 	}
 
 	return nil
