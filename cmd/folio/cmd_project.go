@@ -144,7 +144,7 @@ func runInit(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	content := fmt.Sprintf(`schema: 2
+	content := fmt.Sprintf(`schema: 3
 project: "%s"
 
 sources: []
