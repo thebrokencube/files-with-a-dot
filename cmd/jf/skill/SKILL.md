@@ -204,13 +204,22 @@ Ticket naming, description structure, content rules, and project field defaults.
 
 -> See references/gotchas.md for Jira-specific pitfalls (content rendering, MCP optimization, acli quirks).
 
+## Restructure
+
+Workflow for creating new epics/projects, reparenting tickets, and reorganizing Jira hierarchy.
+
+-> See references/restructure.md for the full phased playbook (prepare → create → reparent → sync → verify → close → update folio).
+
 ## When to Use MCP Directly
 
 **HARD RULE**: Always use jf commands for Jira operations. If you must use MCP directly (e.g., Jira MCP tools like `editJiraIssue`, `createJiraIssue`), you MUST explain why jf cannot handle the operation BEFORE making the MCP call. Never skip this explanation.
 
 Valid reasons to use MCP directly:
+- **Reparenting tickets**: jf has no reparent command — use MCP `editJiraIssue` with `parent: { key: "..." }`
+- **Transitioning status**: jf has no transition command — use MCP `transitionJiraIssue`
+- **Creating issue links**: jf has no link command — use MCP `createIssueLink`
 - **Parking lot repurposing**: jf has no `jf unpark` command yet, and acli doesn't support updating the parent field — must use MCP to reparent a parked ticket
-- **Field updates not supported by jf**: Changing status, assignee, or custom fields that jf doesn't manage
+- **Field updates not supported by jf**: Changing assignee or custom fields that jf doesn't manage
 - **Queries outside jf scope**: Complex JQL searches, field metadata discovery
 
 Invalid reasons (use jf instead):
