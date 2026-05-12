@@ -208,10 +208,15 @@ This errors if unpushed changes exist (run `folio home push` first), then remove
 Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
 Sessions that never invoked `/folio` have nothing to clean up.
 
+**Only clean up your own workspace.** `folio home workspace list` shows all workspaces but
+does not indicate which ones belong to active sessions. Cleaning up another session's workspace
+will break that session. Never run cleanup on a workspace you didn't create in this session.
+If the user asks about stale workspaces, list them but let the user decide which to remove.
+
 **Workspace commands:**
 - `folio home workspace create` — create a workspace (called by skill on first `/folio` invocation)
-- `folio home workspace list` — list all workspaces
-- `folio home workspace cleanup [path]` — remove a workspace (requires empty @)
+- `folio home workspace list` — list all workspaces (does NOT indicate ownership — treat unknown workspaces as potentially active)
+- `folio home workspace cleanup [path]` — remove a workspace (requires empty @, only use on YOUR workspace)
 
 ### Git Operations for ~/.folio
 
