@@ -81,10 +81,9 @@
       "Bash(gh *)",
       "Bash(acli *)",
 
-      "Bash(dot)",
-      "Bash(dot *)",
-      "Bash(folio)",
-      "Bash(folio *)",
+      "Bash(dot*)",
+      "Bash(folio*)",
+      "Bash(FOLIO_HOME=/tmp/folio-ws-* folio *)",
       "Bash(brew *)",
       "Bash(sleep *)",
       "Bash(sed *)",
