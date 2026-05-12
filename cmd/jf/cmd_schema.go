@@ -42,6 +42,7 @@ func printInputSchemas() int {
 							"type":    map[string]any{"type": "string", "description": "Default Jira issue type"},
 							"field":   map[string]any{"type": "string", "description": "Default field (description or comment)"},
 							"project": map[string]any{"type": "string", "description": "Jira project key"},
+							"repos":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "GitHub org/repo list for PR enrichment"},
 						},
 					},
 					"acli": map[string]any{
@@ -59,6 +60,7 @@ func printInputSchemas() int {
 					"type":  map[string]any{"type": "string", "description": "Jira issue type"},
 					"sync":  map[string]any{"type": "string", "enum": []string{"push", "pull", "both"}},
 					"order": map[string]any{"type": "integer", "description": "Sibling sort order (lower first)"},
+					"prs":   map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Explicit PR associations (override derivation)"},
 				},
 				"required": []string{"jira"},
 			},
@@ -89,6 +91,16 @@ func printOutputSchemas() int {
 					"status":   map[string]any{"type": "string", "enum": []string{"stale", "clean", "unknown"}},
 				},
 			},
+			"PRBadge": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"key":    map[string]any{"type": "string", "description": "Jira key this PR is associated with"},
+					"number": map[string]any{"type": "integer"},
+					"state":  map[string]any{"type": "string", "enum": []string{"draft", "open", "merged", "closed"}},
+					"ci":     map[string]any{"type": "string", "enum": []string{"pass", "fail", "pending", "none"}},
+					"branch": map[string]any{"type": "string"},
+				},
+			},
 			"StatusResult": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -99,6 +111,8 @@ func printOutputSchemas() int {
 					"push_stale": map[string]any{"type": "integer"},
 					"pull_total": map[string]any{"type": "integer"},
 					"pull_stale": map[string]any{"type": "integer"},
+					"repos":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"prs":        map[string]any{"type": "array", "items": map[string]any{"$ref": "#/definitions/PRBadge"}},
 				},
 			},
 			"ValidateResult": map[string]any{

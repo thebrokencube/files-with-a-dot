@@ -26,10 +26,11 @@ type Forest struct {
 
 // ForestDefaults are inherited by all nodes unless overridden.
 type ForestDefaults struct {
-	Sync    string `yaml:"sync"`    // push | pull
-	Type    string `yaml:"type"`    // Jira issue type (for creation)
-	Field   string `yaml:"field"`   // description | comment
-	Project string `yaml:"project"` // Jira project key
+	Sync    string   `yaml:"sync"`    // push | pull
+	Type    string   `yaml:"type"`    // Jira issue type (for creation)
+	Field   string   `yaml:"field"`   // description | comment
+	Project string   `yaml:"project"` // Jira project key
+	Repos   []string `yaml:"repos"`   // GitHub org/repo list (e.g. ["Gusto/hawaiian-ice"])
 }
 
 // Node represents a single jira-forest node discovered from the filesystem.
@@ -51,6 +52,7 @@ type Frontmatter struct {
 	Type  string `yaml:"type"`
 	Sync  string `yaml:"sync"`
 	Order int    `yaml:"order"`
+	PRs   []int  `yaml:"prs,omitempty"` // explicit PR associations (override)
 }
 
 // ParseForestFile reads and parses a forest.yml file.

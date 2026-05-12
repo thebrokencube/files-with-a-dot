@@ -17,6 +17,7 @@ func runClone(args []string) int {
 	dir := fs.String('d', "dir", ".", "Parent directory for cloned forest")
 	depth := fs.IntLong("depth", 0, "Max hierarchy depth (0 = unlimited)")
 	syncMode := fs.StringLong("sync", "", "Sync direction override for scaffolded nodes: push|pull|both (default: omit, derives from mutability)")
+	repo := fs.StringLong("repo", "", "GitHub org/repo for PR badge enrichment (e.g. Gusto/hawaiian-ice)")
 
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
@@ -65,7 +66,7 @@ func runClone(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	if err := generateForestYAML(forestDir, root, *syncMode); err != nil {
+	if err := generateForestYAML(forestDir, root, *syncMode, *repo); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ forest.yml error: %s\n", err)
 		return dendrik.ExitUserError
 	}
@@ -216,13 +217,16 @@ func scaffoldTree(baseDir string, node *cloneNode, relPath, syncMode string) err
 	return nil
 }
 
-func generateForestYAML(forestDir string, root *cloneNode, syncMode string) error {
+func generateForestYAML(forestDir string, root *cloneNode, syncMode, repo string) error {
 	project := strings.Split(root.Key, "-")[0]
 	var yml string
 	if syncMode == "" {
 		yml = fmt.Sprintf("schema: 1\ndefaults:\n  project: %s\n", project)
 	} else {
 		yml = fmt.Sprintf("schema: 1\ndefaults:\n  sync: %s\n  project: %s\n", syncMode, project)
+	}
+	if repo != "" {
+		yml = strings.TrimRight(yml, "\n") + fmt.Sprintf("\n  repos:\n    - %s\n", repo)
 	}
 	return os.WriteFile(filepath.Join(forestDir, "forest.yml"), []byte(yml), 0644)
 }

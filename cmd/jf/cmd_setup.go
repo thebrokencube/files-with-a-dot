@@ -36,8 +36,12 @@ func runSetup(args []string) int {
 func setupCheck(jsonOut bool) int {
 	results, ok := setup.CheckAll(setup.DefaultChecker)
 
+	// Optional checks (don't affect overall pass/fail)
+	ghResult := setup.CheckGH(setup.DefaultChecker)
+
 	if jsonOut {
-		data, _ := json.MarshalIndent(results, "", "  ")
+		allResults := append(results, ghResult)
+		data, _ := json.MarshalIndent(allResults, "", "  ")
 		fmt.Println(string(data))
 		if ok {
 			return dendrik.ExitOK
@@ -62,6 +66,14 @@ func setupCheck(jsonOut bool) int {
 		}
 	}
 
+	// Display optional gh check
+	switch ghResult.Status {
+	case "ok":
+		fmt.Printf("✓ %-12s %s (optional)\n", ghResult.Name, ghResult.Detail)
+	default:
+		fmt.Printf("- %-12s %s (optional)\n", ghResult.Name, ghResult.Detail)
+	}
+
 	if ok {
 		fmt.Println("\nAll checks passed.")
 		return dendrik.ExitOK
@@ -76,6 +88,7 @@ func setupInteractive() int {
 	fmt.Println()
 
 	results, ok := setup.CheckAll(setup.DefaultChecker)
+	ghResult := setup.CheckGH(setup.DefaultChecker)
 
 	for _, r := range results {
 		switch r.Status {
@@ -87,6 +100,13 @@ func setupInteractive() int {
 				fmt.Printf("  → %s\n", r.Fix)
 			}
 		}
+	}
+
+	switch ghResult.Status {
+	case "ok":
+		fmt.Printf("✓ %-12s %s (optional)\n", ghResult.Name, ghResult.Detail)
+	default:
+		fmt.Printf("- %-12s %s (optional)\n", ghResult.Name, ghResult.Detail)
 	}
 
 	if ok {

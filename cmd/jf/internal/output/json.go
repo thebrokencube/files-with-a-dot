@@ -22,18 +22,29 @@ type NodeInfo struct {
 	Status   string `json:"status,omitempty"` // "stale" | "clean" | "unknown"
 }
 
+// PRBadge is the per-PR output for status enrichment.
+type PRBadge struct {
+	Key    string `json:"key"` // Jira key this PR is associated with
+	Number int    `json:"number"`
+	State  string `json:"state"`            // draft | open | merged | closed
+	CI     string `json:"ci"`               // pass | fail | pending | none
+	Branch string `json:"branch,omitempty"` // headRefName
+}
+
 // StatusResult is the JSON output for jf status.
 type StatusResult struct {
-	Forest    string `json:"forest"`
-	Total     int    `json:"total"`
-	TBD       int    `json:"tbd"`
-	PushTotal int    `json:"push_total"`
-	PushStale int    `json:"push_stale"`
-	PullTotal int    `json:"pull_total"`
-	PullStale int    `json:"pull_stale"`
-	Mutable   int    `json:"mutable"`
-	ReadOnly  int    `json:"read_only"`
-	Empty     int    `json:"empty"`
+	Forest    string    `json:"forest"`
+	Total     int       `json:"total"`
+	TBD       int       `json:"tbd"`
+	PushTotal int       `json:"push_total"`
+	PushStale int       `json:"push_stale"`
+	PullTotal int       `json:"pull_total"`
+	PullStale int       `json:"pull_stale"`
+	Mutable   int       `json:"mutable"`
+	ReadOnly  int       `json:"read_only"`
+	Empty     int       `json:"empty"`
+	Repos     []string  `json:"repos,omitempty"`
+	PRs       []PRBadge `json:"prs,omitempty"`
 }
 
 // ValidateResult is the JSON output for jf validate.

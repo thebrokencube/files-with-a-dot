@@ -121,6 +121,27 @@ func QuickCheck(check Checker) string {
 	return ""
 }
 
+// CheckGH checks if the gh CLI is installed and authenticated.
+// This is separate from CheckAll because gh is optional — CheckAll has no
+// concept of optional checks and would fail the overall result.
+func CheckGH(check Checker) CheckResult {
+	version, err := check("gh", "--version")
+	if err != nil {
+		return CheckResult{
+			Name:   "gh",
+			Status: "missing",
+			Detail: "gh CLI not found (optional — needed for PR badges)",
+			Fix:    "brew install gh",
+		}
+	}
+	// Just check it's installed; auth is validated lazily on first use
+	return CheckResult{
+		Name:   "gh",
+		Status: "ok",
+		Detail: strings.SplitN(version, "\n", 2)[0],
+	}
+}
+
 func checkConfig() CheckResult {
 	cfg, err := config.Load()
 	if err != nil {

@@ -4,13 +4,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/engine"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/forest"
+	gh "github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/github"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/jf/internal/pipeline"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
+
+// prFetcher is the function used to fetch PRs. Tests override this.
+var prFetcher gh.Fetcher = gh.DefaultFetcher
 
 func runStatus(args []string) int {
 	fs := dendrik.NewFlagSet("status")
@@ -149,6 +154,79 @@ func runStatus(args []string) int {
 		}
 	}
 
+	// PR enrichment: fetch PRs if repos are configured
+	var prBadges []output.PRBadge
+	repos := f.Defaults.Repos
+	if len(repos) > 0 && prFetcher != nil {
+		// Collect non-TBD keys for the search query
+		var keys []string
+		for _, n := range all {
+			if !forest.IsTBD(n.Key) {
+				keys = append(keys, n.Key)
+			}
+		}
+		allPRs, fetchErr := prFetcher(repos, keys)
+		if fetchErr == nil && allPRs != nil {
+			for _, n := range all {
+				if forest.IsTBD(n.Key) {
+					continue
+				}
+
+				// Check frontmatter for manual prs: override
+				filePath := filepath.Join(f.Dir, n.File)
+				content, readErr := os.ReadFile(filePath)
+				var manualPRs []int
+				if readErr == nil {
+					fm, fmErr := forest.ParseFrontmatter(content)
+					if fmErr == nil && fm != nil && len(fm.PRs) > 0 {
+						manualPRs = fm.PRs
+					}
+				}
+
+				if len(manualPRs) > 0 {
+					// Manual override: find these PR numbers in the fetched list
+					for _, num := range manualPRs {
+						found := false
+						for _, pr := range allPRs {
+							if pr.Number == num {
+								prBadges = append(prBadges, output.PRBadge{
+									Key:    n.Key,
+									Number: pr.Number,
+									State:  gh.DeriveState(pr),
+									CI:     gh.DeriveCIStatus(pr.StatusCheckRollup),
+									Branch: pr.HeadRefName,
+								})
+								found = true
+								break
+							}
+						}
+						if !found {
+							// PR not in fetched list — show with unknown state
+							prBadges = append(prBadges, output.PRBadge{
+								Key:    n.Key,
+								Number: num,
+								State:  "unknown",
+								CI:     "none",
+							})
+						}
+					}
+				} else {
+					// Derive by matching
+					matched := gh.MatchPRs(allPRs, n.Key)
+					for _, pr := range matched {
+						prBadges = append(prBadges, output.PRBadge{
+							Key:    n.Key,
+							Number: pr.Number,
+							State:  gh.DeriveState(pr),
+							CI:     gh.DeriveCIStatus(pr.StatusCheckRollup),
+							Branch: pr.HeadRefName,
+						})
+					}
+				}
+			}
+		}
+	}
+
 	// JSON output: PushTotal includes empty/blocked "both" nodes for backward compat
 	// (old code counted all non-pull nodes as push)
 	if *jsonOut {
@@ -163,6 +241,8 @@ func runStatus(args []string) int {
 			Mutable:   mutableCount,
 			ReadOnly:  readOnlyCount,
 			Empty:     emptyCount,
+			Repos:     repos,
+			PRs:       prBadges,
 		})
 		return dendrik.ExitOK
 	}
@@ -209,6 +289,35 @@ func runStatus(args []string) int {
 		fmt.Println("Read-only nodes:")
 		for _, d := range readOnlyDetails {
 			fmt.Printf("  %-10s %s — %s\n", d.Key, d.Issue, d.Effective)
+		}
+	}
+
+	if len(repos) > 0 && len(prBadges) > 0 {
+		fmt.Println()
+		fmt.Printf("PRs (repos: %s):\n", strings.Join(repos, ", "))
+		// Group by key, show each PR
+		seen := make(map[string]bool)
+		for _, n := range all {
+			if forest.IsTBD(n.Key) || seen[n.Key] {
+				continue
+			}
+			seen[n.Key] = true
+			var nodePRs []output.PRBadge
+			for _, b := range prBadges {
+				if b.Key == n.Key {
+					nodePRs = append(nodePRs, b)
+				}
+			}
+			if len(nodePRs) == 0 {
+				continue
+			}
+			for _, b := range nodePRs {
+				ciStr := ""
+				if b.CI != "none" && b.CI != "" {
+					ciStr = fmt.Sprintf(" CI:%s", b.CI)
+				}
+				fmt.Printf("  %-12s PR #%d [%s]%s\n", b.Key, b.Number, b.State, ciStr)
+			}
 		}
 	}
 

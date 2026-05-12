@@ -110,7 +110,7 @@ func TestGenerateForestYAML(t *testing.T) {
 	dir := t.TempDir()
 	root := &cloneNode{Key: "BEN-123", Summary: "Test"}
 
-	if err := generateForestYAML(dir, root, "both"); err != nil {
+	if err := generateForestYAML(dir, root, "both", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,5 +120,26 @@ func TestGenerateForestYAML(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "project: BEN") {
 		t.Errorf("expected project BEN in forest.yml, got %s", string(data))
+	}
+}
+
+func TestGenerateForestYAMLWithRepo(t *testing.T) {
+	dir := t.TempDir()
+	root := &cloneNode{Key: "BEN-123", Summary: "Test"}
+
+	if err := generateForestYAML(dir, root, "", "Gusto/hawaiian-ice"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "forest.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "- Gusto/hawaiian-ice") {
+		t.Errorf("expected repo in forest.yml, got %s", content)
+	}
+	if !strings.Contains(content, "project: BEN") {
+		t.Errorf("expected project in forest.yml, got %s", content)
 	}
 }
