@@ -4,7 +4,7 @@ description: "Use when planning non-trivial tasks, composing outputs, or managin
   knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
   composition and diverge-converge planning."
 user_invocable: true
-argument-hint: "[gather|plan|compose|publish|lint|find|observe|status|...] [args]"
+argument-hint: "[gather|plan|compose|publish|lint|find|observe|wrap-up|status|...] [args]"
 ---
 
 # Folio
@@ -57,24 +57,19 @@ observation -> spike -> design -> plan[tracks] -> implementation -> retro
 When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just freeform discussion):
 
 1. Run `folio home list` to get the project dashboard
-2. Present active projects as a compact numbered list:
-   ```
-   Active projects:
-     1. files-with-a-dot          (1 target, 29 observations)
-     2. app-benefits Structure    (7 targets, 1 observation)
-     ...
-   ```
-   Highlight projects with high observation counts or many targets.
-3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`)"**
+2. Derive recency and lifecycle stage per project using the Session Entry Display format in `references/lifecycle.md`. Present a recency-ranked list (most recently touched work track first), grouped into "Recently active" and "Also active but stale."
+3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`, `wrap-up`)"**
 4. When the user picks a project, use the **Path** column from `folio home list` output to resolve the folio.yml location:
    - Active projects live at `~/.folio/active/<path>/folio.yml`
    - Archived projects live at `~/.folio/archive/<path>/folio.yml`
    - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
-   - Suggest next actions using lifecycle derivation (type/status fields on sources) and stale detection
+   - Prepend a lifecycle suggestion line before the raw status output:
+     `Next: [lifecycle-derived action] — [brief rationale]`
+   - If the user provides work items alongside the pick, route them through the artifact routing guidance in each derivation rule
 
-     -> Read references/lifecycle.md for derivation rules, stale detection, schema migration hints, and fallback behavior.
+     -> Read references/lifecycle.md for derivation rules, stale detection, artifact routing, session entry display, schema migration hints, and fallback behavior.
 
-If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, check if the intent is a knowledge lookup (keywords like "find", "search", "look for", "stuff about", "anything on"). If so, route to `/folio find` with the extracted query. Otherwise, treat it as freeform discussion about the folio system — answer the question directly.
+If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, check in order: (1) if it matches "wrap-up", route to `/folio wrap-up`; (2) if it's a knowledge lookup (keywords like "find", "search", "look for", "stuff about", "anything on"), route to `/folio find` with the extracted query; (3) otherwise, treat it as freeform discussion about the folio system — answer the question directly.
 
 ## Workflows
 
@@ -121,6 +116,12 @@ Periodic knowledge integrity pass. Two-layer scan (CLI deterministic + LLM seman
 Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All mutations go through CLI commands (never hand-edit). Includes type disambiguation via the alignment protocol.
 
 -> Read references/observe.md for full workflow (CLI commands, type disambiguation, alignment routing).
+
+### /folio wrap-up
+
+End-of-session workflow: retro, archive completed tracks, create successor tracks, write handoff doc, workspace cleanup. Each step is independently safe — skip or abandon at any point.
+
+-> Read references/wrap-up.md for full workflow.
 
 ### CLI Quick Reference
 
@@ -256,6 +257,7 @@ Two gate types, proportional to risk:
 | lint | Hard | Before Phase 3 execution | Cleanup plan summary, action count by effort level |
 | lint | Hard | Before cross-project mutation | Proposed command, target project |
 | lint | Soft | At 20 observations | Finding count, confirmation to continue |
+| wrap-up | Hard | Before archiving (step 3) | List of tracks to archive, batch confirmation |
 
 ## Materialization Invariants
 
@@ -304,7 +306,8 @@ is how provenance chains break.
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
-- **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, schema migration hints
+- **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, session entry display, artifact routing, schema migration hints
+- **references/wrap-up.md** — Wrap-up workflow: session-end retro, archive, successor tracks, handoff doc
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
 - **references/burndown.md** — Burndown execution: wave-based batch work with ratchet, checkpoints, and flywheel learning
 - **references/migrate.md** — Migration guide: moving lifecycle artifacts from reference/ to work/, classification framework, cluster moves, per-artifact checklist
