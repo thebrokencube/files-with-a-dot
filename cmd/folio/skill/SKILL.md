@@ -144,9 +144,9 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio new <type> <topic>` | Scaffold typed artifact (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` |
 | `folio gather <url>` | Add source entry from URL (`--materialize --type <type>` or `--name` as needed) |
 | `folio touch <target>` | Mark a target as current |
-| `folio observe 'type(scope): description'` | Add observation. Types: `idea`, `gap`, `bug`, `debt`, `task`. Example: `folio observe 'bug(folio-cli): validate crashes on empty sources'` |
+| `folio observe --sync 'type(scope): description'` | Add observation. `--sync` pulls before and pushes after to prevent conflicts. Types: `idea`, `gap`, `bug`, `debt`, `task` |
 | `folio observe list` | List all observations (add `--json` for structured output) |
-| `folio observe resolve "#N" "#N2" ...` | Resolve by index. **Batch multiple in one call** to avoid index shift |
+| `folio observe resolve --sync "#N" "#N2" ...` | Resolve by index. `--sync` pulls/pushes atomically. **Batch multiple in one call** to avoid index shift |
 | `folio observe types` | Show valid types and descriptions |
 | `folio observe lint` | Check format and inline path refs |
 | `folio archive` | Move work track from active to archive |

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -32,6 +35,7 @@ func runObserveAppend(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+	sync := fs.Bool('s', "sync", "Pull before append, push after (atomic observe)")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
@@ -55,12 +59,35 @@ func runObserveAppend(args []string) int {
 		return dendrik.ExitUserError
 	}
 
+	homeDir, _ := home.Dir()
+
+	if *sync && homeDir != "" {
+		if err := repo.Pull(homeDir); err != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
+			return dendrik.ExitUserError
+		}
+	}
+
 	if err := observe.Append(*folioPath, item); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	fmt.Println(pal.Successf("Added: %s", item))
+
+	if *sync && homeDir != "" {
+		typ, scope, _, _ := observe.ParseObservation(item)
+		msg := fmt.Sprintf("auto(%s): observe %s", scope, typ)
+		if err := repo.Push(homeDir, msg); err != nil {
+			if errors.Is(err, repo.ErrNothingToCommit) {
+				return dendrik.ExitOK
+			}
+			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s", err))
+			return dendrik.ExitUserError
+		}
+		fmt.Println(pal.Successf("Synced"))
+	}
+
 	return dendrik.ExitOK
 }
 
@@ -162,6 +189,7 @@ func runObserveResolve(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe resolve")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
+	sync := fs.Bool('s', "sync", "Pull before resolve, push after (atomic resolve)")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
@@ -176,6 +204,15 @@ func runObserveResolve(args []string) int {
 		return dendrik.ExitUserError
 	}
 
+	homeDir, _ := home.Dir()
+
+	if *sync && homeDir != "" {
+		if err := repo.Pull(homeDir); err != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
+			return dendrik.ExitUserError
+		}
+	}
+
 	removed, err := observe.Remove(*folioPath, matches)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -185,6 +222,19 @@ func runObserveResolve(args []string) int {
 	for _, item := range removed {
 		fmt.Println(pal.Successf("Resolved: %s", item))
 	}
+
+	if *sync && homeDir != "" {
+		msg := fmt.Sprintf("auto(observe): resolve %d observations", len(removed))
+		if err := repo.Push(homeDir, msg); err != nil {
+			if errors.Is(err, repo.ErrNothingToCommit) {
+				return dendrik.ExitOK
+			}
+			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s", err))
+			return dendrik.ExitUserError
+		}
+		fmt.Println(pal.Successf("Synced"))
+	}
+
 	return dendrik.ExitOK
 }
 
