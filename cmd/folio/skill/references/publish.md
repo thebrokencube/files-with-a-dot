@@ -72,6 +72,21 @@ clipboard), remind the user to run `folio touch` after they've pasted.
 each item in order. One review gate per item. Report progress as
 `[N/total] pushed: {id}`. On failure mid-batch, report which succeeded and which remain.
 
+## Notion Templates
+
+When composing a target with `external: notion`, check the target's `how` field for
+template references. The default template is defined in `references/notion-proposal-template.md`
+— it appends a Feedback table (reviewer name, stance, feedback) after the composed content.
+
+**Opt-in**: Include "Apply the Notion proposal template" in the target's `how` field.
+**Opt-out**: Omit it, or include "No feedback table" in `how`.
+
+The template is applied during **compose** (it becomes part of the output file), not
+during publish. This means the local output file includes the feedback section, and
+publish pushes it to Notion as-is.
+
+-> See references/notion-proposal-template.md for the full template spec.
+
 ## Other Publish Targets
 
 | Target type | Publish approach |

@@ -302,7 +302,8 @@ is how provenance chains break.
 - **references/adversarial-review.md** — Cross-cutting principle: every subjective judgment needs pushback (3 tiers: self-challenge, adversarial prompt, parallel adversarial)
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
-- **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, other targets
+- **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
+- **references/notion-proposal-template.md** — Default Notion template: feedback table with reviewer stance/comments
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
