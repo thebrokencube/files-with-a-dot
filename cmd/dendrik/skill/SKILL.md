@@ -1,89 +1,115 @@
 ---
 name: dendrik
-description: "Use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Runs a convention contract across Go, Skill, and Bridge layers."
+description: "Use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Also use when reviewing any SKILL.md, CLAUDE.md, reference file, or agentic documentation for quality — structure, description, progressive disclosure, writing style. Triggers: 'review my skill', 'check this skill', 'review this doc', 'dendrik', 'lint', 'convention check', 'skill quality', 'is this SKILL.md good'."
 user_invocable: true
-argument-hint: "lint <path> [--json] [--strict] [--explain <id>]"
+argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id>]"
 ---
 
 # dendrik
 
-Tool contract linter for the dotfiles platform. Validates that CLI tools in `cmd/*/` follow the dendrik convention contract across three layers.
+Convention contract linter and quality reviewer for skills and agentic documentation.
 
-## Quick Reference
+## Triage
 
-| Command | What it does |
-|---------|-------------|
-| `dendrik lint <path>` | Run all checks against a tool directory |
-| `dendrik lint <path> --json` | Structured JSON output |
-| `dendrik lint <path> --strict` | Promote warnings to errors |
-| `dendrik lint --explain <id>` | Show rationale and remediation for a check |
+When invoked, determine which lens to use:
 
-## Layers
+| Signal | Lens |
+|---|---|
+| `dendrik lint <path>` or explicit lint request | **Conventions** — full contract lint |
+| `dendrik review <path>` or path to a SKILL.md | **Skill Review** — quality rubric |
+| Path to CLAUDE.md, reference file, or doc | **Doc Review** — doc quality rubric |
+| `dendrik --explain <id>` | **Explain** — show check rationale |
+| No arguments, no clear context | Detect context (see below) |
 
-| Layer | Checks | What it validates |
-|-------|--------|-------------------|
-| Go | 6 | go.mod, go.work, main dispatch, Makefile targets, README |
-| Skill | 9 | SKILL.md frontmatter, links, arrow refs, activation guidance, size |
-| Bridge | 10 | dendrik imports, exit constants, JSON output, symlink entries, go.work sync |
+### Context Detection (bare invocation)
 
-## Check IDs
+When `/dendrik` is called with no arguments, infer what to review:
 
-### Go Layer
-- `go-mod-linked` — go.mod exists and go.work links this tool
-- `main-dispatch` — main.go delegates to run*() via os.Exit
-- `cmd-file-exists` — at least one cmd_*.go file exists
-- `makefile-targets` — Makefile has build, test, check targets
-- `readme-exists` — README.md exists in tool directory
-- `readme-sections` — README has Install, Quick Start, Commands, Code Structure sections
+1. **File just edited or created** in this conversation → review that file, infer lens
+2. **Active skill or doc work** visible in conversation → review the artifact in progress
+3. **Multiple candidates** → list them and ask which to review
+4. **Nothing detected** → ask: "What should I review?"
 
-### Skill Layer
-- `skill-exists` — SKILL.md exists at skill/SKILL.md
-- `skill-frontmatter` — valid name and description in frontmatter
-- `skill-extra-fields` — no unexpected frontmatter fields
-- `skill-links` — markdown links resolve to existing files
-- `ref-naming` — reference files follow kebab-case naming
-- `skill-size` — SKILL.md body under 500 lines
-- `argument-hint` — user_invocable: true requires argument-hint
-- `arrow-refs` — arrow references resolve to existing files
-- `activation-guidance` — description includes routing hints
+Never guess ambiguously. If unsure, ask.
 
-### Bridge Layer
-- `dendrik-import` — at least one file imports pkg/dendrik
-- `exit-constants` — no bare integer returns in cmd_*.go
-- `json-output` — --json flag produces structured output
-- `go-work-sync` — go.work entries match cmd/*/ directories
-- `symlink-entries` — symlink_map.txt has binary and skill entries
-- `makefile-gofiles` — Makefile find path includes pkg/dendrik
-- `no-json-encoder` — no json.NewEncoder in cmd_*.go
-- `no-raw-json` — no raw JSON passthrough with --json flag
-- `run-has-json` — run* functions register --json flag
-- `activation-metadata` — trigger/skip_when/related fields are valid
+---
+
+## Lens: Conventions
+
+Full contract lint for dotfiles CLI tools in `cmd/*/`. Delegates to the `dendrik` CLI.
+
+```bash
+cd ~/.dotfiles
+dendrik lint <path>            # all checks
+dendrik lint <path> --strict   # promote warnings to errors
+dendrik lint <path> --json     # structured output
+dendrik lint --explain <id>    # rationale for a check
+```
+
+Three layers validated: Go (6 checks), Skill (9 checks), Bridge (10 checks).
 
 -> Read references/contract-checks.md for full check details with remediation examples.
 
-## Interpreting Results
+-> Read references/cli-conventions.md for CLI conventions (exit codes, flags, output).
 
-Severity levels:
-- **Error** — contract violation, must fix before tagging
-- **Warning** — convention gap, should fix but non-blocking
+---
 
-Use `dendrik lint --explain <check-id>` to see the rationale and remediation for any check.
+## Lens: Skill Review
 
-## Typical Workflow
+Quality review for any SKILL.md and its surrounding directory.
 
-```bash
-# After making changes to a tool
-cd ~/.dotfiles
-dendrik lint cmd/jf           # check compliance
-dendrik lint cmd/jf --strict  # strict mode for pre-tag validation
+1. Read the target SKILL.md in full
+2. Read the surrounding directory (references/, scripts/) for context
+3. Read `references/review-rubric.md` — evaluate against 5 areas:
+   - Structure & Progressive Disclosure
+   - Description Quality
+   - Single Responsibility
+   - Writing Quality
+   - Completeness
+4. Score each area as pass/warn/fail
+5. Present top 5 findings ranked by impact
+6. End with 1-2 "do these first" action items
 
-# When adding a new tool
-dendrik lint cmd/newtool      # see what's missing
-dendrik lint --explain symlink-entries  # understand a specific check
+-> Read references/review-rubric.md for scoring criteria and examples.
+
+-> Read references/skill-conventions.md for convention details.
+
+---
+
+## Lens: Doc Review
+
+Quality review for CLAUDE.md files, reference docs, and agentic documentation.
+
+1. Read the target document in full
+2. Read `references/review-rubric.md` — evaluate against doc review areas:
+   - Structure
+   - Clarity
+   - Progressive Disclosure
+   - Link Integrity
+   - Actionability
+3. Score each area as pass/warn/fail
+4. Present top 5 findings ranked by impact
+
+-> Read references/review-rubric.md (Doc Review Areas section) for criteria.
+
+---
+
+## Output Format
+
+All lenses produce findings in the same format:
+
+```
+**[Area] — [pass/warn/fail] [brief verdict]**
+> Specific observation. Concrete suggestion.
 ```
 
-## Conventions
+Maximum 5 findings. If everything passes, say so — don't manufacture problems.
 
--> Read references/cli-conventions.md for CLI conventions (exit codes, flags, output, command structure).
+## Reference Library
 
--> Read references/skill-conventions.md for skill conventions (frontmatter, layout, progressive disclosure).
+| Reference | When to read |
+|---|---|
+| `references/review-rubric.md` | Skill review or doc review lens |
+| `references/skill-conventions.md` | Skill review — convention details |
+| `references/cli-conventions.md` | Conventions lens — CLI details |
+| `references/contract-checks.md` | Conventions lens — all 25 check IDs |
