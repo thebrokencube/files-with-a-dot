@@ -79,6 +79,10 @@ func Push(home, message string) error {
 
 // Pull runs git pull in the FOLIO_HOME directory.
 func Pull(home string) error {
+	if _, err := os.Stat(home); os.IsNotExist(err) {
+		return fmt.Errorf("FOLIO_HOME directory does not exist: %s (workspace may have been cleaned up)", home)
+	}
+
 	if IsJJ(home) {
 		return jjPull(home)
 	}

@@ -79,6 +79,16 @@ func TestPushNoRemoteSkipsPush(t *testing.T) {
 	}
 }
 
+func TestPullNonexistentHome(t *testing.T) {
+	err := Pull("/tmp/folio-ws-does-not-exist-999")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "does not exist") {
+		t.Errorf("err = %q, want 'does not exist'", err)
+	}
+}
+
 func TestPullNoRemote(t *testing.T) {
 	dir := initTestRepo(t)
 
