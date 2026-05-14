@@ -137,12 +137,12 @@ func jjPush(home, message string) error {
 	// Rebase onto main to prevent bookmark divergence (skip if main doesn't exist yet)
 	if hasBookmark(home, "main") {
 		if err := jjIn(home, "rebase", "-d", "main"); err != nil {
-			// Check if rebase produced conflicts
-			cout, cerr := jjOutput(home, "log", "-r", "@", "--no-graph", "-T", "conflict")
-			if cerr == nil && strings.TrimSpace(cout) == "true" {
-				return fmt.Errorf("%w: resolve conflicts in %s, then retry folio home push", ErrConflict, home)
-			}
 			return fmt.Errorf("jj rebase: %w", err)
+		}
+		// jj rebase exits 0 even when it produces conflicts, so check explicitly
+		cout, cerr := jjOutput(home, "log", "-r", "@", "--no-graph", "-T", "conflict")
+		if cerr == nil && strings.TrimSpace(cout) == "true" {
+			return fmt.Errorf("%w: resolve conflicts in %s, then retry folio home push", ErrConflict, home)
 		}
 	}
 
