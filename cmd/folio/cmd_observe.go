@@ -59,8 +59,11 @@ func runObserveAppend(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	homeDir, _ := home.Dir()
+	homeDir, homeErr := home.Dir()
 	sync := !*noSync && homeDir != ""
+	if !*noSync && homeDir == "" && homeErr != nil {
+		fmt.Fprintf(os.Stderr, "%ssync disabled: %s%s\n", pal.Dim, homeErr, pal.Reset)
+	}
 
 	if sync {
 		if err := repo.Pull(homeDir); err != nil {
@@ -78,12 +81,12 @@ func runObserveAppend(args []string) int {
 
 	if sync {
 		typ, scope, _, _ := observe.ParseObservation(item)
-		msg := fmt.Sprintf("auto(%s): observe %s", scope, typ)
+		msg := fmt.Sprintf("auto(observe): add %s(%s)", typ, scope)
 		if err := repo.Push(homeDir, msg); err != nil {
 			if errors.Is(err, repo.ErrNothingToCommit) {
 				return dendrik.ExitOK
 			}
-			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s — run 'folio home push' to retry", err))
 			return dendrik.ExitUserError
 		}
 		fmt.Println(pal.Successf("Synced"))
@@ -205,8 +208,11 @@ func runObserveResolve(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	homeDir, _ := home.Dir()
+	homeDir, homeErr := home.Dir()
 	sync := !*noSync && homeDir != ""
+	if !*noSync && homeDir == "" && homeErr != nil {
+		fmt.Fprintf(os.Stderr, "%ssync disabled: %s%s\n", pal.Dim, homeErr, pal.Reset)
+	}
 
 	if sync {
 		if err := repo.Pull(homeDir); err != nil {
@@ -231,7 +237,7 @@ func runObserveResolve(args []string) int {
 			if errors.Is(err, repo.ErrNothingToCommit) {
 				return dendrik.ExitOK
 			}
-			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s", err))
+			fmt.Fprintln(os.Stderr, pal.Errf("sync push: %s — run 'folio home push' to retry", err))
 			return dendrik.ExitUserError
 		}
 		fmt.Println(pal.Successf("Synced"))
