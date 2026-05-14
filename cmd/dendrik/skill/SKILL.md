@@ -1,6 +1,6 @@
 ---
 name: dendrik
-description: "Use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Also use when reviewing any SKILL.md, CLAUDE.md, reference file, or agentic documentation for quality — structure, description, progressive disclosure, writing style. Triggers: 'review my skill', 'check this skill', 'review this doc', 'dendrik', 'lint', 'convention check', 'skill quality', 'is this SKILL.md good'."
+description: "Use when reviewing any SKILL.md, CLAUDE.md, reference file, or agentic documentation for quality — structure, description, progressive disclosure, writing style. Also use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Triggers: 'review my skill', 'check this skill', 'review this doc', 'is this SKILL.md good', 'skill quality', 'dendrik', 'lint', 'convention check'."
 user_invocable: true
 argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id>]"
 ---
