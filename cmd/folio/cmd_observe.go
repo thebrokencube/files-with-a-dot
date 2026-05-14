@@ -35,7 +35,7 @@ func runObserveAppend(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	sync := fs.Bool('s', "sync", "Pull before append, push after (atomic observe)")
+	noSync := fs.BoolLong("no-sync", "Skip pull-before/push-after (default syncs automatically)")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
@@ -60,8 +60,9 @@ func runObserveAppend(args []string) int {
 	}
 
 	homeDir, _ := home.Dir()
+	sync := !*noSync && homeDir != ""
 
-	if *sync && homeDir != "" {
+	if sync {
 		if err := repo.Pull(homeDir); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
 			return dendrik.ExitUserError
@@ -75,7 +76,7 @@ func runObserveAppend(args []string) int {
 
 	fmt.Println(pal.Successf("Added: %s", item))
 
-	if *sync && homeDir != "" {
+	if sync {
 		typ, scope, _, _ := observe.ParseObservation(item)
 		msg := fmt.Sprintf("auto(%s): observe %s", scope, typ)
 		if err := repo.Push(homeDir, msg); err != nil {
@@ -189,7 +190,7 @@ func runObserveResolve(args []string) int {
 	pal := dendrik.NewPalette(true)
 	fs := dendrik.NewFlagSet("observe resolve")
 	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname")
-	sync := fs.Bool('s', "sync", "Pull before resolve, push after (atomic resolve)")
+	noSync := fs.BoolLong("no-sync", "Skip pull-before/push-after (default syncs automatically)")
 	if done, code := dendrik.ParseCheck(fs, args); done {
 		return code
 	}
@@ -205,8 +206,9 @@ func runObserveResolve(args []string) int {
 	}
 
 	homeDir, _ := home.Dir()
+	sync := !*noSync && homeDir != ""
 
-	if *sync && homeDir != "" {
+	if sync {
 		if err := repo.Pull(homeDir); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
 			return dendrik.ExitUserError
@@ -223,7 +225,7 @@ func runObserveResolve(args []string) int {
 		fmt.Println(pal.Successf("Resolved: %s", item))
 	}
 
-	if *sync && homeDir != "" {
+	if sync {
 		msg := fmt.Sprintf("auto(observe): resolve %d observations", len(removed))
 		if err := repo.Push(homeDir, msg); err != nil {
 			if errors.Is(err, repo.ErrNothingToCommit) {
