@@ -25,6 +25,8 @@ dendrik skill during skill review and doc review lenses.
 - Are reference files linked with arrow syntax or explicit paths?
 - Does the skill load only what it needs, when it needs it?
 - Is inline content actionable (commands, sequences, checks) not explanatory?
+- Are structured content blocks (queries, templates, constants, schemas) extracted
+  into individual files? (See **Inline Structured Content** sub-check below.)
 
 **Pass:** Lean SKILL.md with clear pointers to reference files. Knowledge is separated
 from workflow. The agent reads references on demand.
@@ -42,6 +44,48 @@ linked from the main file.
 **Example — fail:**
 > 400-line SKILL.md that explains Kafka consumer groups, entity relationships, and
 > configuration details inline alongside startup commands. All loaded on every invocation.
+
+#### Inline Structured Content
+
+Structured content blocks — SQL queries, output templates, document templates, constant
+tables, JSON/YAML schemas, multi-line code examples — belong in individual files, not
+inline. Each block should be a standalone file that the main document links to.
+
+**What to extract:**
+
+| Content type | Signal | Target file pattern |
+|---|---|---|
+| SQL query (>10 lines) | `SELECT`, `INSERT`, `WITH` blocks | One file per query, named by what it answers |
+| Output / document template | Heredoc, HTML, placeholder-heavy blocks | One file per template |
+| Constants / magic numbers | Repeated IDs, enum values, config tables | Single shared constants file |
+| Code example (>15 lines) | Reference material, not illustrative snippet | One file per example |
+| JSON/YAML schema | Full schema definitions | One file per schema |
+
+**Extraction principles:**
+- Name files by purpose, not by sequence (`eligibility-population.md`, not `query-1.md`)
+- Co-locate with the workflow that consumes them (e.g., queries near the walkthrough
+  that references them)
+- Link from the parent document — the reader should discover extracted files through
+  navigation, not by browsing directories
+- Include a template file when the directory will grow (scaffolds consistency for new additions)
+- Keep brief illustrative snippets (≤5 lines) inline — extraction is for reference
+  material that has independent utility
+
+**Scoring:**
+- **Pass:** No inline structured content blocks, or only brief illustrative snippets (≤5 lines).
+- **Warn:** 1-2 inline blocks of 10-30 lines. Functional but would benefit from extraction.
+- **Fail:** 3+ inline blocks, or any single block >30 lines. Burns context on every load
+  and prevents independent reuse.
+
+**Example — pass** (required_retirement_plan):
+> Queries in individual files under `queries/`, each following a template with metadata,
+> SQL with placeholders, placeholder docs, and notes. Constants in a shared reference file.
+> Parent workflow docs link to queries by step number.
+
+**Example — fail:**
+> CLAUDE.md with a 50-line SQL query, a 30-line output template, and a 20-line constants
+> table all inline. Every agent load pays the full token cost; queries can't be reused
+> or updated independently.
 
 ---
 
@@ -160,6 +204,9 @@ For CLAUDE.md files, reference docs, and other agentic documentation:
 - Does the doc front-load the most important information?
 - Are details deferred to linked references where appropriate?
 - Is the reader's time respected — no unnecessary preamble?
+- Are structured content blocks (queries, templates, constants, schemas) extracted
+  into individual files? Apply the same **Inline Structured Content** sub-check
+  from Skill Review Area 1 — the thresholds, content types, and scoring are identical.
 
 ### 4. Link Integrity
 

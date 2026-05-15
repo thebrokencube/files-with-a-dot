@@ -66,6 +66,7 @@ call focused skills in sequence.
 |---|---|---|
 | Monolithic (>200 lines) | Triggers too broadly, hard to maintain | Decompose by responsibility |
 | Knowledge inline | Duplicated, drifts from reality | Reference library pattern |
+| Inline structured content | Burns context, can't reuse or update independently | Extract queries, templates, constants, schemas into individual files |
 | Vague description | Misroutes or doesn't activate | Add trigger phrases and domain terms |
 | Recipes without knowledge | Can't handle novel problems | Add reference docs that explain HOW, not just WHAT |
 | Complex bash inline | Untestable, fragile | Extract to `scripts/` |
