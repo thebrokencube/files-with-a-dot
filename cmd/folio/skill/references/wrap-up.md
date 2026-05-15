@@ -12,8 +12,19 @@ Each step is independently safe — the user can skip or abandon at any point wi
    Primary: check mtime on work track directories for recent changes (same mechanism as Stale Detection in `references/lifecycle.md`, inverted — look for dirs modified today or within the last few hours).
    Fallback: ask the user which projects were touched.
 
-2. **Retro gate** (soft) — "Anything worth retroing on before we wrap?"
-   If yes: `folio new retro <topic>`, commit via `folio home push`.
+2. **Retro gate** (soft) — present a session summary, then ask if it warrants a retro.
+
+   **2a. Session summary.** Before asking the retro question, compile and present:
+   - Projects touched (from step 1)
+   - Key actions taken (commits, artifacts created, bugs fixed, decisions made)
+   - Things that went sideways (failed approaches, rework, user corrections)
+   - Open threads (unresolved questions, known gaps, deferred work)
+
+   Keep it to 5-10 bullet points. The goal is shared context — the user shouldn't
+   have to recall the session from memory.
+
+   **2b. Retro question.** "Worth capturing as a retro, or just move on?"
+   If yes: `folio new retro <topic>`, pre-fill from the summary, commit via `folio home push`.
    If no: proceed.
 
 3. **Archive gate** (hard) — run lifecycle derivation on all touched projects. Tracks matching rules 5 or 6 (all done, or all done + retro) are archive candidates.
