@@ -101,7 +101,7 @@ into a single document. The design agent writes execution-level detail directly 
 Criteria: file count, scope clarity, single-repo. If ambiguous, use the full pipeline.
 
 The combined doc must include the brief's required sections: Direction Summary, Interface
-Spec, Track Decomposition, and Execution Setup. These sections appear in the design doc's
+Spec, Track Decomposition, Test Strategy, and Execution Setup. These sections appear in the design doc's
 Execution Brief — see `references/plan-brief.md` for section specs. The handoff prompt is
 the acid test: if it needs context beyond "read the doc and execute," the doc is
 underspecified.
@@ -109,8 +109,8 @@ underspecified.
 Commit checkpoints are still mandatory: the combined design+brief doc must be committed before
 execution begins. Lightweight mode reduces agents, not checkpoints. **Lightweight mode does NOT
 mean "skip the brief" — it means the brief sections are written inside the design doc instead
-of a separate file. The 4 required brief sections (Direction Summary, Interface Spec, Track
-Decomposition, Execution Setup) must still exist before execution begins.**
+of a separate file. The 5 required brief sections (Direction Summary, Interface Spec, Track
+Decomposition, Test Strategy, Execution Setup) must still exist before execution begins.**
 
 ## Re-run Rule
 

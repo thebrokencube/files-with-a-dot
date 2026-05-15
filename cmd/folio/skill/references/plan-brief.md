@@ -31,13 +31,13 @@ Before writing, read 2-3 recent archived briefs from the project's work archive
 Populate each track with execution-level detail. The brief must be self-contained — the
 execution agent reads only the brief, not the design doc or conversation history.
 
-**The 4-section structure is mandatory.** Every work plan MUST have all four sections listed
+**The 5-section structure is mandatory.** Every work plan MUST have all five sections listed
 below, in order. Archived briefs that predate this structure are NOT precedent — this spec
 supersedes them.
 
 **Section transition from previous 6-section format:**
 
-| Old Section (previous 6) | New Home (current 4) | Notes |
+| Old Section (previous 6) | New Home (current 5) | Notes |
 |--------------------------|----------------------|-------|
 | Context | → Direction Summary | Compressed, 10-20 lines |
 | Agent Setup | → Execution Setup | Skill loading, repo mapping |
@@ -49,13 +49,16 @@ supersedes them.
 Interface Spec is new — sourced from the design doc's Interfaces section, not remapped from
 any prior brief section.
 
+Test Strategy is new — sourced from the design doc's Testing Strategy section. Hard gate:
+execution cannot begin without this section present and user-approved.
+
 **Progressive disclosure structure.** Briefs follow the two-layer layout defined in
 `references/progressive-disclosure.md`: action layer (track instructions, top) and reference
 layer (Key Reference sections, bottom). The action layer should be self-sufficient for
 mechanical steps. If a track step can't be executed without a Key Reference, the track
 instruction is underspecified — add more inline detail.
 
-Every brief has four required sections, in order:
+Every brief has five required sections, in order:
 
 #### Direction Summary section (required)
 
@@ -106,6 +109,30 @@ For each track, specify:
 signatures and test tables, Track 4 cannot be a one-liner. Thin tracks signal the brief
 author didn't think them through — flesh them out or merge them into an adjacent track.
 
+#### Test Strategy section (required — hard gate)
+
+Concrete testing plan sourced from the design doc's Testing Strategy section. This section
+is a **hard gate**: present the test strategy to the user for explicit approval before
+proceeding. Execution cannot begin without sign-off.
+
+Include:
+- **Test types** (bulleted): which types apply (unit, integration, e2e, manual) and why
+  each is needed. Not a generic list — tied to specific tracks or components.
+- **Acceptance criteria**: concrete conditions that define "passing." Exact commands where
+  possible (e.g., `rspec spec/models/foo_spec.rb`, `yarn test --filter bar`).
+- **Test infrastructure**: fixtures, factories, test data, external services, or mocks
+  required. "None beyond existing" is valid when true.
+- **Not tested**: what is explicitly out of scope for testing, with rationale. Omitting this
+  signals the author didn't think about coverage boundaries.
+
+Target: 10-20 lines. Every line should map to something an execution agent verifies.
+Vague entries like "add appropriate tests" fail the gate — specify what tests, for what
+behavior, using what approach.
+
+**Gate behavior**: After writing this section, present it to the user and wait for explicit
+approval. If the user requests changes, revise and re-present. Do not proceed to Execution
+Setup until approved.
+
 #### Execution Setup section (required)
 
 Consolidates agent setup, build/deploy, and execution conventions into a single section.
@@ -151,16 +178,17 @@ mentally processing every item.
    each to a concrete decision
 6. [ ] Specification depth approximately uniform across tracks
 7. [ ] User approved track structure (Phase 5 gate passed)
-8. [ ] Content review passed (see below)
+8. [ ] Test strategy approved by user (Test Strategy hard gate passed)
+9. [ ] Content review passed (see below)
 
 Fix any inaccuracies, then commit via `folio home push`. The committed work plan is the
 contract for Agent 3.
 
-### Content Review (part of commit checklist, item 8)
+### Content Review (part of commit checklist, item 9)
 
 Dispatch 1 review agent (subagent_type: general-purpose, model: "sonnet") to review:
 1. **Self-containment**: Can an execution agent proceed without reading the design doc?
-2. **Convention compliance**: Does structure match recent archived briefs? All 4 sections present?
+2. **Convention compliance**: Does structure match recent archived briefs? All 5 sections present?
 3. **Completeness**: Are all design doc decisions reflected as constraints?
 4. **Adversarial check**: Challenge the brief's own conclusions — is the track decomposition
    the right one? Could fewer tracks achieve the same result? Are any tracks solving

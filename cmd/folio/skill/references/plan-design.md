@@ -29,8 +29,8 @@ Gather context before spawning any agents. This happens in the main conversation
    of the context summary.
 8. **Alignment** — read `references/alignment.md` and run the protocol with:
    - Minimum: 5 (lightweight: 3)
-   - Categories: scope boundary, approach rationale, key trade-offs, framing, extensibility
-     (lightweight: scope boundary, key trade-offs)
+   - Categories: scope boundary, approach rationale, key trade-offs, framing, extensibility,
+     test-strategy (lightweight: scope boundary, key trade-offs, test-strategy)
    - Grounding: folio sources from step 4, codebase files from step 2
    - Target: context summary (update hard constraints and soft context inline)
    - Hard constraints: pinned decisions from step 7
@@ -341,6 +341,16 @@ one — lightweight for simple changes, but it always exists.
    ### Cross-Cutting Decisions
    [Shared types, system-wide patterns, technology choices affecting multiple tracks.]
 
+   ## Testing Strategy
+   ### Test Types
+   [Unit, integration, e2e, manual — which apply and why.]
+   ### Acceptance Criteria
+   [What "passing" means — concrete conditions, not vague "it works".]
+   ### Test Infrastructure
+   [Fixtures, mocks, test data, services needed. "None" if straightforward.]
+   ### Not Tested
+   [What is explicitly out of scope for testing and why.]
+
    ## Implementation Notes (optional, often empty)
    [Per-component technique choices, only when JIT resolution is risky.]
    [Marked as advisory, not prescriptive.]
@@ -355,10 +365,12 @@ one — lightweight for simple changes, but it always exists.
    ```
 
    The Direction section captures *what* and *why*. The Interfaces section captures
-   cross-boundary contracts and track structure. Implementation Notes are optional and
-   advisory — most projects leave this empty because execution agents resolve technique
-   choices JIT via spikes. Convergence Status tracks per-layer progress across rounds.
-   Design Provenance records how the design was produced (agent count, lenses, review fixes).
+   cross-boundary contracts and track structure. Testing Strategy captures *how correctness
+   is verified* — test types, acceptance criteria, infrastructure, and explicit coverage
+   boundaries. Implementation Notes are optional and advisory — most projects leave this
+   empty because execution agents resolve technique choices JIT via spikes. Convergence
+   Status tracks per-layer progress across rounds. Design Provenance records how the design
+   was produced (agent count, lenses, review fixes).
 
 **Source verification (mandatory before proceeding to review):**
 
@@ -661,6 +673,7 @@ Define these before starting each phase transition. Concrete checklists, not pro
 
 ### Design → Brief
 - [ ] Direction and Interfaces SETTLED in Convergence Status
+- [ ] Testing Strategy section populated in design doc (test types, acceptance criteria, not-tested)
 - [ ] High-risk areas validated (spike or code exploration)
 - [ ] User signed off on scope boundary (Scope Boundary section)
 - [ ] Design doc committed via `folio home push`

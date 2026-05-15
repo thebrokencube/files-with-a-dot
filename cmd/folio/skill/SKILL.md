@@ -253,6 +253,7 @@ Two gate types, proportional to risk:
 | gather (snapshot) | Soft | Before file write | Proposed filename, length, 3 key facts |
 | gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
+| plan | Hard | Phase 6 Test Strategy | Test strategy section, user approval required |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
 | lint | Hard | Before Phase 3 execution | Cleanup plan summary, action count by effort level |
 | lint | Hard | Before cross-project mutation | Proposed command, target project |
