@@ -48,18 +48,13 @@ produces the full document — body + feedback — as a single output file.
 
 ## Feedback
 
-Add your name, stance, and feedback below.
+Add your name, stance (👍 / 😬), and feedback below.
 
 <table fit-page-width="true" header-row="true">
   <tr>
     <td>Reviewer</td>
     <td>Stance</td>
     <td>Feedback</td>
-  </tr>
-  <tr>
-    <td>*add your name*</td>
-    <td>👍 / 😬</td>
-    <td> </td>
   </tr>
 </table>
 ```
