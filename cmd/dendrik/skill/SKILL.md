@@ -89,6 +89,7 @@ Quality review for CLAUDE.md files, reference docs, and agentic documentation.
    - Actionability
 3. Score each area as pass/warn/fail
 4. Present top 5 findings ranked by impact
+5. End with 1-2 "do these first" action items
 
 -> Read references/review-rubric.md (Doc Review Areas section) for criteria.
 
