@@ -100,8 +100,9 @@ When design doc scope is 5 or fewer files with clear implementation, collapse De
 into a single document. The design agent writes execution-level detail directly — skip Agent 2.
 Criteria: file count, scope clarity, single-repo. If ambiguous, use the full pipeline.
 
-The combined doc must include the brief's required sections: Direction Summary, Interface
-Spec, Track Decomposition, Test Strategy, and Execution Setup. These sections appear in the design doc's
+The combined doc must include the brief's required sections: Direction Summary,
+Interface Spec, Track Decomposition, Test Strategy, and Execution Setup. These
+sections appear in the design doc's
 Execution Brief — see `references/plan-brief.md` for section specs. The handoff prompt is
 the acid test: if it needs context beyond "read the doc and execute," the doc is
 underspecified.

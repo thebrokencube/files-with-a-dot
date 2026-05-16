@@ -2,7 +2,8 @@
 name: folio
 description: "Use when planning non-trivial tasks, composing outputs, or managing
   knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
-  composition and diverge-converge planning."
+  composition and diverge-converge planning. Trigger on: design doc, spike, retro,
+  wrap-up, observations, handoff, brief, gather, publish, burndown, work tracks."
 user_invocable: true
 argument-hint: "[gather|plan|compose|publish|lint|find|observe|wrap-up|status|...] [args]"
 ---
@@ -306,6 +307,9 @@ is how provenance chains break.
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
 - **references/notion-proposal-template.md** — Default Notion template: feedback table with reviewer stance/comments
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
+  - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
+  - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief
+  - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
 - **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, session entry display, artifact routing, schema migration hints
