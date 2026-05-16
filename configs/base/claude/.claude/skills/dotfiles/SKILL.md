@@ -1,7 +1,12 @@
 ---
 name: dotfiles
-description: Manage and develop dotfiles — installation, updates, adding configs, troubleshooting symlinks, and repo development guidelines. Use when asked about dotfiles, system config, shell setup, or when making changes to the dotfiles repo.
+description: "Manage and develop dotfiles — installation, updates, adding configs,
+  troubleshooting symlinks, and repo development guidelines. Use when asked about
+  dotfiles, system config, shell setup, or when making changes to the dotfiles repo.
+  Trigger on: dot sync, dot health, dot validate, managed files, drift, private
+  overlay, Brewfile, build artifacts, symlink map, dot fix, dot clean."
 user_invocable: true
+argument-hint: "[sync|health|validate|clean|private|setup|edit|status|fix|links]"
 ---
 
 # Dotfiles
