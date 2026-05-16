@@ -1,6 +1,8 @@
 ---
 name: jf
 description: "Use when managing Jira tickets, creating/editing issues, pushing descriptions and titles, searching with JQL, managing ticket lifecycle (parking, repurposing), or when needing Jira conventions, project field defaults, and content gotchas."
+user_invocable: true
+argument-hint: "[push|pull|sync|search|tree|status|clone|create-missing|...] [args]"
 ---
 
 # Jira Forest (jf)
@@ -33,56 +35,9 @@ Most commands accept `--json` for structured output.
 
 ## Safety Model
 
-jf uses a 3-tier safety system. Every sync operation runs Read-Plan-Execute:
-1. **Read**: Snapshot both local and remote state for all nodes
-2. **Plan**: Pure function evaluates 8 rules per node, produces actions
-3. **Execute**: Only processes Plan output — no independent decisions
+3-tier system: Tier 1 (always safe, no gate), Tier 2 (interactive TTY prompt or `--resolve` flag), Tier 3 (impossible, no override). Every sync runs Read-Plan-Execute. When blocked, jf prints the reason and an action hint.
 
-### Tiers
-
-| Tier | Gate | Examples | Override |
-|------|------|---------|---------|
-| 1: Always safe | None | Push with baseline + local-only change + substantive content | N/A |
-| 2: Interactive | TTY prompt | First push/pull with content on other side | Human-only (not agents) |
-| 2b: Conflict | --resolve flag | Both sides changed since baseline | Re-run with --resolve local\|remote |
-| 3: Impossible | No mechanism | Push empty content; push when remote unreachable | None |
-
-### Blocked Operations
-
-When an operation is blocked, jf prints the reason AND an action hint:
-```
-BLOCKED PROJ-789: empty content — no override
-BLOCKED PROJ-456: first sync, remote has content — resolve in terminal
-BLOCKED PROJ-123: conflict — use --resolve local|remote
-```
-
-The hint tells you exactly what to do:
-- **"no override"** (Tier 3): Fix the underlying issue — add substantive content, or check network connectivity.
-- **"resolve in terminal"** (Tier 2): Requires interactive TTY confirmation from a human.
-- **"use --resolve local|remote"** (Tier 2b): Re-run with `--resolve local` (keep local) or `--resolve remote` (keep remote).
-
-### Plan Display
-
-`--dry-run` shows the plan without executing. BLOCKED items sort first; summary line at bottom:
-```
-── Plan ──────────────────────────────────────────
-  BLOCKED PROJ-789  stub.md (empty content — no override)
-  PUSH    PROJ-123  README.md (local changed)
-  SKIP    PROJ-456  sub/README.md (unchanged)
-── 1 push, 1 blocked, 1 skip ──
-```
-
-For machine-parseable output, use `--json`:
-```bash
-jf sync --dry-run --json
-```
-Returns structured JSON with action, key, file, reason, tier, and hint fields. Agents should prefer `--json` for programmatic plan inspection.
-
-### Batch Safety
-
-Multi-node operations (sync, push, pull) have a batch safety gate:
-- **TTY mode**: Plan displays, execution proceeds after `--yes` confirmation
-- **Non-TTY mode (agents)**: Use `--yes` flag to confirm batch execution, or use `--dry-run --json` to inspect the plan first
+-> Read references/safety-model.md for tier details, blocked operation examples, plan display format, and the failure decision tree.
 
 ## Preflight Checklist (MANDATORY)
 
@@ -95,18 +50,7 @@ Run this sequence before ANY jf operation. Do not skip steps.
    - No forest -> **Level 0** (single-file push/pull only)
 4. **Status** (Level 1 only): `jf status --json` — check staleness before sync
 
-If you skip this checklist and a jf operation fails, come back here first.
-
-### When jf fails: decision tree
-
-- **"roundtrip diverges at line N"** -> The content has characters (smart quotes, special unicode) or structures (tables, code blocks) that don't survive the md-to-ADF-to-md roundtrip. Options: fix the source content, or use `--plain-text` as a fallback.
-- **"read-only: lint issue"** -> The content uses markdown features not in the supported subset (h1, h3+, tables, code blocks, blockquotes, nested lists, images). Simplify the content or set `sync: pull`.
-- **"empty content"** -> The file has no substantive content beyond frontmatter. Add content before pushing.
-- **"conflict" / "both sides changed"** -> Re-run with `--resolve local` or `--resolve remote`.
-- **"first sync, remote has content"** -> Requires interactive TTY. A human must confirm in terminal.
-- **"remote-unknown" / "cannot reach Jira"** -> Check network, JIRA_API_TOKEN, and `jf setup --check`.
-- **Path errors / file not found** -> Use absolute paths. If inside a forest, ensure you're in the right directory.
-- **Any other error** -> Run with `--dry-run --json` for structured output. Report to user with the full error.
+If you skip this checklist and a jf operation fails, come back here first. For the failure decision tree, see references/safety-model.md.
 
 ## Level 0: Single-File Operations
 
@@ -155,7 +99,7 @@ Frontmatter fields: `jira` (required), `label`, `type`, `sync` (override-only: p
 
 **`label` maps to the Jira summary field (the ticket title).** `jf push` and `jf sync` update both the description (from the markdown body) and the title (from `label`). Do not use MCP to update the summary separately — changing `label` and pushing is the correct workflow. (The name `label` is a known source of confusion — humans think "title", Jira's API calls it "summary", jf calls it "label". Consider renaming to `summary` or `title` in a future version.)
 
-See [docs/03-reference.md](../docs/03-reference.md) for field details, inheritance, and label derivation.
+For field details, inheritance, and label derivation, see `docs/03-reference.md` in the jf source tree (`cmd/jf/docs/`).
 
 ### Sync Direction
 
@@ -176,7 +120,7 @@ These overrides are for specific use cases, not the default.
 
 `jf tree --json` outputs `[]NodeInfo` (same structure as `jf list --json`). `jf tree --verbose` shows sync direction icons and file paths.
 
-For architecture details (data models, pipeline internals, module structure), see [docs/04-architecture.md](../docs/04-architecture.md).
+For architecture details (data models, pipeline internals, module structure), see `docs/04-architecture.md` in the jf source tree (`cmd/jf/docs/`).
 
 ## Lifecycle
 
@@ -232,3 +176,16 @@ Invalid reasons (use jf instead):
 ## Testing
 
 -> See references/testing.md for clone-based integration testing (setup, sync validation, teardown).
+
+## Reference Files
+
+- **references/safety-model.md** — Safety tiers, blocked operations, plan display, failure decision tree
+- **references/quick-push.md** — Level 0 single-file push/pull details
+- **references/forest-management.md** — Forest discovery, validation, sync workflows
+- **references/lifecycle.md** — Park workflow and ticket repurposing
+- **references/conventions.md** — Ticket naming, description structure, content rules, project templates
+- **references/configuration.md** — `~/.jf.yml` schema
+- **references/jql-patterns.md** — NL-to-JQL translation and bulk acli operations
+- **references/gotchas.md** — Jira-specific pitfalls (content rendering, MCP, acli quirks)
+- **references/restructure.md** — Epic/project creation, reparenting, hierarchy reorganization
+- **references/testing.md** — Clone-based integration testing
