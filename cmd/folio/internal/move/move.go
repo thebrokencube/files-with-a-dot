@@ -42,6 +42,10 @@ func Archive(home, relPath string) error {
 		return fmt.Errorf("rename: %w", err)
 	}
 
+	// Clean up empty ancestor directories up to (but not including) active/
+	sectionDir := filepath.Join(home, "active")
+	pruneEmptyAncestors(filepath.Dir(src), sectionDir)
+
 	return nil
 }
 
@@ -77,6 +81,10 @@ func Activate(home, relPath string) error {
 		return fmt.Errorf("rename: %w", err)
 	}
 
+	// Clean up empty ancestor directories up to (but not including) archive/
+	sectionDir := filepath.Join(home, "archive")
+	pruneEmptyAncestors(filepath.Dir(src), sectionDir)
+
 	return nil
 }
 
@@ -87,6 +95,20 @@ func validateRelPath(relPath string) error {
 		return fmt.Errorf("invalid path: %q", relPath)
 	}
 	return nil
+}
+
+// pruneEmptyAncestors removes empty directories from dir up to (but not
+// including) stopAt. Walks upward, removing each empty directory until it
+// hits stopAt or a non-empty directory.
+func pruneEmptyAncestors(dir, stopAt string) {
+	for dir != stopAt && dir != "." && dir != "/" {
+		entries, err := os.ReadDir(dir)
+		if err != nil || len(entries) > 0 {
+			return
+		}
+		os.Remove(dir)
+		dir = filepath.Dir(dir)
+	}
 }
 
 // stripDatePrefix removes the YYYY-MM-DD- prefix from a name if present.

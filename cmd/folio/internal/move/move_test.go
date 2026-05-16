@@ -176,6 +176,72 @@ func TestArchiveActivateRoundTrip(t *testing.T) {
 	}
 }
 
+func TestArchive_PrunesEmptyAncestors(t *testing.T) {
+	dir := t.TempDir()
+	setupDirs(t, dir,
+		"active/ret/deep/project-a/folio.yml",
+	)
+
+	err := Archive(dir, "ret/deep/project-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// active/ret/deep/ and active/ret/ should be pruned (empty after move)
+	if _, err := os.Stat(filepath.Join(dir, "active/ret/deep")); !os.IsNotExist(err) {
+		t.Error("active/ret/deep should have been pruned")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "active/ret")); !os.IsNotExist(err) {
+		t.Error("active/ret should have been pruned")
+	}
+	// active/ itself must remain
+	if _, err := os.Stat(filepath.Join(dir, "active")); os.IsNotExist(err) {
+		t.Error("active/ should NOT have been pruned")
+	}
+}
+
+func TestArchive_PreservesSiblings(t *testing.T) {
+	dir := t.TempDir()
+	setupDirs(t, dir,
+		"active/ret/project-a/folio.yml",
+		"active/ret/project-b/folio.yml",
+	)
+
+	err := Archive(dir, "ret/project-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// active/ret/ should still exist because project-b is there
+	if _, err := os.Stat(filepath.Join(dir, "active/ret")); os.IsNotExist(err) {
+		t.Error("active/ret should still exist (has sibling)")
+	}
+}
+
+func TestActivate_PrunesEmptyAncestors(t *testing.T) {
+	dir := t.TempDir()
+	setupDirs(t, dir,
+		"archive/ret/deep/2026-01-01-project-a/folio.yml",
+	)
+
+	err := Activate(dir, "ret/deep/2026-01-01-project-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// archive/ret/deep/ and archive/ret/ should be pruned
+	if _, err := os.Stat(filepath.Join(dir, "archive/ret/deep")); !os.IsNotExist(err) {
+		t.Error("archive/ret/deep should have been pruned")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "archive/ret")); !os.IsNotExist(err) {
+		t.Error("archive/ret should have been pruned")
+	}
+	// archive/ itself must remain
+	if _, err := os.Stat(filepath.Join(dir, "archive")); os.IsNotExist(err) {
+		t.Error("archive/ should NOT have been pruned")
+	}
+}
+
 func setupDirs(t *testing.T, dir string, files ...string) {
 	t.Helper()
 	os.MkdirAll(filepath.Join(dir, "active"), 0755)
