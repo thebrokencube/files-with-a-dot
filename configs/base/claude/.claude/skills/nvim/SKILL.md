@@ -1,6 +1,9 @@
 ---
 name: nvim
-description: Neovim configuration help - plugins, LSP setup, troubleshooting. Use when asked about nvim, vim, editor config, or plugins.
+description: "Neovim configuration help - plugins, LSP setup, troubleshooting.
+  Use when asked about nvim, vim, editor config, or plugins. Trigger on: lazy.nvim,
+  mason, LSP server, init.lua, kickstart, lspconfig, checkhealth, MasonCleanup."
+user_invocable: false
 ---
 
 # Neovim Configuration
