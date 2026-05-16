@@ -6,6 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
 )
 
 const defaultHome = ".folio"
@@ -100,6 +103,73 @@ func Validate(dir string) []string {
 	archiveDir := filepath.Join(dir, "archive")
 	if fi, err := os.Stat(archiveDir); err == nil && fi.IsDir() {
 		errs = append(errs, validateLeaves(archiveDir, "archive", true)...)
+	}
+
+	// Check vault structure
+	errs = append(errs, validateVault(dir)...)
+
+	return errs
+}
+
+// validateVault checks the structural integrity of the vault/ directory.
+// Enforces: only recognized label subdirectories, only .md files with
+// YYYY-MM-DD- prefix, no nested subdirectories, no root-level files.
+func validateVault(dir string) []string {
+	var errs []string
+	vaultDir := filepath.Join(dir, "vault")
+
+	fi, err := os.Stat(vaultDir)
+	if os.IsNotExist(err) {
+		return nil // no vault is fine
+	}
+	if !fi.IsDir() {
+		return []string{"vault: not a directory"}
+	}
+
+	entries, err := os.ReadDir(vaultDir)
+	if err != nil {
+		return []string{fmt.Sprintf("vault: %s", err)}
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue // skip dotfiles (.DS_Store, .obsidian, etc.)
+		}
+
+		if !entry.IsDir() {
+			errs = append(errs, fmt.Sprintf("vault: file at root level: %s", name))
+			continue
+		}
+
+		if !taxonomy.ReferenceLabels[name] {
+			errs = append(errs, fmt.Sprintf("vault: unrecognized label directory: %s", name))
+			continue
+		}
+
+		// Check contents of label directory
+		labelDir := filepath.Join(vaultDir, name)
+		files, err := os.ReadDir(labelDir)
+		if err != nil {
+			continue
+		}
+		for _, f := range files {
+			fname := f.Name()
+			if strings.HasPrefix(fname, ".") {
+				continue
+			}
+			if f.IsDir() {
+				errs = append(errs, fmt.Sprintf("vault/%s/%s: unexpected subdirectory", name, fname))
+				continue
+			}
+			if !strings.HasSuffix(fname, ".md") {
+				errs = append(errs, fmt.Sprintf("vault/%s/%s: non-markdown file", name, fname))
+				continue
+			}
+			if !hasDatePrefix(fname) {
+				errs = append(errs, fmt.Sprintf("vault/%s/%s: missing YYYY-MM-DD- prefix", name, fname))
+			}
+		}
 	}
 
 	return errs

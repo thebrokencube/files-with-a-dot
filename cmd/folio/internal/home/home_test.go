@@ -149,6 +149,142 @@ func TestHasDatePrefix(t *testing.T) {
 	}
 }
 
+func TestValidate_VaultClean(t *testing.T) {
+	dir := setupTestHome(t,
+		"active/project-a/folio.yml",
+	)
+	setupVault(t, dir,
+		"research/2026-03-01-topic.md",
+		"guide/2026-05-14-setup.md",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got: %v", errs)
+	}
+}
+
+func TestValidate_VaultMissingDatePrefix(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"guide/colima-recovery.md",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if errs[0] != "vault/guide/colima-recovery.md: missing YYYY-MM-DD- prefix" {
+		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_VaultRootFile(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"orphan.md",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if errs[0] != "vault: file at root level: orphan.md" {
+		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_VaultUnrecognizedLabel(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"notes/2026-01-01-something.md",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if errs[0] != "vault: unrecognized label directory: notes" {
+		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_VaultNestedSubdir(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"research/nested/2026-01-01-deep.md",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if errs[0] != "vault/research/nested: unexpected subdirectory" {
+		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_VaultNonMarkdown(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"domain/2026-01-01-notes.txt",
+	)
+
+	errs := Validate(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if errs[0] != "vault/domain/2026-01-01-notes.txt: non-markdown file" {
+		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_VaultEmpty(t *testing.T) {
+	dir := setupTestHome(t)
+	os.MkdirAll(filepath.Join(dir, "vault"), 0755)
+
+	errs := Validate(dir)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got: %v", errs)
+	}
+}
+
+func TestValidate_VaultMissing(t *testing.T) {
+	dir := setupTestHome(t)
+	// no vault/ at all
+
+	errs := Validate(dir)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got: %v", errs)
+	}
+}
+
+func TestValidate_VaultDotfilesIgnored(t *testing.T) {
+	dir := setupTestHome(t)
+	setupVault(t, dir,
+		"research/2026-01-01-valid.md",
+	)
+	// Add a .DS_Store and .obsidian dir that should be ignored
+	os.WriteFile(filepath.Join(dir, "vault", ".DS_Store"), []byte{}, 0644)
+	os.MkdirAll(filepath.Join(dir, "vault", ".obsidian"), 0755)
+	os.WriteFile(filepath.Join(dir, "vault", "research", ".DS_Store"), []byte{}, 0644)
+
+	errs := Validate(dir)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got: %v", errs)
+	}
+}
+
+// setupVault creates vault files in a test FOLIO_HOME.
+func setupVault(t *testing.T, dir string, files ...string) {
+	t.Helper()
+	for _, f := range files {
+		p := filepath.Join(dir, "vault", f)
+		os.MkdirAll(filepath.Dir(p), 0755)
+		os.WriteFile(p, []byte("# test\n"), 0644)
+	}
+}
+
 // setupTestHome creates a temporary FOLIO_HOME with the given file paths.
 func setupTestHome(t *testing.T, files ...string) string {
 	t.Helper()

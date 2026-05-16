@@ -627,8 +627,8 @@ func runWorkspaceCleanup(homeDir string, args []string, pal dendrik.Palette) int
 	return dendrik.ExitOK
 }
 
-// validateActiveProjects loads and validates every folio.yml in active/.
-// Returns a list of human-readable errors (empty on success).
+// validateActiveProjects loads and validates every folio.yml in active/
+// and the vault structure. Returns a list of human-readable errors (empty on success).
 func validateActiveProjects(homeDir string) []string {
 	entries, err := list.Scan(homeDir)
 	if err != nil {
@@ -656,5 +656,9 @@ func validateActiveProjects(homeDir string) []string {
 			errs = append(errs, fmt.Sprintf("%s: observation #%d: %s", e.Path, issue.Index, issue.Reason))
 		}
 	}
+
+	// Validate vault structure
+	errs = append(errs, home.Validate(homeDir)...)
+
 	return errs
 }
