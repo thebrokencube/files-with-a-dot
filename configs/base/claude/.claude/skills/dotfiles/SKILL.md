@@ -155,11 +155,19 @@ alongside the source changes. `dot sync` symlinks these binaries to `~/.local/bi
 Never `go build` directly to `~/.local/bin/` — that bypasses the checked-in artifact
 and `dot sync` will overwrite it.
 
-### Commit Conventions
+### Post-Edit Workflow
 
-Follow the conventions in the commit skill, plus dotfiles-specific rules:
-- Use conventional commits with scope: `fix(shell): correct PATH ordering`
-- Test with `dot sync --dry-run` before committing
+After making any change to dotfiles (public or private), complete the full cycle:
+
+1. **Validate** if touching scripts: `dot validate`
+2. **Test** with `dot sync --dry-run` before committing
+3. **Commit** using `/commit` skill — conventional commits with scope (e.g. `fix(shell): correct PATH ordering`)
+4. **Push** to remote
+5. **`dot sync`** if the change affects symlinks or managed files
+
+Do not stop after editing a file — commit and push to complete the change.
+
+When a change touches files in both `~/.dotfiles` and `~/.dotfiles.private`, commit each repo separately.
 
 ### Testing Changes
 
