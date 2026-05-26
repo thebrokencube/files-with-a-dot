@@ -1,4 +1,6 @@
 {
+  "effortLevel": "low",
+  "theme": "dark-ansi",
   "mcpServers": {
     "playwright": {
       "command": "npx",
