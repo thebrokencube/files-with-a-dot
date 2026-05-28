@@ -326,12 +326,21 @@ one — lightweight for simple changes, but it always exists.
    ```markdown
    # [Project Name] — Design Document
 
+   ## Pinned Constraints
+   [Cross-session decisions from alignment. Each entry one line.
+    When superseded, mark with "(superseded YYYY-MM-DD: <reason>)" — do not delete.]
+
+   ## Open Questions
+   [Unresolved decisions the next session must address. Remove entries as answered.]
+
    ## Direction
    ### Problem Statement
    ### Alternatives Considered
    ### Chosen Approach
    ### Scope Boundary
    ### Non-Negotiable Constraints
+   [Architectural / technical constraints that scope the solution. Distinct from
+    Pinned Constraints above, which are session-decided framings.]
 
    ## Interfaces
    ### Component Contracts
@@ -520,7 +529,15 @@ For re-run and amend-design rules, see plan.md.
 
 ## Session Exit (mandatory)
 
-Every session that produces design work MUST complete all four steps before ending.
+Every session that produces design work MUST complete all three steps before ending.
+
+**No separate handoff file.** The folio project IS the handoff. The design doc holds
+pinned constraints + convergence status + decisions; observations hold open questions;
+the work directory holds rounds + reviews. A new session resumes by running
+`/folio <project>` — folio surfaces what's current. Do NOT write a handoff file to
+`/tmp` or anywhere else. If a future Claude needs prose context that doesn't fit in the
+design doc or observations, that's a signal that the design doc is underspecified — fix
+the design doc.
 
 ### Step 1: Confidence Check
 
@@ -549,7 +566,7 @@ Three possible outcomes:
 | Response | Action |
 |----------|--------|
 | **Ship it** | Proceed to Brief phase (Agent 2). **NEVER skip the brief — execution cannot begin without a committed work plan.** |
-| **Iterate** | Produce iteration handoff (Step 3b) identifying weak areas for next round |
+| **Iterate** | Update the design doc's Convergence Status (mark weak layers NEEDS REVIEW with one-line note), then proceed to Step 2 |
 | **Not sure** | Run `folio validate` and `folio health` to surface gaps, then re-ask |
 
 Planning is iterative. A single round of diverge-converge rarely produces a hardened plan.
@@ -566,95 +583,29 @@ Materialize findings via `folio new retro <topic>` and observation items. Commit
 Retro scope includes the planning process itself — what worked about the agent team
 composition, lens selection, convergence quality, context management.
 
-### Step 3: Handoff Document
+### Step 3: Update State and Commit
 
-Write a handoff document to `/tmp/handoff-{topic}.md`. This is the single source of truth
-for the next session — whether that's the next phase or another planning round.
+Persist what changed this session into folio. No prose handoff — these updates ARE the
+handoff:
 
-**Progressive disclosure** (see `references/progressive-disclosure.md`): The handoff is
-structured in layers. A new session that knows what to do reads 10 lines. A session that
-needs to understand *why* reads deeper. Action first, context second, history last.
+1. **Design doc updates** — edit the design doc in place:
+   - Pinned Hard Constraints: add any new constraints decided this session; mark stale
+     ones with a strikethrough or a "(superseded YYYY-MM-DD: <reason>)" suffix.
+   - Convergence Status: update per-layer status (EXPLORING / PROPOSED / SETTLED /
+     AMENDED / NEEDS REVIEW / DEFERRED) to reflect the actual end-of-session state.
+   - Open Questions: add new ones that emerged; remove ones answered this session.
+2. **Observations** — log work items that don't belong in the design doc:
+   `folio observe "gap(<scope>): <one-line description>"`. Use for bugs, deferred work,
+   external integration risks, follow-on tasks.
+3. **Commit** — `folio home push -m "type(scope): description"`.
 
-**Layer 1 — TL;DR + Start Here (always read)**
+After commit, tell the user: *"Folio state updated. Next session: `/folio <project>`."*
 
-```markdown
-# Handoff: {Topic} — {Phase/State}
-
-## TL;DR
-{One sentence: what happened.} {One sentence: what's open.} {One sentence: what to do.}
-
-## Start Here
-
-{Copy-paste prompt block for the next session. Self-contained — includes topic, key
-constraints, design doc path, vault sources, and mode (e.g., "full agent teams powered").}
-
-Skills to invoke: `/folio status --folio <path>`, `/commit`, {others as needed}
-```
-
-The TL;DR is max 3 sentences. The Start Here block is the prompt the user pastes — it must
-work without reading anything else in the handoff. If the prompt needs context that isn't
-in the design doc, the handoff is underspecified.
-
-**Layer 2 — Context (read if the session needs to understand why)**
-
-```markdown
-## Open Questions
-{Bulleted list of unresolved decisions. Only questions the next session must address.}
-
-## Key Decisions (this session only)
-{Numbered list of decisions made THIS session — prior sessions' decisions live in the
-design doc. Don't repeat what's already committed.}
-
-## Exit Criteria
-{Concrete checklist for when the next round/phase is done.}
-```
-
-Keep Layer 2 under 30 lines. If a decision needs rationale, one sentence — not a paragraph.
-Link to the design doc for full context rather than restating it.
-
-**Layer 3 — Reference (skim or skip)**
-
-```markdown
-## Artifacts
-{File tree of what was created/modified, with paths. Compact — no descriptions unless
-the path isn't self-explanatory.}
-
-## Folio
-- Project: `{path}`
-- Commit: `folio home push -m "type(scope): description"`
-
-## Temp Files
-{List /tmp files. One line each.}
-```
-
-**What NOT to include in the handoff:**
-- Full decision history from prior rounds (that's the design doc's job)
-- Restated design doc sections (link, don't copy)
-- Convergence status tables that repeat settled items (only list what's open)
-- Agent research summaries (those are in the round directories)
-
-**Checklist before writing the handoff** (prevents forgetting things):
-- [ ] All artifacts committed to folio? (`folio home push`)
-- [ ] TL;DR is 3 sentences or fewer?
-- [ ] Start Here prompt works without reading the rest of the handoff?
-- [ ] Key Decisions only lists THIS session's decisions?
-- [ ] Open questions are questions, not restated context?
-- [ ] Exit criteria stated (if iterating)?
-
-### Step 4: Handoff Validation (mandatory)
-
-Spawn a fresh subagent with ONLY the handoff doc + design doc (no conversation context).
-The subagent reports ambiguities — anything that requires context the handoff doesn't
-provide. Fix ambiguities before session ends. Commit updated handoff via `folio home push`.
-
-### Step 5: Clipboard Delivery
-
-```bash
-cat /tmp/handoff-{topic}.md | pbcopy
-```
-
-Always copy the full handoff to clipboard. The user starts the next session by pasting it.
-Tell the user: "Handoff copied to clipboard. Paste it to start the next session."
+**Validation (mandatory).** Spawn a fresh subagent with ONLY the design doc path +
+folio.yml path (no conversation context). Ask: *"Read the design doc and observations.
+Could a fresh session pick up the work? What's missing or ambiguous?"* Fix anything the
+subagent can't infer from the artifacts, then commit again. The subagent's "I can
+proceed" verdict is the gate.
 
 ## Exit Criteria Templates
 

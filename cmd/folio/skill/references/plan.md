@@ -59,15 +59,19 @@ Session 3: Focused round on X -> design doc v3
   User: "ship it" -> proceed to Brief phase
 ```
 
-Each session produces a handoff document (see plan-design.md Session Exit) that bridges to the next. The handoff identifies what's strong, what's weak, and what the next round should focus on. Exit criteria should be stated explicitly so the loop has a defined endpoint.
+Each session ends by **updating the design doc in place** — pinned constraints,
+convergence status, open questions — and committing via `folio home push`. The next
+session resumes by running `/folio <project>`, which surfaces the design doc's current
+state inline. There is no separate handoff file. See plan-design.md Session Exit for
+the update procedure and SKILL.md "Bare Invocation" for the resume flow.
 
 **Key principle**: Each round should deepen specific areas, not repeat broad exploration. If round 1 produced a strong architecture but weak migration plan, round 2 focuses agent teams on migration feasibility — don't re-derive the architecture.
 
-**Convergence tracking**: Each round's handoff doc MUST include a "Convergence Status"
-section with per-layer status: Direction (problem/approach/scope), Interfaces
-(contracts/tracks/cross-cutting), and Implementation (technique choices). Use the status
-vocabulary: EXPLORING, PROPOSED, SETTLED (Round N), AMENDED (Round N), NEEDS REVIEW,
-DEFERRED, IN PROGRESS. Per-layer round budgets apply:
+**Convergence tracking**: The design doc's `## Convergence Status` section MUST track
+per-layer status: Direction (problem/approach/scope), Interfaces (contracts/tracks/
+cross-cutting), and Implementation (technique choices). Use the status vocabulary:
+EXPLORING, PROPOSED, SETTLED (Round N), AMENDED (Round N), NEEDS REVIEW, DEFERRED,
+IN PROGRESS. Per-layer round budgets apply:
 
 | Layer | Budget | Circuit breaker |
 |-------|--------|----------------|
@@ -79,13 +83,9 @@ DEFERRED, IN PROGRESS. Per-layer round budgets apply:
 When escalating, present explicit options: (a) accept current state, (b) narrow scope,
 (c) spike on blocking question.
 
-Handoff docs are the connective tissue. They MUST be complete enough that a fresh session
-can pick up without reading conversation history. See plan-design.md Session Exit for the
-mandatory handoff template.
-
-**Progressive disclosure applies to all handoffs** — action first, context second, history
-last. See `references/progressive-disclosure.md` for the canonical definition. Every handoff
-artifact (session handoff docs, execution briefs, handoff prompts) follows this structure.
+The design doc is the connective tissue across sessions. It MUST be complete enough that
+a fresh session running `/folio <project>` can pick up without reading conversation
+history or any other file beyond the design doc + observations.
 
 ## Invocation
 

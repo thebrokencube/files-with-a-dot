@@ -64,11 +64,46 @@ When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just
    - Active projects live at `~/.folio/active/<path>/folio.yml`
    - Archived projects live at `~/.folio/archive/<path>/folio.yml`
    - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
-   - Prepend a lifecycle suggestion line before the raw status output:
+   - **Resume summary (always print after status).** Folio state IS the handoff — no
+     handoff files exist. The next-session pickup happens by surfacing the most current
+     state inline. After `folio status`, do the following and display each as a labeled
+     block:
+     a. **Active work tracks**: Enumerate `work/active/*/` directories. For each:
+        - Sort by mtime, descending.
+        - Note which has a design doc at `<track>/reference/design/*.md`, which has a
+          spike, which has only observations.
+        - Print as a list under "Active work tracks" with mtime relative ages.
+     b. **Most recent design doc** (if any track has one): Take the most-recently-modified
+        design doc across all tracks. Read these sections verbatim and print under
+        "Design state — `<relative-path>`":
+        - `## Pinned Constraints`
+        - `## Open Questions`
+        - `## Convergence Status`
+        - `### Non-Negotiable Constraints` (under `## Direction`)
+        If the doc predates this template and lacks those exact section names, fall back
+        to reading `## Direction → ### Scope Boundary` + `## Convergence Status` and
+        flag the doc as "uses older template — consider migrating."
+     c. **Latest round** (if any): Highest-numbered `<track>/agent-research/NNNN-round/`
+        directory. List filenames inside it (e.g. `converged.md`, `review-*.md`, lens
+        files). If multiple tracks have rounds, show the one tied to the design doc from
+        (b), and note "other tracks also have rounds: X, Y."
+     d. **Most recent spike** (if no design doc): If (b) yielded nothing, list active
+        spikes from `work/active/*/spike/*.md` so pre-design work surfaces.
+     e. **Open observations**: Run `folio observe list` (or read folio.yml).
+     f. **Multi-track note**: If more than one work track is active, explicitly remind
+        the user: "Multiple work tracks active. Surfaced state above is from the most
+        recent one. Switch with: `/folio <project> <track-slug>` (not yet supported as
+        a flag — for now ask the user which to focus on)."
+   - Prepend a lifecycle suggestion line before all of this:
      `Next: [lifecycle-derived action] — [brief rationale]`
    - If the user provides work items alongside the pick, route them through the artifact routing guidance in each derivation rule
 
      -> Read references/lifecycle.md for derivation rules, stale detection, artifact routing, session entry display, schema migration hints, and fallback behavior.
+
+**Why the resume summary matters.** Sessions used to end with a `/tmp/handoff-*.md` file
+that the next session had to be told to read. That's been removed — see plan-design.md
+Session Exit. The price of removing handoff files is that bare invocation MUST surface
+enough current state to pick up cold. Do not skip the resume summary.
 
 If the user's ARGUMENTS text doesn't match any known subcommand but isn't empty, check in order: (1) if it matches "wrap-up", route to `/folio wrap-up`; (2) if it's a knowledge lookup (keywords like "find", "search", "look for", "stuff about", "anything on"), route to `/folio find` with the extracted query; (3) otherwise, treat it as freeform discussion about the folio system — answer the question directly.
 
@@ -120,7 +155,7 @@ Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All
 
 ### /folio wrap-up
 
-End-of-session workflow: retro, archive completed tracks, create successor tracks, write handoff doc, workspace cleanup. Each step is independently safe — skip or abandon at any point.
+End-of-session workflow: retro, archive completed tracks, create successor tracks, update folio state, workspace cleanup. Each step is independently safe — skip or abandon at any point.
 
 -> Read references/wrap-up.md for full workflow.
 

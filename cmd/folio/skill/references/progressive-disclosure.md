@@ -1,7 +1,7 @@
 # Progressive Disclosure
 
-Cross-cutting principle for all folio artifacts that hand off context: briefs, handoff
-documents, design docs, compose outputs, handoff prompts.
+Cross-cutting principle for folio artifacts that cross an agent or session boundary:
+briefs, design docs, compose outputs.
 
 ## Principle
 
@@ -27,20 +27,20 @@ The action layer should be self-sufficient for mechanical steps. The reference l
 context for judgment calls. If a track step can't be executed without reading a Key Reference,
 the track instruction is underspecified — add more inline detail.
 
-## Three-Layer Structure (Handoff Documents)
+## Session Handoffs Are Folio State
 
-Session handoffs use three layers:
+Folio does NOT use handoff documents. Cross-session continuity is provided by the design
+doc + observations + work-track filesystem. The next session resumes by running
+`/folio <project>`, which surfaces the current design state inline.
 
-1. **Layer 1 — TL;DR + Start Here** (always read): 3-sentence summary + copy-paste prompt
-   for the next session. Self-contained — works without reading anything else.
-2. **Layer 2 — Context** (read if the session needs to understand why): Open questions,
-   key decisions from this session only, exit criteria. Under 30 lines. Link to design
-   doc for full context rather than restating it.
-3. **Layer 3 — Reference** (skim or skip): Artifact file tree, folio project path, temp
-   files. Compact — no descriptions unless the path isn't self-explanatory.
+When designing a doc that will need to survive a session boundary, optimize the design
+doc itself for progressive disclosure: Pinned Constraints + Open Questions + Convergence
+Status at the top (always read), the Direction / Interfaces / Testing Strategy bodies in
+the middle (read if rationale is needed), Design Provenance at the bottom (history). See
+plan-design.md "Phase 4a: Fill Design Doc" for the layer-tagged template.
 
 ## Application
 
-This principle applies to any artifact that crosses a session boundary or agent boundary.
-When writing or reviewing a handoff artifact, check: can the consumer act from the top
-section alone? If not, promote the missing information upward.
+This principle applies to any artifact that crosses an agent boundary or session
+boundary. When writing or reviewing such an artifact, check: can the consumer act from
+the top section alone? If not, promote the missing information upward.

@@ -157,19 +157,18 @@ file is the durable artifact, observation items are the work triggers. Commit vi
 - [ ] All tracks completed with passing validation
 - [ ] Retro materialized (`folio new retro` or observation items)
 - [ ] Relevant observations resolved (`folio observe resolve`)
-- [ ] Handoff doc written if work continues in next session
+- [ ] Open work captured as observations or design-doc Open Questions if work continues
 
 ## Session Exit
 
-Phase 8 retro is the exit sequence for the final agent. No forward handoff.
-Record actionable findings via `folio new retro <topic>` and observation items.
-Commit via `folio home push`.
+Phase 8 retro is the exit sequence for the final agent. No separate handoff file —
+folio state IS the handoff. Record actionable findings via `folio new retro <topic>` and
+observation items. If work continues in another session, update the design doc's
+Open Questions + Convergence Status and log follow-on items via `folio observe`. Commit
+via `folio home push`. The next session resumes by running `/folio <project>` — see
+SKILL.md "Bare Invocation" for the resume flow.
 
-**Handoff validation (mandatory if work continues)**: If handing off to another session,
-spawn a fresh subagent with ONLY the handoff doc + work plan (no conversation context).
-The subagent reports ambiguities. Fix before session ends.
-
-**Handoff structure follows progressive disclosure** (see `references/progressive-disclosure.md`):
-action first (TL;DR + Start Here prompt), context second (open questions, key decisions, exit
-criteria). Include skill invocations in the Start Here block (e.g., `/folio status --folio
-<path>`, `/commit`) so the next session loads the right context without having to discover it.
+**Validation (mandatory if work continues)**: Spawn a fresh subagent with ONLY the design
+doc path + work plan path + observations list (no conversation context). Ask whether the
+state is sufficient to resume. Fix anything missing in the design doc or observations
+before session ends.

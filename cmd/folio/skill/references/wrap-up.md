@@ -41,11 +41,13 @@ Each step is independently safe — the user can skip or abandon at any point wi
    "Continue [track-name] next session? I'll scaffold the next track."
    If yes: `folio new <type> <topic>` with `depends_on` pointing to the archived track's key artifact (retro, design doc, or spike). The `depends_on` is a manual folio.yml edit — acceptable for source declarations.
 
-5. **Handoff doc** — write to `/tmp/handoff-<date>-<topic>.md` using the three-layer progressive disclosure structure from `references/progressive-disclosure.md`:
-   - Layer 1 (TL;DR + Start Here): 3-sentence summary + copy-paste prompt for next session
-   - Layer 2 (Context): open questions, key decisions this session only, exit criteria
-   - Layer 3 (Reference): artifact file tree, folio project path, temp files
-   Copy to clipboard: `cat /tmp/handoff-<date>-<topic>.md | pbcopy`
+5. **Update folio state** — no separate handoff file. Persist what changed this session:
+   - For each touched project, update the design doc (if one exists) with new pinned
+     constraints, convergence-status changes, and open questions.
+   - Log follow-on work as observations: `folio observe "type(scope): one-line"`.
+   - Commit via `folio home push`.
+   A new session resumes by running `/folio <project>` — folio surfaces what's current.
+   Do NOT write a handoff file to `/tmp` or anywhere else.
 
 6. **Workspace cleanup** — `folio home push` then `folio home workspace cleanup <path>`.
 
@@ -58,7 +60,7 @@ If the current session has an active plan-design session (design doc exists but 
 | Step 1 (scan) | Wrap-up owns this |
 | Step 2 (retro) | plan-design Session Exit Step 2 (Retro) |
 | Step 3 (archive) | Wrap-up owns this — plan-design has no archive concept |
-| Steps 4-5 (successor + handoff) | plan-design Session Exit Steps 3-5 (Handoff Doc, Validation, Clipboard) |
+| Steps 4-5 (successor + state update) | plan-design Session Exit Step 3 (Update State and Commit) |
 | Step 6 (cleanup) | Wrap-up owns this |
 
 ## Edge Cases

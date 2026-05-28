@@ -211,12 +211,10 @@ If issues found, fix and re-review. Loop until clean (cap 5 iterations).
    can't see because they have conversation context the execution agent won't.
 3. **Handoff gate** — two options:
    - **Continue** (default): Spawn next agent via Agent tool with fresh context. Pass only
-     the committed artifact path, setup instructions, and skill invocations — no conversation
-     history.
-   - **New session**: Provide a paste-able prompt for the user to start fresh. Include skill
-     invocations (e.g., `/folio status`, `/commit`) so the new session loads the right context.
-   Format: "Work plan committed at [path]. **Continue to Execute phase, or hand off to a
-   new session?**"
-4. **Clipboard delivery** (mandatory for new-session handoff): Write the handoff prompt to a
-   temp file and `pbcopy < /tmp/handoff-prompt.txt`. The prompt exists in the doc for
-   durability, but clipboard is how the user actually starts the next session.
+     the committed work-plan path and skill invocations — no conversation history.
+   - **New session**: Tell the user *"Work plan committed at `<path>`. Start the next
+     session with `/folio <project>` — it'll surface the work plan and ready-state."* No
+     paste-able prompt, no tempfile. The committed work plan IS the handoff.
+
+   Format the choice: *"Work plan committed at `<path>`. **Continue to Execute phase, or
+   hand off to a new session?**"*
