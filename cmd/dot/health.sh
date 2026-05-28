@@ -231,35 +231,6 @@ check_claude() {
     fi
 }
 
-check_diffity() {
-    echo "Diffity:"
-
-    if ! command -v diffity &>/dev/null; then
-        warn "diffity not installed — run 'dot sync' to install"
-        return
-    fi
-
-    ok "diffity ($(diffity --version 2>/dev/null || echo 'unknown'))"
-
-    if [[ ! -f "$HOME/.agents/.skill-lock.json" ]]; then
-        warn "skills lock file missing — run 'dot sync' to install diffity skills"
-        return
-    fi
-
-    if ! grep -q '"nilbuild/diffity"' "$HOME/.agents/.skill-lock.json" 2>/dev/null; then
-        warn "nilbuild/diffity not in skills lock — run 'dot sync'"
-        return
-    fi
-
-    local skill_count
-    skill_count=$(ls -1d "$HOME/.claude/skills/diffity-"* 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "$skill_count" -lt 7 ]]; then
-        warn "Only $skill_count/7 diffity skills present — run 'dot sync'"
-    else
-        ok "All 7 diffity skills installed"
-    fi
-}
-
 # ============================================================================
 # Setup Status - checks things that may need manual action
 # ============================================================================
@@ -343,7 +314,6 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
         local) check_local ;;
         nvim) check_nvim ;;
         claude) check_claude ;;
-        diffity) check_diffity ;;
         managed) check_managed ;;
         setup) check_setup_status >/dev/null ;;
         *) echo "Unknown check: $SPECIFIC_CHECK"; exit 1 ;;
@@ -358,8 +328,6 @@ else
     check_nvim
     echo ""
     check_claude
-    echo ""
-    check_diffity
     echo ""
     check_managed
     echo ""

@@ -695,38 +695,6 @@ install_claude_code() {
 install_claude_code
 echo ""
 
-# Install Diffity (CLI + skills from nilbuild/diffity via vercel-labs/skills)
-install_diffity() {
-    echo "Diffity:"
-
-    if ! command -v npm &>/dev/null; then
-        warn "npm not found — skipping (mise should provide node/npm)"
-        return 0
-    fi
-
-    if ! command -v diffity &>/dev/null; then
-        info "Installing diffity CLI via npm..."
-        npm install -g diffity >/dev/null 2>&1 || { err "diffity install failed"; return 1; }
-        ok "Installed diffity ($(diffity --version 2>/dev/null || echo 'unknown'))"
-    else
-        ok "diffity already installed ($(diffity --version 2>/dev/null || echo 'unknown'))"
-    fi
-
-    # Install (or update) the nilbuild/diffity skills into Claude Code
-    if [[ ! -f "$HOME/.agents/.skill-lock.json" ]] || ! grep -q '"nilbuild/diffity"' "$HOME/.agents/.skill-lock.json" 2>/dev/null; then
-        info "Installing diffity skills via 'skills add'..."
-        npx --yes skills@latest add nilbuild/diffity -g --agent claude-code --all --copy >/dev/null 2>&1 \
-            || { warn "diffity skills install failed (continuing)"; return 0; }
-        ok "Diffity skills installed (7 skills)"
-    else
-        info "Updating diffity skills..."
-        npx --yes skills@latest update -g >/dev/null 2>&1 || warn "skills update failed (non-fatal)"
-        ok "Diffity skills up to date"
-    fi
-}
-install_diffity
-echo ""
-
 echo "============================================"
 echo -e "  ${GREEN}Sync complete!${NC}"
 echo "============================================"
