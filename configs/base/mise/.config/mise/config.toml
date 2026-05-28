@@ -1,3 +1,5 @@
 [tools]
 bun = "latest"
-node = "lts"
+# Pinned: npm globals (diffity, etc.) live under mise/installs/node/<version>/bin
+# and disappear from PATH when this floats. Bump intentionally.
+node = "24.16.0"
