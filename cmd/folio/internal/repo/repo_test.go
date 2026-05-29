@@ -262,6 +262,49 @@ func TestJJPushCreatesNewChange(t *testing.T) {
 	}
 }
 
+// TestJJPushDropsEmptyParent is a regression test for the home-push bug where a
+// leftover empty, undescribed commit (from a prior push's `jj new`) sat as @'s
+// parent. The old `jj rebase -d main` dragged that empty commit onto main as an
+// undescribed ancestor, which `jj git push` rejects ("no description"). The fix
+// rebases only @ (`-r @`), leaving the empty commit behind as a sibling so it
+// never becomes an ancestor of the pushed bookmark.
+func TestJJPushDropsEmptyParent(t *testing.T) {
+	dir := initTestJJRepo(t)
+
+	// First push establishes the main bookmark (and leaves @ empty via jj new).
+	os.WriteFile(filepath.Join(dir, "first.txt"), []byte("one"), 0644)
+	if err := Push(dir, "test(repo): first"); err != nil {
+		t.Fatalf("first Push: %v", err)
+	}
+
+	// Create an empty, undescribed commit as @'s parent: `jj new` on the already
+	// empty post-push @ leaves that empty @ as the parent of a fresh empty @.
+	newCmd := exec.Command("jj", "new")
+	newCmd.Dir = dir
+	if out, err := newCmd.CombinedOutput(); err != nil {
+		t.Fatalf("jj new: %s", out)
+	}
+
+	// A real change in @, whose parent is now an empty, undescribed commit.
+	os.WriteFile(filepath.Join(dir, "second.txt"), []byte("two"), 0644)
+	if err := Push(dir, "test(repo): second"); err != nil {
+		t.Fatalf("second Push: %v", err)
+	}
+
+	// The pushed commit (main) must NOT sit on top of an empty commit — the empty
+	// leftover should have been left behind, not rebased onto main as an ancestor.
+	cmd := exec.Command("jj", "--no-pager", "log", "-r", "main-", "--no-graph",
+		"-T", `if(empty, "empty", "changed")`)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj log: %s", out)
+	}
+	if strings.TrimSpace(string(out)) != "changed" {
+		t.Errorf("main parent = %q, want \"changed\" — an empty leftover commit was dragged onto main (the bug)", strings.TrimSpace(string(out)))
+	}
+}
+
 func TestJJPullNoRemoteNoBookmark(t *testing.T) {
 	dir := initTestJJRepo(t)
 	err := Pull(dir)

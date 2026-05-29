@@ -134,9 +134,14 @@ func jjPush(home, message string) error {
 		return fmt.Errorf("jj describe: %w", err)
 	}
 
-	// Rebase onto main to prevent bookmark divergence (skip if main doesn't exist yet)
+	// Rebase onto main to prevent bookmark divergence (skip if main doesn't exist yet).
+	// Rebase only @ (-r @), not its whole ancestor chain: a prior push's `jj new`
+	// (or jj's lazy re-creation when the pushed commit goes immutable) can leave an
+	// empty, undescribed commit as @'s parent. Plain `jj rebase -d main` drags that
+	// empty commit onto main as an ancestor of @, and `jj git push` then rejects it
+	// for having no description. `-r @` leaves the empty commit behind as a sibling.
 	if hasBookmark(home, "main") {
-		if err := jjIn(home, "rebase", "-d", "main"); err != nil {
+		if err := jjIn(home, "rebase", "-r", "@", "-d", "main"); err != nil {
 			return fmt.Errorf("jj rebase: %w", err)
 		}
 		// jj rebase exits 0 even when it produces conflicts, so check explicitly
