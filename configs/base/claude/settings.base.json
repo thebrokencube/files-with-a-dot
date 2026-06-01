@@ -1,6 +1,7 @@
 {
   "effortLevel": "low",
   "theme": "dark-ansi",
+  "skipWorkflowUsageWarning": true,
   "mcpServers": {
     "playwright": {
       "command": "npx",
