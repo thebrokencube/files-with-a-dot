@@ -97,6 +97,13 @@ func validateRelPath(relPath string) error {
 	return nil
 }
 
+// PruneEmptyAncestors removes empty directories from dir up to (but not
+// including) stopAt. Exported for archive operations outside this package
+// (e.g. work-track archive) that need the same emptied-directory cleanup.
+func PruneEmptyAncestors(dir, stopAt string) {
+	pruneEmptyAncestors(dir, stopAt)
+}
+
 // pruneEmptyAncestors removes empty directories from dir up to (but not
 // including) stopAt. Walks upward, removing each empty directory until it
 // hits stopAt or a non-empty directory.

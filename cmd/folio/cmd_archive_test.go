@@ -108,6 +108,15 @@ func TestRunArchive(t *testing.T) {
 			t.Error("archive directory should contain README.md")
 		}
 
+		// Verify emptied work/active was pruned (no hollow skeleton left behind),
+		// while work/ itself is preserved
+		if _, err := os.Stat(filepath.Join(dir, "work", "active")); !os.IsNotExist(err) {
+			t.Error("empty work/active should be pruned after archiving the last track")
+		}
+		if _, err := os.Stat(filepath.Join(dir, "work")); err != nil {
+			t.Error("work/ should be preserved")
+		}
+
 		// Verify folio.yml rewritten
 		data, _ := os.ReadFile(yml)
 		if strings.Contains(string(data), "work/active/2026-01-01-test-track/") {
@@ -115,6 +124,29 @@ func TestRunArchive(t *testing.T) {
 		}
 		if !strings.Contains(string(data), "work/archive/2026-01-01-test-track/") {
 			t.Error("folio.yml should contain new archive path")
+		}
+	})
+
+	t.Run("preserves active dir with remaining tracks", func(t *testing.T) {
+		dir := t.TempDir()
+		yml := scaffoldTestFolio(t, dir)
+
+		// Add a second active track that should survive the archive
+		otherTrack := filepath.Join(dir, "work", "active", "2026-02-02-other-track")
+		os.MkdirAll(otherTrack, 0755)
+		os.WriteFile(filepath.Join(otherTrack, "README.md"), []byte("# Other\n"), 0644)
+
+		code := runArchive([]string{"--folio", yml, "--no-push", "2026-01-01-test-track"})
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d", code)
+		}
+
+		// work/active must remain because another track still lives there
+		if _, err := os.Stat(otherTrack); err != nil {
+			t.Error("remaining track should be untouched")
+		}
+		if _, err := os.Stat(filepath.Join(dir, "work", "active")); err != nil {
+			t.Error("work/active should be preserved when other tracks remain")
 		}
 	})
 

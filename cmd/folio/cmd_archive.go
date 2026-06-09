@@ -9,6 +9,7 @@ import (
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
@@ -108,6 +109,11 @@ func runArchive(args []string) int {
 		fmt.Fprintln(os.Stderr, pal.Errf("replacing folio.yml: %s", err))
 		return dendrik.ExitUserError
 	}
+
+	// Prune the emptied work/active dir so archiving the last active track
+	// doesn't leave a hollow skeleton behind. Stop at work/ to preserve the
+	// project's directory structure.
+	move.PruneEmptyAncestors(filepath.Dir(activeDir), filepath.Join(folioDir, "work"))
 
 	fmt.Printf("Archived: %s → %s\n", activeDir, archiveDir)
 	fmt.Printf("Rewrote %d path reference(s) in folio.yml\n", count)
