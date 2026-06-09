@@ -221,6 +221,51 @@ For CLAUDE.md files, reference docs, and other agentic documentation:
 
 ---
 
+## Harness Portability (all lenses)
+
+Evaluate on every skill and doc review. Most strongly relevant when the artifact targets
+multiple harnesses (Claude Code, Cursor, Codex, …), declares itself harness-agnostic, or
+labels parts of itself "harness-specific" / "Claude-specific". For a single-harness artifact
+that makes no portability claim, score **pass** and move on.
+
+**Check:**
+
+- **Over-claimed harness-specificity.** Is anything labeled harness-specific actually portable?
+  Orchestration — dispatching a subagent, isolating a workspace (it's `git worktree`
+  underneath), running linters, file operations, cleanup — are portable *capabilities*. Only
+  the **binding** (the concrete tool/command that performs the step — a specific Agent/Task
+  tool, a `/slash` command, an editor-specific agent) is harness-specific. Flag portable logic
+  siloed in a harness-specific file or section.
+- **Recipe vs adapter separation.** The portable procedure (the "recipe") should live once in
+  the agnostic layer (shared docs, `AGENTS.md`) as the source of truth, with a thin per-harness
+  "adapter" holding only the bindings. Flag the same workflow duplicated across the agnostic and
+  harness layers (drift risk), or a whole procedure stranded in one harness's file when only a
+  step or two is genuinely bound.
+- **Capability vs binding language.** Steps should read as capabilities ("dispatch a reviewer",
+  "isolate the PR into a workspace") with the concrete tool deferred to the adapter — not one
+  harness's tool name hardcoded as if it were the only way.
+- **Placement.** No harness-isms (specific tool names, `/slash` commands, dotdir paths) in
+  agnostic docs; no portable steps stranded in a single harness's overlay.
+
+**Pass:** Portable steps live once in the agnostic layer as capabilities; only true bindings
+(dispatch mechanism, isolation mechanism, tool/command names) sit in thin per-harness adapters.
+Or: single-harness artifact making no portability claim.
+
+**Warn:** Mostly separated, but a few portable steps are described in harness-specific terms,
+or there is minor duplication between the recipe and an adapter.
+
+**Fail:** A portable procedure is wholesale labeled "harness-specific"; the same workflow is
+duplicated across the agnostic and harness layers; or agnostic docs hardcode one harness's
+tools.
+
+**Example — fail:**
+> A "review a PR" workflow (isolate a worktree → run linters → dispatch a reviewer subagent →
+> report → cleanup) placed entirely in a `Claude-specific` reference file. Only the reviewer
+> *dispatch* and the *isolation* mechanism are harness-bound; the rest is portable and belongs
+> in the agnostic recipe, with a thin adapter naming just the two bindings.
+
+---
+
 ## Output Format
 
 Present each finding as:

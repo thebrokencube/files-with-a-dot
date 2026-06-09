@@ -60,12 +60,13 @@ Quality review for any SKILL.md and its surrounding directory.
 
 1. Read the target SKILL.md in full
 2. Read the surrounding directory (references/, scripts/) for context
-3. Read `references/review-rubric.md` — evaluate against 5 areas:
+3. Read `references/review-rubric.md` — evaluate against these areas:
    - Structure & Progressive Disclosure
    - Description Quality
    - Single Responsibility
    - Writing Quality
    - Completeness
+   - Harness Portability — always evaluate; scrutinize hardest when the skill is part of a multi-harness marketplace, claims to be harness-agnostic, or labels content "harness/Claude-specific" (catch portable orchestration mislabeled as harness-specific; recipe-vs-adapter separation)
 4. Score each area as pass/warn/fail
 5. Present top 5 findings ranked by impact
 6. End with 1-2 "do these first" action items
@@ -87,6 +88,7 @@ Quality review for CLAUDE.md files, reference docs, and agentic documentation.
    - Progressive Disclosure
    - Link Integrity
    - Actionability
+   - Harness Portability — always evaluate; scrutinize hardest when the doc is part of a multi-harness marketplace, claims to be harness-agnostic, or labels content "harness/Claude-specific" (catch portable orchestration mislabeled as harness-specific; recipe-vs-adapter separation)
 3. Score each area as pass/warn/fail
 4. Present top 5 findings ranked by impact
 5. End with 1-2 "do these first" action items
