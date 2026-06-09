@@ -93,16 +93,22 @@ func Validate(dir string) []string {
 		}
 	}
 
+	// Validation operates on repo content: a directory is only a folio (or an
+	// orphan) if it holds VCS-tracked files. Empty or untracked-only directories
+	// (build cruft, leftover skeletons, .DS_Store) are not repo state and are
+	// never flagged — they wouldn't be part of a commit anyway.
+	tracked := trackedDirs(dir)
+
 	// Check that leaf directories in active/ have folio.yml
 	activeDir := filepath.Join(dir, "active")
 	if fi, err := os.Stat(activeDir); err == nil && fi.IsDir() {
-		errs = append(errs, validateLeaves(activeDir, "active", false)...)
+		errs = append(errs, validateLeaves(activeDir, "active", false, tracked)...)
 	}
 
 	// Check that leaf directories in archive/ have folio.yml and date prefix
 	archiveDir := filepath.Join(dir, "archive")
 	if fi, err := os.Stat(archiveDir); err == nil && fi.IsDir() {
-		errs = append(errs, validateLeaves(archiveDir, "archive", true)...)
+		errs = append(errs, validateLeaves(archiveDir, "archive", true, tracked)...)
 	}
 
 	// Check vault structure
@@ -180,7 +186,7 @@ func validateVault(dir string) []string {
 // Directories containing folio.yml are treated as project roots — their children
 // are internal structure, not separate folios. If requireDatePrefix is true,
 // folio directory names must start with YYYY-MM-DD-.
-func validateLeaves(root, section string, requireDatePrefix bool) []string {
+func validateLeaves(root, section string, requireDatePrefix bool, tracked map[string]bool) []string {
 	var errs []string
 
 	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -206,8 +212,9 @@ func validateLeaves(root, section string, requireDatePrefix bool) []string {
 			return fs.SkipDir
 		}
 
-		// No folio.yml — if this is a leaf, it's an orphan
-		if isLeaf(path) {
+		// No folio.yml — a leaf holding tracked files is an orphan (real content
+		// outside any folio). A leaf with no tracked content is not repo state.
+		if isLeaf(path) && tracked[path] {
 			rel, _ := filepath.Rel(root, path)
 			errs = append(errs, fmt.Sprintf("%s/%s: missing folio.yml", section, rel))
 		}
@@ -216,6 +223,58 @@ func validateLeaves(root, section string, requireDatePrefix bool) []string {
 	})
 
 	return errs
+}
+
+// trackedDirs returns the set of directories (absolute paths) that contain at
+// least one VCS-tracked file, including all ancestors up to root. Validation
+// uses this to distinguish real repo content from filesystem cruft (empty
+// directories, gitignored files like .DS_Store). Returns nil if the tree is
+// not under version control, in which case no directory is treated as tracked.
+func trackedDirs(root string) map[string]bool {
+	files, ok := listTracked(root)
+	if !ok {
+		return nil
+	}
+	dirs := make(map[string]bool)
+	for _, rel := range files {
+		rel = strings.TrimSpace(rel)
+		if rel == "" {
+			continue
+		}
+		d := filepath.Dir(filepath.Join(root, rel))
+		for {
+			dirs[d] = true
+			if d == root {
+				break
+			}
+			parent := filepath.Dir(d)
+			if parent == d {
+				break
+			}
+			d = parent
+		}
+	}
+	return dirs
+}
+
+// listTracked returns repo-relative paths of all VCS-tracked files under root.
+// Prefers jj (authoritative for the working copy) when present, falling back to
+// git. The bool is false when the tree is not under version control.
+func listTracked(root string) ([]string, bool) {
+	if _, err := os.Stat(filepath.Join(root, ".jj")); err == nil {
+		cmd := exec.Command("jj", "--no-pager", "file", "list")
+		cmd.Dir = root
+		if out, err := cmd.Output(); err == nil {
+			return strings.Split(strings.TrimSpace(string(out)), "\n"), true
+		}
+	}
+	cmd := exec.Command("git", "ls-files")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, false
+	}
+	return strings.Split(strings.TrimSpace(string(out)), "\n"), true
 }
 
 // isLeaf returns true if the directory has no subdirectories.

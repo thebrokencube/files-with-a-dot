@@ -2,6 +2,7 @@ package home
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -88,6 +89,23 @@ func TestValidate_MissingFolioYml(t *testing.T) {
 	}
 	if errs[0] != "active/project-a: missing folio.yml" {
 		t.Errorf("unexpected error: %s", errs[0])
+	}
+}
+
+func TestValidate_EmptyDirsNotFlagged(t *testing.T) {
+	// A real project plus leftover empty directory skeletons (e.g. from an
+	// incomplete archive cleanup) and a gitignored .DS_Store. None of the cruft
+	// holds tracked content, so none should be flagged as missing folio.yml.
+	dir := setupTestHome(t,
+		"active/real-project/folio.yml",
+	)
+	os.MkdirAll(filepath.Join(dir, "active", "stale", "reference", "design"), 0755)
+	os.MkdirAll(filepath.Join(dir, "active", "stale", "work", "active"), 0755)
+	os.WriteFile(filepath.Join(dir, "active", "stale", ".DS_Store"), []byte{}, 0644)
+
+	errs := Validate(dir)
+	if len(errs) != 0 {
+		t.Fatalf("expected no errors for empty/untracked cruft, got %d: %v", len(errs), errs)
 	}
 }
 
@@ -300,5 +318,25 @@ func setupTestHome(t *testing.T, files ...string) string {
 		os.WriteFile(p, []byte("schema: 1\nproject: test\n"), 0644)
 	}
 
+	// Validation keys off VCS-tracked content, so the fixtures must be tracked.
+	// Initialize a git repo and stage the files (staging is enough — ls-files
+	// reads the index, no commit identity required).
+	gitInit(t, dir)
+
 	return dir
+}
+
+// gitInit initializes a git repo in dir and stages all current files so that
+// `git ls-files` (used by Validate) reports them as tracked.
+func gitInit(t *testing.T, dir string) {
+	t.Helper()
+	run := func(args ...string) {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "-q")
+	run("add", "-A")
 }

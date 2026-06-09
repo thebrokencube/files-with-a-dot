@@ -222,17 +222,11 @@ func runHomePush(args []string) int {
 		return code
 	}
 
-	// Validate all active folio.yml files before committing
-	if errs := validateActiveProjects(dir); len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — fix before pushing:"))
-		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "  - %s\n", e)
-		}
-		return dendrik.ExitUserError
-	}
-
 	var pushErr error
 	if *folioName != "" {
+		// Scoped push: resolve the target folio and validate only it. A scoped
+		// push must isolate the caller from unrelated validation debt elsewhere
+		// in the tree — validating everything would defeat the point of -f.
 		entries, err := list.Scan(dir)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -249,8 +243,17 @@ func runHomePush(args []string) int {
 			fmt.Fprintln(os.Stderr, pal.Errf("folio %q not found", *folioName))
 			return dendrik.ExitUserError
 		}
+		if errs := validateProject(dir, *match); len(errs) > 0 {
+			printValidationErrors(pal, errs)
+			return dendrik.ExitUserError
+		}
 		pushErr = repo.PushScoped(dir, *msg, []string{match.Section + "/" + match.Path})
 	} else {
+		// Whole-tree push: validate every active folio plus home structure.
+		if errs := validateActiveProjects(dir); len(errs) > 0 {
+			printValidationErrors(pal, errs)
+			return dendrik.ExitUserError
+		}
 		pushErr = repo.Push(dir, *msg)
 	}
 
@@ -640,25 +643,40 @@ func validateActiveProjects(homeDir string) []string {
 		if e.Section != "active" {
 			continue
 		}
-		ymlPath := filepath.Join(homeDir, "active", e.Path, "folio.yml")
-		f, err := config.Load(ymlPath)
-		if err != nil {
-			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, err))
-			continue
-		}
-		folioDir := filepath.Dir(ymlPath)
-		result := validate.Validate(f, folioDir)
-		for _, ve := range result.Errors {
-			errs = append(errs, fmt.Sprintf("%s: %s", e.Path, ve))
-		}
-		issues := observe.Lint(folioDir, f.Observations)
-		for _, issue := range issues {
-			errs = append(errs, fmt.Sprintf("%s: observation #%d: %s", e.Path, issue.Index, issue.Reason))
-		}
+		errs = append(errs, validateProject(homeDir, e)...)
 	}
 
-	// Validate vault structure
+	// Validate home + vault structure
 	errs = append(errs, home.Validate(homeDir)...)
 
 	return errs
+}
+
+// validateProject validates a single folio: its folio.yml structure and its
+// observations. Returns human-readable errors (empty on success).
+func validateProject(homeDir string, e list.Entry) []string {
+	var errs []string
+	ymlPath := filepath.Join(homeDir, e.Section, e.Path, "folio.yml")
+	f, err := config.Load(ymlPath)
+	if err != nil {
+		return []string{fmt.Sprintf("%s: %s", e.Path, err)}
+	}
+	folioDir := filepath.Dir(ymlPath)
+	result := validate.Validate(f, folioDir)
+	for _, ve := range result.Errors {
+		errs = append(errs, fmt.Sprintf("%s: %s", e.Path, ve))
+	}
+	issues := observe.Lint(folioDir, f.Observations)
+	for _, issue := range issues {
+		errs = append(errs, fmt.Sprintf("%s: observation #%d: %s", e.Path, issue.Index, issue.Reason))
+	}
+	return errs
+}
+
+// printValidationErrors writes a validation failure block to stderr.
+func printValidationErrors(pal dendrik.Palette, errs []string) {
+	fmt.Fprintln(os.Stderr, pal.Errf("validation failed — fix before pushing:"))
+	for _, e := range errs {
+		fmt.Fprintf(os.Stderr, "  - %s\n", e)
+	}
 }
