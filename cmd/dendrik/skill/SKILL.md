@@ -16,8 +16,7 @@ When invoked, determine which lens to use:
 | Signal | Lens |
 |---|---|
 | `dendrik lint <path>` or explicit lint request | **Conventions** — full contract lint |
-| `dendrik review <path>` or path to a SKILL.md | **Skill Review** — quality rubric |
-| Path to CLAUDE.md, reference file, or doc | **Doc Review** — doc quality rubric |
+| `dendrik review <file\|repo\|PR>` or any reviewable doc (incl. SKILL.md) | **Review** — detect type → dispatch |
 | `dendrik --explain <id>` | **Explain** — show check rationale |
 | No arguments, no clear context | Detect context (see below) |
 
@@ -54,46 +53,47 @@ Three layers validated: Go (6 checks), Skill (9 checks), Bridge (10 checks).
 
 ---
 
-## Lens: Skill Review
+## Lens: Review
 
-Quality review for any SKILL.md and its surrounding directory.
+Quality review of agentic documents — by *type*. Each type (SKILL.md, CLAUDE.md, AGENTS.md,
+ARCHITECTURE.md, README.md, skill reference files, slash-commands) has a different job,
+audience, load model, and dominant failure mode, so review applies type-appropriate criteria,
+not one generic rubric. SKILL.md is just one type among many.
 
-1. Read the target SKILL.md in full
-2. Read the surrounding directory (references/, scripts/) for context
-3. Read `references/review-rubric.md` — evaluate against these areas:
-   - Structure & Progressive Disclosure
-   - Description Quality
-   - Single Responsibility
-   - Writing Quality
-   - Completeness
-   - Harness Portability — always evaluate; scrutinize hardest when the skill is part of a multi-harness marketplace, claims to be harness-agnostic, or labels content "harness/Claude-specific" (catch portable orchestration mislabeled as harness-specific; recipe-vs-adapter separation)
-4. Score each area as pass/warn/fail
-5. Present top 5 findings ranked by impact
-6. End with 1-2 "do these first" action items
+### Detect type (first match wins)
 
--> Read references/review-rubric.md for scoring criteria and examples.
+| Priority | Signal | Leaf |
+|---|---|---|
+| 1 | path `references/*.md` under a skill dir | skill-reference → `review-type-skill.md` |
+| 1 | path under `.claude/commands/` or a `commands/*.md` command file | slash-command → `review-type-skill.md` |
+| 2 | filename `SKILL.md` | skill → `review-type-skill.md` |
+| 2 | filename `CLAUDE.md` | claude-md → `review-type-claude-md.md` |
+| 2 | filename `AGENTS.md` | agents-md → `review-type-agents-md.md` |
+| 2 | filename `ARCHITECTURE.md` / `*-architecture.md` | architecture-md → `review-type-architecture-md.md` |
+| 2 | filename `README.md` | readme-md → `review-type-readme-md.md` |
+| 3 | frontmatter `name`+`description` | skill → `review-type-skill.md` |
+| — | no match | generic → `review-shared.md` only |
 
--> Read references/skill-conventions.md for convention details.
+Ambiguous? State the inferred type and ask before proceeding (see Context Detection).
 
----
+### Per-artifact unit
 
-## Lens: Doc Review
+1. Read the target in full (+ surrounding dir if a skill).
+2. Detect type (above).
+3. Load `references/review-shared.md` (universal dimensions + Right Layer? + scoring/output).
+4. Load the one matching `references/review-type-*.md` leaf (skip if generic).
+5. Apply the shared dimensions (incl. Right Layer?) + the leaf's type-local dimensions.
+6. Score pass/warn/fail; present top findings + 1-2 "do these first" items.
 
-Quality review for CLAUDE.md files, reference docs, and agentic documentation.
+### Targets: file | repo | PR
 
-1. Read the target document in full
-2. Read `references/review-rubric.md` — evaluate against doc review areas:
-   - Structure
-   - Clarity
-   - Progressive Disclosure
-   - Link Integrity
-   - Actionability
-   - Harness Portability — always evaluate; scrutinize hardest when the doc is part of a multi-harness marketplace, claims to be harness-agnostic, or labels content "harness/Claude-specific" (catch portable orchestration mislabeled as harness-specific; recipe-vs-adapter separation)
-3. Score each area as pass/warn/fail
-4. Present top 5 findings ranked by impact
-5. End with 1-2 "do these first" action items
+- **file** → run the per-artifact unit once. Done.
+- **repo / dir** or **PR** → many artifacts + relationships between them.
+  -> Read references/review-orchestration.md for input resolution (glob / `gh pr diff`),
+  the cross-artifact composition pass (the Right Layer? opinion across files), caps, and the
+  multi-artifact output skeleton.
 
--> Read references/review-rubric.md (Doc Review Areas section) for criteria.
+-> Read references/skill-conventions.md for convention details (skill targets).
 
 ---
 
@@ -112,7 +112,13 @@ Maximum 5 findings. If everything passes, say so — don't manufacture problems.
 
 | Reference | When to read |
 |---|---|
-| `references/review-rubric.md` | Skill review or doc review lens |
-| `references/skill-conventions.md` | Skill review — convention details |
+| `references/review-shared.md` | Review lens — every review (universal dims, Right Layer?, scoring, output) |
+| `references/review-type-skill.md` | Review lens — detected type: skill / skill reference / slash-command |
+| `references/review-type-claude-md.md` | Review lens — detected type: CLAUDE.md |
+| `references/review-type-agents-md.md` | Review lens — detected type: AGENTS.md |
+| `references/review-type-architecture-md.md` | Review lens — detected type: ARCHITECTURE.md |
+| `references/review-type-readme-md.md` | Review lens — detected type: README.md |
+| `references/review-orchestration.md` | Review lens — repo/PR target (multi-artifact) |
+| `references/skill-conventions.md` | Review lens — skill convention details |
 | `references/cli-conventions.md` | Conventions lens — CLI details |
-| `references/contract-checks.md` | Conventions lens — all 25 check IDs |
+| `references/contract-checks.md` | Conventions lens — all check IDs |
