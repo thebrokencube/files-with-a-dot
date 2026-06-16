@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --fix          Auto-fix issues where possible"
             echo "  --check NAME   Run specific check only"
             echo ""
-            echo "Available checks: tools, brew, local, nvim, claude, managed, setup"
+            echo "Available checks: tools, brew, local, nvim, claude, signing, managed, setup"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -231,6 +231,58 @@ check_claude() {
     fi
 }
 
+check_signing() {
+    echo "Commit signing:"
+
+    # Detect SSH-based commit signing (jj preferred, then git)
+    local signing_on=false
+    local sign_key=""
+
+    if command -v jj &>/dev/null; then
+        local jj_backend jj_behavior
+        jj_backend=$(jj config get signing.backend 2>/dev/null || echo "")
+        jj_behavior=$(jj config get signing.behavior 2>/dev/null || echo "")
+        if [[ "$jj_backend" == "ssh" && -n "$jj_behavior" && "$jj_behavior" != "drop" ]]; then
+            signing_on=true
+            sign_key=$(jj config get signing.key 2>/dev/null || echo "")
+        fi
+    fi
+
+    if [[ "$signing_on" == false ]] && command -v git &>/dev/null; then
+        if [[ "$(git config --global commit.gpgsign 2>/dev/null)" == "true" \
+            && "$(git config --global gpg.format 2>/dev/null)" == "ssh" ]]; then
+            signing_on=true
+            sign_key=$(git config --global user.signingkey 2>/dev/null || echo "")
+        fi
+    fi
+
+    if [[ "$signing_on" == false ]]; then
+        ok "SSH commit signing not enabled (nothing to check)"
+        return
+    fi
+
+    # Signing is on — a key must be loaded in the agent or every commit fails to sign
+    if ssh-add -l &>/dev/null; then
+        ok "SSH signing enabled and ssh-agent has keys loaded"
+        return
+    fi
+
+    warn "SSH signing is ON but ssh-agent has no keys — commits will fail to sign (often after a reboot)"
+
+    # Resolve a private key to load (signing.key usually points at the .pub)
+    local priv_key="${sign_key%.pub}"
+    [[ -z "$priv_key" || ! -f "$priv_key" ]] && priv_key="$HOME/.ssh/id_ed25519"
+
+    if [[ "$AUTO_FIX" == true && "$(uname)" == "Darwin" ]]; then
+        info "Loading key into agent + keychain (you'll be prompted for the passphrase once)..."
+        ssh-add --apple-use-keychain "$priv_key" || warn "ssh-add failed — verify the passphrase for $priv_key"
+    elif [[ "$(uname)" == "Darwin" ]]; then
+        info "Fix: ssh-add --apple-use-keychain $priv_key  (seeds keychain so it auto-loads after reboot)"
+    else
+        info "Fix: ssh-add $priv_key"
+    fi
+}
+
 # ============================================================================
 # Setup Status - checks things that may need manual action
 # ============================================================================
@@ -314,6 +366,7 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
         local) check_local ;;
         nvim) check_nvim ;;
         claude) check_claude ;;
+        signing) check_signing ;;
         managed) check_managed ;;
         setup) check_setup_status >/dev/null ;;
         *) echo "Unknown check: $SPECIFIC_CHECK"; exit 1 ;;
@@ -328,6 +381,8 @@ else
     check_nvim
     echo ""
     check_claude
+    echo ""
+    check_signing
     echo ""
     check_managed
     echo ""
