@@ -1,8 +1,5 @@
 # Brewfile.shared - Core development tools for all machines
 
-# Taps
-tap "jesseduffield/lazygit"        # lazygit formula
-
 # Core tools
 brew "git"
 brew "neovim"
@@ -25,16 +22,13 @@ brew "tree"                     # Directory tree viewer
 brew "bat"                      # Better cat with syntax highlighting
 
 # Git tools
-brew "lazygit"                  # Terminal UI for git
 brew "gh"                       # GitHub CLI
-brew "git-filter-repo"          # Git history rewriting
 brew "jj"                       # Jujutsu VCS (colocated with git)
 
 # JSON/data tools
 brew "jq"                       # JSON processor
 
 # Network
-brew "wget"
 brew "curl"
 
 # Containers
@@ -47,9 +41,6 @@ cask "iterm2"                   # Fallback terminal
 
 # Knowledge management
 cask "obsidian"                 # Vault browser for ~/.folio
-
-# Diagrams
-brew "mermaid-cli"              # Mermaid diagram CLI (mmdc)
 
 # Fonts
 cask "font-inconsolata-nerd-font"
