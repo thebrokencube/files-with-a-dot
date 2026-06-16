@@ -683,13 +683,21 @@ install_claude_code() {
         return 0
     fi
 
-    # Bootstrap native installer — needs a working claude on PATH to run 'claude install'
+    # Migrate an existing (e.g. legacy) claude on PATH to the native binary
     if command -v claude &>/dev/null; then
         info "Installing native binary via 'claude install'..."
         claude install || { err "Native install failed"; return 1; }
         ok "Native binary installed"
+        return 0
+    fi
+
+    # Fresh machine: no claude anywhere. Bootstrap via the official installer.
+    info "Installing native binary via official installer..."
+    if curl -fsSL https://claude.ai/install.sh | bash; then
+        ok "Native binary installed ($("$HOME/.local/bin/claude" --version 2>/dev/null || echo 'unknown'))"
     else
-        warn "Claude Code not found — install manually: https://docs.anthropic.com/en/docs/claude-code/getting-started"
+        err "Native install failed — install manually: https://docs.anthropic.com/en/docs/claude-code/getting-started"
+        return 1
     fi
 }
 install_claude_code
