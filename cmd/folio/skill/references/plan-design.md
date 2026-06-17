@@ -350,6 +350,14 @@ one — lightweight for simple changes, but it always exists.
    ### Cross-Cutting Decisions
    [Shared types, system-wide patterns, technology choices affecting multiple tracks.]
 
+   ## Dendrik Extraction Candidates
+   [For each concept or util this design introduces, decide: tool-specific, or a composable
+    dendrik primitive other consumers (folio/jf/dot) should reuse? Per candidate: the concept,
+    why it generalizes, which consumers, whether it warrants its own scoped extraction effort
+    (usually separate, not folded in here). "None — tool-specific" is valid and common.
+    Context — what dendrik owns and why: the dendrik platform thesis
+    (tooling/dendrik reference/synthesis/2026-06-17-dendrik-platform-thesis.md).]
+
    ## Testing Strategy
    ### Test Types
    [Unit, integration, e2e, manual — which apply and why.]
@@ -374,9 +382,11 @@ one — lightweight for simple changes, but it always exists.
    ```
 
    The Direction section captures *what* and *why*. The Interfaces section captures
-   cross-boundary contracts and track structure. Testing Strategy captures *how correctness
-   is verified* — test types, acceptance criteria, infrastructure, and explicit coverage
-   boundaries. Implementation Notes are optional and advisory — most projects leave this
+   cross-boundary contracts and track structure. Dendrik Extraction Candidates asks, every
+   design, what composable primitive this work should push *upstream* into dendrik (see the
+   dendrik platform thesis) — first-class, not an afterthought. Testing Strategy captures
+   *how correctness is verified* — test types, acceptance criteria, infrastructure, and
+   explicit coverage boundaries. Implementation Notes are optional and advisory — most projects leave this
    empty because execution agents resolve technique choices JIT via spikes. Convergence
    Status tracks per-layer progress across rounds. Design Provenance records how the design
    was produced (agent count, lenses, review fixes).
