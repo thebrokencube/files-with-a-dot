@@ -36,7 +36,7 @@ type ContractEntry struct {
 	Remediation string // shown in lint output
 }
 
-// Contract is the complete 25-check dendrik tool contract.
+// Contract is the complete dendrik tool contract.
 var Contract = []ContractEntry{
 	// --- Go Layer ---
 	{
@@ -98,6 +98,12 @@ var Contract = []ContractEntry{
 		Summary:     "Links in README.md Documentation section resolve to existing files",
 		Rationale:   "Broken documentation links in README.md prevent readers from finding detailed docs.",
 		Remediation: "Fix broken links in the ## Documentation section of README.md — ensure referenced files exist.",
+	},
+	{
+		ID: "version-flag", Layer: LayerGo, Scope: ScopeUniversal, Severity: SeverityWarning,
+		Summary:     "main.go handles a --version flag (distinct from the version subcommand)",
+		Rationale:   "A --version flag (with -V) is a near-universal CLI convention (clig.dev, 12-factor CLI) for scriptable version reporting. A `version` subcommand alone does not satisfy the flag form that users and agents expect, so dendrik tools should handle both.",
+		Remediation: "In main()'s dispatch, fold the flag forms into the version case: `case \"version\", \"--version\", \"-V\":` printing the version and exiting 0.",
 	},
 
 	// --- Skill Layer ---

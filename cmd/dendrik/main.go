@@ -16,7 +16,7 @@ func main() {
 	switch os.Args[1] {
 	case "lint":
 		os.Exit(runLint(os.Args[2:]))
-	case "version":
+	case "version", "--version", "-V":
 		fmt.Printf("dendrik %s\n", version)
 		os.Exit(0)
 	case "--help", "-h", "help":
@@ -33,7 +33,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage: dendrik <command> [flags]
 
 Commands:
-  lint <path>    Run 25-check tool contract validation
+  lint <path>    Run tool contract validation
   version        Show version
 
 Run 'dendrik <command> --help' for details.

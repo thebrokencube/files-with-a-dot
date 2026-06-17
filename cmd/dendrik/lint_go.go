@@ -2,9 +2,11 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
@@ -37,6 +39,7 @@ func GoLint(data *ToolData) []LintResult {
 	}
 
 	results = append(results, checkMainDispatch(data)...)
+	results = append(results, checkVersionFlag(data)...)
 
 	hasCmdFile := false
 	for _, gf := range data.GoFiles {
@@ -161,6 +164,64 @@ func hasRunArg(call *ast.CallExpr) bool {
 		return false
 	}
 	return strings.HasPrefix(ident.Name, "run")
+}
+
+// checkVersionFlag verifies main.go handles a --version flag, distinct from any
+// `version` subcommand. If main.go is missing or unparseable, main-dispatch
+// already reports it, so this check stays silent to avoid double-reporting.
+func checkVersionFlag(data *ToolData) []LintResult {
+	var mainFile *GoFileData
+	for i := range data.GoFiles {
+		if data.GoFiles[i].Path == "main.go" {
+			mainFile = &data.GoFiles[i]
+			break
+		}
+	}
+	if mainFile == nil || mainFile.AST == nil {
+		return nil
+	}
+	if mainHandlesVersionFlag(mainFile.AST) {
+		return nil
+	}
+	return []LintResult{lintResult("version-flag", conventions.SeverityWarning,
+		"main.go does not handle a --version flag",
+		"main.go", 0,
+		"In main()'s dispatch, fold the flag forms into the version case: `case \"version\", \"--version\", \"-V\":`.")}
+}
+
+// mainHandlesVersionFlag reports whether func main() has a switch case whose
+// expression is the string literal "--version" — the flag form, distinct from
+// the "version" subcommand (which a naive string match would falsely accept).
+func mainHandlesVersionFlag(file *ast.File) bool {
+	found := false
+	ast.Inspect(file, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		fn, ok := n.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != "main" {
+			return true
+		}
+		ast.Inspect(fn.Body, func(inner ast.Node) bool {
+			cc, ok := inner.(*ast.CaseClause)
+			if !ok {
+				return true
+			}
+			for _, expr := range cc.List {
+				lit, ok := expr.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING {
+					continue
+				}
+				if val, err := strconv.Unquote(lit.Value); err == nil && val == "--version" {
+					found = true
+					return false
+				}
+			}
+			return true
+		})
+		return false
+	})
+	return found
 }
 
 func checkMakefileTargets(data *ToolData) []LintResult {

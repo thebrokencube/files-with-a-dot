@@ -77,6 +77,62 @@ func main() { fmt.Println("hello") }
 	})
 }
 
+func TestGoLint_VersionFlag(t *testing.T) {
+	t.Run("handles --version flag", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.GoFiles = []GoFileData{
+			parseGoFile("main.go", `package main
+import ("fmt"; "os")
+func main() {
+	switch os.Args[1] {
+	case "version", "--version", "-V":
+		fmt.Println("v1")
+		os.Exit(0)
+	case "lint":
+		os.Exit(runLint(os.Args[2:]))
+	}
+}
+`),
+			cmdFile("cmd_foo.go"),
+		}
+		results := filterCheck(GoLint(data), "version-flag")
+		if len(results) > 0 {
+			t.Errorf("expected no version-flag warning, got %v", results)
+		}
+	})
+
+	t.Run("version subcommand only does not satisfy", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.GoFiles = []GoFileData{
+			parseGoFile("main.go", `package main
+import ("fmt"; "os")
+func main() {
+	switch os.Args[1] {
+	case "version":
+		fmt.Println("v1")
+		os.Exit(0)
+	}
+}
+`),
+			cmdFile("cmd_foo.go"),
+		}
+		results := filterCheck(GoLint(data), "version-flag")
+		assertCheckPresent(t, results, "version-flag")
+		if results[0].Severity != conventions.SeverityWarning {
+			t.Errorf("version-flag should be warning, got %s", results[0].Severity)
+		}
+	})
+
+	t.Run("silent when main.go missing", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.GoFiles = []GoFileData{cmdFile("cmd_foo.go")}
+		results := filterCheck(GoLint(data), "version-flag")
+		if len(results) > 0 {
+			t.Errorf("version-flag should stay silent when main.go missing, got %v", results)
+		}
+	})
+}
+
 func TestGoLint_CmdFiles(t *testing.T) {
 	t.Run("has cmd file", func(t *testing.T) {
 		data := minimalToolData("test")

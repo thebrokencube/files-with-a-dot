@@ -41,7 +41,7 @@ func main() {
 	// Top-level utility commands
 	case "setup":
 		os.Exit(runSetup(os.Args[2:]))
-	case "version":
+	case "version", "--version", "-V":
 		fmt.Printf("folio %s\n", version)
 		os.Exit(0)
 	case "--help", "-h", "help":

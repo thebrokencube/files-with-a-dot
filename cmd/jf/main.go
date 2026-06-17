@@ -24,7 +24,7 @@ func main() {
 		os.Exit(runInit(os.Args[2:]))
 	case "schema":
 		os.Exit(runSchema(os.Args[2:]))
-	case "version":
+	case "version", "--version", "-V":
 		fmt.Printf("jf %s\n", version)
 		os.Exit(0)
 	case "--help", "-h", "help":
