@@ -674,3 +674,53 @@ check_managed_drift() {
     [[ "$drift_found" == true ]] && return 1
     return 0
 }
+
+# Auto-resolve disk-ahead drift for the plugin manifest files only.
+# Claude Code self-updates these on disk (plugin version/timestamp bumps); treat the on-disk
+# file as authoritative and backfill it into the private overlay source. Scoped to exactly two
+# files by overlay basename — never touches base or any other managed file. Leaves the overlay
+# working tree dirty (commit with 'dot private push'); auto-resolve is not auto-commit.
+# Assumes base is empty for these files (compiled output == overlay), so disk-vs-overlay is the
+# correct comparison. Arguments: $1 = managed_map.txt path.
+reconcile_plugin_drift() {
+    local map_file="$1"
+    [[ ! -f "$map_file" ]] && return 0
+    command -v jq &>/dev/null || return 0
+    has_private_overlay || return 0
+
+    # Overlay basenames safe to auto-backfill from disk.
+    local safe_overlays="claude-plugins-installed.json claude-plugins-marketplaces.json"
+    local sort_filter='def sort_all: if type == "object" then to_entries | sort_by(.key) | map(.value |= sort_all) | from_entries elif type == "array" then [.[] | sort_all] | sort_by(tostring) else . end; sort_all'
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        local spec="${line%%:*}"
+        local dest="${line#*:}"
+        dest=$(eval echo "$dest")
+
+        # Needs an overlay component
+        [[ "$spec" != *"+"* ]] && continue
+        local overlay_rel="${spec#*+}"
+        local overlay_base
+        overlay_base=$(basename "$overlay_rel")
+
+        # Only the safe plugin manifests
+        case " $safe_overlays " in
+            *" $overlay_base "*) ;;
+            *) continue ;;
+        esac
+
+        local overlay_path="$PRIVATE_DIR/$overlay_rel"
+        [[ -f "$dest" && -f "$overlay_path" ]] || continue
+
+        # If the on-disk file differs from the overlay source, backfill disk -> overlay.
+        local dest_norm overlay_norm
+        dest_norm=$(jq -S "$sort_filter" "$dest" 2>/dev/null) || continue
+        overlay_norm=$(jq -S "$sort_filter" "$overlay_path" 2>/dev/null) || continue
+        if [[ "$dest_norm" != "$overlay_norm" ]]; then
+            cp "$dest" "$overlay_path"
+            info "Auto-resolved plugin drift: backfilled $overlay_base to private overlay (commit with 'dot private push')"
+        fi
+    done < "$map_file"
+}

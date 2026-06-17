@@ -644,6 +644,9 @@ elif has_private_overlay; then
     private_sync
 fi
 
+# Auto-resolve disk-ahead drift for plugin manifests (Claude self-updates these)
+reconcile_plugin_drift "$DOTFILES_DIR/managed_map.txt"
+
 # Check for managed file drift before overwriting
 if [[ "$FORCE" != true ]]; then
     if ! check_managed_drift "$DOTFILES_DIR/managed_map.txt"; then
