@@ -66,6 +66,43 @@ func TestInit_Idempotent(t *testing.T) {
 	}
 }
 
+func TestInit_FallsBackToGitWithoutJJ(t *testing.T) {
+	orig := lookJJ
+	lookJJ = func() bool { return false }
+	defer func() { lookJJ = orig }()
+
+	dir := filepath.Join(t.TempDir(), "folio-home")
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
+		t.Error("expected .git (git fallback), but it is missing")
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".jj")); err == nil {
+		t.Error("expected no .jj when jj is unavailable, but .jj exists")
+	}
+}
+
+func TestInit_PrefersJJWhenAvailable(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not installed; cannot exercise the colocate path")
+	}
+	orig := lookJJ
+	lookJJ = func() bool { return true }
+	defer func() { lookJJ = orig }()
+
+	dir := filepath.Join(t.TempDir(), "folio-home")
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	// jj git init --colocate creates BOTH markers.
+	for _, marker := range []string{".jj", ".git"} {
+		if _, err := os.Stat(filepath.Join(dir, marker)); os.IsNotExist(err) {
+			t.Errorf("expected %s in jj-colocated repo, but it is missing", marker)
+		}
+	}
+}
+
 func TestValidate_Clean(t *testing.T) {
 	dir := setupTestHome(t,
 		"active/project-a/folio.yml",

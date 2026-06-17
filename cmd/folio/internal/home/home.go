@@ -13,6 +13,13 @@ import (
 
 const defaultHome = ".folio"
 
+// lookJJ reports whether the jj binary is available on PATH. It is a package
+// var so tests can force either VCS branch in Init deterministically.
+var lookJJ = func() bool {
+	_, err := exec.LookPath("jj")
+	return err == nil
+}
+
 // Dir resolves the FOLIO_HOME directory. Uses FOLIO_HOME env var if set,
 // otherwise defaults to ~/.folio/.
 func Dir() (string, error) {
@@ -63,12 +70,23 @@ func Init(dir string) error {
 		}
 	}
 
-	// Initialize git repo if not already one
-	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
-		cmd := exec.Command("git", "init")
+	// Initialize VCS if not already one. Prefer jj (colocated with git) when jj
+	// is available so `folio home workspace` works out of the box; fall back to
+	// plain git otherwise. Colocation keeps a normal .git for remote and history.
+	_, gitErr := os.Stat(filepath.Join(dir, ".git"))
+	_, jjErr := os.Stat(filepath.Join(dir, ".jj"))
+	if os.IsNotExist(gitErr) && os.IsNotExist(jjErr) {
+		vcs := "git"
+		var cmd *exec.Cmd
+		if lookJJ() {
+			vcs = "jj"
+			cmd = exec.Command("jj", "git", "init", "--colocate")
+		} else {
+			cmd = exec.Command("git", "init")
+		}
 		cmd.Dir = dir
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("git init: %w", err)
+			return fmt.Errorf("%s init: %w", vcs, err)
 		}
 	}
 
