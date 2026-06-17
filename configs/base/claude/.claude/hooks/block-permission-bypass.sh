@@ -3,26 +3,18 @@
 # Used as a Claude Code PreToolUse hook on Bash.
 #
 # Blocks:
-# 1. Command chaining (&&, ||, ;) — each command needs its own tool call
-# 2. Command substitution ($(...), `...`) — executes arbitrary commands inside an allowed prefix
-# 3. git -C / --git-dir / --work-tree — changes which repo git operates on
+# 1. Command substitution ($(...), `...`) — executes arbitrary commands inside an allowed prefix
+# 2. git -C / --git-dir / --work-tree — changes which repo git operates on
+#
+# NOT blocked: command chaining (&&, ||, ;, |). Claude Code is shell-operator aware
+# and evaluates each subcommand of a compound command independently against the
+# allow/deny rules, so chaining no longer bypasses permission matching.
+# See https://code.claude.com/docs/en/permissions.md#compound-commands
 
 INPUT=$(cat /dev/stdin)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
 if [ -z "$COMMAND" ]; then
-  exit 0
-fi
-
-# Block command chaining
-if echo "$COMMAND" | grep -qE '&&|\|\||;'; then
-  jq -n '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: "Don'\''t chain commands with &&, ||, or ; in a single Bash call.\n\nChained commands bypass the permission allow-list and PreToolUse hooks.\nUse separate parallel tool calls for independent commands,\nor separate sequential tool calls for dependent ones."
-    }
-  }'
   exit 0
 fi
 

@@ -70,7 +70,6 @@
       "Bash(rg *)",
       "Bash(jq *)",
 
-      "Bash(rm *)",
       "Bash(mkdir*)",
       "Bash(chmod *)",
       "Bash(cp *)",
@@ -80,8 +79,7 @@
       "Bash(bundle*)",
       "Bash(bin/*)",
 
-      "Bash(git *)",
-      "Bash(cd * && git *)",
+      "Bash(cd *)",
       "Bash(gh *)",
       "Bash(acli *)",
 
@@ -91,8 +89,6 @@
       "Bash(brew *)",
       "Bash(sleep *)",
       "Bash(sed *)",
-      "Bash(bash *)",
-      "Bash(zsh *)",
       "Bash(date *)",
       "Bash(touch *)",
       "Bash(printf *)",
@@ -120,7 +116,7 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/no-command-chaining.sh" }
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/block-permission-bypass.sh" }
         ]
       },
       {

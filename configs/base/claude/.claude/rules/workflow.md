@@ -8,8 +8,7 @@
 - **Respect the invoked skill's tooling.** When a `/skill` command is invoked, use that skill's intended tools. Don't substitute with raw commands, MCP calls, or subagents unless the skill's approach explicitly fails.
 - **Keep it simple.** Start with the simplest implementation that works. No extra error handling, wrapper classes, or abstraction unless asked.
 - **Show, don't summarize.** When asked to see a plan, document, or file contents, display the actual content.
-- **NEVER chain commands.** No `&&`, `;`, `||`, pipes, or command substitution. One operation per Bash call. This is absolute — hooks and permissions break on chained commands.
-- **Use `cd` for cross-repo work.** When you need to run commands in another directory, `cd <path>` in its own Bash call first. This is required, not optional. Never use `git -C` — hooks cannot pattern-match it.
+- **No command substitution or repo redirection.** Don't use `$(...)`/backticks, or `git -C` / `--git-dir` / `--work-tree` — both bypass permission matching and are blocked. For cross-repo work, `cd <path> && <cmd>`.
 - **Always use `/commit` skill for commits.** Never assume commit message conventions. The skill defines the format, trailers policy, VCS detection, and workflow.
 - **One-liner commit messages only.** In git repos: `git commit -m "message"`. In jj repos: `jj describe -m "message"`. Never use heredoc, multi-line strings, or `-m` with newlines. The `/commit` skill's VCS Detection section determines which to use.
 - **Planning**: Use `/folio plan` for non-trivial tasks. Do not call EnterPlanMode directly. Skip planning for trivial changes.
