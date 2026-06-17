@@ -14,8 +14,8 @@ type Output struct {
 
 // NewOutput creates an Output from flag values.
 // Color is auto-disabled in non-human modes.
-func NewOutput(jsonFlag, noColorFlag bool) Output {
-	mode := OutputMode(jsonFlag, false)
+func NewOutput(jsonFlag, plainFlag, noColorFlag bool) Output {
+	mode := OutputMode(jsonFlag, plainFlag)
 	color := mode == "human" && ColorEnabled(noColorFlag)
 	return Output{Mode: mode, Pal: NewPalette(color)}
 }

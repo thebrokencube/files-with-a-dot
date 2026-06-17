@@ -16,27 +16,27 @@ import (
 
 // LintResult is a single lint finding.
 type LintResult struct {
-	CheckID     string              `json:"check_id"`
+	CheckID     string               `json:"check_id"`
 	Severity    conventions.Severity `json:"severity"`
-	Message     string              `json:"message"`
-	File        string              `json:"file,omitempty"`
-	Line        int                 `json:"line,omitempty"`
-	Remediation string              `json:"remediation"`
+	Message     string               `json:"message"`
+	File        string               `json:"file,omitempty"`
+	Line        int                  `json:"line,omitempty"`
+	Remediation string               `json:"remediation"`
 }
 
 // GoFileData holds parsed data for a single Go file.
 type GoFileData struct {
-	Path    string   // relative path within tool dir
-	Content []byte   // raw file content
+	Path    string    // relative path within tool dir
+	Content []byte    // raw file content
 	AST     *ast.File // parsed AST (nil on parse error)
-	Err     error    // parse error, if any
+	Err     error     // parse error, if any
 }
 
 // ToolData is the I/O-free data bundle passed to linters.
 type ToolData struct {
-	ToolDir     string // absolute path to cmd/*/ directory
-	ToolName    string // directory name (e.g., "jf", "folio", "dendrik")
-	RepoRoot    string // absolute path to repo root
+	ToolDir  string // absolute path to cmd/*/ directory
+	ToolName string // directory name (e.g., "jf", "folio", "dendrik")
+	RepoRoot string // absolute path to repo root
 
 	// Go layer
 	GoMod       []byte       // go.mod content (nil if missing)
@@ -51,19 +51,20 @@ type ToolData struct {
 	DocsFiles   []string // filenames in docs/ (e.g., "01-getting-started.md")
 
 	// Skill layer
-	SkillMD      []byte            // skill/SKILL.md content (nil if missing)
-	SkillDir     string            // absolute path to skill/ directory
-	RefFiles     []string          // filenames in skill/references/
-	RefContents  map[string][]byte // reference file name -> content
+	SkillMD     []byte            // skill/SKILL.md content (nil if missing)
+	SkillDir    string            // absolute path to skill/ directory
+	RefFiles    []string          // filenames in skill/references/
+	RefContents map[string][]byte // reference file name -> content
 
 	// Bridge layer
-	SymlinkMap  []byte   // symlink_map.txt content (nil if missing)
-	CmdDirs     []string // cmd/*/ directories that contain go.mod
+	SymlinkMap []byte   // symlink_map.txt content (nil if missing)
+	CmdDirs    []string // cmd/*/ directories that contain go.mod
 }
 
 func runLint(args []string) int {
 	fs := dendrik.NewFlagSet("dendrik lint")
 	jsonFlag := fs.BoolLong("json", "JSON output")
+	plainFlag := fs.BoolLong("plain", "Undecorated text output (no color, no JSON)")
 	strictFlag := fs.BoolLong("strict", "Promote warnings to errors")
 	explainFlag := fs.StringLong("explain", "", "Show rationale for a check ID")
 	noColor := fs.BoolLong("no-color", "Disable color output")
@@ -80,7 +81,7 @@ func runLint(args []string) int {
 	// Positional arg: tool directory path
 	remaining := fs.GetArgs()
 	if len(remaining) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: dendrik lint <path> [--json] [--strict]")
+		fmt.Fprintln(os.Stderr, "Usage: dendrik lint <path> [--json] [--plain] [--strict]")
 		return dendrik.ExitUserError
 	}
 
@@ -121,7 +122,7 @@ func runLint(args []string) int {
 	})
 
 	// Output
-	out := dendrik.NewOutput(*jsonFlag, *noColor)
+	out := dendrik.NewOutput(*jsonFlag, *plainFlag, *noColor)
 
 	if out.IsJSON() {
 		type jsonOutput struct {
@@ -183,7 +184,7 @@ func handleExplain(checkID string, jsonFlag, noColor bool) int {
 		return dendrik.ExitUserError
 	}
 
-	out := dendrik.NewOutput(jsonFlag, noColor)
+	out := dendrik.NewOutput(jsonFlag, false, noColor)
 	if out.IsJSON() {
 		fmt.Print(string(out.MustResult(entry)))
 		return dendrik.ExitOK
@@ -315,4 +316,3 @@ func countSeverities(results []LintResult) (errors, warnings int) {
 	}
 	return
 }
-

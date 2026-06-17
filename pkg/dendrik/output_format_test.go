@@ -24,6 +24,26 @@ func TestOutputIsJSON(t *testing.T) {
 	}
 }
 
+func TestNewOutput(t *testing.T) {
+	t.Run("plain flag selects plain mode with color disabled", func(t *testing.T) {
+		// jsonFlag=false, plainFlag=true, noColorFlag=false.
+		// Regression: NewOutput previously hardcoded plain=false, so "plain"
+		// was unreachable. --plain must win even when noColor is false.
+		o := NewOutput(false, true, false)
+		if o.Mode != "plain" {
+			t.Fatalf("Mode = %q, want \"plain\"", o.Mode)
+		}
+		if o.Pal.Red != "" {
+			t.Errorf("plain mode should disable color, got Red=%q", o.Pal.Red)
+		}
+	})
+	t.Run("json flag selects json mode", func(t *testing.T) {
+		if o := NewOutput(true, false, false); o.Mode != "json" {
+			t.Fatalf("Mode = %q, want \"json\"", o.Mode)
+		}
+	})
+}
+
 func TestOutputResult(t *testing.T) {
 	o := Output{Mode: "json"}
 
