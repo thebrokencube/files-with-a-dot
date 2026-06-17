@@ -1,7 +1,7 @@
 # CLI Conventions
 
 Conventions codified from the jf and folio implementations. This is the source
-of truth for the 25-check `dendrik lint` contract (see `contract.go`) and
+of truth for the `dendrik lint` contract (see `contract.go`) and
 `dendrik new` (Track 5).
 
 Philosophy: Sinatra, not Rails. dendrik provides functions at the points where
@@ -12,6 +12,10 @@ text, or subcommand routing.
 agents, and vice versa. Non-TTY stdout defaults to JSON. Exit codes have
 defined agent actions. SKILL.md is the agent discovery surface; `--help` is the
 human discovery surface. Neither should duplicate the other.
+
+**Transport**: the CLI (text + `--json`) is the canonical agent interface. An
+MCP surface is a deferred, additive option — a tool-specific adapter over the
+same command functions — not a current target.
 
 ---
 
@@ -35,6 +39,14 @@ human discovery surface. Neither should duplicate the other.
 dendrik CLIs never call `os.Exit()` directly. Commands return an int; the
 dispatcher in `main()` calls `os.Exit()` once.
 
+**Divergence from convention (intentional).** GNU/POSIX shells commonly reserve
+`2` for *usage* errors; dendrik instead uses `2` for external/environment errors
+and folds usage errors into `1` (`ExitUserError`). There is no universal
+exit-code standard — BSD `sysexits.h` and `grep` each differ again — so dendrik
+defines a small, semantically-actionable house scheme rather than conforming to a
+norm that doesn't exist. The per-code **agent actions** above are the contract;
+the numbers are stable and are not renumbered.
+
 ---
 
 ## Flag Conventions
@@ -54,7 +66,7 @@ These short flags have fixed meaning across all dendrik CLIs:
 | Flag | Meaning | Notes |
 |------|---------|-------|
 | `--no-color` | Disable colored output | Respects `NO_COLOR` env var per spec |
-| `--version` | Print version | Not yet implemented; reserved |
+| `--version` | Print version | Handled in `main()` dispatch; `-V` short form |
 
 ### Per-CLI flags
 

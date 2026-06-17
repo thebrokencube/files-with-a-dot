@@ -28,6 +28,29 @@ dendrik lint --explain go-mod-linked  # show rationale for a check
 | `dendrik lint --explain <id>` | Show rationale and remediation for a check ID |
 | `dendrik version` | Show version |
 
+## Examples
+
+Validate a tool before release (warnings block too):
+
+```bash
+dendrik lint cmd/jf --strict
+# jf: 0 error(s), 0 warning(s)   → ready to tag
+```
+
+Understand and fix a specific failure:
+
+```bash
+dendrik lint cmd/jf
+#   W [version-flag] main.go does not handle a --version flag (main.go)
+dendrik lint --explain version-flag   # rationale + remediation for that check
+```
+
+Drive dendrik from an agent or script (structured output):
+
+```bash
+dendrik lint cmd/folio --json | jq '.data.errors'
+```
+
 ## Code Structure
 
 ```
