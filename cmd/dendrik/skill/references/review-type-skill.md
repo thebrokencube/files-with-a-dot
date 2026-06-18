@@ -35,6 +35,12 @@ Keep brief illustrative snippets (≤5 lines) inline. **Pass:** no inline blocks
 snippets. **Warn:** 1-2 blocks of 10-30 lines. **Fail:** 3+ blocks, or any single block >30
 lines.
 
+### No volatile specifics (sub-check)
+SKILL.md is always-read: it carries direction/approach, not volatile specifics (exact counts,
+per-layer numbers, enumerated check/ID lists) that a code file or single reference already owns.
+**warn** on a volatile specific; describe the shape and point at the one derived source (see
+shared "Volatile specifics / denormalization").
+
 ## 2. Description Quality
 
 **Check:** Leads with what the skill does? Includes specific trigger phrases and domain terms?

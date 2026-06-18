@@ -26,6 +26,12 @@ CLAUDE.md is loaded into context every session. Every line costs per session —
 worth its standing cost? **warn** on reference knowledge or rarely-needed detail that belongs in
 an on-demand file.
 
+### No volatile specifics
+As an always-read doc, CLAUDE.md carries direction/architecture, not volatile specifics (exact
+counts, per-layer numbers, enumerated lists) that a code file or single reference already owns.
+**warn** on a volatile specific; point at the one derived source (see shared "Volatile specifics
+/ denormalization").
+
 ### No duplication of AGENTS.md
 A CLAUDE.md that copies AGENTS.md content (instead of pointing at it) is drift waiting to
 happen. **warn** — recommend a pointer.

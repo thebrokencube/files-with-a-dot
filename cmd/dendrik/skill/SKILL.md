@@ -7,7 +7,7 @@ argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id
 
 # dendrik
 
-Convention contract linter and quality reviewer for skills and agentic documentation.
+dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See docs/00-what-is-dendrik.md.
 
 ## Triage
 
@@ -45,7 +45,7 @@ dendrik lint <path> --json     # structured output
 dendrik lint --explain <id>    # rationale for a check
 ```
 
-Three layers validated: Go (6 checks), Skill (9 checks), Bridge (10 checks).
+Three layers validated: Go (build infrastructure), Skill (agent discovery), Bridge (integration).
 
 -> Read references/contract-checks.md for full check details with remediation examples.
 

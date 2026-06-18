@@ -1,8 +1,12 @@
 # Skill Conventions
 
+dendrik is the platform — a library of composable primitives for agentic tooling
+— today expressed as a convention contract (`dendrik lint`) and a type-dispatching
+review framework (`/dendrik`). See `cmd/dendrik/docs/00-what-is-dendrik.md`.
+
 Conventions codified from the jf and folio skill implementations. This is the
-source of truth for the 25-check `dendrik lint` contract (see `contract.go`)
-and `dendrik new` (Track 5).
+source of truth for the skill conventions enforced by the `dendrik lint` contract
+(see `contract.go`) and `dendrik new` (Track 5).
 
 **Agent Skills standard alignment**: dendrik's skill validation is grounded
 in the Agent Skills standard (agentskills.io). Layer 1 checks (`skill-exists`
@@ -203,6 +207,9 @@ manipulation, API calls). Skills call CLIs via Bash tool, typically with
 ### What skills should NOT do
 
 - Call `os.Exit()` or assume terminal state
+- Carry volatile specifics (exact counts, per-layer numbers, enumerated ID lists) — describe the
+  shape and point at the one derived source (code or a single reference); these belong there, not
+  denormalized into an always-read doc
 - Embed CLI flag details that could drift from the actual binary
 - Duplicate information available via `{cli} --help`
 - Include code examples longer than 5 lines (put them in references/)

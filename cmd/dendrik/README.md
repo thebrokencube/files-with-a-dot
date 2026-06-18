@@ -1,6 +1,8 @@
 # dendrik — Tool Contract Linter
 
-dendrik validates that CLI tools in the dotfiles repo follow the dendrik platform conventions. It runs a contract across three layers (Go, Skill, Bridge) and reports violations with actionable remediation.
+dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See [docs/00-what-is-dendrik.md](docs/00-what-is-dendrik.md).
+
+This CLI is the contract surface: it validates that CLI tools in the dotfiles repo follow the dendrik conventions, running a contract across three layers (Go, Skill, Bridge) and reporting violations with actionable remediation.
 
 ## Install
 
@@ -57,16 +59,16 @@ dendrik lint cmd/folio --json | jq '.data.errors'
 cmd/dendrik/
 ├── main.go           # Entry point, command dispatch
 ├── cmd_lint.go       # Orchestrator: flags, gatherToolData(), output formatting
-├── lint_go.go        # GoLint: 10 checks (go-mod-linked through readme-doc-links)
-├── lint_skill.go     # SkillLint: Layer 1 delegation + 4 Layer 2 checks
-├── lint_bridge.go    # BridgeLint: 9 checks (dendrik-import through run-has-json)
+├── lint_go.go        # GoLint: Go layer checks
+├── lint_skill.go     # SkillLint: Layer 1 delegation + Layer 2 checks
+├── lint_bridge.go    # BridgeLint: Bridge layer checks
 ├── *_test.go         # Tests for each linter
 ├── Makefile          # build, test, check targets
 └── skill/            # Claude Code skill (SKILL.md + references)
 
 pkg/dendrik/
 ├── conventions/
-│   └── contract.go   # 29 ContractEntry structs with ID, rationale, remediation
+│   └── contract.go   # the canonical Contract slice: each entry has ID, rationale, remediation
 ├── agentskills/
 │   └── validate.go   # Layer 1 SKILL.md validator (standalone, does its own I/O)
 └── output_format.go  # Output type (inert formatter, parallel to Palette)

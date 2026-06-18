@@ -2,57 +2,15 @@
 
 ## Check Catalog
 
-dendrik validates 29 checks across three layers. Each check has an ID, severity, and actionable remediation.
+dendrik validates a contract across three layers, each guarding a different concern:
 
-### Go Layer (10 checks)
+- **Go layer** — build infrastructure: go.mod/go.work wiring, main dispatch, Makefile targets, README/docs structure.
+- **Skill layer** — agent discovery: SKILL.md existence, frontmatter, links, arrow refs, activation guidance.
+- **Bridge layer** — integration: shared-library imports, exit constants, structured JSON output, symlink and go.work sync.
 
-Build infrastructure and documentation structure.
+The enumerated catalog — every check ID, severity, and remediation — lives in one derived reference, kept honest against the canonical `Contract` slice in `pkg/dendrik/conventions/contract.go`:
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| `go-mod-linked` | error | go.mod exists and go.work links this tool |
-| `main-dispatch` | error | main.go has `func main()` with `os.Exit(run*(...))` |
-| `cmd-file-exists` | error | At least one `cmd_*.go` file exists |
-| `makefile-targets` | error | Makefile has `build`, `test`, `check` targets |
-| `readme-exists` | error | README.md exists in tool directory |
-| `readme-sections` | warning | README.md has Install, Quick Start, Commands, Code Structure sections |
-| `claude-md-exists` | warning | CLAUDE.md exists in tool directory |
-| `docs-naming` | error | Files in `docs/` match numbered kebab-case (`NN-name.md`) |
-| `docs-getting-started` | warning | `docs/01-getting-started.md` exists when `docs/` is present |
-| `readme-doc-links` | error | Links in README.md Documentation section resolve to existing files |
-
-### Skill Layer (9 checks)
-
-Agent discovery and skill file quality.
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `skill-exists` | error | `skill/SKILL.md` exists |
-| `skill-frontmatter` | error | Valid YAML frontmatter with name (1-64 chars) and description (1-1024 chars) |
-| `skill-extra-fields` | warning | No unexpected frontmatter fields outside the Agent Skills spec |
-| `skill-links` | error | Markdown links in SKILL.md resolve to existing files |
-| `ref-naming` | warning | Reference files in `references/` follow kebab-case naming |
-| `skill-size` | error | SKILL.md body does not exceed 500 lines |
-| `argument-hint` | error | If `user_invocable: true`, then `argument-hint` is present |
-| `arrow-refs` | error | Arrow references (`->`) in SKILL.md and references resolve to existing files |
-| `activation-guidance` | warning | Description includes activation guidance ("use when", "for tasks that") |
-| `activation-metadata` | error | If trigger/skip_when/related fields present, they are valid |
-
-### Bridge Layer (10 checks)
-
-Platform integration between tools and the shared library.
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| `dendrik-import` | error | At least one .go file imports `pkg/dendrik` |
-| `exit-constants` | error | No bare integer returns in `cmd_*.go`; no `os.Exit()` outside main.go |
-| `json-output` | error | If `--json` flag exists, code uses `dendrik.WriteResult` or `dendrik.WriteError` |
-| `go-work-sync` | error | go.work `use` entries match `cmd/*/` directories with go.mod |
-| `symlink-entries` | error | `symlink_map.txt` has entries for binary and skill directory |
-| `makefile-gofiles` | warning | Makefile GOFILES find path includes `../../pkg/dendrik` |
-| `no-json-encoder` | error | No `json.NewEncoder` in `cmd_*.go` files |
-| `no-raw-json` | warning | No `fmt.Print(string(` in `cmd_*.go` files with `--json` flag |
-| `run-has-json` | warning | All `cmd_*.go` run functions register a `--json` flag |
+-> See [skill/references/contract-checks.md](../skill/references/contract-checks.md) for the full check catalog. Use `dendrik lint --explain <id>` for any individual check's rationale.
 
 ## Severity Model
 
@@ -121,7 +79,7 @@ JSON output wraps results in a `ResultEnvelope` (`ok` + `data`), consistent with
 
 ## The Contract Philosophy
 
-Why 29 checks and not 5 or 100?
+Why this contract and not a much smaller or much larger one?
 
 The contract is the minimum set of conventions that keep independently-developed tools composable:
 

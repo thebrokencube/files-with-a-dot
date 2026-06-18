@@ -1,5 +1,7 @@
 # dendrik -- Dotfiles tool contract linter
 
+dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See [docs/00-what-is-dendrik.md](docs/00-what-is-dendrik.md).
+
 Validates CLI tools against a convention contract across Go, Skill, and Bridge layers.
 
 ## Build
@@ -34,9 +36,9 @@ After code changes: rebuild the binary and commit it.
 
 All linters are pure functions. The orchestrator (`cmd_lint.go`) handles I/O via `gatherToolData()` which builds a `ToolData` struct, then passes it to each layer:
 
-- `lint_go.go` -- Go layer checks (10 checks)
-- `lint_skill.go` -- Skill layer checks (9 checks)
-- `lint_bridge.go` -- Bridge layer checks (10 checks)
+- `lint_go.go` -- Go layer checks (build infrastructure)
+- `lint_skill.go` -- Skill layer checks (agent discovery)
+- `lint_bridge.go` -- Bridge layer checks (integration)
 
 ### Adding a Check
 

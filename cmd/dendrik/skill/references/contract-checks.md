@@ -1,8 +1,8 @@
 # Contract Checks Reference
 
-All 29 checks in the dendrik tool contract. Use `dendrik lint --explain <id>` for rationale and remediation.
+The enumerated catalog of the dendrik tool contract. This is the one derived source for check IDs and remediation; it is kept honest against the canonical `Contract` slice in `pkg/dendrik/conventions/contract.go` by a count-assert test. Use `dendrik lint --explain <id>` for rationale and remediation.
 
-## Go Layer (10 checks)
+## Go Layer
 
 ### go-mod-linked (Error)
 
@@ -64,7 +64,13 @@ Links in README.md `## Documentation` section resolve to existing files.
 
 **Fix**: Ensure all `[text](path)` links in the Documentation section point to existing files.
 
-## Skill Layer (9 checks)
+### version-flag (Warning)
+
+main.go handles a `--version` flag (with `-V`), distinct from the `version` subcommand.
+
+**Fix**: In `main()`'s dispatch, fold the flag forms into the version case: `case "version", "--version", "-V":` printing the version and exiting 0.
+
+## Skill Layer
 
 ### skill-exists (Error)
 
@@ -124,7 +130,7 @@ If `trigger`, `skip_when`, or `related` fields are present, they must be non-emp
 
 **Fix**: Remove empty fields or provide valid values.
 
-## Bridge Layer (10 checks)
+## Bridge Layer
 
 ### dendrik-import (Error)
 

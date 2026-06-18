@@ -1,8 +1,12 @@
 # CLI Conventions
 
+dendrik is the platform — a library of composable primitives for agentic tooling
+— today expressed as a convention contract (`dendrik lint`) and a type-dispatching
+review framework (`/dendrik`). See `cmd/dendrik/docs/00-what-is-dendrik.md`.
+
 Conventions codified from the jf and folio implementations. This is the source
-of truth for the `dendrik lint` contract (see `contract.go`) and
-`dendrik new` (Track 5).
+of truth for the CLI conventions enforced by the `dendrik lint` contract (see
+`contract.go`) and `dendrik new` (Track 5).
 
 Philosophy: Sinatra, not Rails. dendrik provides functions at the points where
 convention matters. It doesn't own `main()`, dispatch, config schemas, help
