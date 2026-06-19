@@ -56,7 +56,7 @@ Full command reference: [cmd/dot/](cmd/dot/)
 
 ### Development Tools
 - **mise** for language version management
-- **lazygit** for git TUI
+- **jj** (Jujutsu) as primary VCS, colocated with git
 - **ripgrep**, **fd**, **fzf**, **bat** for search
 
 ### Neovim
