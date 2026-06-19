@@ -14,12 +14,6 @@ Agent-specific instructions (build/test commands for agents, conventions, constr
 README. **warn** when agent detail lives here — that's what AGENTS.md is for; move it and keep
 README focused on humans.
 
-### No volatile specifics
-A README is high-level / always-read: it carries direction and orientation, not exact counts or
-enumerated lists that a code file or single reference already owns. **warn** on a volatile
-specific (a check count, a per-layer number); point at the one derived source instead (see
-shared "Volatile specifics / denormalization").
-
 ### Quick-start works
 The quick-start / install steps are accurate and runnable as written. **fail** on stale or
 broken setup instructions.

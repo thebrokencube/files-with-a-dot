@@ -1,8 +1,7 @@
 # CLI Conventions
 
-dendrik is the platform — a library of composable primitives for agentic tooling
-— today expressed as a convention contract (`dendrik lint`) and a type-dispatching
-review framework (`/dendrik`). See `cmd/dendrik/docs/00-what-is-dendrik.md`.
+dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built
+on; this file holds its CLI conventions. See `cmd/dendrik/docs/00-what-is-dendrik.md`.
 
 Conventions codified from the jf and folio implementations. This is the source
 of truth for the CLI conventions enforced by the `dendrik lint` contract (see

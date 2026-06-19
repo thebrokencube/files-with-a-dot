@@ -1,6 +1,6 @@
 # Getting Started with dendrik
 
-dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See [00-what-is-dendrik.md](00-what-is-dendrik.md). This guide covers the contract surface (`dendrik lint`).
+dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built on. See [00-what-is-dendrik.md](00-what-is-dendrik.md) for what that means. This guide covers the contract surface (`dendrik lint`).
 
 ## What dendrik Does
 

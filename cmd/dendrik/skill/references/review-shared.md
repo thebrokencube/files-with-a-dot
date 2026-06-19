@@ -29,8 +29,9 @@ everything passes, say so — do not manufacture findings.
 - Imperative/infinitive form (verb-first), not second person ("Run X", not "you should run X").
 - Tables and lists for structured information; prose only when flow matters.
 - Concise — no filler, no restated context.
+- Internal consistency — an edit matches its host section's cadence (no multi-clause bullet in a terse list, no lone heading mid-prose, no outsized example).
 - **pass:** clean imperative style, structured data in tables. **warn:** occasional
-  second-person/passive but clear. **fail:** predominantly second-person, prose walls where
+  second-person/passive but clear, or an edit that breaks its section's established cadence/concision. **fail:** predominantly second-person, prose walls where
   tables belong.
 
 ## Right Layer? (cross-cutting — every type)
@@ -54,25 +55,9 @@ expression of this question; this section is the authoritative source so it surv
 
 **Flags:** project conventions hoarded in a project CLAUDE.md instead of AGENTS.md; architecture
 prose inlined in AGENTS.md or CLAUDE.md instead of referenced; reference knowledge baked into an
-always-loaded file; an adapter that duplicates the recipe instead of pointing at it.
-
-### Volatile specifics / denormalization (sub-check)
-
-High-level / always-read docs (README, CLAUDE.md, SKILL.md, AGENTS.md-class) carry
-**direction / architecture / approach** — durable content that doesn't drift. They must **not**
-carry **volatile specifics**: exact counts, per-layer numbers, enumerated lists of IDs, or any
-value hand-copied from somewhere it's already defined. Those belong in **one derived source**
-(the code itself, or a single generated/asserted reference) — never denormalized across prose.
-Direction doesn't drift; "30 vs 31" does, and the same number copied into seven surfaces becomes
-seven things to keep in sync.
-
-**Flags:** an exact count or enumerated list in an always-read doc that restates what a code
-file or a single reference already owns; the same volatile value appearing in more than one
-high-level doc (drift factory). The fix is **de-denormalization** — describe the *shape*
-qualitatively in the high-level doc and point at the one derived source — not propagating the
-"correct" value to every copy. **warn** (an opinion-level layering finding); name it as
-volatile-specifics denormalization. The automated form of this check (what counts as a volatile
-specific, per-type thresholds) is a deferred future effort, not part of `dendrik lint` today.
+always-loaded file; an adapter that duplicates the recipe instead of pointing at it; volatile
+specifics — exact counts, per-layer numbers, enumerated ID lists — restated in an always-read doc
+when code or a single reference already owns them (describe the shape, point at the one source).
 
 **Recipe-vs-adapter worked example:** A "review a PR"
 workflow — isolate a worktree → run linters → dispatch a reviewer subagent → report → cleanup —

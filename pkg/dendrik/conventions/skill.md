@@ -1,8 +1,7 @@
 # Skill Conventions
 
-dendrik is the platform — a library of composable primitives for agentic tooling
-— today expressed as a convention contract (`dendrik lint`) and a type-dispatching
-review framework (`/dendrik`). See `cmd/dendrik/docs/00-what-is-dendrik.md`.
+dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built
+on; this file holds its skill conventions. See `cmd/dendrik/docs/00-what-is-dendrik.md`.
 
 Conventions codified from the jf and folio skill implementations. This is the
 source of truth for the skill conventions enforced by the `dendrik lint` contract
@@ -207,9 +206,6 @@ manipulation, API calls). Skills call CLIs via Bash tool, typically with
 ### What skills should NOT do
 
 - Call `os.Exit()` or assume terminal state
-- Carry volatile specifics (exact counts, per-layer numbers, enumerated ID lists) — describe the
-  shape and point at the one derived source (code or a single reference); these belong there, not
-  denormalized into an always-read doc
 - Embed CLI flag details that could drift from the actual binary
 - Duplicate information available via `{cli} --help`
 - Include code examples longer than 5 lines (put them in references/)

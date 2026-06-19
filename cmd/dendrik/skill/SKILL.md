@@ -7,7 +7,7 @@ argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id
 
 # dendrik
 
-dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See docs/00-what-is-dendrik.md.
+dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built on. See docs/00-what-is-dendrik.md for what that means. This skill is dendrik's review + lint surface.
 
 ## Triage
 

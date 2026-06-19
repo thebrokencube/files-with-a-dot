@@ -1,6 +1,6 @@
 # dendrik -- Dotfiles tool contract linter
 
-dendrik is the platform — a library of composable primitives for agentic tooling — today expressed as a convention contract (`dendrik lint`) and a type-dispatching review framework (`/dendrik`). See [docs/00-what-is-dendrik.md](docs/00-what-is-dendrik.md).
+dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built on. See [docs/00-what-is-dendrik.md](docs/00-what-is-dendrik.md) for what that means.
 
 Validates CLI tools against a convention contract across Go, Skill, and Bridge layers.
 
