@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "0.1.0"
+var version = "dev" // overridden at build time via -ldflags -X main.version (see Makefile/VERSION)
 
 func main() {
 	if len(os.Args) < 2 {

@@ -1,13 +1,15 @@
 BINARY    := folio
 GOFILES   := $(shell find . ../../pkg/dendrik -name '*.go')
 GO        := go
+VERSION   := $(shell cat VERSION 2>/dev/null || echo dev)
+LDFLAGS   := -buildid= -X main.version=$(VERSION)
 
 .PHONY: build test lint fmt vet check install clean
 
 build: $(BINARY)            ## Compile binary
 
 $(BINARY): $(GOFILES) go.mod go.sum
-	$(GO) build -o $(BINARY) .
+	$(GO) build -trimpath -buildvcs=false -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test:                        ## Run all tests
 	$(GO) test ./... -v

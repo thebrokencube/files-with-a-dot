@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const version = "0.1.0"
+var version = "dev" // overridden at build time via -ldflags -X main.version (see Makefile/VERSION)
 
 func main() {
 	if len(os.Args) < 2 {
@@ -16,6 +16,8 @@ func main() {
 	switch os.Args[1] {
 	case "lint":
 		os.Exit(runLint(os.Args[2:]))
+	case "build":
+		os.Exit(runBuild(os.Args[2:]))
 	case "version", "--version", "-V":
 		fmt.Printf("dendrik %s\n", version)
 		os.Exit(0)
@@ -34,6 +36,7 @@ func printUsage() {
 
 Commands:
   lint <path>    Run tool contract validation
+  build [dir]    Build a tool's release artifacts (reproducible, version-stamped)
   version        Show version
 
 Run 'dendrik <command> --help' for details.
