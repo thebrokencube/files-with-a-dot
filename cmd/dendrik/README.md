@@ -82,6 +82,16 @@ pkg/dendrik/
 
 All linters are pure functions. The orchestrator (`cmd_lint.go`) handles all filesystem reads via `gatherToolData()` → `ToolData` struct → linters.
 
+## Releasing
+
+Bump `cmd/dendrik/VERSION`, then dispatch the release workflow — GitHub creates the `dendrik/vX.Y.Z` tag and uploads binaries. Never push tags by hand; published releases are immutable (bump VERSION to re-release).
+
+```bash
+gh workflow run release.yml -f tool=dendrik
+```
+
+See the [build & release convention](../../pkg/dendrik/conventions/release.md).
+
 ## Documentation
 
 - [Getting Started](docs/01-getting-started.md) — first lint run, reading results, fixing violations

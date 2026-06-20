@@ -8,6 +8,7 @@ dendrik is the shared foundation the dotfiles CLI tools — folio, jf, dot — a
 
 - **A convention contract** (`dendrik lint`) — a validator that checks CLI tools against shared conventions across three layers: Go build infrastructure, Skill agent-discovery, and Bridge integration. It keeps independently-built tools consistent.
 - **A type-dispatching review framework** (`/dendrik`) — quality review of agentic documents (SKILL.md, CLAUDE.md, AGENTS.md, README.md, reference files, slash-commands) that detects each document's type and applies type-appropriate criteria.
+- **A build/release provider** (`dendrik build`) — produces reproducible, version-stamped release artifacts per the [build & release convention](../../../pkg/dendrik/conventions/release.md); the `release` workflow is a thin shim over it.
 
 The contract is enforced deterministically; the review framework is judgmental quality guidance.
 
@@ -21,6 +22,7 @@ dendrik's conventions are not denormalized across prose; each lives in one sourc
 |---|---|
 | `pkg/dendrik/conventions/cli.md` | CLI conventions — exit codes, flags, output modes, command structure |
 | `pkg/dendrik/conventions/skill.md` | Skill conventions — SKILL.md structure, frontmatter, progressive disclosure |
+| `pkg/dendrik/conventions/release.md` | Build & release — version source (VERSION), `dendrik build`, tag scheme, immutability |
 | `pkg/dendrik/conventions/contract.go` | The enforced contract — the canonical `Contract` slice every `dendrik lint` check derives from |
 | `cmd/dendrik/skill/references/review-*.md` | The review framework — shared dimensions plus the per-type leaves |
 | `cmd/dendrik/skill/references/contract-checks.md` | The one enumeration of the contract's checks (derived from `contract.go`) |

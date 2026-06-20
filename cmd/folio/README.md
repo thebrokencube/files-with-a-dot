@@ -91,6 +91,16 @@ Projects source from the vault via `vault:` prefix paths (e.g., `vault:research/
 
 Status is derived from file modification times — no separate tracking needed.
 
+## Releasing
+
+Bump `cmd/folio/VERSION`, then dispatch the release workflow — GitHub creates the `folio/vX.Y.Z` tag and uploads binaries. Never push tags by hand; published releases are immutable (bump VERSION to re-release).
+
+```bash
+gh workflow run release.yml -f tool=folio
+```
+
+See the [build & release convention](../../pkg/dendrik/conventions/release.md).
+
 ## Documentation
 
 - [Getting Started](docs/01-getting-started.md) — mental model, project anatomy, quick start

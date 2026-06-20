@@ -82,6 +82,16 @@ cmd/jf/
 └── testdata/          # Test fixtures
 ```
 
+## Releasing
+
+Bump `cmd/jf/VERSION`, then dispatch the release workflow — GitHub creates the `jf/vX.Y.Z` tag and uploads binaries. Never push tags by hand; published releases are immutable (bump VERSION to re-release).
+
+```bash
+gh workflow run release.yml -f tool=jf
+```
+
+See the [build & release convention](../../pkg/dendrik/conventions/release.md).
+
 ## Documentation
 
 - [Getting Started](docs/01-getting-started.md) -- prerequisites, .jf/ directory model, quick start, levels
