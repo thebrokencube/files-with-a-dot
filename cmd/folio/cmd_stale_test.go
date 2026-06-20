@@ -7,7 +7,19 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+// ageFile backdates a file's mtime by an hour so tests that need an output to be
+// older than its source don't depend on creation-order timing — flaky on fast
+// filesystems / CI where both writes can land in the same mtime tick.
+func ageFile(t *testing.T, path string) {
+	t.Helper()
+	past := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(path, past, past); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestRunStaleMissingFile(t *testing.T) {
 	code := runStale([]string{"--folio", "/nonexistent/folio.yml"})
@@ -34,6 +46,7 @@ func TestRunStaleWithStaleTarget(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 	outPath := filepath.Join(dir, "compiled", "out.md")
 	os.WriteFile(outPath, []byte("# Old"), 0644)
+	ageFile(t, outPath)
 
 	// Create source file AFTER output so it's newer
 	yml := filepath.Join(dir, "folio.yml")
@@ -128,6 +141,7 @@ func TestRunStaleJSONWithStaleTarget(t *testing.T) {
 
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("# Old"), 0644)
+	ageFile(t, filepath.Join(dir, "compiled", "out.md"))
 
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte(`schema: 1
@@ -197,6 +211,7 @@ func TestRunStaleNoColor(t *testing.T) {
 
 	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
 	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("# Old"), 0644)
+	ageFile(t, filepath.Join(dir, "compiled", "out.md"))
 
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte(`schema: 1
