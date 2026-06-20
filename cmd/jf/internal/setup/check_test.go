@@ -2,9 +2,23 @@ package setup
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+// writeTestConfig points $HOME at a temp dir holding a minimal valid ~/.jf.yml so
+// the config check is hermetic — independent of the host's real config (and CI,
+// which has none). config.Load resolves the path via os.UserHomeDir() → $HOME.
+func writeTestConfig(t *testing.T) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.WriteFile(filepath.Join(home, ".jf.yml"), []byte("site: example\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // mockChecker routes responses by command name. For "acli" calls, it also
 // checks the first arg to distinguish version checks from jira auth checks.
@@ -25,6 +39,7 @@ func mockChecker(responses map[string]string) Checker {
 }
 
 func TestCheckAllPasses(t *testing.T) {
+	writeTestConfig(t)
 	check := mockChecker(map[string]string{
 		"node":      "v20.11.0",
 		"acli":      "acli version 2.7.0",
@@ -149,6 +164,7 @@ func TestCheckAllJiraAuthUnauthorized(t *testing.T) {
 }
 
 func TestQuickCheckAllOk(t *testing.T) {
+	writeTestConfig(t)
 	check := mockChecker(map[string]string{
 		"node":      "v20.11.0",
 		"acli":      "acli version 2.7.0",
