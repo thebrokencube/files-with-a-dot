@@ -1,0 +1,32 @@
+name: ci
+
+on: [push, pull_request]
+
+# Cancel superseded in-progress runs on the same ref so a burst of pushes
+# doesn't pile up redundant check runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [folio, jf, dendrik]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cmd/${{ matrix.tool }}/go.mod
+      - name: check
+        working-directory: cmd/${{ matrix.tool }}
+        run: |
+          make check
+          go build -o /dev/null .   # compile check; no artifact, never clobbers the committed binary
+      - name: working tree clean (gofmt)
+        run: git diff --exit-code

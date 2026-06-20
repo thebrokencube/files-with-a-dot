@@ -1,0 +1,34 @@
+name: release
+
+# Trigger from the GitHub UI or: gh workflow run release.yml -f tool=dendrik
+# The version comes from cmd/<tool>/VERSION (single source of truth). To release a
+# new version, bump that file first, then dispatch. Published releases are immutable:
+# re-running an existing version fails — bump VERSION instead.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: Tool to release (version is read from cmd/<tool>/VERSION)
+        required: true
+        type: choice
+        options: [folio, jf, dendrik]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cmd/${{ inputs.tool }}/go.mod
+
+      # All logic lives in scripts/release.sh (a thin shim over `dendrik build` + `gh`) —
+      # kept out of YAML so it is testable, shellcheck'd, and reusable.
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release.sh "${{ inputs.tool }}"
