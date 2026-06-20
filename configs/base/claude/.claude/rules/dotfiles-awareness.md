@@ -14,6 +14,9 @@ appropriate conventions.
 - Follow dotfiles skill conventions (conventional commits)
 
 **Rebuilding CLI tools** (`folio`, `jf`, `dendrik`): Each has a Makefile in
-`cmd/<tool>/`. Use `make check` (fmt + vet + test) then `make build` to produce
-the binary in-tree. Commit the binary alongside source changes. Then `dot sync`
-to re-link. Never `go build` directly to `~/.local/bin/`.
+`cmd/<tool>/`. Use `make check` (fmt + vet + test) then `make build` for a local
+binary — it is **gitignored; never commit it**. Distribution is via **GitHub
+Releases**: bump `cmd/<tool>/VERSION`, dispatch the release workflow
+(`gh workflow run release.yml -f tool=<tool>`), and `dot sync` downloads the
+release binary into `~/.local/bin/` (falling back to a local build if needed).
+See `pkg/dendrik/conventions/release.md`.

@@ -108,6 +108,8 @@ source "$DOT_DIR/lib/paths.sh"
 source "$DOT_DIR/lib/backup.sh"
 # shellcheck source=lib/symlinks.sh
 source "$DOT_DIR/lib/symlinks.sh"
+# shellcheck source=lib/tools.sh
+source "$DOT_DIR/lib/tools.sh"
 # shellcheck source=lib/shell.sh
 source "$DOT_DIR/lib/shell.sh"
 # shellcheck source=lib/private.sh
@@ -596,6 +598,11 @@ fi
 # Apply symlinks
 echo "Creating symlinks..."
 apply_symlinks "$SYMLINK_MAP"
+
+# Install dendrik-built CLI tools from GitHub Releases (replaces the old committed-binary symlinks)
+echo ""
+echo "Installing CLI tools..."
+install_tools
 
 if has_private_overlay; then
     echo ""

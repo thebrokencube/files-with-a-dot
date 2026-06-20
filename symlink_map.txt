@@ -30,11 +30,9 @@ configs/base/ghostty/.config/ghostty:$HOME/.config/ghostty
 # iTerm2 (uses ~/Library, not ~/.config)
 configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
 
-# CLI
+# CLI — dot is a bash script (symlinked); folio/jf/dendrik are Go binaries installed
+# from GitHub Releases by `dot sync` (see cmd/dot/lib/tools.sh + pkg/dendrik/conventions/release.md)
 cmd/dot/dot:$HOME/.local/bin/dot
-cmd/folio/folio:$HOME/.local/bin/folio
-cmd/jf/jf:$HOME/.local/bin/jf
-cmd/dendrik/dendrik:$HOME/.local/bin/dendrik
 
 # Claude Code (granular linking to allow private skills and rules)
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md

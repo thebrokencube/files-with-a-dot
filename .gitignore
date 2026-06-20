@@ -29,6 +29,12 @@ local/
 cmd/folio/scripts/node_modules/
 cmd/jf/scripts/node_modules/
 
+# Tool binaries — built locally (make build) or installed from releases (dot sync),
+# never committed. See pkg/dendrik/conventions/release.md.
+cmd/folio/folio
+cmd/jf/jf
+cmd/dendrik/dendrik
+
 # Neovim
 configs/base/nvim/.config/nvim/plugin/packer_compiled.lua
 configs/base/nvim/.config/nvim/lazy-lock.json
