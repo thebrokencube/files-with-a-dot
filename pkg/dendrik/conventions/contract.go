@@ -195,9 +195,9 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "symlink-entries", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "symlink_map.txt has entries for binary and skill directory",
-		Rationale:   "Without symlink_map.txt entries, `dot sync` won't install the binary or register the skill.",
-		Remediation: "Add symlink_map.txt entries for the binary (e.g., cmd/jf/jf -> ~/.local/bin/jf) and skill directory.",
+		Summary:     "symlink_map.txt has an entry for the skill directory",
+		Rationale:   "The skill directory is symlinked by `dot sync` so agents can discover it. (Binaries are installed from GitHub Releases, not symlinked — see pkg/dendrik/conventions/release.md.)",
+		Remediation: "Add a symlink_map.txt entry for the skill directory (e.g., cmd/jf/skill -> ~/.claude/skills/jf).",
 	},
 	{
 		ID: "makefile-gofiles", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityWarning,

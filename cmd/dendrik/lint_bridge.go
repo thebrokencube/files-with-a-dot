@@ -158,16 +158,8 @@ func checkSymlinkEntries(data *ToolData) []LintResult {
 	var results []LintResult
 	content := string(data.SymlinkMap)
 
-	// Check for binary entry (e.g., cmd/jf/jf or cmd/dendrik/dendrik)
-	binaryPath := "cmd/" + data.ToolName + "/" + data.ToolName
-	if !strings.Contains(content, binaryPath) {
-		results = append(results, lintResult("symlink-entries", conventions.SeverityError,
-			"symlink_map.txt missing binary entry for "+binaryPath,
-			"symlink_map.txt", 0,
-			"Add a symlink_map.txt entry for "+binaryPath+" -> ~/.local/bin/"+data.ToolName+"."))
-	}
-
-	// Check for skill directory entry
+	// Binaries are installed from GitHub Releases by `dot sync` (not symlinked from the
+	// repo) — see pkg/dendrik/conventions/release.md. Only the skill directory is symlinked.
 	skillPath := "cmd/" + data.ToolName + "/skill"
 	if !strings.Contains(content, skillPath) {
 		results = append(results, lintResult("symlink-entries", conventions.SeverityError,

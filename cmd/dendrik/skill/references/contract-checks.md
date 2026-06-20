@@ -158,9 +158,9 @@ go.work `use` entries match `cmd/*/` directories with go.mod (symmetric differen
 
 ### symlink-entries (Error)
 
-`symlink_map.txt` has entries for the binary and skill directory.
+`symlink_map.txt` has an entry for the skill directory. (Binaries are installed from GitHub Releases by `dot sync`, not symlinked — see `pkg/dendrik/conventions/release.md`.)
 
-**Fix**: Add `cmd/<tool>/<tool>:$HOME/.local/bin/<tool>` and `cmd/<tool>/skill:$HOME/.claude/skills/<tool>`.
+**Fix**: Add `cmd/<tool>/skill:$HOME/.claude/skills/<tool>`.
 
 ### makefile-gofiles (Warning)
 

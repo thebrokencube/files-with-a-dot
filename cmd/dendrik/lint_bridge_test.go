@@ -122,18 +122,18 @@ func TestBridgeLint_GoWorkSync(t *testing.T) {
 }
 
 func TestBridgeLint_SymlinkEntries(t *testing.T) {
-	t.Run("has entries", func(t *testing.T) {
+	t.Run("has skill entry", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("cmd/test/test ~/.local/bin/test\ncmd/test/skill ~/.config/skills/test\n")
+		data.SymlinkMap = []byte("cmd/test/skill ~/.config/skills/test\n")
 		results := filterCheck(BridgeLint(data), "symlink-entries")
 		if len(results) > 0 {
 			t.Errorf("expected no symlink-entries errors, got %v", results)
 		}
 	})
 
-	t.Run("missing binary", func(t *testing.T) {
+	t.Run("missing skill", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("cmd/test/skill ~/.config/skills/test\n")
+		data.SymlinkMap = []byte("cmd/other/skill ~/.config/skills/other\n")
 		results := filterCheck(BridgeLint(data), "symlink-entries")
 		assertCheckPresent(t, results, "symlink-entries")
 	})
