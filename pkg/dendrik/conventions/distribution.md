@@ -44,14 +44,14 @@ matter how many tools read them.
 
 The Claude manifest, `<plugin>/.claude-plugin/plugin.json`, is canonical and hand-authored. Required
 fields: `name` (kebab-case), `version` (semver; the bump rule and source-of-truth chain are
-`release.md`'s), `description`. Optional: `author`, `pages`. The other harnesses derive from it:
+`release.md`'s), `description`. Optional: `author`, `pages`. The per-harness catalogs (and any
+per-harness manifest) are generated from it plus `plugins.json` — **uniformly, for every harness the
+plugin targets** (all supported by default; opt a plugin out of one with `tools`). Hand-author a
+harness-specific manifest only when that harness genuinely needs behavior the Claude manifest can't
+express — that's a per-plugin exception, not a per-harness rule.
 
-- **Cursor** (`.cursor-plugin/plugin.json`) — hand-authored only when Cursor behavior must differ.
-  Otherwise the Claude manifest serves Cursor too.
-- **Codex** — opt-in by adding `"codex"` to `tools`; its manifest is generated (don't hand-edit).
-
-Keep Claude-only surfaces out of Cursor- and Codex-compatible plugins. Hooks, commands, and
-`CLAUDE.md` do not transfer; skills and agents are the portable content.
+Keep Claude-only surfaces out of the other harnesses' plugins. Hooks, commands, and `CLAUDE.md` do not
+transfer; skills and agents are the portable content.
 
 ## AGENTS.md is the baseline
 
