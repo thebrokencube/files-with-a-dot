@@ -11,6 +11,6 @@ Key points for quick reference:
 - **Registry fields**: `name`, `description` (required); `tools` (optional, defaults to all supported); `path` (optional, overrides the default `plugins/<name>` location).
 - **Per-plugin manifests**: the Claude `plugin.json` is canonical/hand-authored; Cursor is hand-authored only when behavior differs; Codex is generated (opt-in via `"codex"` in `tools`). Hooks/commands/`CLAUDE.md` don't transfer to other harnesses.
 - **AGENTS.md is the baseline**; `CLAUDE.md`/`.cursorrules` are thin overlays that point at it.
-- **CLI-backed plugins**: a plugin holds no binary. Golden path installs/updates it automatically; other harnesses assume it's on `PATH`. The install mechanism is the consuming tool's implementation.
+- **CLI-backed plugins**: a plugin holds no binary. Ship one idempotent, self-locating `bin/setup` and run it the same way on every harness (no per-harness preflight) to install the pinned binary.
 
 See the canonical source for the full convention and related-convention links.
