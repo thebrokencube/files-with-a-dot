@@ -345,6 +345,10 @@ handle_git_pull() {
         echo "Pulling latest dotfiles..."
         jj git fetch -R "$DOTFILES_DIR"
         jj bookmark set main -r "main@origin" -R "$DOTFILES_DIR" 2>/dev/null || true
+        # fetch + bookmark move the bookmark but leave the working copy (@) on the OLD
+        # main, so on-disk files would stay stale. Rebase @ onto the new main: this
+        # fast-forwards an empty @, carries local edits forward, and no-ops when current.
+        jj rebase -d main -R "$DOTFILES_DIR" || true
         echo ""
         return 0
     fi
