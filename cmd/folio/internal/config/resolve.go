@@ -37,8 +37,16 @@ func ResolvePath(folioDir, path string, reg *Registry) (string, error) {
 		return filepath.Join(store.Path, remainder), nil
 	}
 
-	// 2. Intrinsic vault: the home's shared-reference subdir, not a store.
+	// 2. Intrinsic vault: folio-LOCAL, never a registered store. It resolves to
+	//    the <vault> subdir of the active folio store — the store whose root
+	//    contains folioDir. In container mode that is e.g.
+	//    ~/.folio/thebrokencube-folio/vault, not the umbrella's. With an
+	//    implicit/empty registry (no stores.yml) there is no containing store, so
+	//    fall back to <home>/vault — today's single-home behavior, byte-for-byte.
 	if prefix == vaultName {
+		if store, ok := storeContaining(folioDir, reg); ok {
+			return filepath.Join(store.Path, "vault", remainder), nil
+		}
 		if folioHome, err := home.Dir(); err == nil {
 			return filepath.Join(folioHome, "vault", remainder), nil
 		}

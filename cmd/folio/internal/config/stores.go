@@ -42,8 +42,23 @@ func (s Store) IsExternal() bool { return s.Kind == KindExternal }
 // global: loaded once from the home dir and consulted by all resolution and
 // discovery, so a given <store>: prefix means the same thing everywhere.
 type Registry struct {
-	Stores map[string]Store // lookup by name
-	Order  []string         // declaration order = precedence (home/self implicitly first)
+	Stores  map[string]Store // lookup by name
+	Order   []string         // declaration order = precedence (home/self implicitly first)
+	Default string           // top-level `default:` store name; "" if unset/implicit
+
+	// implicit is true ONLY for the file-absent sentinel produced by
+	// defaultRegistry. It is the single source of truth for back-compat: an
+	// explicit single-store registry can be byte-identical to the sentinel, so
+	// callers MUST read this flag (via isImplicitDefault) rather than inferring
+	// "implicit" from empty contents.
+	implicit bool
+}
+
+// isImplicitDefault reports whether this registry is the file-absent sentinel
+// (no stores.yml on disk). ActiveStore short-circuits to legacy single-home in
+// that case. Reads the implicit flag, never infers from contents.
+func (r *Registry) isImplicitDefault() bool {
+	return r != nil && r.implicit
 }
 
 // Lookup returns the store registered under prefix.
@@ -103,8 +118,9 @@ func LoadRegistryFrom(homeDir string) (*Registry, error) {
 func defaultRegistry(homeDir string) *Registry {
 	_ = homeDir
 	return &Registry{
-		Stores: map[string]Store{},
-		Order:  nil,
+		Stores:   map[string]Store{},
+		Order:    nil,
+		implicit: true,
 	}
 }
 
@@ -118,8 +134,9 @@ type rawStore struct {
 // map decoding loses it.
 func parseRegistry(data []byte) (*Registry, error) {
 	var doc struct {
-		Schema int       `yaml:"schema"`
-		Stores yaml.Node `yaml:"stores"`
+		Schema  int       `yaml:"schema"`
+		Default string    `yaml:"default"`
+		Stores  yaml.Node `yaml:"stores"`
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
@@ -127,7 +144,7 @@ func parseRegistry(data []byte) (*Registry, error) {
 		return nil, fmt.Errorf("parsing %s: %w", storesFile, err)
 	}
 
-	reg := &Registry{Stores: map[string]Store{}}
+	reg := &Registry{Stores: map[string]Store{}, Default: doc.Default}
 	content := doc.Stores.Content // mapping node: [key, val, key, val, ...]
 	for i := 0; i+1 < len(content); i += 2 {
 		name := content[i].Value
@@ -152,6 +169,61 @@ func parseRegistry(data []byte) (*Registry, error) {
 		reg.Order = append(reg.Order, name)
 	}
 	return reg, nil
+}
+
+// ActiveStore resolves the content-plane store every `home` subcommand acts on
+// (via resolveHomeOrFail). ok=false means "fall back to legacy single-home
+// (home.Dir())". Resolution order:
+//
+//  0. implicit registry (no stores.yml) → ok=false immediately (back-compat)
+//  1. cwd inside a registered store wins — walk up, prefix-match store roots.
+//     [user-pinned: cwd always overrides the default]
+//  2. else the `default:` store (error if it names an unregistered store)
+//  3. else ok=false
+func ActiveStore(reg *Registry) (Store, bool, error) {
+	if reg.isImplicitDefault() {
+		return Store{}, false, nil
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		if s, ok := storeContaining(cwd, reg); ok {
+			return s, true, nil
+		}
+	}
+	if reg.Default != "" {
+		s, ok := reg.Lookup(reg.Default)
+		if !ok {
+			return Store{}, false, fmt.Errorf("default store %q is not registered in %s", reg.Default, storesFile)
+		}
+		return s, true, nil
+	}
+	return Store{}, false, nil
+}
+
+// storeContaining returns the registered store whose root contains dir (dir is
+// the root itself or nested under it). Used both by ActiveStore (cwd → store)
+// and by vault: resolution (project dir → store root). The longest matching
+// root wins, so a store nested inside another beats the outer one. An implicit
+// or empty registry contains nothing.
+func storeContaining(dir string, reg *Registry) (Store, bool) {
+	if reg == nil {
+		return Store{}, false
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		abs = filepath.Clean(dir)
+	}
+	var best Store
+	bestLen := -1
+	for _, name := range reg.Order {
+		root := filepath.Clean(reg.Stores[name].Path)
+		if abs == root || strings.HasPrefix(abs, root+string(filepath.Separator)) {
+			if len(root) > bestLen {
+				best = reg.Stores[name]
+				bestLen = len(root)
+			}
+		}
+	}
+	return best, bestLen >= 0
 }
 
 // expandUser expands a leading ~ or ~/ to the OS user home directory. Other
