@@ -154,10 +154,22 @@ check_brew() {
         ok "No deprecated taps"
     fi
 
-    if brew doctor 2>&1 | grep -q "Your system is ready to brew"; then
+    local doctor_output
+    doctor_output=$(brew doctor 2>&1 || true)
+    if echo "$doctor_output" | grep -q "Your system is ready to brew"; then
         ok "brew doctor: healthy"
     else
-        warn "brew doctor has warnings (run 'brew doctor' for details)"
+        warn "brew doctor has warnings:"
+        echo "$doctor_output" | grep -E '^Warning:' | sed 's/^Warning: //' | while read -r line; do
+            info "$line"
+        done
+        # Apple toolchain updates need sudo + multi-GB downloads, so dot
+        # surfaces the fix rather than running it (sync/fix never escalate).
+        if echo "$doctor_output" | grep -qiE 'Command Line Tools.*outdated|Xcode.*too outdated'; then
+            info "Toolchain fix (run manually — needs sudo):"
+            info "  CLT:        sudo rm -rf /Library/Developer/CommandLineTools && sudo xcode-select --install"
+            info "  Old Xcode:  sudo xcode-select --switch /Library/Developer/CommandLineTools && sudo rm -rf /Applications/Xcode.app"
+        fi
     fi
 
     local outdated
