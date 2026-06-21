@@ -121,4 +121,5 @@ Maximum 5 findings. If everything passes, say so — don't manufacture problems.
 | `references/review-orchestration.md` | Review lens — repo/PR target (multi-artifact) |
 | `references/skill-conventions.md` | Review lens — skill convention details |
 | `references/cli-conventions.md` | Conventions lens — CLI details |
+| `references/distribution-conventions.md` | Conventions lens — cross-harness plugin/marketplace distribution |
 | `references/contract-checks.md` | Conventions lens — all check IDs |

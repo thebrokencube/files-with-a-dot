@@ -111,6 +111,9 @@ cmd/{cli}/skills/{cli}/
 Note: jf and folio currently use `cmd/{cli}/skill/` (singular). Migration to
 `skills/` (plural) is part of Track 8 (plugin packaging).
 
+How this layout gets packaged into a plugin and published across harnesses: see
+`distribution.md`.
+
 ### Standalone skill (no CLI)
 
 ```

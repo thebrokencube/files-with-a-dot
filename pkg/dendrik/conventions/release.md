@@ -14,7 +14,9 @@ file first** (a normal commit). When a tool gains a `plugin.json` (marketplace d
 `plugin.json.version` becomes the source and `VERSION` mirrors it; `marketplace.json` mirrors
 `plugin.json` (name/description/version/keywords synced from it) and must never carry an
 *independent* version — a stale, unsynced value blocks plugin auto-updates. (Reference sync:
-guideline-plugin-marketplace's `scripts/bump-changed-plugin-versions.sh`.)
+guideline-plugin-marketplace's `scripts/bump-changed-plugin-versions.sh`.) How that plugin is
+packaged and published across harnesses (the `plugins.json` registry, generated manifests, the
+CLI-backed binary-install path): see `distribution.md`.
 
 semver is a compatibility contract, not just an identifier: MAJOR = breaking, MINOR = additive,
 PATCH = fix. Honor it once anything depends on a tool.

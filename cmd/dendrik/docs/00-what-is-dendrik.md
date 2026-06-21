@@ -23,6 +23,7 @@ dendrik's conventions are not denormalized across prose; each lives in one sourc
 | `pkg/dendrik/conventions/cli.md` | CLI conventions — exit codes, flags, output modes, command structure |
 | `pkg/dendrik/conventions/skill.md` | Skill conventions — SKILL.md structure, frontmatter, progressive disclosure |
 | `pkg/dendrik/conventions/release.md` | Build & release — version source (VERSION), `dendrik build`, tag scheme, immutability |
+| `pkg/dendrik/conventions/distribution.md` | Cross-harness distribution — `plugins.json` registry → generated Claude/Cursor/Codex manifests, golden-path framing, CLI-backed binary install |
 | `pkg/dendrik/conventions/contract.go` | The enforced contract — the canonical `Contract` slice every `dendrik lint` check derives from |
 | `cmd/dendrik/skill/references/review-*.md` | The review framework — shared dimensions plus the per-type leaves |
 | `cmd/dendrik/skill/references/contract-checks.md` | The one enumeration of the contract's checks (derived from `contract.go`) |
