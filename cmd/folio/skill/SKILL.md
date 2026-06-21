@@ -220,7 +220,11 @@ If any CLI command fails, run `folio setup --check` first.
 
 Before any folio operation, ensure a jj workspace exists for this session:
 
-1. If `~/.folio/.jj` does not exist: skip (git-based home, no workspace needed)
+1. If neither `~/.folio/.jj` (legacy single-home) nor `~/.folio/stores.yml`
+   (multi-store umbrella) exists: skip (git-based home, no workspace needed). In
+   container mode the jj repo lives in the **default store**, not the umbrella —
+   `folio home workspace create` resolves it via the registry, so you never need
+   to locate the store's `.jj` yourself.
 2. If you already have a workspace path from this session: skip (already initialized)
 3. Run `folio home workspace create` and capture the printed path (last line of output)
 4. **Store the path as a literal string** — do NOT rely on env vars. Each Bash call starts
