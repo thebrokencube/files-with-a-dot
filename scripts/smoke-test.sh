@@ -38,10 +38,13 @@ for t in "${PLUGINS[@]}"; do
   vfile="$(tr -d '[:space:]' < "cmd/$t/VERSION")"
   vjson="$(jq -r '.version' "cmd/$t/.claude-plugin/plugin.json")"
   [[ "$vfile" == "$vjson" ]] || fail "$t: VERSION ($vfile) != plugin.json.version ($vjson)"
-  # catalog lists the plugin by name + source; assert it is present
-  jq -e --arg n "$t" '.plugins[] | select(.name == $n)' .claude-plugin/marketplace.json >/dev/null \
-    || fail "$t: not listed in Claude catalog"
-  ok "$t: VERSION == plugin.json.version == $vfile, listed in catalog"
+  # catalog must list the plugin AND carry the same version (synced, never independent)
+  for c in "${CATALOGS[@]}"; do
+    vcat="$(jq -r --arg n "$t" '.plugins[] | select(.name == $n) | .version' "$c")"
+    [[ -n "$vcat" && "$vcat" != "null" ]] || fail "$t: not listed (with version) in $c"
+    [[ "$vcat" == "$vfile" ]] || fail "$t: catalog version in $c ($vcat) != VERSION ($vfile)"
+  done
+  ok "$t: VERSION == plugin.json.version == catalog version == $vfile"
 done
 
 echo "[4] bin/setup conventions: byte-identical x3, shellcheck-clean, self-locating, no CLAUDE_PLUGIN_ROOT, no sibling source"
