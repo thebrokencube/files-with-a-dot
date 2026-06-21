@@ -658,16 +658,19 @@ fi
 # Auto-resolve disk-ahead drift for plugin manifests (Claude self-updates these)
 reconcile_plugin_drift "$DOTFILES_DIR/managed_map.txt"
 
-# Check for managed file drift before overwriting
+# Check for managed file drift. Drifted files are SKIPPED by apply_managed_files (so we
+# never clobber on-disk changes), but the rest of the sync continues — one drifted file
+# no longer halts everything. Backfill drift to sources, or 'dot sync --force' to overwrite.
+DRIFTED_FILES=()
 if [[ "$FORCE" != true ]]; then
-    if ! check_managed_drift "$DOTFILES_DIR/managed_map.txt"; then
+    check_managed_drift "$DOTFILES_DIR/managed_map.txt" || true
+    if [[ ${#DRIFTED_FILES[@]} -gt 0 ]]; then
         echo ""
-        warn "Backfill drift to source files, then re-run. Or use --force to overwrite."
-        exit 1
+        warn "Skipping ${#DRIFTED_FILES[@]} drifted file(s) — backfill to sources, or --force to overwrite. Continuing."
     fi
 fi
 
-# Apply managed files (base + private overlay merge)
+# Apply managed files (base + private overlay merge); drifted files are skipped.
 apply_managed_files "$DOTFILES_DIR/managed_map.txt"
 
 echo ""

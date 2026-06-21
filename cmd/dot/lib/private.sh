@@ -528,6 +528,17 @@ apply_managed_files() {
             continue
         fi
 
+        # Skip files flagged as drifted (on-disk changes not in sources) so we don't
+        # overwrite them — the rest of the managed files still get applied.
+        local skip_drifted=false df
+        for df in "${DRIFTED_FILES[@]:-}"; do
+            [[ "$df" == "$dest" ]] && { skip_drifted=true; break; }
+        done
+        if [[ "$skip_drifted" == true ]]; then
+            warn "Skipping $(basename "$dest") — drifted (backfill to source, or 'dot sync --force' to overwrite)"
+            continue
+        fi
+
         # Ensure parent directory exists
         mkdir -p "$(dirname "$dest")"
 
@@ -580,6 +591,9 @@ apply_managed_files() {
 # Arguments: $1 = managed_map.txt path
 check_managed_drift() {
     local map_file="$1"
+    # Global: destinations found to have drifted. apply_managed_files skips these so a
+    # single drifted file doesn't block syncing the rest. Reset on every call.
+    DRIFTED_FILES=()
     [[ ! -f "$map_file" ]] && return 0
     command -v jq &>/dev/null || return 0
 
@@ -665,6 +679,7 @@ check_managed_drift() {
                 drift_found=true
                 warn "Managed file drift detected — on-disk files have changes not in sources:"
             fi
+            DRIFTED_FILES+=("$dest")
             echo ""
             echo "  $(basename "$dest"):"
             diff <(echo "$expected_norm") <(echo "$actual_norm") | sed 's/^/    /' || true
