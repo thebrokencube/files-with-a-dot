@@ -31,6 +31,20 @@ After first sync:
 3. Run `dot health` to verify everything
 4. (Optional) Select iTerm2 "Dotfiles Default" profile for icons
 
+## Plugin marketplace
+
+This repo is also a cross-harness plugin marketplace for its CLI tools (`folio`, `jf`, `dendrik`).
+In Claude Code:
+
+```
+/plugin marketplace add thebrokencube/files-with-a-dot
+/plugin install folio@files-with-a-dot   # or jf, dendrik
+```
+
+Then run the plugin's `bin/setup` once to install its binary. On any harness, the install step is
+the same — run `cmd/<tool>/bin/setup`. See [AGENTS.md](AGENTS.md) for the full model (`plugins.json`
+is canonical; per-harness catalogs are generated).
+
 ## Day-to-Day
 
 ```bash
