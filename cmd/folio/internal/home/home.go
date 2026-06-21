@@ -35,7 +35,17 @@ func Dir() (string, error) {
 
 // Init scaffolds the FOLIO_HOME directory structure. Idempotent — only creates
 // directories and files that don't already exist.
+//
+// Umbrella guard: a dir containing stores.yml is a multi-store umbrella — a
+// plain directory that physically contains independent store repos, NOT a folio
+// home. Initializing it (scaffolding active/archive, or VCS-init'ing it into a
+// repo) would be wrong, so Init refuses. Stores are created by cloning into the
+// umbrella, not by `folio home init`.
 func Init(dir string) error {
+	if _, err := os.Stat(filepath.Join(dir, "stores.yml")); err == nil {
+		return fmt.Errorf("%s is a multi-store umbrella (has stores.yml) — it is a plain directory, not a folio home; do not init or VCS-init it", dir)
+	}
+
 	dirs := []string{
 		filepath.Join(dir, "active"),
 		filepath.Join(dir, "archive"),

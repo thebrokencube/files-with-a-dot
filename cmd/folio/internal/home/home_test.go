@@ -47,6 +47,23 @@ func TestInit_CreatesStructure(t *testing.T) {
 	}
 }
 
+func TestInit_RefusesUmbrella(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "stores.yml"), []byte("schema: 2\nstores: {}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Init(dir); err == nil {
+		t.Fatal("Init must refuse an umbrella (stores.yml present)")
+	}
+	// Refused early: no scaffolding, no VCS dirs created.
+	for _, name := range []string{"active", "archive", ".git", ".jj"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
+			t.Errorf("umbrella init created %s; must create nothing", name)
+		}
+	}
+}
+
 func TestInit_Idempotent(t *testing.T) {
 	tmp := t.TempDir()
 	dir := filepath.Join(tmp, "folio-home")
