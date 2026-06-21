@@ -1,0 +1,23 @@
+{
+  "name": "files-with-a-dot",
+  "owner": {
+    "name": "thebrokencube"
+  },
+  "plugins": [
+    {
+      "name": "folio",
+      "path": "cmd/folio",
+      "description": "Lifecycle toolkit for knowledge work: folio.yml-driven source-to-target composition, diverge-converge planning, and work-track management."
+    },
+    {
+      "name": "jf",
+      "path": "cmd/jf",
+      "description": "Jira Forest CLI: manage Jira issues and epic hierarchies, push descriptions and titles, search with JQL, and enforce ticket conventions."
+    },
+    {
+      "name": "dendrik",
+      "path": "cmd/dendrik",
+      "description": "Quality linter for agentic documentation and CLI tool conventions: reviews SKILL.md/CLAUDE.md/reference files and checks contract compliance."
+    }
+  ]
+}

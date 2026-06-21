@@ -1,11 +1,11 @@
 # Dotfiles
 
-## Build System
-- Each Go CLI has its own module root under `cmd/<tool>/` — use `cd cmd/<tool> && make build/test/check`
-- `make check` runs fmt + vet + test (full pre-commit validation)
-- **Build artifacts are checked into git** — this repo is deployment-via-clone, so binaries and bundles must be committed. `dot sync` does not run build steps.
-  - `cmd/folio/folio` — Go binary
-  - `cmd/jf/jf` — Go binary
-  - `cmd/jf/internal/pipeline/md2adf.bundle.mjs` — embedded marklassian bundle, rebuild with `make bundle`
-  - `cmd/dendrik/dendrik` — Go binary
-- Do NOT gitignore build outputs in this repo. Only gitignore transient dev state (`node_modules/`).
+See **[AGENTS.md](AGENTS.md)** for the harness-agnostic baseline — the plugin marketplace
+(`plugins.json`, generated catalogs, per-plugin `bin/setup`) and the build system.
+
+## Claude specifics
+
+- Add this marketplace: `/plugin marketplace add thebrokencube/files-with-a-dot`
+- Install a tool: `/plugin install <tool>@files-with-a-dot` (folio, jf, or dendrik), then run the
+  plugin's `bin/setup` once to install its binary.
+- Refresh the catalog after the repo updates: `/plugin marketplace update files-with-a-dot`.
