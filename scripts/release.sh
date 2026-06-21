@@ -40,5 +40,7 @@ go build -C cmd/dendrik -o "$tmp/dendrik" .
 "$tmp/dendrik" build "cmd/$tool" --matrix --out dist
 
 # --- create the release (gh creates the tag server-side at this commit) ---
-gh release create "$tag" dist/* --title "$tag" --generate-notes --target "${GITHUB_SHA:-HEAD}"
+# No auto-generated notes: GitHub's --generate-notes diffs against the previous tag and
+# is not tool-scoped, so it's noise under our per-tool tagging. Body is intentionally empty.
+gh release create "$tag" dist/* --title "$tag" --notes "" --target "${GITHUB_SHA:-HEAD}"
 echo "released $tag"
