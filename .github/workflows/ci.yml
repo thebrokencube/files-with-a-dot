@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: cmd/${{ matrix.tool }}/go.mod
+          # monorepo: module files live per-tool, not at repo root — point the cache there
+          cache-dependency-path: cmd/${{ matrix.tool }}/go.sum
       - name: check
         working-directory: cmd/${{ matrix.tool }}
         run: |

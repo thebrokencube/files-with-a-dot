@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: cmd/${{ inputs.tool }}/go.mod
+          # monorepo: module files live per-tool, not at repo root — point the cache there
+          cache-dependency-path: cmd/${{ inputs.tool }}/go.sum
 
       # All logic lives in scripts/release.sh (a thin shim over `dendrik build` + `gh`) —
       # kept out of YAML so it is testable, shellcheck'd, and reusable.
