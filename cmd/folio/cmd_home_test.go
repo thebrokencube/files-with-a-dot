@@ -83,6 +83,65 @@ func TestResolveHomeUnknownDefaultErrors(t *testing.T) {
 	}
 }
 
+// An explicit <store> positional resolves to that store's root, overriding the
+// active/default resolution.
+func TestResolveSyncTargetExplicitStore(t *testing.T) {
+	umbrella := t.TempDir()
+	work := filepath.Join(umbrella, "work")
+	adr := filepath.Join(umbrella, "adr")
+	writeStores(t, umbrella, "schema: 2\ndefault: work\nstores:\n"+
+		"  work: { path: "+work+", kind: folio }\n"+
+		"  adr:  { path: "+adr+", kind: external }\n")
+	t.Setenv("FOLIO_HOME", umbrella)
+	t.Chdir(umbrella)
+
+	dir, store, code := resolveSyncTarget("adr")
+	if code != dendrik.ExitOK {
+		t.Fatalf("code = %d, want OK", code)
+	}
+	if dir != adr || store.Name != "adr" || !store.IsExternal() {
+		t.Errorf("got (dir=%q store=%q external=%v), want adr/external", dir, store.Name, store.IsExternal())
+	}
+}
+
+func TestResolveSyncTargetUnknownStore(t *testing.T) {
+	umbrella := t.TempDir()
+	writeStores(t, umbrella, "schema: 2\ndefault: work\nstores:\n  work: { path: /tmp/w, kind: folio }\n")
+	t.Setenv("FOLIO_HOME", umbrella)
+	t.Chdir(umbrella)
+
+	if _, _, code := resolveSyncTarget("ghost"); code == dendrik.ExitOK {
+		t.Fatal("unknown <store> positional must fail, got OK")
+	}
+}
+
+// Pushing an external store is rejected (read-only) before any repo work.
+func TestHomePushRejectsExternalStore(t *testing.T) {
+	umbrella := t.TempDir()
+	adr := filepath.Join(umbrella, "adr")
+	writeStores(t, umbrella, "schema: 2\ndefault: work\nstores:\n"+
+		"  work: { path: "+filepath.Join(umbrella, "work")+", kind: folio }\n"+
+		"  adr:  { path: "+adr+", kind: external }\n")
+	t.Setenv("FOLIO_HOME", umbrella)
+	t.Chdir(umbrella)
+
+	if code := runHomePush([]string{"adr", "-m", "feat(x): y"}); code == dendrik.ExitOK {
+		t.Fatal("push to external store must be rejected, got OK")
+	}
+}
+
+// Push requires -m; the positional is reserved for <store>, never the message.
+func TestHomePushRequiresMessage(t *testing.T) {
+	umbrella := t.TempDir()
+	writeStores(t, umbrella, "schema: 2\ndefault: work\nstores:\n  work: { path: /tmp/w, kind: folio }\n")
+	t.Setenv("FOLIO_HOME", umbrella)
+	t.Chdir(umbrella)
+
+	if code := runHomePush([]string{"work"}); code == dendrik.ExitOK {
+		t.Fatal("push without -m must fail, got OK")
+	}
+}
+
 func writeStores(t *testing.T, dir, yaml string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, "stores.yml"), []byte(yaml), 0644); err != nil {

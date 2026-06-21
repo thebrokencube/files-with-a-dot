@@ -23,40 +23,64 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-// resolveHomeOrFail resolves the content-plane root every `home` subcommand acts
-// on. home.Dir() is the umbrella (registry plane); the store registry then
-// redirects to the active folio store's root (cwd-in-store or default:). When
-// ActiveStore reports ok=false (no stores.yml, or implicit/no-default) the
-// umbrella IS the single-home folio, so we fall back to it byte-for-byte. This
-// guarantees home.Validate (run by callers on the returned dir) never targets a
-// bare umbrella — it always sees a real folio store.
-func resolveHomeOrFail() (string, int) {
+// resolveSyncTarget resolves the repo root every `home` subcommand acts on,
+// plus the resolved store (for the external-push guard). home.Dir() is the
+// umbrella (registry plane); the registry then redirects to a store's root:
+//   - an explicit <store> positional wins (per-store sync);
+//   - else the active store (cwd-in-store or default:);
+//   - else, when ActiveStore reports ok=false (no stores.yml / implicit), the
+//     umbrella IS the single-home folio and is returned byte-for-byte.
+//
+// The returned store is the zero value on the legacy path (Kind=="" so
+// IsExternal() is false), so callers' external-push guard is a no-op there. This
+// also guarantees home.Validate (run by callers on the returned dir) never
+// targets a bare umbrella — it always sees a real folio store.
+func resolveSyncTarget(storeName string) (string, config.Store, int) {
 	pal := dendrik.NewPalette(true)
-	dir, err := home.Dir()
+	umbrella, err := home.Dir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", dendrik.ExitUserError
+		return "", config.Store{}, dendrik.ExitUserError
+	}
+	reg, err := config.LoadRegistryFrom(umbrella)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return "", config.Store{}, dendrik.ExitUserError
 	}
 
-	reg, err := config.LoadRegistryFrom(dir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", dendrik.ExitUserError
+	// Explicit <store> positional wins.
+	if storeName != "" {
+		store, ok := reg.Lookup(storeName)
+		if !ok {
+			fmt.Fprintln(os.Stderr, pal.Errf("store %q is not registered in stores.yml", storeName))
+			return "", config.Store{}, dendrik.ExitUserError
+		}
+		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, store.Path, pal.Reset)
+		return store.Path, store, dendrik.ExitOK
 	}
+
+	// Else the active store, else legacy single-home (umbrella).
 	store, ok, err := config.ActiveStore(reg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", dendrik.ExitUserError
+		return "", config.Store{}, dendrik.ExitUserError
 	}
+	dir := umbrella
 	if ok {
 		dir = store.Path
 		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, dir, pal.Reset)
 	}
-
 	if strings.HasPrefix(filepath.Base(dir), "folio-ws-") {
 		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, dir, pal.Reset)
 	}
-	return dir, dendrik.ExitOK
+	return dir, store, dendrik.ExitOK
+}
+
+// resolveHomeOrFail is the storeless wrapper used by every subcommand that acts
+// on the active store implicitly (no <store> positional).
+func resolveHomeOrFail() (string, int) {
+	dir, _, code := resolveSyncTarget("")
+	return dir, code
 }
 
 func runHomeInit(args []string) int {
@@ -223,13 +247,20 @@ func runHomePush(args []string) int {
 		return code
 	}
 
-	// Allow positional args as message for convenience: folio home push "my message"
-	if len(fs.GetArgs()) > 0 {
-		*msg = strings.Join(fs.GetArgs(), " ")
+	// A positional arg names a STORE to push (per-store sync), not the commit
+	// message — push requires -m, which frees the positional for <store> and
+	// removes the old message/store ambiguity.
+	var storeName string
+	if rest := fs.GetArgs(); len(rest) > 0 {
+		if len(rest) > 1 {
+			fmt.Fprintln(os.Stderr, pal.Errf("too many arguments; usage: folio home push [<store>] -m \"...\""))
+			return dendrik.ExitUserError
+		}
+		storeName = rest[0]
 	}
 
 	if *msg == "" {
-		fmt.Fprintln(os.Stderr, pal.Errf("commit message required (-m or positional arg)"))
+		fmt.Fprintln(os.Stderr, pal.Errf("commit message required (-m)"))
 		fmt.Fprintf(os.Stderr, "  Format: type(scope): description\n")
 		fmt.Fprintf(os.Stderr, "  Types:  feat fix docs refactor test chore style perf auto\n")
 		return dendrik.ExitUserError
@@ -240,9 +271,15 @@ func runHomePush(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	dir, code := resolveHomeOrFail()
+	dir, store, code := resolveSyncTarget(storeName)
 	if code != dendrik.ExitOK {
 		return code
+	}
+	// External stores are read-only to folio — contributions go through that
+	// repo's own PR flow. Fires for both the positional and cwd-resolved paths.
+	if store.IsExternal() {
+		fmt.Fprintln(os.Stderr, pal.Errf("store %q is external (read-only) — folio never pushes it; contribute via its own PR flow", store.Name))
+		return dendrik.ExitUserError
 	}
 
 	var pushErr error
@@ -304,7 +341,23 @@ func runHomePush(args []string) int {
 
 func runHomePull(args []string) int {
 	pal := dendrik.NewPalette(true)
-	dir, code := resolveHomeOrFail()
+	fs := dendrik.NewFlagSet("home pull")
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
+	}
+
+	// Optional positional <store> selects which store to read-refresh; external
+	// stores are pullable (read-only) even though they are never pushed.
+	var storeName string
+	if rest := fs.GetArgs(); len(rest) > 0 {
+		if len(rest) > 1 {
+			fmt.Fprintln(os.Stderr, pal.Errf("too many arguments; usage: folio home pull [<store>]"))
+			return dendrik.ExitUserError
+		}
+		storeName = rest[0]
+	}
+
+	dir, _, code := resolveSyncTarget(storeName)
 	if code != dendrik.ExitOK {
 		return code
 	}
