@@ -214,6 +214,7 @@ var (
 // Lint checks observations for format errors and broken inline path references.
 func Lint(folioDir string, items []string) []LintIssue {
 	var issues []LintIssue
+	reg, _ := config.LoadRegistry()
 	for i, item := range items {
 		if err := Validate(item); err != nil {
 			issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: "malformed format"})
@@ -223,7 +224,11 @@ func Lint(folioDir string, items []string) []LintIssue {
 		// Extract and check inline path references
 		paths := extractPaths(item)
 		for _, p := range paths {
-			full := config.ResolvePath(folioDir, p)
+			full, err := config.ResolvePath(folioDir, p, reg)
+			if err != nil {
+				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("%s", err)})
+				continue
+			}
 			if _, err := os.Stat(full); os.IsNotExist(err) {
 				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("broken path: %s", p)})
 			}

@@ -4,9 +4,30 @@ Shared across workflows. Contains YAML structure reference for Claude. Go code o
 
 ## folio.yml Schema
 
-All paths relative to the directory containing folio.yml, unless prefixed with `vault:`.
+All paths relative to the directory containing folio.yml, unless prefixed with a registered `<store>:` name.
 
-The `vault:` prefix resolves to `~/.folio/vault/` — a shared knowledge layer outside any project. Use for cross-cutting references that multiple projects source from.
+The `vault:` prefix resolves to `~/.folio/vault/` — a shared knowledge layer outside any project. Use for cross-cutting references that multiple projects source from. `vault` is simply the implicitly-registered store (see **stores.yml** below); any other registered store can be referenced the same way.
+
+## stores.yml — the store registry (multi-store)
+
+`~/.folio` is the home of all folios + KBs. A global `~/.folio/stores.yml` indexes every folio and external KB you work across. It is a **logical index** — registered stores stay in their own repos; nothing physically moves.
+
+```yaml
+schema: 1
+stores:
+  vault: { path: ~/.folio/vault,              kind: folio }     # the shared personal vault (implicit if file absent)
+  work:  { path: ~/work-folio,                kind: folio }     # a second folio home
+  radr:  { path: ~/workspace/guideline/radrs, kind: external }  # an external KB (read-only), NOT a folio
+```
+
+- **`kind: folio`** — a full folio home: listed, structure-aware in `find`, writable (`--folio <store>:<project>`), validated.
+- **`kind: external`** — a non-folio KB you read from (ADRs, RADRs, wikis, docs): content-grep in `find`, **read-only**, never scanned for folio structure; a missing target **warns**, never errors. ADR/RADR are not special types — they are just `external` stores.
+
+**Absent `stores.yml` ⇒ implicit `{vault: {<home>/vault, folio}}`** — single-home behavior, byte-for-byte unchanged.
+
+**`<store>:` references**: `<store>:<path-within-store>`. A registered prefix resolves against that store's root; an unknown store-shaped prefix (`bogus:foo.md`) fails loud; a path that merely contains a colon (`a/b:c.md`) resolves normally. List the registry with `folio stores list [--json]`.
+
+**Write-routing**: `--folio <store>:<project>` targets a project in any folio store (matched in its `active/` or `archive/`). External stores are not write targets.
 
 ```yaml
 schema: 1                              # Required. 1 or 2.

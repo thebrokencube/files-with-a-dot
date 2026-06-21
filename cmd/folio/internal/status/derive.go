@@ -95,6 +95,10 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 		Targets:   make(map[string]TargetStatus),
 	}
 
+	// Global store registry — loaded once and threaded into every <store>:
+	// resolution. Absent stores.yml yields the implicit single-home default.
+	reg, _ := config.LoadRegistry()
+
 	// Classify project-level sources
 	for _, src := range f.Sources {
 		ps.Sources = append(ps.Sources, ClassifySource(src))
@@ -124,7 +128,7 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 					Status: "unknown",
 				})
 			} else if out.Path != "" {
-				status := DeriveLocalStatus(folioDir, out.Path, sourcePaths)
+				status := deriveLocalStatus(folioDir, out.Path, sourcePaths, reg)
 				ts.Outputs = append(ts.Outputs, OutputStatus{
 					Type:   "local",
 					Path:   out.Path,
@@ -135,7 +139,7 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 
 		// Batch item status derivation
 		if target.Batch != nil {
-			manifestMtime := getManifestMtime(folioDir, target.Outputs)
+			manifestMtime := getManifestMtime(folioDir, target.Outputs, reg)
 			for _, item := range target.Batch.Items {
 				out := target.Batch.ResolveItemOutput(item)
 				bis := BatchItemStatus{
@@ -147,9 +151,9 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 				if item.Source == "" {
 					bis.Status = "unknown"
 				} else {
-					srcPath := config.ResolvePath(folioDir, item.Source)
+					srcPath, resErr := config.ResolvePath(folioDir, item.Source, reg)
 					srcInfo, err := os.Stat(srcPath)
-					if err != nil {
+					if resErr != nil || err != nil {
 						bis.Status = "missing"
 					} else if manifestMtime.IsZero() || srcInfo.ModTime().After(manifestMtime) {
 						bis.Status = "stale"
@@ -169,10 +173,14 @@ func Derive(f *config.Folio, folioDir string) *ProjectStatus {
 
 // getManifestMtime returns the mtime of the first local output (manifest file).
 // Returns zero time if no local output exists (everything will be stale).
-func getManifestMtime(folioDir string, outputs []config.Output) time.Time {
+func getManifestMtime(folioDir string, outputs []config.Output, reg *config.Registry) time.Time {
 	for _, out := range outputs {
 		if out.Path != "" {
-			info, err := os.Stat(config.ResolvePath(folioDir, out.Path))
+			full, err := config.ResolvePath(folioDir, out.Path, reg)
+			if err != nil {
+				continue
+			}
+			info, err := os.Stat(full)
 			if err == nil {
 				return info.ModTime()
 			}
@@ -183,7 +191,15 @@ func getManifestMtime(folioDir string, outputs []config.Output) time.Time {
 
 // DeriveLocalStatus computes status for a local output by comparing mtimes.
 func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string {
-	fullOutput := config.ResolvePath(folioDir, outputPath)
+	reg, _ := config.LoadRegistry()
+	return deriveLocalStatus(folioDir, outputPath, sourcePaths, reg)
+}
+
+func deriveLocalStatus(folioDir, outputPath string, sourcePaths []string, reg *config.Registry) string {
+	fullOutput, err := config.ResolvePath(folioDir, outputPath, reg)
+	if err != nil {
+		return "missing"
+	}
 	outInfo, err := os.Stat(fullOutput)
 	if err != nil {
 		return "missing"
@@ -191,7 +207,10 @@ func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string
 	outputMtime := outInfo.ModTime()
 
 	for _, src := range sourcePaths {
-		fullSrc := config.ResolvePath(folioDir, src)
+		fullSrc, err := config.ResolvePath(folioDir, src, reg)
+		if err != nil {
+			return "stale"
+		}
 		srcInfo, err := os.Stat(fullSrc)
 		if err != nil {
 			return "stale"
@@ -208,7 +227,15 @@ func DeriveLocalStatus(folioDir, outputPath string, sourcePaths []string) string
 // Returns "" if clean, "output missing" if the output doesn't exist, or the
 // first source path that is newer than the output.
 func DeriveLocalCause(folioDir, outputPath string, sourcePaths []string) string {
-	fullOutput := config.ResolvePath(folioDir, outputPath)
+	reg, _ := config.LoadRegistry()
+	return deriveLocalCause(folioDir, outputPath, sourcePaths, reg)
+}
+
+func deriveLocalCause(folioDir, outputPath string, sourcePaths []string, reg *config.Registry) string {
+	fullOutput, err := config.ResolvePath(folioDir, outputPath, reg)
+	if err != nil {
+		return "output missing"
+	}
 	outInfo, err := os.Stat(fullOutput)
 	if err != nil {
 		return "output missing"
@@ -216,7 +243,10 @@ func DeriveLocalCause(folioDir, outputPath string, sourcePaths []string) string 
 	outputMtime := outInfo.ModTime()
 
 	for _, src := range sourcePaths {
-		fullSrc := config.ResolvePath(folioDir, src)
+		fullSrc, err := config.ResolvePath(folioDir, src, reg)
+		if err != nil {
+			return fmt.Sprintf("source %s missing", src)
+		}
 		srcInfo, err := os.Stat(fullSrc)
 		if err != nil {
 			return fmt.Sprintf("source %s missing", src)

@@ -47,6 +47,49 @@ observations: []
 	}
 }
 
+// Multi-store: an external store's missing source WARNS, an unknown prefix
+// ERRORS, and a missing local source ERRORS — all in one validation run.
+// (Acceptance criteria #3 + #4 of the multi-store design.)
+func TestIntegrationMultiStoreSourceClassification(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("FOLIO_HOME", homeDir)
+	os.MkdirAll(filepath.Join(homeDir, "vault"), 0755)
+	writeFixture(t, homeDir, "stores.yml", `schema: 1
+stores:
+  vault: { path: `+homeDir+`/vault, kind: folio }
+  radr:  { path: /no/such/external/kb, kind: external }
+`)
+
+	dir := t.TempDir()
+	writeFixture(t, dir, "folio.yml", `
+schema: 1
+project: "Test"
+sources:
+  - path: radr:9999-missing.md
+  - path: bogus:foo.md
+  - path: definitely-missing-local.md
+targets: {}
+observations: []
+`)
+	r := loadAndValidate(t, dir)
+
+	joined := strings.Join(r.Errors, "\n")
+	if !strings.Contains(joined, "bogus") {
+		t.Errorf("expected unknown-prefix error naming 'bogus', errors: %v", r.Errors)
+	}
+	if !strings.Contains(joined, "definitely-missing-local.md") {
+		t.Errorf("expected missing-local error, errors: %v", r.Errors)
+	}
+	warned := strings.Join(r.Warnings, "\n")
+	if !strings.Contains(warned, "radr:9999-missing.md") {
+		t.Errorf("expected external-missing WARNING for radr:, warnings: %v", r.Warnings)
+	}
+	// The external miss must NOT be an error.
+	if strings.Contains(joined, "radr:9999-missing.md") {
+		t.Errorf("external miss should warn, not error: %v", r.Errors)
+	}
+}
+
 func TestIntegrationWithSourcesAndTargets(t *testing.T) {
 	dir := t.TempDir()
 	writeFixture(t, dir, "README.md", "# Test")

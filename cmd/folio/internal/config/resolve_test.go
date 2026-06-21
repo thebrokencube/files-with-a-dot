@@ -14,6 +14,13 @@ func TestResolvePath(t *testing.T) {
 	}
 	vaultBase := filepath.Join(folioHome, "vault")
 
+	// Explicit registry mirroring the implicit single-home default, so these
+	// expectations stay independent of any real ~/.folio/stores.yml.
+	reg := &Registry{
+		Stores: map[string]Store{"vault": {Name: "vault", Path: vaultBase, Kind: KindFolio}},
+		Order:  []string{"vault"},
+	}
+
 	tests := []struct {
 		name     string
 		folioDir string
@@ -60,7 +67,10 @@ func TestResolvePath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ResolvePath(tt.folioDir, tt.path)
+			got, err := ResolvePath(tt.folioDir, tt.path, reg)
+			if err != nil {
+				t.Fatalf("ResolvePath(%q, %q) returned error: %v", tt.folioDir, tt.path, err)
+			}
 			if got != tt.want {
 				t.Errorf("ResolvePath(%q, %q) = %q, want %q", tt.folioDir, tt.path, got, tt.want)
 			}

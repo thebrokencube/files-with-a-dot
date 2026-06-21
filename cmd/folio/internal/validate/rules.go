@@ -22,6 +22,13 @@ type Result struct {
 func Validate(f *config.Folio, folioDir string) *Result {
 	r := &Result{Valid: true}
 
+	// Global store registry — consulted by every <store>: resolution below.
+	// Absent stores.yml yields the implicit single-home default (back-compat).
+	reg, err := config.LoadRegistry()
+	if err != nil {
+		r.addError("loading store registry: %s", err)
+	}
+
 	// Schema version
 	if f.Schema < 1 || f.Schema > 3 {
 		r.addError("Missing or invalid schema version (expected: 1, 2, or 3, got: %d)", f.Schema)
@@ -39,7 +46,7 @@ func Validate(f *config.Folio, folioDir string) *Result {
 
 	// Project-level sources
 	for i, src := range f.Sources {
-		validateSource(r, src, fmt.Sprintf("Project source [%d]", i), folioDir, true)
+		validateSource(r, src, fmt.Sprintf("Project source [%d]", i), folioDir, reg, true)
 	}
 
 	// Source depends_on validation
@@ -97,7 +104,7 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	// Targets
 	for _, tid := range maputil.SortedKeys(f.Targets) {
 		target := f.Targets[tid]
-		validateTarget(r, f, tid, &target, folioDir)
+		validateTarget(r, f, tid, &target, folioDir, reg)
 	}
 
 	// Output map collisions
@@ -146,7 +153,7 @@ func Validate(f *config.Folio, folioDir string) *Result {
 	return r
 }
 
-func validateSource(r *Result, src config.Source, prefix string, folioDir string, isProjectLevel bool) {
+func validateSource(r *Result, src config.Source, prefix string, folioDir string, reg *config.Registry, isProjectLevel bool) {
 	if src.External != "" && src.Path != "" {
 		r.addWarning("%s: source has both 'path' and 'external' set — path is ignored for external sources", prefix)
 	}
@@ -159,9 +166,17 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 			r.addError("%s: depends_on is only valid on local path sources", prefix)
 		}
 	} else if src.Path != "" {
-		fullPath := config.ResolvePath(folioDir, src.Path)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			r.addError("%s: file not found: %s", prefix, src.Path)
+		fullPath, err := config.ResolvePath(folioDir, src.Path, reg)
+		if err != nil {
+			r.addError("%s: %s", prefix, err)
+		} else if _, statErr := os.Stat(fullPath); os.IsNotExist(statErr) {
+			// External stores are read-only and may be uncloned — a missing
+			// target warns rather than fails the whole validation.
+			if config.IsExternalStorePath(src.Path, reg) {
+				r.addWarning("%s: external source not found (store may be uncloned): %s", prefix, src.Path)
+			} else {
+				r.addError("%s: file not found: %s", prefix, src.Path)
+			}
 		}
 		for j, df := range src.DerivedFrom {
 			if df.External == "" {
@@ -176,10 +191,10 @@ func validateSource(r *Result, src config.Source, prefix string, folioDir string
 	}
 }
 
-func validateTarget(r *Result, f *config.Folio, tid string, target *config.Target, folioDir string) {
+func validateTarget(r *Result, f *config.Folio, tid string, target *config.Target, folioDir string, reg *config.Registry) {
 	// Target sources
 	for _, src := range target.Sources {
-		validateSource(r, src, fmt.Sprintf("Target '%s'", tid), folioDir, false)
+		validateSource(r, src, fmt.Sprintf("Target '%s'", tid), folioDir, reg, false)
 	}
 
 	// Output paths and external fields
@@ -188,8 +203,10 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 	for _, out := range target.Outputs {
 		if out.Path != "" {
 			hasLocal = true
-			outDir := filepath.Dir(config.ResolvePath(folioDir, out.Path))
-			if info, err := os.Stat(outDir); err != nil || !info.IsDir() {
+			resolved, err := config.ResolvePath(folioDir, out.Path, reg)
+			if err != nil {
+				r.addError("Target '%s': %s", tid, err)
+			} else if info, statErr := os.Stat(filepath.Dir(resolved)); statErr != nil || !info.IsDir() {
 				r.addError("Target '%s': output parent directory not found: %s", tid, filepath.Dir(out.Path))
 			}
 		}
@@ -209,8 +226,10 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 				r.addError("%s: missing required field: id", prefix)
 			}
 			if item.Source != "" {
-				fullPath := config.ResolvePath(folioDir, item.Source)
-				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				fullPath, err := config.ResolvePath(folioDir, item.Source, reg)
+				if err != nil {
+					r.addError("Target '%s': %s", tid, err)
+				} else if _, statErr := os.Stat(fullPath); os.IsNotExist(statErr) {
 					r.addError("Target '%s': batch item source not found: %s", tid, item.Source)
 				}
 			}
@@ -234,8 +253,10 @@ func validateTarget(r *Result, f *config.Folio, tid string, target *config.Targe
 		if target.Forest.Root == "" {
 			r.addError("Target '%s': forest missing required field: root", tid)
 		} else {
-			rootPath := config.ResolvePath(folioDir, target.Forest.Root)
-			if info, err := os.Stat(rootPath); err != nil || !info.IsDir() {
+			rootPath, err := config.ResolvePath(folioDir, target.Forest.Root, reg)
+			if err != nil {
+				r.addError("Target '%s': %s", tid, err)
+			} else if info, statErr := os.Stat(rootPath); statErr != nil || !info.IsDir() {
 				r.addError("Target '%s': forest root directory not found: %s", tid, target.Forest.Root)
 			}
 		}

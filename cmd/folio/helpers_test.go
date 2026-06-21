@@ -23,6 +23,80 @@ func setupTestHome(t *testing.T, paths ...string) string {
 	return dir
 }
 
+func TestSplitStoreTarget(t *testing.T) {
+	cases := []struct {
+		in          string
+		store, proj string
+		ok          bool
+	}{
+		{"work:my-project", "work", "my-project", true},
+		{"vault:reference/x", "vault", "reference/x", true},
+		{"ben/foo", "", "", false},       // no colon — home shortname
+		{"reference/a:b", "", "", false}, // colon after slash — not a store ref
+		{"work:", "", "", false},         // empty project
+		{":foo", "", "", false},          // empty store
+	}
+	for _, c := range cases {
+		t.Run(c.in, func(t *testing.T) {
+			s, p, ok := splitStoreTarget(c.in)
+			if ok != c.ok || s != c.store || p != c.proj {
+				t.Errorf("splitStoreTarget(%q) = (%q,%q,%v), want (%q,%q,%v)", c.in, s, p, ok, c.store, c.proj, c.ok)
+			}
+		})
+	}
+}
+
+func TestResolveInStore(t *testing.T) {
+	root := t.TempDir()
+	mk := func(section, p string) {
+		full := filepath.Join(root, section, p, "folio.yml")
+		os.MkdirAll(filepath.Dir(full), 0755)
+		os.WriteFile(full, []byte("schema: 1\nproject: t\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
+	}
+	mk("active", "my-project")
+	mk("archive", "2026-01-01-old-thing")
+
+	got, err := resolveInStore(root, "work", "my-project")
+	if err != nil {
+		t.Fatalf("active match: %v", err)
+	}
+	if want := filepath.Join(root, "active", "my-project", "folio.yml"); got != want {
+		t.Errorf("active = %q, want %q", got, want)
+	}
+
+	got, err = resolveInStore(root, "work", "2026-01-01-old-thing")
+	if err != nil {
+		t.Fatalf("archive match: %v", err)
+	}
+	if want := filepath.Join(root, "archive", "2026-01-01-old-thing", "folio.yml"); got != want {
+		t.Errorf("archive = %q, want %q", got, want)
+	}
+
+	if _, err := resolveInStore(root, "work", "nope"); err == nil {
+		t.Error("expected error for unknown project")
+	}
+}
+
+// Same shortname in both active/ and archive/ must resolve to active (H2).
+func TestResolveInStoreActiveWinsCollision(t *testing.T) {
+	root := t.TempDir()
+	mk := func(section, p string) {
+		full := filepath.Join(root, section, p, "folio.yml")
+		os.MkdirAll(filepath.Dir(full), 0755)
+		os.WriteFile(full, []byte("schema: 1\nproject: t\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
+	}
+	mk("active", "dup")
+	mk("archive", "dup")
+
+	got, err := resolveInStore(root, "work", "dup")
+	if err != nil {
+		t.Fatalf("collision: %v", err)
+	}
+	if want := filepath.Join(root, "active", "dup", "folio.yml"); got != want {
+		t.Errorf("collision resolved to %q, want active %q", got, want)
+	}
+}
+
 func TestIsFilePath(t *testing.T) {
 	tests := []struct {
 		input string

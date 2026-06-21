@@ -26,6 +26,8 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
+**Multi-store**: `~/.folio` is the home of all folios + KBs. A global `~/.folio/stores.yml` can register a second (work) folio and external read-only KBs (ADR/RADR repos, wikis). `find` fans out across all of them (`folio stores list --json`); `--folio <store>:<project>` writes into any folio store. Absent `stores.yml`, everything behaves as a single home (back-compat). See references/schema.md → **stores.yml**.
+
 ## Lifecycle Model
 
 Folio tracks a knowledge lifecycle:
@@ -172,6 +174,7 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio stale` | List stale/missing/unknown targets |
 | `folio dag` | Show target dependency graph |
 | `folio health` | Project health report (types, naming, observations) |
+| `folio stores list [--json]` | List registered stores (multi-store registry); `find` fans out across these |
 
 **Composition** — create and manage artifacts:
 

@@ -14,11 +14,16 @@ func Target(folioDir string, target *config.Target) (int, error) {
 	now := time.Now()
 	touched := 0
 
+	reg, _ := config.LoadRegistry()
+
 	for _, out := range target.Outputs {
 		if out.Path == "" {
 			continue
 		}
-		fullPath := config.ResolvePath(folioDir, out.Path)
+		fullPath, err := config.ResolvePath(folioDir, out.Path, reg)
+		if err != nil {
+			return touched, fmt.Errorf("resolving %s: %w", out.Path, err)
+		}
 		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 			return touched, fmt.Errorf("output file not found: %s", out.Path)
 		}

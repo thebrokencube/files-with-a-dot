@@ -37,6 +37,8 @@ func main() {
 		os.Exit(runHealth(os.Args[2:]))
 	case "archive":
 		os.Exit(runArchive(os.Args[2:]))
+	case "stores":
+		os.Exit(runStores(os.Args[2:]))
 
 	// Top-level utility commands
 	case "setup":
@@ -132,6 +134,7 @@ Composition:
   archive      Move work track from active to archive
 
 Management:
+  stores       List registered stores (multi-store registry)
   home         FOLIO_HOME commands (list, push, pull, archive, activate, health)
   init         Bootstrap a new folio.yml
   setup        Check folio dependencies
