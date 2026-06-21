@@ -6,24 +6,52 @@ import (
 	"testing"
 )
 
-func TestLoadRegistryAbsentFileDefault(t *testing.T) {
+func TestLoadRegistryAbsentFileEmpty(t *testing.T) {
 	home := t.TempDir()
 	reg, err := LoadRegistryFrom(home)
 	if err != nil {
 		t.Fatalf("LoadRegistryFrom: %v", err)
 	}
-	if len(reg.Order) != 1 || reg.Order[0] != "vault" {
-		t.Fatalf("expected implicit [vault], got %v", reg.Order)
+	// No stores.yml ⇒ EMPTY registry. vault is NOT a registry store; it is
+	// resolved intrinsically (see TestResolvePathIntrinsicVault).
+	if len(reg.Order) != 0 {
+		t.Fatalf("expected empty registry, got order %v", reg.Order)
 	}
-	v, ok := reg.Lookup("vault")
-	if !ok {
-		t.Fatal("vault not found in default registry")
+	if _, ok := reg.Lookup("vault"); ok {
+		t.Error("vault must NOT be a registered store in the implicit default")
 	}
-	if want := filepath.Join(home, "vault"); v.Path != want {
-		t.Errorf("vault path = %q, want %q", v.Path, want)
+	if len(reg.FolioStores()) != 0 {
+		t.Error("empty registry should have no folio stores")
 	}
-	if v.Kind != KindFolio {
-		t.Errorf("vault kind = %q, want %q", v.Kind, KindFolio)
+}
+
+func TestResolvePathIntrinsicVault(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("FOLIO_HOME", homeDir)
+	reg, _ := LoadRegistryFrom(homeDir) // empty
+
+	// vault: resolves to <home>/vault even with no registered vault store.
+	got, err := ResolvePath("/proj", "vault:research/x.md", reg)
+	if err != nil {
+		t.Fatalf("intrinsic vault: %v", err)
+	}
+	if want := filepath.Join(homeDir, "vault", "research/x.md"); got != want {
+		t.Errorf("vault resolve = %q, want %q", got, want)
+	}
+
+	// A genuinely unknown store-shaped prefix still fails loud.
+	if _, err := ResolvePath("/proj", "bogus:foo.md", reg); err == nil {
+		t.Error("expected error for unknown prefix with a real (empty) registry")
+	}
+
+	// A registered store named vault overrides the intrinsic path.
+	override := &Registry{
+		Stores: map[string]Store{"vault": {Name: "vault", Path: "/custom/vault", Kind: KindFolio}},
+		Order:  []string{"vault"},
+	}
+	got, _ = ResolvePath("/proj", "vault:a.md", override)
+	if got != "/custom/vault/a.md" {
+		t.Errorf("registered vault override = %q, want /custom/vault/a.md", got)
 	}
 }
 

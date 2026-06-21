@@ -16,28 +16,41 @@ const vaultPrefix = "vault:"
 // anti-pattern — silent dangling refs); any other path (including one that
 // merely contains a colon) joins against folioDir, unchanged.
 //
-// A nil reg reproduces legacy behavior: only "vault:" is special-cased.
+// Resolution order for a "<store>:" reference:
+//  1. a registered store wins (join against its path);
+//  2. the reserved "vault:" prefix is intrinsic — the home's shared-reference
+//     subdir <home>/vault — NOT a store (it has no folio.yml/lifecycle and is
+//     never listed as a peer);
+//  3. any other store-shaped prefix fails loud (no silent dangling refs).
+//
+// A nil reg reproduces legacy behavior: only "vault:" resolves, everything else
+// falls through to folioDir.
 func ResolvePath(folioDir, path string, reg *Registry) (string, error) {
 	prefix, remainder, isRef := splitStorePrefix(path)
 	if !isRef {
 		return filepath.Join(folioDir, path), nil
 	}
 
-	if reg == nil {
-		// Back-compat: pre-registry behavior special-cased only vault:.
-		if prefix == "vault" {
-			if folioHome, err := home.Dir(); err == nil {
-				return filepath.Join(folioHome, "vault", remainder), nil
-			}
+	// 1. Registered store wins (lets a user override the intrinsic vault if they
+	//    ever register a real store named "vault").
+	if store, found := reg.Lookup(prefix); found {
+		return filepath.Join(store.Path, remainder), nil
+	}
+
+	// 2. Intrinsic vault: the home's shared-reference subdir, not a store.
+	if prefix == vaultName {
+		if folioHome, err := home.Dir(); err == nil {
+			return filepath.Join(folioHome, "vault", remainder), nil
 		}
 		return filepath.Join(folioDir, path), nil
 	}
 
-	store, found := reg.Lookup(prefix)
-	if !found {
-		return "", fmt.Errorf("unknown store prefix %q in %q — not registered in stores.yml", prefix, path)
+	// 3. Unknown store-shaped prefix. With a real registry, fail loud; with a
+	//    nil reg (legacy safety net), fall through unchanged.
+	if reg == nil {
+		return filepath.Join(folioDir, path), nil
 	}
-	return filepath.Join(store.Path, remainder), nil
+	return "", fmt.Errorf("unknown store prefix %q in %q — not registered in stores.yml", prefix, path)
 }
 
 // splitStorePrefix splits a "<store>:<remainder>" reference. A path is only a

@@ -21,6 +21,13 @@ const (
 
 const storesFile = "stores.yml"
 
+// vaultName is the reserved store name for the home's intrinsic shared-reference
+// subdir (<home>/vault). It is NOT a registry store — it has no folio.yml and no
+// active/archive lifecycle — so it is resolved intrinsically by ResolvePath and
+// never listed as a peer store. A user may still register a real store named
+// "vault" to override the intrinsic path.
+const vaultName = "vault"
+
 // Store is one entry in the global store registry (~/.folio/stores.yml).
 type Store struct {
 	Name string // map key, filled on load
@@ -88,15 +95,16 @@ func LoadRegistryFrom(homeDir string) (*Registry, error) {
 	return parseRegistry(data)
 }
 
-// defaultRegistry is the implicit registry used when no stores.yml exists: the
-// shared personal vault at <home>/vault. Its path is the vault subdir precisely
-// so the resolver needs no vault-specific branch.
+// defaultRegistry is the implicit registry used when no stores.yml exists. It is
+// EMPTY — there are no registered stores in a single-home setup. The `vault:`
+// prefix is not a store; it is resolved intrinsically to <home>/vault by
+// ResolvePath. (homeDir is unused now but kept for signature stability / future
+// container-mode defaults.)
 func defaultRegistry(homeDir string) *Registry {
+	_ = homeDir
 	return &Registry{
-		Stores: map[string]Store{
-			"vault": {Name: "vault", Path: filepath.Join(homeDir, "vault"), Kind: KindFolio},
-		},
-		Order: []string{"vault"},
+		Stores: map[string]Store{},
+		Order:  nil,
 	}
 }
 

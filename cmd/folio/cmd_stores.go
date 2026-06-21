@@ -68,6 +68,11 @@ func runStoresList(args []string) int {
 		return 0
 	}
 
+	if len(reg.Order) == 0 {
+		fmt.Println("No stores registered (single-home). `vault:` resolves intrinsically to <home>/vault.")
+		fmt.Println("Add stores by creating ~/.folio/stores.yml.")
+		return 0
+	}
 	for _, name := range reg.Order {
 		s := reg.Stores[name]
 		fmt.Printf("%-12s %-9s %s\n", s.Name, s.Kind, s.Path)
