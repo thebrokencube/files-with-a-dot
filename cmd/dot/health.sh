@@ -125,7 +125,17 @@ check_brew() {
         return
     fi
 
-    local deprecated_taps=("homebrew/bundle" "homebrew/core" "homebrew/cask")
+    # Official taps now built-in or merged into homebrew/cask. The cask-*
+    # taps were merged upstream, so untapping is safe even with installed
+    # casks (they resolve from the main cask) — hence --force below.
+    local deprecated_taps=(
+        "homebrew/bundle"
+        "homebrew/core"
+        "homebrew/cask"
+        "homebrew/cask-fonts"
+        "homebrew/cask-versions"
+        "homebrew/cask-drivers"
+    )
     local found_deprecated=()
 
     for tap in "${deprecated_taps[@]}"; do
@@ -137,7 +147,7 @@ check_brew() {
         if [[ "$AUTO_FIX" == true ]]; then
             for tap in "${found_deprecated[@]}"; do
                 info "Untapping $tap..."
-                brew untap "$tap" 2>/dev/null || true
+                brew untap --force "$tap" 2>/dev/null || true
             done
         fi
     else
