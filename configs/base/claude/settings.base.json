@@ -1,5 +1,6 @@
 {
   "effortLevel": "low",
+  "defaultMode": "acceptEdits",
   "model": "opus",
   "theme": "dark-ansi",
   "skipWorkflowUsageWarning": true,
