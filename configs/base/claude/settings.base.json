@@ -83,6 +83,9 @@
       "Bash(bundle*)",
       "Bash(bin/*)",
 
+      "Bash(mise ls *)",
+      "Bash(mise ls-remote *)",
+
       "Bash(cd *)",
       "Bash(gh *)",
       "Bash(acli *)",
@@ -107,6 +110,11 @@
       "mcp__playwright__browser_take_screenshot",
       "mcp__playwright__browser_press_key",
       "mcp__playwright__browser_snapshot"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(git push *)",
+      "Bash(jj git push *)"
     ]
   },
   "enabledPlugins": {
