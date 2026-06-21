@@ -267,6 +267,17 @@ check_claude() {
     else
         ok "Claude Code ($version) at $claude_path"
     fi
+
+    # Statusline (starship-claude) — silently no-ops if starship is missing.
+    if [[ -x "$HOME/.local/bin/starship-claude" ]]; then
+        if command -v starship &>/dev/null; then
+            ok "Statusline: starship-claude installed"
+        else
+            warn "Statusline: starship-claude present but starship is missing — statusline will not render"
+        fi
+    else
+        warn "Statusline: starship-claude not installed — run 'dot sync'"
+    fi
 }
 
 check_signing() {

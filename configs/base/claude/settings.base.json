@@ -3,6 +3,10 @@
   "model": "opus",
   "theme": "dark-ansi",
   "skipWorkflowUsageWarning": true,
+  "statusLine": {
+    "type": "command",
+    "command": "~/.local/bin/starship-claude"
+  },
   "mcpServers": {
     "playwright": {
       "command": "npx",

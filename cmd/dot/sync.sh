@@ -720,6 +720,45 @@ install_claude_code() {
 install_claude_code
 echo ""
 
+# Install/update the starship-claude statusline script (drives the Claude Code
+# statusLine; reads ~/.claude/starship.toml which is symlinked from dotfiles).
+# Pinned to a commit SHA (upstream ships no tags) — fetched from a mutable third
+# party, so we pin for reproducibility and record the ref to stay idempotent.
+STARSHIP_CLAUDE_REF="2029d40f084858103cc3062e307ca52a52e5d9f8"
+install_starship_claude() {
+    echo "Claude statusline (starship-claude):"
+
+    if ! command -v starship &>/dev/null; then
+        warn "starship not installed — skipping (install via Brewfile, then re-run dot sync)"
+        return 0
+    fi
+
+    local dest="$HOME/.local/bin/starship-claude"
+    local reffile="$HOME/.local/bin/.starship-claude.ref"
+
+    # Idempotent: skip the fetch when the pinned ref is already installed.
+    if [[ -x "$dest" && -f "$reffile" && "$(cat "$reffile" 2>/dev/null)" == "$STARSHIP_CLAUDE_REF" ]]; then
+        ok "starship-claude installed (pinned ${STARSHIP_CLAUDE_REF:0:7})"
+        return 0
+    fi
+
+    local url="https://raw.githubusercontent.com/martinemde/starship-claude/${STARSHIP_CLAUDE_REF}/plugin/bin/starship-claude"
+    local tmp
+    tmp="$(mktemp)"
+    if curl -fsSL "$url" -o "$tmp" 2>/dev/null; then
+        mkdir -p "$HOME/.local/bin"
+        mv "$tmp" "$dest"
+        chmod +x "$dest"
+        printf '%s\n' "$STARSHIP_CLAUDE_REF" > "$reffile"
+        ok "starship-claude installed (pinned ${STARSHIP_CLAUDE_REF:0:7})"
+    else
+        rm -f "$tmp"
+        warn "Could not fetch starship-claude — check network or the upstream URL"
+    fi
+}
+install_starship_claude
+echo ""
+
 echo "============================================"
 echo -e "  ${GREEN}Sync complete!${NC}"
 echo "============================================"

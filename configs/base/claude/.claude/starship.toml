@@ -1,0 +1,44 @@
+"$schema" = "https://starship.rs/config-schema.json"
+
+# Claude Code statusline - colors match the shell prompt (configs/base/starship)
+
+add_newline = false
+
+# directory + git + Claude model/context/cost
+format = """
+$directory \
+$git_branch$git_status \
+${env_var.CLAUDE_MODEL} \
+${env_var.CLAUDE_CONTEXT} \
+${env_var.CLAUDE_COST}\
+"""
+
+[directory]
+style = "bold cyan"
+format = "[$path]($style)"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "[$symbol$branch]($style)"
+
+[git_status]
+style = "bold purple"
+format = "[($all_status$ahead_behind)]($style)"
+
+[env_var.CLAUDE_MODEL]
+variable = "CLAUDE_MODEL"
+format = "[$env_value]($style)"
+style = "bold blue"
+
+[env_var.CLAUDE_CONTEXT]
+variable = "CLAUDE_CONTEXT"
+format = "[$env_value]($style)"
+style = "bold yellow"
+
+[env_var.CLAUDE_COST]
+variable = "CLAUDE_COST"
+format = "[$env_value]($style)"
+style = "bold green"
