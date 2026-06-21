@@ -15,13 +15,13 @@
       "name": "jf",
       "source": "./cmd/jf",
       "description": "Jira Forest CLI: manage Jira issues and epic hierarchies, push descriptions and titles, search with JQL, and enforce ticket conventions.",
-      "version": "0.0.1"
+      "version": "0.0.2"
     },
     {
       "name": "dendrik",
       "source": "./cmd/dendrik",
       "description": "Quality linter for agentic documentation and CLI tool conventions: reviews SKILL.md/CLAUDE.md/reference files and checks contract compliance.",
-      "version": "0.0.1"
+      "version": "0.0.2"
     }
   ]
 }
