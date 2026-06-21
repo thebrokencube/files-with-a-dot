@@ -79,6 +79,44 @@ check_tools() {
     fi
 }
 
+check_dendrik_tools() {
+    echo "Dendrik CLI tools:"
+
+    local tools=(folio jf dendrik)
+    for tool in "${tools[@]}"; do
+        local dest="$HOME/.local/bin/$tool"
+        local vfile="$DOTFILES_DIR/cmd/$tool/VERSION"
+        local want=""
+        [[ -f "$vfile" ]] && want="$(tr -d '[:space:]' < "$vfile")"
+
+        if [[ ! -e "$dest" ]]; then
+            if [[ -L "$dest" ]]; then
+                err "$tool: dangling symlink — run 'dot sync' to install from releases"
+            else
+                err "$tool: not installed (expected $dest) — run 'dot sync'"
+            fi
+            continue
+        fi
+        # Post-migration these are real downloaded binaries, not repo symlinks.
+        if [[ -L "$dest" ]]; then
+            warn "$tool: still a symlink ($(readlink "$dest")) — pre-migration layout; run 'dot sync'"
+            continue
+        fi
+
+        local have
+        have="$("$dest" --version 2>/dev/null | awk '{print $NF}')"
+        if [[ -z "$have" ]]; then
+            err "$tool: installed but '--version' failed"
+        elif [[ "$have" == "dev" ]]; then
+            warn "$tool: version 'dev' (unstamped local build, not a release)"
+        elif [[ -n "$want" && "$have" != "$want" ]]; then
+            warn "$tool: $have installed, repo VERSION is $want — run 'dot sync' to update"
+        else
+            ok "$tool $have (matches release)"
+        fi
+    done
+}
+
 check_brew() {
     echo "Homebrew health:"
 
@@ -362,6 +400,7 @@ echo ""
 if [[ -n "$SPECIFIC_CHECK" ]]; then
     case "$SPECIFIC_CHECK" in
         tools) check_tools ;;
+        dendrik-tools) check_dendrik_tools ;;
         brew) check_brew ;;
         local) check_local ;;
         nvim) check_nvim ;;
@@ -373,6 +412,8 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
     esac
 else
     check_tools
+    echo ""
+    check_dendrik_tools
     echo ""
     check_brew
     echo ""
