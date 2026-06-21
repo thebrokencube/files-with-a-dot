@@ -23,6 +23,13 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
+// resolveHomeOrFail resolves the content-plane root every `home` subcommand acts
+// on. home.Dir() is the umbrella (registry plane); the store registry then
+// redirects to the active folio store's root (cwd-in-store or default:). When
+// ActiveStore reports ok=false (no stores.yml, or implicit/no-default) the
+// umbrella IS the single-home folio, so we fall back to it byte-for-byte. This
+// guarantees home.Validate (run by callers on the returned dir) never targets a
+// bare umbrella — it always sees a real folio store.
 func resolveHomeOrFail() (string, int) {
 	pal := dendrik.NewPalette(true)
 	dir, err := home.Dir()
@@ -30,6 +37,22 @@ func resolveHomeOrFail() (string, int) {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return "", dendrik.ExitUserError
 	}
+
+	reg, err := config.LoadRegistryFrom(dir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return "", dendrik.ExitUserError
+	}
+	store, ok, err := config.ActiveStore(reg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return "", dendrik.ExitUserError
+	}
+	if ok {
+		dir = store.Path
+		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, dir, pal.Reset)
+	}
+
 	if strings.HasPrefix(filepath.Base(dir), "folio-ws-") {
 		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, dir, pal.Reset)
 	}
