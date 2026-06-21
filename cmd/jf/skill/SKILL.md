@@ -9,6 +9,11 @@ argument-hint: "[push|pull|sync|search|tree|status|clone|create-missing|...] [ar
 
 Standalone CLI and canonical Jira reference. Manages ticket hierarchies as local markdown forests, provides conventions for ticket structure, and holds configuration for project-specific field defaults via `~/.jf.yml`. Works at two levels: Level 0 (single-file push/pull) and Level 1 (forest-aware operations with `forest.yml`).
 
+## Setup
+
+`jf` needs its binary installed. Run this plugin's `bin/setup` once to install it (and again after a
+plugin update). It is idempotent — safe to re-run, and a no-op when the pinned version is already installed.
+
 ## Quick Reference
 
 | Command | What it does |

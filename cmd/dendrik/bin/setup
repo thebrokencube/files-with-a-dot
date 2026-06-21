@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# bin/setup — install/refresh this plugin's CLI tool. Idempotent + self-locating + self-contained.
+# Run the same way on every harness; safe to re-run.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # the plugin dir (this script's parent)
+TOOL="$(basename "$ROOT")"
+VFILE="$ROOT/VERSION"
+[[ -f "$VFILE" ]] || { echo "ERROR: ${VFILE} not found" >&2; exit 1; }
+VER="$(tr -d '[:space:]' < "$VFILE")"
+BINDIR="${HOME}/.local/bin"; DEST="${BINDIR}/${TOOL}"; REPO="thebrokencube/files-with-a-dot"
+
+# Idempotent: no-op when the pinned version is already installed.
+# (probe guarded so a missing binary under `set -e`/`pipefail` doesn't abort the first install)
+have=""
+if [[ -x "$DEST" ]]; then have="$("$DEST" --version 2>/dev/null | awk '{print $2}')" || true; fi
+if [[ "$have" == "$VER" ]]; then echo "==> ${TOOL} ${VER} already installed"; exit 0; fi
+
+case "$(uname -s)" in Darwin) OS=darwin ;; Linux) OS=linux ;; *) OS="" ;; esac
+case "$(uname -m)" in arm64|aarch64) ARCH=arm64 ;; x86_64|amd64) ARCH=amd64 ;; *) ARCH="" ;; esac
+if [[ -z "$OS" || -z "$ARCH" ]]; then
+  echo "ERROR: unsupported platform $(uname -s)/$(uname -m). Install manually: https://github.com/${REPO}/releases" >&2
+  exit 1
+fi
+
+URL="https://github.com/${REPO}/releases/download/${TOOL}/v${VER}/${TOOL}-${OS}-${ARCH}"
+TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
+echo "==> Installing ${TOOL} ${VER} (${OS}/${ARCH})..."
+mkdir -p "${BINDIR}"
+if curl -fsSL "${URL}" -o "${TMP}"; then
+  rm -f "${DEST}"; mv "${TMP}" "${DEST}"; chmod +x "${DEST}"
+  echo "==> ${TOOL} ${VER} installed at ${DEST}"
+  case ":${PATH}:" in *":${BINDIR}:"*) : ;; *) echo "NOTE: ${BINDIR} not on \$PATH — add it." >&2 ;; esac
+else
+  echo "ERROR: download failed: ${URL}" >&2
+  echo "  Install manually: curl -fsSL '${URL}' -o '${DEST}' && chmod +x '${DEST}'" >&2
+  exit 1
+fi

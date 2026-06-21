@@ -12,6 +12,11 @@ argument-hint: "[gather|plan|compose|publish|lint|find|observe|wrap-up|status|..
 
 Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
 
+## Setup
+
+`folio` needs its binary installed. Run this plugin's `bin/setup` once to install it (and again after a
+plugin update). It is idempotent — safe to re-run, and a no-op when the pinned version is already installed.
+
 **Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
 
 **Process narration**: Before starting any multi-step workflow or phase transition, state what you're about to do and why. Example: "Starting Phase 2 — spawning two propose agents with pragmatic and thorough lenses." This prevents ambiguity about which phase you're in and lets the user course-correct before work begins, not after.

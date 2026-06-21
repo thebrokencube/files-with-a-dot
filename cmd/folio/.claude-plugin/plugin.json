@@ -1,0 +1,8 @@
+{
+  "name": "folio",
+  "version": "0.0.3",
+  "description": "Lifecycle toolkit for knowledge work: folio.yml-driven source-to-target composition, diverge-converge planning, and work-track management.",
+  "author": {
+    "name": "thebrokencube"
+  }
+}

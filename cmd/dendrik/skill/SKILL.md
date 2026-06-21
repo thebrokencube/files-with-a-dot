@@ -9,6 +9,11 @@ argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id
 
 dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are built on. See docs/00-what-is-dendrik.md for what that means. This skill is dendrik's review + lint surface.
 
+## Setup
+
+`dendrik` needs its binary installed. Run this plugin's `bin/setup` once to install it (and again after a
+plugin update). It is idempotent — safe to re-run, and a no-op when the pinned version is already installed.
+
 ## Triage
 
 When invoked, determine which lens to use:
