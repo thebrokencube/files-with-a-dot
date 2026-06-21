@@ -346,6 +346,19 @@ func TestLintSkipsURLs(t *testing.T) {
 	}
 }
 
+func TestLintSkipsProseInParens(t *testing.T) {
+	dir := t.TempDir()
+	// Parentheticals that are prose, not path refs: one with whitespace, one a
+	// bare dotted filename. Neither should be flagged as a broken path.
+	items := []string{
+		"task(session-isolation): workspace shared jj repos (esp ~/.dotfiles); codify as a rule (dotfiles-awareness.md)",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for prose parentheticals, got %d: %v", len(issues), issues)
+	}
+}
+
 func TestLintSeePath(t *testing.T) {
 	dir := t.TempDir()
 	items := []string{

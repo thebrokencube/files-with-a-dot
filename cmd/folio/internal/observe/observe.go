@@ -248,8 +248,15 @@ func extractPaths(item string) []string {
 		if strings.Contains(candidate, "://") {
 			return
 		}
-		// Path-likeness: must contain / or .
-		if !strings.Contains(candidate, "/") && !strings.Contains(candidate, ".") {
+		// A path reference has no whitespace — reject prose the parenthetical
+		// matcher captures, e.g. "(esp ~/.dotfiles)".
+		if strings.ContainsAny(candidate, " \t") {
+			return
+		}
+		// Path-likeness: require a separator '/' or a store prefix ':'. A bare
+		// dotted word ("dotfiles-awareness.md", "e.g.", a date) is prose, not a
+		// project-relative ref — flagging it as a broken path is a false positive.
+		if !strings.Contains(candidate, "/") && !strings.Contains(candidate, ":") {
 			return
 		}
 		if !seen[candidate] {
