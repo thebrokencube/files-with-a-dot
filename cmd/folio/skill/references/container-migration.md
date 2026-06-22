@@ -136,18 +136,35 @@ After a confidence period, remove the safety copies:
 rm -rf ~/.folio.old-<stamp> ~/.folio.backup-<stamp>
 ```
 
-## Second machine (personal) — one-store container bootstrap
+## Second machine (personal) — one-store container
 
-No migration needed; bootstrap fresh. The personal machine is a **one-store
-container** (umbrella + `stores.yml` with only `folio-vault`) — it never clones
-the Gusto work repo.
+The personal machine is a **one-store container** (umbrella + `stores.yml` with
+only `folio-vault`). It never clones the Gusto work repo, and it must have **no**
+`~/.dotfiles.private/folio-stores.yml` — then `dot sync` builds `stores.yml` from
+the base half alone (`folio-vault` + `default: folio-vault`).
 
-```bash
-mkdir -p ~/.folio
-git clone git@github.com:thebrokencube/folio-vault.git ~/.folio/folio-vault
-( cd ~/.folio/folio-vault && jj git init --colocate )
-dot sync   # base-only stores.base.yml → ~/.folio/stores.yml (default: folio-vault)
-```
+**Binary first** (same rule): `git pull` + `dot sync` so folio ≥ 0.0.4 is on PATH
+*before* any `stores.yml` lands. Confirm `folio --version`.
+
+Then pick by the current state of that machine's `~/.folio`:
+
+- **Already a single-home folio repo** (origin = `folio-vault`): run the same
+  migration — the store name auto-derives from origin, so no flag needed:
+  ```bash
+  bash cmd/folio/scripts/migrate-container.sh --check     # → store: folio-vault
+  bash cmd/folio/scripts/migrate-container.sh --execute
+  ```
+- **Empty / absent**: bootstrap fresh instead of migrating:
+  ```bash
+  mkdir -p ~/.folio
+  git clone git@github.com:thebrokencube/folio-vault.git ~/.folio/folio-vault
+  ( cd ~/.folio/folio-vault && jj git init --colocate )
+  ```
+
+Either way, finish by replacing the bootstrap with the dotfile-managed registry
+(`dot sync` deploys the base-only `stores.yml`; if the bootstrap is flagged as
+drift, `rm ~/.folio/stores.yml` then re-`dot sync`), and re-create the session
+workspace: `folio home workspace create`.
 
 ## Rollback
 

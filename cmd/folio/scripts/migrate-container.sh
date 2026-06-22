@@ -2,12 +2,12 @@
 # migrate-container.sh — one-time migration of a single-home ~/.folio into the
 # multi-store CONTAINER model (see cmd/folio/skill/references/container-migration.md).
 #
-# Demotes the live colocated git+jj home (Gusto/thebrokencube-folio) to a store
-# nested under a plain umbrella directory:
+# Demotes the live colocated git+jj home to a store nested under a plain umbrella
+# directory. The store name derives from the origin repo name (--store overrides):
 #
 #   BEFORE: ~/.folio                    (colocated git+jj repo, single-home)
 #   AFTER:  ~/.folio/                   (plain umbrella dir — NOT a repo)
-#           └── thebrokencube-folio/    (fresh colocated clone = the work store)
+#           └── <store>/                (fresh colocated clone of origin)
 #           └── stores.yml              (registry; later dotfile-managed)
 #
 # STRATEGY: clone-beside, never move a .jj (jj workspaces store ABSOLUTE
@@ -25,17 +25,23 @@
 set -euo pipefail
 
 UMBRELLA="${FOLIO_HOME:-$HOME/.folio}"
-WORK_STORE="thebrokencube-folio"
 MODE="check"
+STORE="" # store (= nested dir) name; defaults to the origin repo name (Phase 0)
 STAMP="${MIGRATE_STAMP:-}" # caller may pin a timestamp; else derived below
 
+# Store (= nested dir) name and bootstrap `default:` derive from the origin repo
+# name (Phase 0). Override with --store <name> if the dir name must differ.
+prev=""
 for arg in "$@"; do
+  if [[ "$prev" == "--store" ]]; then STORE="$arg"; prev=""; continue; fi
   case "$arg" in
     --execute) MODE="execute" ;;
     --check)   MODE="check" ;;
-    *) echo "unknown arg: $arg (use --check | --execute)" >&2; exit 2 ;;
+    --store)   prev="--store" ;;
+    *) echo "unknown arg: $arg (use --check | --execute | --store <name>)" >&2; exit 2 ;;
   esac
 done
+[[ "$prev" == "--store" ]] && { echo "--store needs a value" >&2; exit 2; }
 
 # Date.now is fine in a shell script (unlike the workflow engine); derive a
 # timestamp for backup/old dir names unless the caller pinned one.
@@ -67,6 +73,10 @@ cd "$UMBRELLA"
 REMOTE="$(jj git remote list | awk '$1=="origin"{print $2}')"
 [[ -n "$REMOTE" ]] || die "no 'origin' remote on $UMBRELLA"
 say "origin: $REMOTE"
+# Derive the store (= nested dir) name from the origin repo name unless overridden.
+[[ -z "$STORE" ]] && STORE="$(basename "$REMOTE" .git)"
+[[ -n "$STORE" ]] || die "could not derive store name from remote $REMOTE — pass --store <name>"
+say "store: $STORE"
 
 # ── Phase 1: push gate — a fresh clone only captures what origin has ──────────
 step 1 "Push gate (abort on unpushed/dirty)"
@@ -107,22 +117,22 @@ for w in $WS; do
 done
 
 # ── Phase 4: clone-beside into staging umbrella ───────────────────────────────
-step 4 "Clone-beside → $STAGING/$WORK_STORE"
+step 4 "Clone-beside → $STAGING/$STORE"
 run mkdir -p "$STAGING"
-run git clone "$REMOTE" "$STAGING/$WORK_STORE"
+run git clone "$REMOTE" "$STAGING/$STORE"
 # Colocate jj so 'folio home workspace' works against the new store.
 if [[ "$MODE" == execute ]]; then
-  ( cd "$STAGING/$WORK_STORE" && jj git init --colocate >/dev/null )
+  ( cd "$STAGING/$STORE" && jj git init --colocate >/dev/null )
 else
-  say "(dry-run) cd $STAGING/$WORK_STORE && jj git init --colocate"
+  say "(dry-run) cd $STAGING/$STORE && jj git init --colocate"
 fi
 
 # ── Phase 5: verification gate (abort BEFORE the swap) ────────────────────────
 step 5 "Verify clone (gate before swap)"
 if [[ "$MODE" == execute ]]; then
-  [[ -d "$STAGING/$WORK_STORE/.git" && -d "$STAGING/$WORK_STORE/.jj" ]] || die "clone is not colocated git+jj — aborting before swap"
+  [[ -d "$STAGING/$STORE/.git" && -d "$STAGING/$STORE/.jj" ]] || die "clone is not colocated git+jj — aborting before swap"
   WANT="$(ls -1 "$UMBRELLA/active" 2>/dev/null | wc -l | tr -d ' ')"
-  GOT="$(ls -1 "$STAGING/$WORK_STORE/active" 2>/dev/null | wc -l | tr -d ' ')"
+  GOT="$(ls -1 "$STAGING/$STORE/active" 2>/dev/null | wc -l | tr -d ' ')"
   say "active project dirs: backup=$WANT clone=$GOT"
   [[ "$WANT" == "$GOT" ]] || die "active project count differs (backup=$WANT clone=$GOT) — origin may be behind; aborting before swap"
 else
@@ -142,13 +152,13 @@ step 7 "Bootstrap stores.yml"
 if [[ "$MODE" == execute ]]; then
   cat > "$UMBRELLA/stores.yml" <<EOF
 schema: 2
-default: $WORK_STORE
+default: $STORE
 stores:
-  $WORK_STORE: { path: ~/.folio/$WORK_STORE, kind: folio, remote: $REMOTE }
+  $STORE: { path: ~/.folio/$STORE, kind: folio, remote: $REMOTE }
 EOF
-  say "wrote $UMBRELLA/stores.yml (default: $WORK_STORE)"
+  say "wrote $UMBRELLA/stores.yml (default: $STORE)"
 else
-  say "(dry-run) would write $UMBRELLA/stores.yml (schema 2, default $WORK_STORE)"
+  say "(dry-run) would write $UMBRELLA/stores.yml (schema 2, default $STORE)"
 fi
 
 # ── Phase 8: smoke test ───────────────────────────────────────────────────────
@@ -167,7 +177,7 @@ cat <<EOF
 
 DONE (mode=$MODE).
   Umbrella : $UMBRELLA
-  Store    : $UMBRELLA/$WORK_STORE
+  Store    : $UMBRELLA/$STORE
   Backup   : $BACKUP
   Old repo : $OLD   (the pre-migration colocated repo)
 
