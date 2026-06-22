@@ -126,11 +126,15 @@ done
 step 4 "Clone-beside → $STAGING/$STORE"
 run mkdir -p "$STAGING"
 run git clone "$REMOTE" "$STAGING/$STORE"
-# Colocate jj so 'folio home workspace' works against the new store.
+# Colocate jj so 'folio home workspace' works against the new store, and make the
+# main bookmark track origin (a fresh clone's main is non-tracking under jj, which
+# otherwise breaks the first 'folio home push').
 if [[ "$MODE" == execute ]]; then
-  ( cd "$STAGING/$STORE" && jj git init --colocate >/dev/null )
+  ( cd "$STAGING/$STORE" \
+      && jj git init --colocate >/dev/null \
+      && jj bookmark track main --remote=origin >/dev/null 2>&1 || true )
 else
-  say "(dry-run) cd $STAGING/$STORE && jj git init --colocate"
+  say "(dry-run) cd $STAGING/$STORE && jj git init --colocate && jj bookmark track main --remote=origin"
 fi
 
 # ── Phase 5: verification gate (abort BEFORE the swap) ────────────────────────
