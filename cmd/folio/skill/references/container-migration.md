@@ -9,14 +9,14 @@ because it is one-time and destructive.
 BEFORE: ~/.folio                     (colocated git+jj repo, single-home)
 
 AFTER:  ~/.folio/                     (plain umbrella DIRECTORY — not a repo)
-        ├── thebrokencube-folio/      (fresh colocated clone = the work store, default)
+        ├── <work-store>/      (fresh colocated clone = the work store, default)
         ├── folio-vault/              (personal vault store — optional, additive)
         ├── adr/ radr/ ...            (external KB clones — optional, read-only)
         └── stores.yml                (registry; dotfile-managed)
 ```
 
 **Why clone-beside, not move:** jj workspaces store **absolute** back-pointers to
-the repo root. Moving the root (`mv ~/.folio ~/.folio/thebrokencube-folio`)
+the repo root. Moving the root (`mv ~/.folio ~/.folio/<work-store>`)
 corrupts all ~25 workspaces. A fresh `git clone` from origin is complete once all
 work is pushed; a `cp -a` backup + two-`mv` swap keep every step reversible.
 
@@ -28,7 +28,7 @@ the home and silently stops creating workspaces.
 
 ```bash
 folio --version          # must be >= 0.0.4
-# if not: bump cmd/folio/VERSION, dispatch release.yml -f tool=folio, then 'dot sync'
+# if not: bump cmd/folio/VERSION, dispatch release.yml -f tool=folio, then 'dot pull'
 ```
 
 ## Step 1 — dry-run, then execute against the live tree
@@ -48,7 +48,7 @@ What `--execute` does, in order:
 2. **Push gate** — abort unless `main == main@origin` and there are no unpushed non-empty changes (a fresh clone would lose them).
 3. **Backup** — `cp -a ~/.folio ~/.folio.backup-<stamp>`.
 4. **Forget workspaces** — `jj workspace forget` every workspace (incl. this session's).
-5. **Clone-beside** — clone origin into `~/.folio.new-<stamp>/thebrokencube-folio`, then `jj git init --colocate`.
+5. **Clone-beside** — clone origin into `~/.folio.new-<stamp>/<work-store>`, then `jj git init --colocate`.
 6. **Verification gate** — abort *before* the swap unless the clone is colocated and its active-project count matches the backup.
 7. **Swap** — two `mv`s: `~/.folio` → `~/.folio.old-<stamp>`, staging → `~/.folio`.
 8. **Bootstrap `stores.yml`** — minimal registry so folio works immediately.
@@ -74,12 +74,12 @@ stores:
 ```
 
 **Private overlay** (`~/.dotfiles.private/folio-stores.yml`) — work machine only;
-adds the Gusto stores and overrides the default:
+adds the work store(s) and overrides the default:
 
 ```yaml
-default: thebrokencube-folio
+default: <work-store>
 stores:
-  thebrokencube-folio: { path: ~/.folio/thebrokencube-folio, kind: folio, remote: git@github.com:Gusto/thebrokencube-folio.git }
+  <work-store>: { path: ~/.folio/<work-store>, kind: folio, remote: git@github.com:<org>/<work-folio>.git }
   adr:  { path: ~/.folio/adr,  kind: external, remote: <adr-remote> }      # fill in real remotes
   radr: { path: ~/.folio/radr, kind: external, remote: <radr-remote> }
   carrier-platform-llm-wiki: { path: ~/.folio/carrier-platform-llm-wiki, kind: external, remote: <llm-wiki-remote> }
@@ -125,7 +125,7 @@ folio home workspace create   # resolves the default store via the registry
 
 ```bash
 folio home list                         # lists projects in the default store
-folio home push thebrokencube-folio -m "test(folio): post-migration smoke"   # (or a real change)
+folio home push <work-store> -m "test(folio): post-migration smoke"   # (or a real change)
 folio home pull adr                     # external pull works
 # from inside ~/.folio/folio-vault/... a bare command acts on folio-vault (cwd override)
 ```
@@ -139,12 +139,12 @@ rm -rf ~/.folio.old-<stamp> ~/.folio.backup-<stamp>
 ## Second machine (personal) — one-store container
 
 The personal machine is a **one-store container** (umbrella + `stores.yml` with
-only `folio-vault`). It never clones the Gusto work repo, and it must have **no**
+only `folio-vault`). It never clones the work repo, and it must have **no**
 `~/.dotfiles.private/folio-stores.yml` — then `dot sync` builds `stores.yml` from
 the base half alone (`folio-vault` + `default: folio-vault`).
 
-**Binary first** (same rule): `git pull` + `dot sync` so folio ≥ 0.0.4 is on PATH.
-Confirm `folio --version`. That `dot sync` may also deploy `stores.yml` onto the
+**Binary first** (same rule): `dot pull` (fetch from origin + apply) so folio ≥
+0.0.4 is on PATH. Confirm `folio --version`. That `dot pull` may also deploy `stores.yml` onto the
 still-single-home `~/.folio` (folio then points at a not-yet-existing nested
 store) — harmless: the migration auto-removes that stray `stores.yml` and
 regenerates it post-swap.

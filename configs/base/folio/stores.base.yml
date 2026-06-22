@@ -1,7 +1,7 @@
 # Base half of the folio store registry (merged with ~/.dotfiles.private/folio-stores.yml
 # by `dot sync` → ~/.folio/stores.yml). Shared across machines and valid ON ITS OWN:
 # a machine with no private overlay is a one-store container (just the personal vault).
-# The work overlay is purely additive (adds Gusto stores + overrides `default`).
+# The work overlay is purely additive (adds the work store + overrides `default`).
 schema: 2
 default: folio-vault
 stores:
