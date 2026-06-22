@@ -65,9 +65,15 @@ say "folio version: $VER"
 case "$VER" in
   0.0.[0-3]) die "folio $VER is too old — release & 'dot sync' v0.0.4+ first (binary-first ordering)" ;;
 esac
-[[ -d "$UMBRELLA/.git" && -d "$UMBRELLA/.jj" ]] || die "$UMBRELLA is not a colocated git+jj repo (already migrated, or unexpected layout)"
-[[ -f "$UMBRELLA/stores.yml" ]] && die "$UMBRELLA/stores.yml already exists — looks already migrated"
+[[ -d "$UMBRELLA/.git" && -d "$UMBRELLA/.jj" ]] || die "$UMBRELLA is not a colocated git+jj single-home repo (already migrated, or unexpected layout)"
 [[ -e "$STAGING" || -e "$OLD" ]] && die "stale $STAGING or $OLD exists — clean up a prior aborted run first"
+# A stores.yml on a STILL-colocated home means an eager 'dot sync' deployed the
+# managed registry before migration (folio then points at a not-yet-existing
+# nested store). It is regenerable, so remove the stray copy and proceed.
+if [[ -f "$UMBRELLA/stores.yml" ]]; then
+  say "stray stores.yml on an un-migrated home (deployed by 'dot sync' pre-migration) — removing (regenerable)"
+  run rm -f "$UMBRELLA/stores.yml"
+fi
 
 cd "$UMBRELLA"
 REMOTE="$(jj git remote list | awk '$1=="origin"{print $2}')"

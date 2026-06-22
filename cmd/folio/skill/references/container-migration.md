@@ -143,8 +143,11 @@ only `folio-vault`). It never clones the Gusto work repo, and it must have **no*
 `~/.dotfiles.private/folio-stores.yml` — then `dot sync` builds `stores.yml` from
 the base half alone (`folio-vault` + `default: folio-vault`).
 
-**Binary first** (same rule): `git pull` + `dot sync` so folio ≥ 0.0.4 is on PATH
-*before* any `stores.yml` lands. Confirm `folio --version`.
+**Binary first** (same rule): `git pull` + `dot sync` so folio ≥ 0.0.4 is on PATH.
+Confirm `folio --version`. That `dot sync` may also deploy `stores.yml` onto the
+still-single-home `~/.folio` (folio then points at a not-yet-existing nested
+store) — harmless: the migration auto-removes that stray `stores.yml` and
+regenerates it post-swap.
 
 Then pick by the current state of that machine's `~/.folio`:
 
