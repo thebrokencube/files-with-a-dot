@@ -50,14 +50,15 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             echo "Usage: ./sync.sh [OPTIONS]"
             echo ""
-            echo "Synchronize dotfiles to current machine state."
-            echo "Automatically detects first-time setup vs. update mode."
+            echo "Reconcile the machine to the LOCAL dotfiles repo (symlinks, managed"
+            echo "files, CLI tools). Local-only by default — does NOT contact origin."
+            echo "Use --pull (or 'dot pull') to fetch from origin first."
             echo ""
             echo "Options:"
             echo "  --dry-run            Preview changes without applying"
-            echo "  --pull               Force git pull before sync"
+            echo "  --pull               Fetch + rebase from origin before applying"
             echo "  --skip-brew          Skip Homebrew package operations"
-            echo "  --skip-pull          Skip git pull"
+            echo "  --skip-pull          Hard override: never pull (even with --pull)"
             echo "  --links-only         Only re-create symlinks (implies --skip-brew --skip-pull)"
             echo "  --no-backup          Skip backing up existing files"
             echo "  --force              Auto-confirm all prompts"
@@ -149,9 +150,10 @@ analyze_state() {
         exit 1
     }
 
-    # Check git/jj status
+    # Check git/jj status. Only when pulling (--pull) — plain sync is local-only and
+    # must not contact origin (the fetch below would).
     [[ "${DEBUG:-}" == "1" ]] && echo "  Checking git status..."
-    if [[ "$SKIP_PULL" == false ]]; then
+    if [[ "$FORCE_PULL" == true ]]; then
         if [[ -d "$DOTFILES_DIR/.jj" ]]; then
             # jj repo: check if working copy (@) has uncommitted changes
             local jj_wc
@@ -334,11 +336,16 @@ report_state() {
 # Git Operations
 # ============================================================================
 
+# Pulling from origin is OPT-IN: only `dot pull` (--pull) contacts the remote.
+# Plain `dot sync` reconciles the machine to the LOCAL repo and never touches
+# origin — so you can sync without syncing-with-origin (e.g. apply local edits, or
+# a deliberately-behind checkout, without fetching). --skip-pull is a hard override.
 handle_git_pull() {
     local is_first_time="$1"
 
-    [[ "$SKIP_PULL" == true ]] && return 0
     [[ "$is_first_time" == true ]] && return 0
+    [[ "$SKIP_PULL" == true ]] && return 0
+    [[ "$FORCE_PULL" != true ]] && return 0
 
     # jj-managed repos: HEAD is detached, git pull doesn't work
     if [[ -d "$DOTFILES_DIR/.jj" ]]; then
@@ -353,20 +360,9 @@ handle_git_pull() {
         return 0
     fi
 
-    if [[ "$FORCE_PULL" == true ]]; then
-        echo "Pulling latest dotfiles..."
-        git pull --rebase
-        echo ""
-        return 0
-    fi
-
-    # Auto-pull only if behind
-    local behind=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo "0")
-    if [[ "$behind" -gt 0 ]]; then
-        echo "Pulling latest dotfiles..."
-        git pull --rebase
-        echo ""
-    fi
+    echo "Pulling latest dotfiles..."
+    git pull --rebase
+    echo ""
 }
 
 # ============================================================================

@@ -34,8 +34,8 @@ ${BOLD}Usage:${NC}
   dot <command> [options]
 
 ${BOLD}Commands:${NC}
-  sync      Sync dotfiles and run cleanup
-  pull      Pull latest, sync, and cleanup
+  sync      Apply local dotfiles to this machine + cleanup (no origin fetch)
+  pull      Fetch from origin first, then sync + cleanup
   links     Symlinks only (no brew, no pull)
   health    Run health diagnostics
   fix       Health check with auto-fix
