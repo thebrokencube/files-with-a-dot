@@ -57,50 +57,36 @@ What `--execute` does, in order:
 If the push gate fails: `folio home push` from each workspace that has unpushed
 work, then retry. The backup also captures anything uncommitted as a safety net.
 
-## Step 2 — make `stores.yml` dotfile-managed (reproducible)
+## Step 2 — move `stores.yml` to the private repo (reproducible)
 
-The script writes a **bootstrap** `stores.yml`. Replace it with the
-dotfile-managed one so it is reproducible and survives `dot sync`. `dot` merges
-the base + private overlay as YAML (`yq`: maps deep-merge, scalars overlay-win).
+The script writes a **bootstrap** `stores.yml`. Replace it with a **private,
+per-machine** registry. Folio config never lives in the public dotfiles — each
+machine's private repo holds its own full registry, symlinked into `~/.folio`
+(the same way `jf.yml` → `~/.jf.yml`).
 
-**Base** (`~/.dotfiles/configs/base/folio/stores.base.yml`) — shared; valid on its
-own (a personal one-store container, no work store):
-
-```yaml
-schema: 2
-default: folio-vault
-stores:
-  folio-vault: { path: ~/.folio/folio-vault, kind: folio, remote: git@github.com:thebrokencube/folio-vault.git }
-```
-
-**Private overlay** (`~/.dotfiles.private/folio-stores.yml`) — work machine only;
-adds the work store(s) and overrides the default:
+Write the full registry to `~/.dotfiles.private/folio-stores.yml`:
 
 ```yaml
 default: <work-store>
 stores:
-  <work-store>: { path: ~/.folio/<work-store>, kind: folio, remote: git@github.com:<org>/<work-folio>.git }
-  adr:  { path: ~/.folio/adr,  kind: external, remote: <adr-remote> }      # fill in real remotes
-  radr: { path: ~/.folio/radr, kind: external, remote: <radr-remote> }
-  carrier-platform-llm-wiki: { path: ~/.folio/carrier-platform-llm-wiki, kind: external, remote: <llm-wiki-remote> }
+  <work-store>:  { path: ~/.folio/<work-store>,  kind: folio,    remote: git@github.com:<org>/<work-folio>.git }
+  folio-vault:   { path: ~/.folio/folio-vault,    kind: folio,    remote: git@github.com:<you>/folio-vault.git }   # if you want it here
+  adr:           { path: ~/.folio/adr,            kind: external, remote: <adr-remote> }                            # fill in real remotes
+  radr:          { path: ~/.folio/radr,           kind: external, remote: <radr-remote> }
 ```
 
-**Register** in `~/.dotfiles/managed_map.txt`:
+Symlink it in `~/.dotfiles.private/symlink_map.txt`:
 
 ```
-configs/base/folio/stores.base.yml+folio-stores.yml:$HOME/.folio/stores.yml
+folio-stores.yml:$HOME/.folio/stores.yml
 ```
 
-Then preview + apply (separate dotfiles commits per repo, conventional commits):
+Then apply — `~/.folio/stores.yml` becomes a symlink to the private file:
 
 ```bash
-cd ~/.dotfiles && dot sync --dry-run   # confirm the merged stores.yml round-trips
-dot validate                           # pre-existing warnings in unrelated files are expected
-dot sync                               # deploys ~/.folio/stores.yml (supersedes bootstrap)
+rm ~/.folio/stores.yml      # remove the script's bootstrap file first
+cd ~/.dotfiles && dot sync   # private symlink_map links stores.yml into place
 ```
-
-Decoupling check: a machine with **base only** (no private overlay) must still
-produce a valid `stores.yml` (just `folio-vault` + `default: folio-vault`).
 
 ## Step 3 — (optional) clone vault + external KBs as siblings
 
@@ -139,9 +125,10 @@ rm -rf ~/.folio.old-<stamp> ~/.folio.backup-<stamp>
 ## Second machine (personal) — one-store container
 
 The personal machine is a **one-store container** (umbrella + `stores.yml` with
-only `folio-vault`). It never clones the work repo, and it must have **no**
-`~/.dotfiles.private/folio-stores.yml` — then `dot sync` builds `stores.yml` from
-the base half alone (`folio-vault` + `default: folio-vault`).
+only `folio-vault`). It never clones the work repo. Its registry is its own
+private `folio-stores.yml` (a single `folio-vault` store + `default: folio-vault`),
+symlinked the same way — there is no shared base, so each machine's private repo
+is fully independent.
 
 **Binary first** (same rule): `dot pull` (fetch from origin + apply) so folio ≥
 0.0.4 is on PATH. Confirm `folio --version`. That `dot pull` may also deploy `stores.yml` onto the
@@ -164,9 +151,10 @@ Then pick by the current state of that machine's `~/.folio`:
   ( cd ~/.folio/folio-vault && jj git init --colocate )
   ```
 
-Either way, finish by replacing the bootstrap with the dotfile-managed registry
-(`dot sync` deploys the base-only `stores.yml`; if the bootstrap is flagged as
-drift, `rm ~/.folio/stores.yml` then re-`dot sync`), and re-create the session
+Either way, finish by replacing the bootstrap with the private registry: write
+`~/.dotfiles.private/folio-stores.yml` (just `folio-vault` + `default: folio-vault`),
+add `folio-stores.yml:$HOME/.folio/stores.yml` to that repo's `symlink_map.txt`,
+then `rm ~/.folio/stores.yml && dot sync` to symlink it. Re-create the session
 workspace: `folio home workspace create`.
 
 ## Rollback

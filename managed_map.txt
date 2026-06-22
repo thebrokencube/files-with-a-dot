@@ -8,4 +8,3 @@ configs/base/claude/settings.base.json+claude-settings.json:$HOME/.claude/settin
 configs/base/claude/known_marketplaces.base.json+claude-plugins-marketplaces.json:$HOME/.claude/plugins/known_marketplaces.json
 configs/base/claude/installed_plugins.base.json+claude-plugins-installed.json:$HOME/.claude/plugins/installed_plugins.json
 configs/base/jj/.config/jj/config.toml+jj/config.toml:$HOME/.config/jj/config.toml
-configs/base/folio/stores.base.yml+folio-stores.yml:$HOME/.folio/stores.yml

@@ -28,7 +28,7 @@ stores:
 
 **`vault` is folio-LOCAL, never a registered store.** A folio store MAY have its own `vault/` subdir; `vault:` resolves relative to the **active store's** `vault/` (e.g. from inside `<work-store>`, `vault:` → `~/.folio/<work-store>/vault`). There is no global vault and no `vault` registry entry.
 
-**`stores.yml` is dotfile-managed**, not hand-written: it is the base+private merge target `configs/base/folio/stores.base.yml` (personal `folio-vault` + `default: folio-vault`) merged with `~/.dotfiles.private/folio-stores.yml` (the work store + a `default` override) → `~/.folio/stores.yml` via `dot sync`. Base alone is valid (a personal one-store container), so the work overlay is purely additive.
+**`stores.yml` is private + per-machine**, never in the public dotfiles: each machine's private repo holds its own full registry at `~/.dotfiles.private/folio-stores.yml`, symlinked to `~/.folio/stores.yml` via the private `symlink_map.txt` (the same mechanism as `jf.yml` → `~/.jf.yml`). `dot sync` (or `dot pull`) creates the symlink. There is no shared base — registries are fully independent across machines.
 
 **Absent `stores.yml` ⇒ implicit empty registry** — legacy single-home behavior, byte-for-byte unchanged. This is the transitional bridge for an un-migrated machine; see `references/container-migration.md` to migrate.
 
