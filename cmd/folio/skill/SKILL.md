@@ -31,7 +31,7 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
-**Multi-store**: `~/.folio` is the home of all folios + KBs. A global `~/.folio/stores.yml` can register a second (work) folio and external read-only KBs (ADR/RADR repos, wikis). `find` fans out across all of them (`folio stores list --json`); `--folio <store>:<project>` writes into any folio store. Absent `stores.yml`, everything behaves as a single home (back-compat). See references/schema.md → **stores.yml**.
+**Multi-store (container)**: `~/.folio` is a plain **umbrella directory** that physically contains each store as an independent git repo nested as a sibling (dir-named by its remote). A `~/.folio/stores.yml` (dotfile-managed) registers every store plus the `default:` — the store acted on from the umbrella when no `--folio` is given and cwd is outside any store (cwd-in-store always overrides). `find` fans out across all stores (`folio stores list --json`); `--folio <store>:<project>` writes into any folio store; `folio home push/pull [<store>]` sync per-store (external stores pull-only, never pushed). Absent `stores.yml`, everything behaves as a single home (transitional back-compat). See references/schema.md → **stores.yml** and references/container-migration.md to migrate.
 
 ## Lifecycle Model
 
@@ -47,7 +47,7 @@ observation -> spike -> design -> plan[tracks] -> implementation -> retro
 **References** (labels: research, insight, guide, domain, review) feed in at any stage.
 **Outputs** are composed artifacts for external systems.
 
-**Two-tier residency**: Lifecycle types always stay project-scoped. References that prove cross-cutting promote to `~/.folio/vault/<label>/` — a shared knowledge layer outside any project. Source paths use the `vault:` prefix (e.g., `vault:research/2026-03-01-comparable-dvc.md`) which resolves to `~/.folio/vault/`. The vault has no folio.yml — its directory structure is its index.
+**Two-tier residency**: Lifecycle types always stay project-scoped. References that prove cross-cutting promote to the active store's `vault/<label>/` — a shared knowledge layer outside any project, **folio-local to that store** (never a global/registered store). Source paths use the `vault:` prefix (e.g., `vault:research/2026-03-01-comparable-dvc.md`) which resolves relative to the active store's `vault/` (in single-home mode, `~/.folio/vault/`). The vault has no folio.yml — its directory structure is its index.
 
 `folio status` shows a lifecycle summary header with counts per stage.
 
@@ -364,3 +364,4 @@ is how provenance chains break.
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
 - **references/burndown.md** — Burndown execution: wave-based batch work with ratchet, checkpoints, and flywheel learning
 - **references/migrate.md** — Migration guide: moving lifecycle artifacts from reference/ to work/, classification framework, cluster moves, per-artifact checklist
+- **references/container-migration.md** — Container migration runbook: demote single-home `~/.folio` into the multi-store umbrella (clone-beside, push gate, two-mv swap, dotfile-managed stores.yml, second-machine bootstrap, rollback). Paired with `cmd/folio/scripts/migrate-container.sh`

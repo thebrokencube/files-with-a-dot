@@ -6,24 +6,31 @@ Shared across workflows. Contains YAML structure reference for Claude. Go code o
 
 All paths relative to the directory containing folio.yml, unless prefixed with a registered `<store>:` name.
 
-The `vault:` prefix resolves to `~/.folio/vault/` — a shared knowledge layer outside any project. Use for cross-cutting references that multiple projects source from. `vault` is simply the implicitly-registered store (see **stores.yml** below); any other registered store can be referenced the same way.
+The `vault:` prefix resolves to the **active store's** `vault/` — a shared knowledge layer outside any project, folio-local to that store (in single-home mode, `~/.folio/vault/`). Use for cross-cutting references that multiple projects source from. `vault` is **not** a registered store; it is intrinsic to whichever folio store contains the current project (see **stores.yml** below). A registered `<store>:` name is referenced the same way.
 
-## stores.yml — the store registry (multi-store)
+## stores.yml — the store registry (multi-store container)
 
-`~/.folio` is the home of all folios + KBs. A global `~/.folio/stores.yml` indexes every folio and external KB you work across. It is a **logical index** — registered stores stay in their own repos; nothing physically moves.
+`~/.folio` is a plain **umbrella directory** (NOT a repo) that physically **contains** each store as an independent git repo nested as a sibling, dir-named by its remote repo name. A `~/.folio/stores.yml` registers every store plus the **default**.
 
 ```yaml
-schema: 1
+schema: 2                              # container model: default + nested stores
+default: thebrokencube-folio           # acted on when invoked from the umbrella with no --folio
 stores:
-  vault: { path: ~/.folio/vault,              kind: folio }     # the shared personal vault (implicit if file absent)
-  work:  { path: ~/work-folio,                kind: folio }     # a second folio home
-  radr:  { path: ~/workspace/guideline/radrs, kind: external }  # an external KB (read-only), NOT a folio
+  thebrokencube-folio: { path: ~/.folio/thebrokencube-folio, kind: folio,    remote: git@github.com:Gusto/thebrokencube-folio.git }
+  folio-vault:         { path: ~/.folio/folio-vault,         kind: folio,    remote: git@github.com:thebrokencube/folio-vault.git }
+  adr:                 { path: ~/.folio/adr,                 kind: external, remote: <adr-remote> }
 ```
 
-- **`kind: folio`** — a full folio home: listed, structure-aware in `find`, writable (`--folio <store>:<project>`), validated.
-- **`kind: external`** — a non-folio KB you read from (ADRs, RADRs, wikis, docs): content-grep in `find`, **read-only**, never scanned for folio structure; a missing target **warns**, never errors. ADR/RADR are not special types — they are just `external` stores.
+- **`default:`** — the store folio acts on when invoked from the umbrella with no `--folio` and no `folio.yml` in cwd. **cwd inside a registered store always overrides the default.**
+- **`kind: folio`** — a full folio home: listed, structure-aware in `find`, writable (`--folio <store>:<project>`), validated. `folio home push/pull <store>` sync it to its own remote.
+- **`kind: external`** — a non-folio KB you read from (ADRs, RADRs, wikis, docs): content-grep in `find`, **read-only**, never scanned for folio structure; a missing target **warns**, never errors. **External stores are pullable (`folio home pull <store>`) but NEVER pushed** — contributions go through that repo's own PR flow.
+- **`remote:`** — informational (the store's own repo handles its remote); records where each store clones from for the migration runbook.
 
-**Absent `stores.yml` ⇒ implicit `{vault: {<home>/vault, folio}}`** — single-home behavior, byte-for-byte unchanged.
+**`vault` is folio-LOCAL, never a registered store.** A folio store MAY have its own `vault/` subdir; `vault:` resolves relative to the **active store's** `vault/` (e.g. from inside `thebrokencube-folio`, `vault:` → `~/.folio/thebrokencube-folio/vault`). There is no global vault and no `vault` registry entry.
+
+**`stores.yml` is dotfile-managed**, not hand-written: it is the base+private merge target `configs/base/folio/stores.base.yml` (personal `folio-vault` + `default: folio-vault`) merged with `~/.dotfiles.private/folio-stores.yml` (work Gusto stores + `default: thebrokencube-folio` override) → `~/.folio/stores.yml` via `dot sync`. Base alone is valid (a personal one-store container), so the work overlay is purely additive.
+
+**Absent `stores.yml` ⇒ implicit empty registry** — legacy single-home behavior, byte-for-byte unchanged. This is the transitional bridge for an un-migrated machine; see `references/container-migration.md` to migrate.
 
 **`<store>:` references**: `<store>:<path-within-store>`. A registered prefix resolves against that store's root; an unknown store-shaped prefix (`bogus:foo.md`) fails loud; a path that merely contains a colon (`a/b:c.md`) resolves normally. List the registry with `folio stores list [--json]`.
 
