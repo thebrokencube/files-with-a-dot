@@ -5,18 +5,30 @@ Owned by dendrik so every tool (and any tool later extracted to its own repo) re
 same way. The build logic is provided by `dendrik build`; the GitHub orchestration is a thin
 workflow shim.
 
-## Version: single source of truth
+## Two versions: binary and plugin
 
-Each tool's version is the trimmed contents of `cmd/<tool>/VERSION` (semver, e.g. `0.6.0`).
-Nothing else stores the version: `main.go` declares `var version = "dev"`, overridden at build
-time via `-ldflags -X main.version=<VERSION>`. To release a new version, **bump the VERSION
-file first** (a normal commit). When a tool gains a `plugin.json` (marketplace distribution),
-`plugin.json.version` becomes the source and `VERSION` mirrors it; `marketplace.json` mirrors
-`plugin.json` (name/description/version/keywords synced from it) and must never carry an
-*independent* version — a stale, unsynced value blocks plugin auto-updates. (Reference sync:
-guideline-plugin-marketplace's `scripts/bump-changed-plugin-versions.sh`.) How that plugin is
-packaged and published across harnesses (the `plugins.json` registry, generated manifests, the
-CLI-backed binary-install path): see `distribution.md`.
+A CLI-backed plugin tool has **two independent version surfaces**. Conflating them is the
+classic failure (a binary that ships but never reaches users, or a stale catalog), so they are
+kept distinct, each canonical for its own surface:
+
+| File | Is the… | Drives | Bump when |
+|---|---|---|---|
+| `cmd/<tool>/VERSION` | **binary version** | `dendrik build` (`-ldflags -X main.version`), the `release.yml` tag, and `bin/setup`'s download | the binary changes |
+| `<plugin>/.claude-plugin/plugin.json` `.version` | **plugin version** | the Claude plugin auto-update, and the generated `marketplace.json` catalog versions | *any* bundle content changes (skill, setup, manifests, **or** a binary bump) |
+
+`main.go` declares `var version = "dev"`, overridden at build time from `VERSION`. `plugin.json`
+is hand-authored (incl. `version`); catalogs are generated from it — never carry an *independent*
+catalog version (a stale one blocks auto-updates).
+
+**The coupling rule:** a **binary** bump (`VERSION`) MUST be accompanied by a **plugin** bump
+(`plugin.json.version`). Plugin auto-update fires on a `plugin.json.version` *change*, and that
+update is what re-runs `bin/setup` to fetch the new binary — so a binary bump without a plugin
+bump never reaches users. The reverse is free: a skill-only change bumps `plugin.json.version`
+alone (no binary release). Enforced by `scripts/check-version-coupling` in CI; catalog↔plugin
+consistency is enforced by the `version-consistency` CI job (regenerate + `git diff`). (A common
+marketplace pattern auto-bumps changed plugins' versions at merge — a future automation option.)
+How the plugin is packaged/published across harnesses (the `plugins.json` registry, generated
+manifests, the CLI-backed binary-install path): see `distribution.md`.
 
 semver is a compatibility contract, not just an identifier: MAJOR = breaking, MINOR = additive,
 PATCH = fix. Honor it once anything depends on a tool.
@@ -51,12 +63,20 @@ every other tool is built via `dendrik build`.
 
 ## Flow
 
-1. Bump `cmd/<tool>/VERSION`; commit; push.
+**Skill / plugin-content change only (no binary change):**
+1. Bump `<plugin>/.claude-plugin/plugin.json` `.version`; run `scripts/marketplace-generate` to
+   refresh catalogs; commit + push. No binary release — the marketplace serves the new content
+   from the repo and auto-update reaches users; `bin/setup` finds the binary `VERSION` unchanged
+   and no-ops.
+
+**Binary change (new binary to ship):**
+1. Bump `cmd/<tool>/VERSION` **and** `plugin.json.version` (the coupling rule), run
+   `scripts/marketplace-generate`, commit + push.
 2. `gh workflow run release.yml -f tool=<tool>` (or the Actions UI button).
 3. The workflow: bootstrap-builds dendrik → `dendrik build cmd/<tool> --matrix` → guards
    immutability → `gh release create tool/vX.Y.Z dist/* --generate-notes`.
-4. Consumers read the same version: `dot sync` downloads the release asset for the host
-   platform; the marketplace references the version via `plugin.json`.
+4. Consumers converge: the bumped plugin version triggers auto-update → `bin/setup` downloads the
+   new binary for `VERSION`; `dot sync` likewise pulls the release asset for the host platform.
 
 ## Related contract checks
 

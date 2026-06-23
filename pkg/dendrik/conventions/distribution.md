@@ -68,21 +68,31 @@ dendrik tool ships its skill in the plugin and installs its binary through a set
 step **uniform across harnesses** — don't special-case one.
 
 - **Plugins do not carry binaries.** The binary is fetched from the tool's GitHub release, pinned to
-  the plugin's released version. Version contract: `release.md`.
+  the tool's **binary version** (`cmd/<tool>/VERSION`) — distinct from the **plugin version**
+  (`plugin.json.version`). The two are independent surfaces; see `release.md` for the contract and
+  the coupling rule between them.
 - **One idempotent `bin/setup`.** It is self-locating (finds its own plugin dir, reads the bundled
-  `VERSION`), self-contained (the plugin cache sandbox forbids sibling access), and safe to re-run —
-  it installs the pinned binary only when it's missing or the version mismatches. This is the single
-  "get the tool ready" entrypoint, not one of several install paths.
+  `VERSION` — the binary version), self-contained (the plugin cache sandbox forbids sibling access),
+  and safe to re-run — it installs the binary only when it's missing or the version mismatches. This
+  is the single "get the tool ready" entrypoint, not one of several install paths.
 - **Run it the same way everywhere.** The skill instructs running `bin/setup` harness-neutrally — no
-  per-harness env vars, no harness-specific preflight. New versions arrive through the harness's
-  plugin update (a new `VERSION`), which the next `bin/setup` reconciles.
+  per-harness env vars, no harness-specific preflight. A new binary reaches users when a plugin
+  update (a bumped `plugin.json.version`) re-runs `bin/setup`, which reconciles to the binary
+  `VERSION`. That is why a binary bump must carry a plugin bump (the coupling rule in `release.md`).
 
 ## Enforcement
 
-This convention is guidance, not a `dendrik lint` contract yet. No check validates the
-`plugins.json`-to-manifest relationship or the `_generated` header today; that validate step lives
-in the consuming repo's own tooling. A dendrik-side manifest-sync check is possible later but isn't
-built. The AGENTS.md baseline is handled by the `/dendrik` review framework, not the lint contract.
+Two version invariants are enforced in CI (see `release.md`):
+- **Catalog ↔ plugin**: the `version-consistency` job re-runs `scripts/marketplace-generate` and
+  asserts `git diff --exit-code`, so every catalog version matches its `plugin.json.version`.
+- **Binary ↔ plugin coupling**: `scripts/check-version-coupling` fails a change that bumps a
+  tool's binary `VERSION` without bumping its `plugin.json.version` (else the new binary never
+  reaches users).
+
+The broader `plugins.json`-to-manifest relationship and the `_generated` header are otherwise
+guidance enforced by the consuming repo's tooling; a dendrik-side per-tool contract check is
+possible later (the platform-extraction case) but isn't built. The AGENTS.md baseline is handled
+by the `/dendrik` review framework, not the lint contract.
 
 ## Related conventions
 
