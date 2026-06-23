@@ -32,3 +32,28 @@ jobs:
           go build -o /dev/null .   # compile check; no artifact, never clobbers the committed binary
       - name: working tree clean (gofmt)
         run: git diff --exit-code
+
+  version-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # coupling check compares against the base ref
+      # Plugin surface: catalogs are generated from each plugin.json.version. Regenerate and
+      # assert no drift — a stale catalog version blocks plugin auto-update. jq is preinstalled.
+      - name: catalogs match plugin.json.version (regenerate + no drift)
+        run: |
+          scripts/marketplace-generate
+          git diff --exit-code
+      # Binary↔plugin coupling: a binary VERSION bump must carry a plugin.json.version bump, or
+      # the new binary never reaches users (auto-update fires on the plugin version). The two
+      # versions are otherwise independent (skill-only changes bump the plugin version alone).
+      - name: binary bump requires plugin bump
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]]; then
+            git fetch -q --depth=1 origin main
+            BASE=origin/main
+          fi
+          scripts/check-version-coupling "$BASE"
