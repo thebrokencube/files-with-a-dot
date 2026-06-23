@@ -103,19 +103,21 @@ func runStale(args []string) int {
 		entries = append(entries, entry)
 	}
 
+	code := dendrik.ExitOK
+	if len(entries) > 0 {
+		code = dendrik.ExitUserError
+	}
+
 	if *jsonMode {
 		if entries == nil {
 			entries = []output.StaleEntry{}
 		}
-		dendrik.WriteResult(os.Stdout, struct {
+		dendrik.WriteResultWithExit(os.Stdout, struct {
 			Stale []output.StaleEntry `json:"stale"`
-		}{Stale: entries})
+		}{Stale: entries}, code)
 	} else {
 		output.PrintStaleTerminal(os.Stdout, entries, !*noColor)
 	}
 
-	if len(entries) > 0 {
-		return dendrik.ExitUserError
-	}
-	return dendrik.ExitOK
+	return code
 }

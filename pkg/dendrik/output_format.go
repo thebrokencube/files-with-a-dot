@@ -1,7 +1,6 @@
 package dendrik
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -27,12 +26,7 @@ func (o Output) IsJSON() bool {
 
 // Result marshals data into a ResultEnvelope JSON with trailing newline.
 func (o Output) Result(data any) ([]byte, error) {
-	env := ResultEnvelope{Data: data}
-	b, err := json.MarshalIndent(env, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return append(b, '\n'), nil
+	return MarshalEnvelope(ResultEnvelope{Data: data})
 }
 
 // MustResult marshals data into a ResultEnvelope JSON, panicking on failure.
@@ -49,12 +43,11 @@ func (o Output) MustResult(data any) []byte {
 // JSON mode: ResultEnvelope JSON bytes as string. Human mode: colored "Error: msg".
 func (o Output) Error(msg, detail string) string {
 	if o.IsJSON() {
-		env := ResultEnvelope{Error: msg, Detail: detail}
-		b, err := json.MarshalIndent(env, "", "  ")
+		b, err := MarshalEnvelope(ResultEnvelope{Error: msg, Detail: detail})
 		if err != nil {
 			return fmt.Sprintf(`{"error":%q}`, msg)
 		}
-		return string(b) + "\n"
+		return string(b)
 	}
 	if detail != "" {
 		return o.Pal.Errf("%s\n  %s", msg, detail)

@@ -155,7 +155,9 @@ type ResultEnvelope struct {
 ```
 
 `exit_code` is only present when non-zero. Agents should check `error` first,
-then `exit_code`, then treat presence of `data` as success.
+then `exit_code`, then treat presence of `data` as success. Emit it with
+`dendrik.WriteResultWithExit(w, data, code)` — passing `code == 0` omits the
+field and is identical to `dendrik.WriteResult()`.
 
 ### Error output
 

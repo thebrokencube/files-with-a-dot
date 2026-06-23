@@ -165,6 +165,74 @@ func TestWriteError(t *testing.T) {
 	if env.Detail != "details here" {
 		t.Fatalf("got %q, want %q", env.Detail, "details here")
 	}
+	// WriteError must indent to match WriteResult (consistent JSON formatting).
+	if !bytes.Contains(buf.Bytes(), []byte("\n  \"error\"")) {
+		t.Fatalf("WriteError output is not indented:\n%s", buf.String())
+	}
+}
+
+func TestWriteResultWithExit(t *testing.T) {
+	t.Run("non-zero code present in envelope", func(t *testing.T) {
+		var buf bytes.Buffer
+		if err := WriteResultWithExit(&buf, map[string]string{"k": "v"}, ExitUserError); err != nil {
+			t.Fatalf("WriteResultWithExit error: %v", err)
+		}
+		var env ResultEnvelope
+		if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		if env.ExitCode == nil || *env.ExitCode != ExitUserError {
+			t.Fatalf("ExitCode = %v, want %d", env.ExitCode, ExitUserError)
+		}
+	})
+
+	t.Run("zero code omits exit_code (matches WriteResult)", func(t *testing.T) {
+		var buf bytes.Buffer
+		if err := WriteResultWithExit(&buf, "data", ExitOK); err != nil {
+			t.Fatalf("WriteResultWithExit error: %v", err)
+		}
+		var raw map[string]any
+		if err := json.Unmarshal(buf.Bytes(), &raw); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		if _, exists := raw["exit_code"]; exists {
+			t.Fatal("exit_code should be omitted when code == 0")
+		}
+	})
+}
+
+// TestEnvelopeEncodingConsistency guards against formatting drift between the
+// writer-based path (WriteResult/WriteError) and the formatter path
+// (Output.Result/Error). Both route through MarshalEnvelope, so equivalent
+// input must produce byte-identical output. Re-introducing a separate encode
+// call in either path fails here.
+func TestEnvelopeEncodingConsistency(t *testing.T) {
+	o := Output{Mode: "json"}
+
+	t.Run("result paths agree byte-for-byte", func(t *testing.T) {
+		data := map[string]string{"k": "v"}
+		var buf bytes.Buffer
+		if err := WriteResult(&buf, data); err != nil {
+			t.Fatalf("WriteResult error: %v", err)
+		}
+		formatted, err := o.Result(data)
+		if err != nil {
+			t.Fatalf("Output.Result error: %v", err)
+		}
+		if buf.String() != string(formatted) {
+			t.Fatalf("result paths diverged:\n WriteResult:   %q\n Output.Result: %q", buf.String(), formatted)
+		}
+	})
+
+	t.Run("error paths agree byte-for-byte", func(t *testing.T) {
+		var buf bytes.Buffer
+		if err := WriteError(&buf, "boom", "detail"); err != nil {
+			t.Fatalf("WriteError error: %v", err)
+		}
+		if got := o.Error("boom", "detail"); buf.String() != got {
+			t.Fatalf("error paths diverged:\n WriteError:   %q\n Output.Error: %q", buf.String(), got)
+		}
+	})
 }
 
 func TestOutputMode(t *testing.T) {
