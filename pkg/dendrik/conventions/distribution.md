@@ -75,6 +75,11 @@ step **uniform across harnesses** — don't special-case one.
   `VERSION` — the binary version), self-contained (the plugin cache sandbox forbids sibling access),
   and safe to re-run — it installs the binary only when it's missing or the version mismatches. This
   is the single "get the tool ready" entrypoint, not one of several install paths.
+- **User-facing docs reference the plugin's bundled `bin/setup`, never a repo path.** An installed
+  plugin lives in the harness's plugin cache with `bin/setup` at the plugin root — there is no
+  `cmd/<tool>/` prefix (that's `plugins.json`'s repo `path`, stripped on publish). So install docs
+  say "the plugin's `bin/setup`" (self-locating; the skill runs it on first use); `cmd/<tool>/bin/setup`
+  is the in-repo developer path only. Conflating them sends consumers to a path that doesn't exist.
 - **Run it the same way everywhere.** The skill instructs running `bin/setup` harness-neutrally — no
   per-harness env vars, no harness-specific preflight. A new binary reaches users when a plugin
   update (a bumped `plugin.json.version`) re-runs `bin/setup`, which reconciles to the binary

@@ -41,9 +41,10 @@ In Claude Code:
 /plugin install folio@files-with-a-dot   # or jf, dendrik
 ```
 
-Then run the plugin's `bin/setup` once to install its binary. On any harness, the install step is
-the same — run `cmd/<tool>/bin/setup`. See [AGENTS.md](AGENTS.md) for the full model (`plugins.json`
-is canonical; per-harness catalogs are generated).
+Then invoke the tool (e.g. `/folio`) — its skill installs the binary on first use via the
+plugin's bundled, self-locating `bin/setup` (idempotent; safe to re-run). No repo path needed.
+See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; per-harness catalogs
+are generated).
 
 ## Day-to-Day
 

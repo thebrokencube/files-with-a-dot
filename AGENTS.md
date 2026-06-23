@@ -23,13 +23,15 @@ The repo distributes its CLI tools as plugins that work on any agent harness.
 
 ### Install a tool
 
-To use any tool on any harness, run that plugin's `bin/setup` once:
+In this repo, run that plugin's `bin/setup` once:
 
 ```sh
 cmd/<tool>/bin/setup
 ```
 
-It is idempotent — self-locating, self-contained, safe to re-run, and a no-op when the pinned
+Installed as a plugin, the skill runs the bundled `bin/setup` from the plugin root on first use
+(no `cmd/<tool>/` prefix — that's the repo path only). It is the same script either way:
+idempotent — self-locating, self-contained, safe to re-run, and a no-op when the pinned
 version (from the plugin's `VERSION`) is already installed. It downloads the matching release
 binary into `~/.local/bin/`.
 
