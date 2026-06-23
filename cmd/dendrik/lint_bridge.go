@@ -221,9 +221,9 @@ func checkNoRawJSONPassthrough(data *ToolData) []LintResult {
 	return results
 }
 
-// hasRawJSONPassthrough checks for fmt.Print(string( patterns that bypass the
-// ResultEnvelope. Lines using MustResult or .Result( are already enveloped and
-// are not flagged. Lines with //nolint:no-raw-json are also skipped.
+// hasRawJSONPassthrough flags fmt.Print(string( patterns that bypass the
+// ResultEnvelope. Already-enveloped lines (MustResult, .Result() and explicit
+// //nolint:no-raw-json allowances are skipped to avoid false positives.
 func hasRawJSONPassthrough(content string) bool {
 	for _, line := range strings.Split(content, "\n") {
 		if !strings.Contains(line, "fmt.Print(string(") {

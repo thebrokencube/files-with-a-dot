@@ -166,9 +166,9 @@ func hasRunArg(call *ast.CallExpr) bool {
 	return strings.HasPrefix(ident.Name, "run")
 }
 
-// checkVersionFlag verifies main.go handles a --version flag, distinct from any
-// `version` subcommand. If main.go is missing or unparseable, main-dispatch
-// already reports it, so this check stays silent to avoid double-reporting.
+// checkVersionFlag verifies main.go handles a --version flag (distinct from any
+// `version` subcommand). Stays silent when main.go is missing or unparseable —
+// main-dispatch already reports that, and double-reporting would be noise.
 func checkVersionFlag(data *ToolData) []LintResult {
 	var mainFile *GoFileData
 	for i := range data.GoFiles {

@@ -39,8 +39,8 @@ func (o Output) MustResult(data any) []byte {
 	return b
 }
 
-// Error returns a formatted error string.
-// JSON mode: ResultEnvelope JSON bytes as string. Human mode: colored "Error: msg".
+// Error returns a formatted error string — the error envelope JSON in JSON
+// mode, a colored "Error:" line otherwise.
 func (o Output) Error(msg, detail string) string {
 	if o.IsJSON() {
 		b, err := MarshalEnvelope(ResultEnvelope{Error: msg, Detail: detail})
@@ -55,8 +55,8 @@ func (o Output) Error(msg, detail string) string {
 	return o.Pal.Errf("%s", msg)
 }
 
-// Success returns a formatted success string.
-// JSON mode: empty string (success is conveyed via Result). Human mode: colored checkmark.
+// Success returns a colored success line, or empty string in JSON mode where
+// success is conveyed via Result instead.
 func (o Output) Success(format string, a ...any) string {
 	if o.IsJSON() {
 		return ""
