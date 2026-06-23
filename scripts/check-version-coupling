@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# check-version-coupling — fail if a tool's binary VERSION changed without a matching
+# plugin.json.version bump (relative to a base ref).
+#
+# Why: the two versions are independent surfaces (see pkg/dendrik/conventions/release.md).
+#   cmd/<tool>/VERSION          = binary version  (bin/setup download + release.yml tag)
+#   <plugin>/plugin.json.version = plugin version (Claude plugin auto-update trigger + catalogs)
+# A binary bump that does NOT bump the plugin version never reaches users: plugin auto-update
+# fires on a plugin.json.version *change*, and that update is what re-runs bin/setup to fetch the
+# new binary. So VERSION-bump ⇒ plugin-bump is required. The reverse (plugin bump with no VERSION
+# change, e.g. a skill-only update) is fine and expected.
+#
+# Usage: check-version-coupling <base-ref>
+set -euo pipefail
+
+BASE="${1:?usage: check-version-coupling <base-ref>}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+command -v jq >/dev/null || { echo "ERROR: jq is required" >&2; exit 1; }
+
+fail=0
+while IFS= read -r p; do
+  path="$(jq -r '.path' <<<"$p")"
+  tool="$(jq -r '.name' <<<"$p")"
+  vfile="${path}/VERSION"
+  pjson="${path}/.claude-plugin/plugin.json"
+
+  # Base values; empty if the file didn't exist at base (new plugin — nothing to couple).
+  v_base="$(git show "${BASE}:${vfile}" 2>/dev/null | tr -d '[:space:]' || true)"
+  [[ -n "$v_base" ]] || continue
+  p_base="$(git show "${BASE}:${pjson}" 2>/dev/null | jq -r '.version' 2>/dev/null || true)"
+
+  v_now="$(tr -d '[:space:]' < "$vfile")"
+  p_now="$(jq -r '.version' "$pjson")"
+
+  if [[ "$v_now" != "$v_base" && "$p_now" == "$p_base" ]]; then
+    echo "FAIL: ${tool}: VERSION ${v_base} -> ${v_now} but plugin.json.version stayed ${p_now}." >&2
+    echo "      A binary bump must also bump plugin.json.version, or the new binary never" >&2
+    echo "      reaches users (no plugin update fires bin/setup)." >&2
+    fail=1
+  fi
+done < <(jq -c '.plugins[]' plugins.json)
+
+[[ "$fail" == 0 ]] && echo "ok: version coupling — every binary bump carries a plugin bump"
+exit "$fail"
