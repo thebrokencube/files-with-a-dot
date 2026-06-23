@@ -33,6 +33,25 @@ jobs:
       - name: working tree clean (gofmt)
         run: git diff --exit-code
 
+  # pkg/dendrik is a separate Go module consumed by the cmd/ tools via a replace
+  # directive, so the per-tool `go test ./...` in the `check` job never reaches it.
+  # The dendrik library every tool imports needs its own gate — without this the
+  # foundation is CI-unguarded.
+  pkg-dendrik:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: pkg/dendrik/go.mod
+          cache-dependency-path: pkg/dendrik/go.sum
+      - name: check
+        working-directory: pkg/dendrik
+        run: |
+          test -z "$(gofmt -l .)" || { echo "unformatted files:"; gofmt -l .; exit 1; }
+          go vet ./...
+          go test ./...
+
   version-consistency:
     runs-on: ubuntu-latest
     steps:
