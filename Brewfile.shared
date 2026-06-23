@@ -9,6 +9,7 @@ brew "mise"                     # Universal version manager (replaces fnm, rbenv
 
 # Languages
 brew "go"                       # Go compiler (folio CLI)
+brew "pipx"                     # Install/run Python CLI apps in isolated venvs
 
 # Shell and prompt
 brew "zsh"
