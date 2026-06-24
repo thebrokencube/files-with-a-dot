@@ -9,6 +9,20 @@ import (
 	"strings"
 )
 
+// dirHasGoSource reports whether dir contains a non-test .go file.
+func dirHasGoSource(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".go") && !strings.HasSuffix(e.Name(), "_test.go") {
+			return true
+		}
+	}
+	return false
+}
+
 // GatherToolData is the imperative adapter for the lint core: it reads a tool
 // directory (and the surrounding repo) off disk and returns the I/O-free
 // ToolData bundle that Run and the per-layer checks operate on. This is the one
@@ -105,6 +119,20 @@ func GatherToolData(toolDir string) (*ToolData, error) {
 		}
 		gf.AST = astFile
 		data.GoFiles = append(data.GoFiles, gf)
+	}
+
+	// Verb cores: pkg/dendrik subdirs with Go source. Shared sub-packages land
+	// here harmlessly — core-in-pkg only checks verbs that have a cmd_<verb>.go.
+	pkgDendrikDir := filepath.Join(repoRoot, "pkg", "dendrik")
+	if subEntries, err := os.ReadDir(pkgDendrikDir); err == nil {
+		for _, e := range subEntries {
+			if !e.IsDir() {
+				continue
+			}
+			if dirHasGoSource(filepath.Join(pkgDendrikDir, e.Name())) {
+				data.PkgVerbCores = append(data.PkgVerbCores, e.Name())
+			}
+		}
 	}
 
 	// cmd/*/ directories with go.mod (for go-work-sync)

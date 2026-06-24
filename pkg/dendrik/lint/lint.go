@@ -57,6 +57,8 @@ type ToolData struct {
 	// Bridge layer
 	SymlinkMap []byte   // symlink_map.txt content (nil if missing)
 	CmdDirs    []string // cmd/*/ directories that contain go.mod
+
+	PkgVerbCores []string // pkg/dendrik subdirs holding a verb core (e.g. "build", "lint")
 }
 
 // Options tunes a lint run.

@@ -225,21 +225,16 @@ func mainHandlesVersionFlag(file *ast.File) bool {
 	return found
 }
 
-// checkCoreInPkg enforces that a verb's domain types live in its importable
-// pkg/dendrik/<verb> core, not in package main. For each cmd_<verb>.go that
-// declares a top-level type without importing pkg/dendrik/<verb>, it reports a
-// finding. This is import-presence + in-file type-location only: the linter sees
-// just the tool dir, never pkg/dendrik source, so it cannot diff against the
-// core's actual exports — that stronger check is deferred to a verb-core registry.
+// checkCoreInPkg guards against verb logic drifting back into package main: once
+// a verb's core lives in pkg/dendrik/<verb>, its cmd_<verb>.go must import that
+// core rather than redeclare domain types. It fires only for verbs whose core
+// already exists (data.PkgVerbCores) — a new verb with no core yet is silent.
+// Import-presence + in-file type-location only; the linter can't read pkg source
+// to diff against the core's actual exports (deferred to a verb-core registry).
 func checkCoreInPkg(data *ToolData) []Result {
-	// N=1 gate: only the dendrik tool currently follows the pkg/dendrik/<verb>
-	// core convention. Other dendrik-family tools (folio, jf) keep their verb
-	// logic in package main and have no pkg/dendrik/<verb> to import, so the
-	// check would false-positive on them. When a second tool extracts cores,
-	// generalize this via a verb-core registry (or by detecting which
-	// pkg/dendrik/<verb> dirs exist) rather than hardcoding the name.
-	if data.ToolName != "dendrik" {
-		return nil
+	hasCore := map[string]bool{}
+	for _, v := range data.PkgVerbCores {
+		hasCore[v] = true
 	}
 	var results []Result
 	for _, gf := range data.GoFiles {
@@ -250,13 +245,13 @@ func checkCoreInPkg(data *ToolData) []Result {
 			continue
 		}
 		verb := strings.TrimSuffix(strings.TrimPrefix(gf.Path, "cmd_"), ".go")
-		if verb == "" || !fileDeclaresTopLevelType(gf.AST) || fileImportsCore(gf.AST, verb) {
+		if !hasCore[verb] || !fileDeclaresTopLevelType(gf.AST) || fileImportsCore(gf.AST, verb) {
 			continue
 		}
 		results = append(results, lintResult("core-in-pkg", conventions.SeverityError,
-			"cmd_"+verb+".go declares a domain type but does not import pkg/dendrik/"+verb,
+			"cmd_"+verb+".go declares a domain type but does not import its pkg/dendrik/"+verb+" core",
 			gf.Path, 0,
-			"Move the type into pkg/dendrik/"+verb+" and import it; keep cmd_"+verb+".go a thin shell."))
+			"The pkg/dendrik/"+verb+" core exists; import it instead of redeclaring the type — keep cmd_"+verb+".go a thin shell."))
 	}
 	return results
 }

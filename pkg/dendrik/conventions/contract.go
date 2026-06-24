@@ -53,9 +53,9 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "core-in-pkg", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "verb domain types live in importable pkg/dendrik/<verb>, not package main",
-		Rationale:   "A verb's canonical surface is its importable Go core in pkg/dendrik/<verb>. When a cmd_<verb>.go declares its own domain types instead of importing the core, the logic is trapped in package main: unimportable by other Go callers and a silent regression of the functional-core/imperative-shell split.",
-		Remediation: "Move the type into pkg/dendrik/<verb> and import it; keep cmd_<verb>.go a thin shell (parse flags -> call the core -> render output).",
+		Summary:     "once a verb's pkg/dendrik/<verb> core exists, cmd_<verb>.go imports it rather than redeclaring domain types",
+		Rationale:   "A verb's canonical surface is its importable Go core in pkg/dendrik/<verb>. Once that core exists, a cmd_<verb>.go that redeclares its own domain types lets logic drift back into package main: unimportable by other Go callers and a silent regression of the functional-core/imperative-shell split. Fires only for verbs whose core already exists — a new verb is never forced to extract.",
+		Remediation: "The pkg/dendrik/<verb> core exists; import it instead of redeclaring the type, and keep cmd_<verb>.go a thin shell (parse flags -> call the core -> render output).",
 	},
 	{
 		ID: "cmd-file-exists", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,

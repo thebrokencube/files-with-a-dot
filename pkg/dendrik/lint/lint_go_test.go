@@ -292,8 +292,9 @@ func assertCheckPresent(t *testing.T, results []Result, checkID string) {
 }
 
 func TestGoLint_CoreInPkg(t *testing.T) {
-	t.Run("domain type in cmd file without core import is flagged", func(t *testing.T) {
+	t.Run("core exists, cmd redeclares a domain type without importing it -> flagged", func(t *testing.T) {
 		data := minimalToolData("dendrik")
+		data.PkgVerbCores = []string{"foo"}
 		data.GoFiles = []GoFileData{validMainFile(), parseGoFile("cmd_foo.go", `package main
 type FooResult struct{ X int }
 func runFoo(args []string) int { return 0 }
@@ -304,8 +305,9 @@ func runFoo(args []string) int { return 0 }
 		}
 	})
 
-	t.Run("domain type with core import is allowed", func(t *testing.T) {
+	t.Run("core exists and cmd imports it -> allowed", func(t *testing.T) {
 		data := minimalToolData("dendrik")
+		data.PkgVerbCores = []string{"foo"}
 		data.GoFiles = []GoFileData{validMainFile(), parseGoFile("cmd_foo.go", `package main
 import "example.com/proj/pkg/dendrik/foo"
 type FooResult struct{ X int }
@@ -317,24 +319,25 @@ func runFoo(args []string) int { _ = foo.X; return 0 }
 		}
 	})
 
-	t.Run("thin shell with no top-level type is allowed", func(t *testing.T) {
-		data := minimalToolData("dendrik")
-		data.GoFiles = []GoFileData{validMainFile(), cmdFile("cmd_foo.go")}
-		results := filterCheck(GoLint(data), "core-in-pkg")
-		if len(results) != 0 {
-			t.Errorf("expected no core-in-pkg finding for thin shell, got %v", results)
-		}
-	})
-
-	t.Run("non-dendrik tool is not evaluated", func(t *testing.T) {
-		data := minimalToolData("folio")
+	t.Run("verb with no extracted core -> silent (new verb is not forced to extract)", func(t *testing.T) {
+		data := minimalToolData("dendrik") // PkgVerbCores nil: foo has no pkg/dendrik/foo
 		data.GoFiles = []GoFileData{validMainFile(), parseGoFile("cmd_foo.go", `package main
 type FooResult struct{ X int }
 func runFoo(args []string) int { return 0 }
 `)}
 		results := filterCheck(GoLint(data), "core-in-pkg")
 		if len(results) != 0 {
-			t.Errorf("expected no core-in-pkg finding for non-dendrik tool, got %v", results)
+			t.Errorf("expected no core-in-pkg finding for a verb with no core, got %v", results)
+		}
+	})
+
+	t.Run("core exists but cmd is a thin shell with no top-level type -> allowed", func(t *testing.T) {
+		data := minimalToolData("dendrik")
+		data.PkgVerbCores = []string{"foo"}
+		data.GoFiles = []GoFileData{validMainFile(), cmdFile("cmd_foo.go")}
+		results := filterCheck(GoLint(data), "core-in-pkg")
+		if len(results) != 0 {
+			t.Errorf("expected no core-in-pkg finding for thin shell, got %v", results)
 		}
 	})
 }
