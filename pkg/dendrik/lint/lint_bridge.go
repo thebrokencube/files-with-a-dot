@@ -1,4 +1,4 @@
-package main
+package lint
 
 import (
 	"go/ast"
@@ -11,8 +11,8 @@ import (
 var goWorkUsePattern = regexp.MustCompile(`\./cmd/([a-zA-Z0-9_-]+)`)
 
 // BridgeLint validates bridge layer conventions. Pure function — no I/O.
-func BridgeLint(data *ToolData) []LintResult {
-	var results []LintResult
+func BridgeLint(data *ToolData) []Result {
+	var results []Result
 
 	results = append(results, checkDendrikImport(data)...)
 	results = append(results, checkBareReturnsAndOsExit(data)...)
@@ -27,20 +27,20 @@ func BridgeLint(data *ToolData) []LintResult {
 	return results
 }
 
-func checkDendrikImport(data *ToolData) []LintResult {
+func checkDendrikImport(data *ToolData) []Result {
 	for _, gf := range data.GoFiles {
 		if strings.Contains(string(gf.Content), "pkg/dendrik") {
 			return nil
 		}
 	}
-	return []LintResult{lintResult("dendrik-import", conventions.SeverityError,
+	return []Result{lintResult("dendrik-import", conventions.SeverityError,
 		"no .go file imports pkg/dendrik",
 		"", 0,
 		"Import github.com/thebrokencube/files-with-a-dot/pkg/dendrik in at least one .go file.")}
 }
 
-func checkBareReturnsAndOsExit(data *ToolData) []LintResult {
-	var results []LintResult
+func checkBareReturnsAndOsExit(data *ToolData) []Result {
+	var results []Result
 
 	for _, gf := range data.GoFiles {
 		isCmdFile := strings.HasPrefix(gf.Path, "cmd_") && strings.HasSuffix(gf.Path, ".go")
@@ -83,7 +83,7 @@ func checkBareReturnsAndOsExit(data *ToolData) []LintResult {
 	return results
 }
 
-func checkJSONFlagCoverage(data *ToolData) []LintResult {
+func checkJSONFlagCoverage(data *ToolData) []Result {
 	// Per-tool granularity: if any file registers --json, at least one file uses WriteResult/WriteError
 	hasJSONFlag := false
 	hasWriteResult := false
@@ -100,7 +100,7 @@ func checkJSONFlagCoverage(data *ToolData) []LintResult {
 	}
 
 	if hasJSONFlag && !hasWriteResult {
-		return []LintResult{lintResult("json-output", conventions.SeverityError,
+		return []Result{lintResult("json-output", conventions.SeverityError,
 			"--json flag registered but no dendrik.WriteResult/WriteError or Output.Result usage found",
 			"", 0,
 			"Add dendrik.WriteResult or Output.Result calls in commands that register a --json flag.")}
@@ -108,12 +108,12 @@ func checkJSONFlagCoverage(data *ToolData) []LintResult {
 	return nil
 }
 
-func checkGoWorkSync(data *ToolData) []LintResult {
+func checkGoWorkSync(data *ToolData) []Result {
 	if data.GoWork == nil {
 		return nil
 	}
 
-	var results []LintResult
+	var results []Result
 
 	// Extract cmd/*/ entries from go.work
 	goWorkCmds := map[string]bool{}
@@ -150,12 +150,12 @@ func checkGoWorkSync(data *ToolData) []LintResult {
 	return results
 }
 
-func checkSymlinkEntries(data *ToolData) []LintResult {
+func checkSymlinkEntries(data *ToolData) []Result {
 	if data.SymlinkMap == nil {
 		return nil // Opt-in: only runs when symlink_map.txt exists
 	}
 
-	var results []LintResult
+	var results []Result
 	content := string(data.SymlinkMap)
 
 	// Binaries are installed from GitHub Releases by `dot sync` (not symlinked from the
@@ -171,13 +171,13 @@ func checkSymlinkEntries(data *ToolData) []LintResult {
 	return results
 }
 
-func checkMakefileGofiles(data *ToolData) []LintResult {
+func checkMakefileGofiles(data *ToolData) []Result {
 	if data.Makefile == nil {
 		return nil
 	}
 
 	if !strings.Contains(string(data.Makefile), "../../pkg/dendrik") {
-		return []LintResult{lintResult("makefile-gofiles", conventions.SeverityWarning,
+		return []Result{lintResult("makefile-gofiles", conventions.SeverityWarning,
 			"Makefile GOFILES find path does not include ../../pkg/dendrik",
 			"Makefile", 0,
 			"Update Makefile GOFILES to: $(shell find . ../../pkg/dendrik -name '*.go')")}
@@ -185,8 +185,8 @@ func checkMakefileGofiles(data *ToolData) []LintResult {
 	return nil
 }
 
-func checkNoJsonEncoder(data *ToolData) []LintResult {
-	var results []LintResult
+func checkNoJsonEncoder(data *ToolData) []Result {
+	var results []Result
 	for _, gf := range data.GoFiles {
 		if !strings.HasPrefix(gf.Path, "cmd_") {
 			continue
@@ -201,8 +201,8 @@ func checkNoJsonEncoder(data *ToolData) []LintResult {
 	return results
 }
 
-func checkNoRawJSONPassthrough(data *ToolData) []LintResult {
-	var results []LintResult
+func checkNoRawJSONPassthrough(data *ToolData) []Result {
+	var results []Result
 	for _, gf := range data.GoFiles {
 		if !strings.HasPrefix(gf.Path, "cmd_") {
 			continue
@@ -240,8 +240,8 @@ func hasRawJSONPassthrough(content string) bool {
 	return false
 }
 
-func checkRunFunctionsHaveJSON(data *ToolData) []LintResult {
-	var results []LintResult
+func checkRunFunctionsHaveJSON(data *ToolData) []Result {
+	var results []Result
 	for _, gf := range data.GoFiles {
 		if !strings.HasPrefix(gf.Path, "cmd_") {
 			continue

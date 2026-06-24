@@ -1,4 +1,4 @@
-package main
+package lint
 
 import (
 	"go/ast"
@@ -15,8 +15,8 @@ import (
 var docsNamingPattern = regexp.MustCompile(`^\d{2}-[a-z0-9-]+\.md$`)
 
 // GoLint validates Go layer conventions. Pure function — no I/O.
-func GoLint(data *ToolData) []LintResult {
-	var results []LintResult
+func GoLint(data *ToolData) []Result {
+	var results []Result
 
 	if data.GoMod == nil {
 		results = append(results, lintResult("go-mod-linked", conventions.SeverityError,
@@ -40,6 +40,7 @@ func GoLint(data *ToolData) []LintResult {
 
 	results = append(results, checkMainDispatch(data)...)
 	results = append(results, checkVersionFlag(data)...)
+	results = append(results, checkCoreInPkg(data)...)
 
 	hasCmdFile := false
 	for _, gf := range data.GoFiles {
@@ -74,8 +75,8 @@ func GoLint(data *ToolData) []LintResult {
 	return results
 }
 
-func checkMainDispatch(data *ToolData) []LintResult {
-	var results []LintResult
+func checkMainDispatch(data *ToolData) []Result {
+	var results []Result
 
 	// Find main.go
 	var mainFile *GoFileData
@@ -169,7 +170,7 @@ func hasRunArg(call *ast.CallExpr) bool {
 // checkVersionFlag verifies main.go handles a --version flag (distinct from any
 // `version` subcommand). Stays silent when main.go is missing or unparseable —
 // main-dispatch already reports that, and double-reporting would be noise.
-func checkVersionFlag(data *ToolData) []LintResult {
+func checkVersionFlag(data *ToolData) []Result {
 	var mainFile *GoFileData
 	for i := range data.GoFiles {
 		if data.GoFiles[i].Path == "main.go" {
@@ -183,7 +184,7 @@ func checkVersionFlag(data *ToolData) []LintResult {
 	if mainHandlesVersionFlag(mainFile.AST) {
 		return nil
 	}
-	return []LintResult{lintResult("version-flag", conventions.SeverityWarning,
+	return []Result{lintResult("version-flag", conventions.SeverityWarning,
 		"main.go does not handle a --version flag",
 		"main.go", 0,
 		"In main()'s dispatch, fold the flag forms into the version case: `case \"version\", \"--version\", \"-V\":`.")}
@@ -224,8 +225,69 @@ func mainHandlesVersionFlag(file *ast.File) bool {
 	return found
 }
 
-func checkMakefileTargets(data *ToolData) []LintResult {
-	var results []LintResult
+// checkCoreInPkg enforces that a verb's domain types live in its importable
+// pkg/dendrik/<verb> core, not in package main. For each cmd_<verb>.go that
+// declares a top-level type without importing pkg/dendrik/<verb>, it reports a
+// finding. This is import-presence + in-file type-location only: the linter sees
+// just the tool dir, never pkg/dendrik source, so it cannot diff against the
+// core's actual exports — that stronger check is deferred to a verb-core registry.
+func checkCoreInPkg(data *ToolData) []Result {
+	// N=1 gate: only the dendrik tool currently follows the pkg/dendrik/<verb>
+	// core convention. Other dendrik-family tools (folio, jf) keep their verb
+	// logic in package main and have no pkg/dendrik/<verb> to import, so the
+	// check would false-positive on them. When a second tool extracts cores,
+	// generalize this via a verb-core registry (or by detecting which
+	// pkg/dendrik/<verb> dirs exist) rather than hardcoding the name.
+	if data.ToolName != "dendrik" {
+		return nil
+	}
+	var results []Result
+	for _, gf := range data.GoFiles {
+		if !strings.HasPrefix(gf.Path, "cmd_") || !strings.HasSuffix(gf.Path, ".go") {
+			continue
+		}
+		if strings.HasSuffix(gf.Path, "_test.go") || gf.AST == nil {
+			continue
+		}
+		verb := strings.TrimSuffix(strings.TrimPrefix(gf.Path, "cmd_"), ".go")
+		if verb == "" || !fileDeclaresTopLevelType(gf.AST) || fileImportsCore(gf.AST, verb) {
+			continue
+		}
+		results = append(results, lintResult("core-in-pkg", conventions.SeverityError,
+			"cmd_"+verb+".go declares a domain type but does not import pkg/dendrik/"+verb,
+			gf.Path, 0,
+			"Move the type into pkg/dendrik/"+verb+" and import it; keep cmd_"+verb+".go a thin shell."))
+	}
+	return results
+}
+
+// fileDeclaresTopLevelType reports whether the file has any top-level type decl.
+func fileDeclaresTopLevelType(f *ast.File) bool {
+	for _, decl := range f.Decls {
+		if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.TYPE {
+			return true
+		}
+	}
+	return false
+}
+
+// fileImportsCore reports whether the file imports pkg/dendrik/<verb>.
+func fileImportsCore(f *ast.File, verb string) bool {
+	suffix := "/pkg/dendrik/" + verb
+	for _, imp := range f.Imports {
+		p, err := strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			continue
+		}
+		if strings.HasSuffix(p, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+func checkMakefileTargets(data *ToolData) []Result {
+	var results []Result
 
 	if data.Makefile == nil {
 		results = append(results, lintResult("makefile-targets", conventions.SeverityError,
@@ -249,8 +311,8 @@ func checkMakefileTargets(data *ToolData) []LintResult {
 	return results
 }
 
-func checkREADMESections(data *ToolData) []LintResult {
-	var results []LintResult
+func checkREADMESections(data *ToolData) []Result {
+	var results []Result
 
 	content := string(data.READMEBytes)
 	requiredSections := []string{"## Install", "## Quick Start", "## Commands", "## Code Structure"}
@@ -267,18 +329,18 @@ func checkREADMESections(data *ToolData) []LintResult {
 	return results
 }
 
-func checkCLAUDEMDExists(data *ToolData) []LintResult {
+func checkCLAUDEMDExists(data *ToolData) []Result {
 	if data.HasCLAUDEMD {
 		return nil
 	}
-	return []LintResult{lintResult("claude-md-exists", conventions.SeverityWarning,
+	return []Result{lintResult("claude-md-exists", conventions.SeverityWarning,
 		"CLAUDE.md not found",
 		"CLAUDE.md", 0,
 		"Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.")}
 }
 
-func checkDocsNaming(data *ToolData) []LintResult {
-	var results []LintResult
+func checkDocsNaming(data *ToolData) []Result {
+	var results []Result
 	for _, name := range data.DocsFiles {
 		if !docsNamingPattern.MatchString(name) {
 			results = append(results, lintResult("docs-naming", conventions.SeverityError,
@@ -290,7 +352,7 @@ func checkDocsNaming(data *ToolData) []LintResult {
 	return results
 }
 
-func checkDocsGettingStarted(data *ToolData) []LintResult {
+func checkDocsGettingStarted(data *ToolData) []Result {
 	if len(data.DocsFiles) == 0 {
 		return nil // No docs/ directory — not an issue for this check
 	}
@@ -299,7 +361,7 @@ func checkDocsGettingStarted(data *ToolData) []LintResult {
 			return nil
 		}
 	}
-	return []LintResult{lintResult("docs-getting-started", conventions.SeverityWarning,
+	return []Result{lintResult("docs-getting-started", conventions.SeverityWarning,
 		"docs/01-getting-started.md not found",
 		"docs/", 0,
 		"Create docs/01-getting-started.md as the entry point for new users.")}
@@ -307,7 +369,7 @@ func checkDocsGettingStarted(data *ToolData) []LintResult {
 
 // checkREADMEDocLinks parses the ## Documentation section of README.md and
 // verifies that markdown links resolve to existing files relative to the tool dir.
-func checkREADMEDocLinks(data *ToolData) []LintResult {
+func checkREADMEDocLinks(data *ToolData) []Result {
 	content := string(data.READMEBytes)
 
 	// Find ## Documentation section
@@ -323,7 +385,7 @@ func checkREADMEDocLinks(data *ToolData) []LintResult {
 	}
 
 	// Find markdown links: [text](path)
-	var results []LintResult
+	var results []Result
 	linkPattern := regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
 	for _, match := range linkPattern.FindAllStringSubmatch(section, -1) {
 		linkPath := match[2]
@@ -343,8 +405,8 @@ func checkREADMEDocLinks(data *ToolData) []LintResult {
 	return results
 }
 
-func lintResult(id string, severity conventions.Severity, msg, file string, line int, remediation string) LintResult {
-	return LintResult{
+func lintResult(id string, severity conventions.Severity, msg, file string, line int, remediation string) Result {
+	return Result{
 		CheckID:     id,
 		Severity:    severity,
 		Message:     msg,

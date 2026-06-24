@@ -16,6 +16,12 @@ main.go has `func main()` with at least one `os.Exit(run*(...))` call.
 
 **Fix**: Delegate to `run*()` functions via `os.Exit(run*(...))` in main.go.
 
+### core-in-pkg (Error)
+
+Verb domain types live in the importable `pkg/dendrik/<verb>` core, not in `package main`. A `cmd_<verb>.go` that declares a top-level type without importing `pkg/dendrik/<verb>` traps the logic in `package main`.
+
+**Fix**: Move the type into `pkg/dendrik/<verb>` and import it; keep `cmd_<verb>.go` a thin shell (parse flags → call the core → render output).
+
 ### cmd-file-exists (Error)
 
 At least one `cmd_*.go` file exists.

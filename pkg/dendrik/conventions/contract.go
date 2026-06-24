@@ -52,6 +52,12 @@ var Contract = []ContractEntry{
 		Remediation: "In main.go, ensure func main() delegates to run*() functions via os.Exit(run*(...)).",
 	},
 	{
+		ID: "core-in-pkg", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "verb domain types live in importable pkg/dendrik/<verb>, not package main",
+		Rationale:   "A verb's canonical surface is its importable Go core in pkg/dendrik/<verb>. When a cmd_<verb>.go declares its own domain types instead of importing the core, the logic is trapped in package main: unimportable by other Go callers and a silent regression of the functional-core/imperative-shell split.",
+		Remediation: "Move the type into pkg/dendrik/<verb> and import it; keep cmd_<verb>.go a thin shell (parse flags -> call the core -> render output).",
+	},
+	{
 		ID: "cmd-file-exists", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
 		Summary:     "At least one cmd_*.go file exists",
 		Rationale:   "The cmd_*.go naming convention makes commands discoverable and separates command implementations from shared code.",
