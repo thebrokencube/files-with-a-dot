@@ -8,17 +8,6 @@
     "type": "command",
     "command": "~/.local/bin/starship-claude"
   },
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@0.0.68",
-        "--headless",
-        "--viewport-size=1280x720",
-        "--allow-unrestricted-file-access"
-      ]
-    }
-  },
   "permissions": {
     "defaultMode": "auto",
     "additionalDirectories": [
@@ -106,12 +95,7 @@
       "WebFetch",
 
       "ListMcpResourcesTool",
-      "ReadMcpResourceTool",
-
-      "mcp__playwright__browser_navigate",
-      "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_press_key",
-      "mcp__playwright__browser_snapshot"
+      "ReadMcpResourceTool"
     ],
     "ask": [
       "Bash(rm *)",
