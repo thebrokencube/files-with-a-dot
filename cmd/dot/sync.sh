@@ -1,4 +1,8 @@
 #!/bin/bash
+# ~/ in user-facing display strings is literal shorthand, not a path to expand;
+# real path operations in this file use $HOME.
+# shellcheck disable=SC2088
+#
 # sync.sh - Synchronize dotfiles to current machine state
 #
 # This is the main command for dotfiles management. It intelligently detects
@@ -16,7 +20,9 @@
 
 set -e
 
-# Error handler - show detailed error info (only on actual errors)
+# Error handler - show detailed error info (only on actual errors).
+# exitcode is assigned at the head of this same trap command (SC2154 false positive).
+# shellcheck disable=SC2154
 trap 'exitcode=$?; if [[ $exitcode -ne 0 ]]; then echo ""; echo "ERROR: Command failed at line $LINENO with exit code $exitcode"; echo "Function: ${FUNCNAME[0]:-main}"; exit $exitcode; fi' ERR
 
 # ============================================================================
@@ -25,7 +31,6 @@ trap 'exitcode=$?; if [[ $exitcode -ne 0 ]]; then echo ""; echo "ERROR: Command 
 
 SKIP_BREW=false
 SKIP_PULL=false
-LINKS_ONLY=false
 DRY_RUN=false
 NO_BACKUP=false
 FORCE=false
@@ -41,7 +46,7 @@ while [[ $# -gt 0 ]]; do
         --skip-brew) SKIP_BREW=true; shift ;;
         --skip-pull) SKIP_PULL=true; shift ;;
         --pull) FORCE_PULL=true; shift ;;
-        --links-only) LINKS_ONLY=true; SKIP_BREW=true; SKIP_PULL=true; shift ;;
+        --links-only) SKIP_BREW=true; SKIP_PULL=true; shift ;;
         --no-backup) NO_BACKUP=true; shift ;;
         --force) FORCE=true; shift ;;
         --machine) MACHINE_ARG="$2"; shift 2 ;;
@@ -170,9 +175,9 @@ analyze_state() {
         else
             git fetch --quiet 2>/dev/null || true
             LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "")
-            REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
+            REMOTE=$(git rev-parse '@{u}' 2>/dev/null || echo "")
             if [[ -n "$LOCAL" && -n "$REMOTE" && "$LOCAL" != "$REMOTE" ]]; then
-                BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo "0")
+                BEHIND=$(git rev-list --count 'HEAD..@{u}' 2>/dev/null || echo "0")
                 if [[ "$BEHIND" -gt 0 ]]; then
                     ACTIONS+=("Pull $BEHIND commit(s) from remote")
                 else
@@ -221,8 +226,9 @@ analyze_state() {
     if [[ -f "$SYMLINK_MAP" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            local source=$(get_source "$line")
-            local dest=$(get_dest "$line")
+            local source dest
+            source=$(get_source "$line")
+            dest=$(get_dest "$line")
             check_symlink "$source" "$dest" || true
         done < "$SYMLINK_MAP"
     fi

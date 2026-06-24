@@ -18,7 +18,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOT_DIR="$SCRIPT_DIR"
-DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 
 # shellcheck source=lib/colors.sh
 source "$DOT_DIR/lib/colors.sh"

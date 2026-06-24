@@ -1,4 +1,8 @@
 #!/bin/bash
+# ~/ in user-facing display strings is literal shorthand, not a path to expand;
+# real path operations in this file use $HOME.
+# shellcheck disable=SC2088
+#
 # uninstall.sh - Remove dotfiles symlinks and optionally local config
 #
 # Usage:
@@ -123,7 +127,7 @@ fi
 
 # Check for available backups
 if [[ -f "$BACKUP_MANIFEST" ]]; then
-    while IFS='|' read -r original backup_name timestamp type; do
+    while IFS='|' read -r original backup_name timestamp _; do
         [[ "$original" =~ ^#.*$ || -z "$original" ]] && continue
         [[ -f "$BACKUP_DIR/$backup_name" || -d "$BACKUP_DIR/$backup_name" ]] && AVAILABLE_RESTORES+=("$original (backed up $timestamp)")
     done < "$BACKUP_MANIFEST"
@@ -214,7 +218,7 @@ if [[ "$RESTORE_BACKUPS" == true && ${#AVAILABLE_RESTORES[@]} -gt 0 ]]; then
     echo ""
     echo "Restoring backed up files..."
 
-    while IFS='|' read -r original backup_name timestamp type; do
+    while IFS='|' read -r original backup_name timestamp _; do
         [[ "$original" =~ ^#.*$ || -z "$original" ]] && continue
 
         backup_path="$BACKUP_DIR/$backup_name"

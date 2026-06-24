@@ -1,4 +1,8 @@
 #!/bin/bash
+# ~/ in user-facing display strings is literal shorthand, not a path to expand;
+# real path operations in this file use $HOME.
+# shellcheck disable=SC2088
+#
 # health.sh - Diagnose dotfiles setup and system health
 #
 # Usage:
