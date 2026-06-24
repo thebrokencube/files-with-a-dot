@@ -5,39 +5,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/build"
 )
 
-// buildTarget is one GOOS/GOARCH pair to compile for.
-type buildTarget struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
-}
-
-// buildArtifact is one produced binary.
-type buildArtifact struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
-	Path string `json:"path"`
-}
-
-type buildResult struct {
-	Tool      string          `json:"tool"`
-	Version   string          `json:"version"`
-	Artifacts []buildArtifact `json:"artifacts"`
-}
-
-// releaseMatrix is the standard set of platforms produced for a release.
-var releaseMatrix = []buildTarget{
-	{OS: "darwin", Arch: "arm64"},
-	{OS: "linux", Arch: "amd64"},
-}
-
-// resolveVersion returns the override if set, else the trimmed contents of
-// <dir>/VERSION. It is the single source of truth for the stamped version.
+// resolveVersion reads <dir>/VERSION (the I/O the pure core can't do) and
+// delegates validation to build.ParseVersion. It is the single source of truth
+// for the stamped version.
 func resolveVersion(dir, override string) (string, error) {
 	if override != "" {
 		return override, nil
@@ -46,29 +21,7 @@ func resolveVersion(dir, override string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("no --version given and no VERSION file in %s: %w", dir, err)
 	}
-	v := strings.TrimSpace(string(b))
-	if v == "" {
-		return "", fmt.Errorf("VERSION file in %s is empty", dir)
-	}
-	return v, nil
-}
-
-// buildTargets returns the release matrix when matrix is set, else the host platform only.
-func buildTargets(matrix bool) []buildTarget {
-	if matrix {
-		return releaseMatrix
-	}
-	return []buildTarget{{OS: runtime.GOOS, Arch: runtime.GOARCH}}
-}
-
-// artifactName is the released binary's filename: <tool>-<os>-<arch>.
-func artifactName(tool, goos, goarch string) string {
-	return fmt.Sprintf("%s-%s-%s", tool, goos, goarch)
-}
-
-// buildLDFlags are the reproducible linker flags with the version stamped in.
-func buildLDFlags(version string) string {
-	return "-buildid= -X main.version=" + version
+	return build.ParseVersion(string(b), "")
 }
 
 func runBuild(args []string) int {
@@ -109,22 +62,22 @@ func runBuild(args []string) int {
 		return buildFail(out, "creating out dir", err)
 	}
 
-	var artifacts []buildArtifact
-	for _, t := range buildTargets(*matrix) {
-		outPath := filepath.Join(absOut, artifactName(tool, t.OS, t.Arch))
+	var artifacts []build.Artifact
+	for _, t := range build.Targets(*matrix) {
+		outPath := filepath.Join(absOut, build.ArtifactName(tool, t.OS, t.Arch))
 		cmd := exec.Command("go", "build", "-C", absDir,
 			"-trimpath", "-buildvcs=false",
-			"-ldflags", buildLDFlags(version),
+			"-ldflags", build.LDFlags(version),
 			"-o", outPath, ".")
 		cmd.Env = append(os.Environ(), "GOOS="+t.OS, "GOARCH="+t.Arch)
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			return buildFail(out, fmt.Sprintf("building %s/%s", t.OS, t.Arch), err)
 		}
-		artifacts = append(artifacts, buildArtifact{OS: t.OS, Arch: t.Arch, Path: outPath})
+		artifacts = append(artifacts, build.Artifact{OS: t.OS, Arch: t.Arch, Path: outPath})
 	}
 
-	res := buildResult{Tool: tool, Version: version, Artifacts: artifacts}
+	res := build.Result{Tool: tool, Version: version, Artifacts: artifacts}
 	if out.IsJSON() {
 		fmt.Print(string(out.MustResult(res)))
 		return dendrik.ExitOK
