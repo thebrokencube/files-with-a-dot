@@ -2,7 +2,7 @@
 name: dendrik
 description: "Use when reviewing any SKILL.md, CLAUDE.md, reference file, or agentic documentation for quality — structure, description, progressive disclosure, writing style. Also use when validating tool conventions, checking contract compliance, or debugging lint failures in dotfiles CLI tools. Triggers: 'review my skill', 'check this skill', 'review this doc', 'is this SKILL.md good', 'skill quality', 'dendrik', 'lint', 'convention check'."
 user_invocable: true
-argument-hint: "[review [path] | lint <path> [--json] [--strict] | --explain <id>]"
+argument-hint: "[review [path] | lint <path> [--json] [--strict] [--fix] | --explain <id>]"
 ---
 
 # dendrik
@@ -46,6 +46,7 @@ Full contract lint for dotfiles CLI tools in `cmd/*/`. Delegates to the `dendrik
 cd ~/.dotfiles
 dendrik lint <path>            # all checks
 dendrik lint <path> --strict   # promote warnings to errors
+dendrik lint <path> --fix      # apply mechanical fixes, then re-lint
 dendrik lint <path> --json     # structured output
 dendrik lint --explain <id>    # rationale for a check
 ```

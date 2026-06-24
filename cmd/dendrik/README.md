@@ -27,6 +27,7 @@ dendrik lint --explain go-mod-linked  # show rationale for a check
 | `dendrik lint <path>` | Run contract validation against a tool directory |
 | `dendrik lint --json` | JSON output (ResultEnvelope format) |
 | `dendrik lint --strict` | Promote warnings to errors |
+| `dendrik lint --fix` | Apply mechanical fixes (go.work / symlink_map wiring), then re-lint |
 | `dendrik lint --explain <id>` | Show rationale and remediation for a check ID |
 | `dendrik version` | Show version |
 
@@ -95,6 +96,7 @@ See the [build & release convention](../../pkg/dendrik/conventions/release.md).
 ## Documentation
 
 - [Getting Started](docs/01-getting-started.md) — first lint run, reading results, fixing violations
+- [Starting a new tool](docs/02-new-tool.md) — the copy-an-exemplar + `lint --fix` recipe
 - [Reference](docs/03-reference.md) — full check catalog, severity model, output formats, flags
 
 ## Claude Code Integration
