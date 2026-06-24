@@ -136,6 +136,12 @@ If `trigger`, `skip_when`, or `related` fields are present, they must be non-emp
 
 **Fix**: Remove empty fields or provide valid values.
 
+### work-specific-content (Error)
+
+Skill and reference docs contain no work-specific identifiers (e.g. real Jira keys) — they are public, reusable surfaces.
+
+**Fix**: Replace work-specific content with a generic placeholder (e.g. `PROJ-123`).
+
 ## Bridge Layer
 
 ### dendrik-import (Error)

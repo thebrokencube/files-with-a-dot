@@ -173,6 +173,12 @@ var Contract = []ContractEntry{
 		Rationale:   "Conditional activation metadata must be well-formed for agent routing to work correctly.",
 		Remediation: "Ensure trigger, skip_when, and related fields are non-empty strings or string arrays when present.",
 	},
+	{
+		ID: "work-specific-content", Layer: LayerSkill, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "Skill docs contain no work-specific identifiers (e.g. real Jira keys)",
+		Rationale:   "Skill and reference docs are public, reusable surfaces. Work-specific identifiers like real Jira keys leak internal context and date the docs.",
+		Remediation: "Replace work-specific content with a generic placeholder (e.g. PROJ-123).",
+	},
 
 	// --- Bridge Layer ---
 	{
