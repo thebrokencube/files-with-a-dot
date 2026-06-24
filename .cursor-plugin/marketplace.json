@@ -21,7 +21,7 @@
       "name": "dendrik",
       "source": "./cmd/dendrik",
       "description": "Quality linter for agentic documentation and CLI tool conventions: reviews SKILL.md/CLAUDE.md/reference files and checks contract compliance.",
-      "version": "0.0.5"
+      "version": "0.0.6"
     }
   ]
 }
