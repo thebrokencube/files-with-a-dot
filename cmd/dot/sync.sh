@@ -31,6 +31,7 @@ trap 'exitcode=$?; if [[ $exitcode -ne 0 ]]; then echo ""; echo "ERROR: Command 
 
 SKIP_BREW=false
 SKIP_PULL=false
+LINKS_ONLY=false
 DRY_RUN=false
 NO_BACKUP=false
 FORCE=false
@@ -46,7 +47,7 @@ while [[ $# -gt 0 ]]; do
         --skip-brew) SKIP_BREW=true; shift ;;
         --skip-pull) SKIP_PULL=true; shift ;;
         --pull) FORCE_PULL=true; shift ;;
-        --links-only) SKIP_BREW=true; SKIP_PULL=true; shift ;;
+        --links-only) LINKS_ONLY=true; SKIP_BREW=true; SKIP_PULL=true; shift ;;
         --no-backup) NO_BACKUP=true; shift ;;
         --force) FORCE=true; shift ;;
         --machine) MACHINE_ARG="$2"; shift 2 ;;
@@ -534,6 +535,11 @@ analyze_state "$IS_FIRST_TIME"
 # Report
 report_state
 
+if [[ "$LINKS_ONLY" == true ]]; then
+    echo -e "${YELLOW}--links-only: only symlinks will be applied; other actions above are skipped.${NC}"
+    echo ""
+fi
+
 # Gates
 if [[ ${#FRICTIONS[@]} -gt 0 ]]; then
     echo -e "${RED}Cannot proceed due to frictions above.${NC}"
@@ -604,6 +610,17 @@ fi
 # Apply symlinks
 echo "Creating symlinks..."
 apply_symlinks "$SYMLINK_MAP"
+
+# --links-only stops here: only symlinks are (re)created. The remaining phases
+# (CLI tools, brew, local configs, managed files, mise, Claude Code, starship)
+# are intentionally skipped.
+if [[ "$LINKS_ONLY" == true ]]; then
+    echo ""
+    echo "============================================"
+    echo -e "  ${GREEN}Symlinks synced (--links-only)${NC}"
+    echo "============================================"
+    exit 0
+fi
 
 # Install dendrik-built CLI tools from GitHub Releases (replaces the old committed-binary symlinks)
 echo ""
