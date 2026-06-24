@@ -54,6 +54,7 @@ func runLint(args []string) int {
 	if out.IsJSON() {
 		type jsonOutput struct {
 			Tool     string        `json:"tool"`
+			Checks   int           `json:"checks"`
 			Errors   int           `json:"errors"`
 			Warnings int           `json:"warnings"`
 			Results  []lint.Result `json:"results"`
@@ -61,6 +62,7 @@ func runLint(args []string) int {
 		errors, warnings := countSeverities(results)
 		fmt.Print(string(out.MustResult(jsonOutput{
 			Tool:     data.ToolName,
+			Checks:   len(conventions.Contract),
 			Errors:   errors,
 			Warnings: warnings,
 			Results:  results,
