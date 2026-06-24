@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
@@ -15,6 +16,7 @@ func runLint(args []string) int {
 	jsonFlag := fs.BoolLong("json", "JSON output")
 	plainFlag := fs.BoolLong("plain", "Undecorated text output (no color, no JSON)")
 	strictFlag := fs.BoolLong("strict", "Promote warnings to errors")
+	fixFlag := fs.BoolLong("fix", "Apply mechanical fixes for auto-fixable checks, then re-lint")
 	explainFlag := fs.StringLong("explain", "", "Show rationale for a check ID")
 	noColor := fs.BoolLong("no-color", "Disable color output")
 
@@ -48,6 +50,24 @@ func runLint(args []string) int {
 	}
 	results := lint.Run(data, lint.Options{Strict: *strictFlag})
 
+	// --fix: apply mechanical fixes, then re-gather and re-lint so output reflects
+	// the post-fix state.
+	var fixed []string
+	if *fixFlag {
+		fixed, err = lint.ApplyFixes(data, results)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error applying fixes: %v\n", err)
+			return dendrik.ExitExternalErr
+		}
+		if len(fixed) > 0 {
+			if data, err = lint.GatherToolData(toolDir); err != nil {
+				fmt.Fprintf(os.Stderr, "Error gathering tool data: %v\n", err)
+				return dendrik.ExitExternalErr
+			}
+			results = lint.Run(data, lint.Options{Strict: *strictFlag})
+		}
+	}
+
 	// Output
 	out := dendrik.NewOutput(*jsonFlag, *plainFlag, *noColor)
 
@@ -57,6 +77,7 @@ func runLint(args []string) int {
 			Checks   int           `json:"checks"`
 			Errors   int           `json:"errors"`
 			Warnings int           `json:"warnings"`
+			Fixed    []string      `json:"fixed,omitempty"`
 			Results  []lint.Result `json:"results"`
 		}
 		errors, warnings := countSeverities(results)
@@ -65,6 +86,7 @@ func runLint(args []string) int {
 			Checks:   len(conventions.Contract),
 			Errors:   errors,
 			Warnings: warnings,
+			Fixed:    fixed,
 			Results:  results,
 		})))
 		if errors > 0 {
@@ -74,6 +96,9 @@ func runLint(args []string) int {
 	}
 
 	// Human output
+	if len(fixed) > 0 {
+		fmt.Printf("%sFixed: %s%s\n", out.Pal.Dim, strings.Join(fixed, ", "), out.Pal.Reset)
+	}
 	errors, warnings := countSeverities(results)
 	if len(results) == 0 {
 		fmt.Println(out.Success("All %d checks passed for %s", len(conventions.Contract), data.ToolName))
