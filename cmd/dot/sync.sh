@@ -739,6 +739,25 @@ install_claude_code() {
 install_claude_code
 echo ""
 
+# Register the home-assistant MCP server (user scope -> ~/.claude.json). Claude Code does
+# not read mcpServers from settings.json, so this must be registered via the CLI. Idempotent:
+# only adds when absent. Credentials are NOT stored here — ha-mcp reads HOMEASSISTANT_URL /
+# HOMEASSISTANT_TOKEN from ~/.env.local (sourced by the shell that launches claude).
+register_mcp_servers() {
+    command -v claude &>/dev/null || return 0
+    if ! claude mcp get home-assistant &>/dev/null; then
+        echo "Registering home-assistant MCP server..."
+        if claude mcp add-json --scope user home-assistant \
+            '{"command":"uvx","args":["--from","ha-mcp==7.8.0","ha-mcp"],"env":{"ENABLE_READ_ONLY_MODE":"true"}}'; then
+            ok "Registered home-assistant MCP server"
+        else
+            warn "Failed to register home-assistant MCP server"
+        fi
+        echo ""
+    fi
+}
+register_mcp_servers
+
 # Install/update the starship-claude statusline script (drives the Claude Code
 # statusLine; reads ~/.claude/starship.toml which is symlinked from dotfiles).
 # Pinned to a commit SHA (upstream ships no tags) — fetched from a mutable third
