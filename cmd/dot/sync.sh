@@ -739,24 +739,15 @@ install_claude_code() {
 install_claude_code
 echo ""
 
-# Register the home-assistant MCP server (user scope -> ~/.claude.json). Claude Code does
-# not read mcpServers from settings.json, so this must be registered via the CLI. Idempotent:
-# only adds when absent. Credentials are NOT stored here — ha-mcp reads HOMEASSISTANT_URL /
-# HOMEASSISTANT_TOKEN from ~/.env.local (sourced by the shell that launches claude).
-register_mcp_servers() {
-    command -v claude &>/dev/null || return 0
-    if ! claude mcp get home-assistant &>/dev/null; then
-        echo "Registering home-assistant MCP server..."
-        if claude mcp add-json --scope user home-assistant \
-            '{"command":"uvx","args":["--from","ha-mcp==7.8.0","ha-mcp"],"env":{"ENABLE_READ_ONLY_MODE":"true"}}'; then
-            ok "Registered home-assistant MCP server"
-        else
-            warn "Failed to register home-assistant MCP server"
-        fi
-        echo ""
-    fi
-}
-register_mcp_servers
+# Run the private overlay's optional post-sync script, if present and executable. This is the
+# home for machine-specific imperative steps that the declarative overlay (symlinks/Brewfile/
+# managed-JSON) can't express — e.g. registering MCP servers via the claude CLI. Runs as a
+# subprocess (isolated); a failure warns and continues. No-op when the script is absent.
+if has_private_overlay && [[ -x "$PRIVATE_DIR/post-sync.sh" ]]; then
+    echo "Running private post-sync script..."
+    "$PRIVATE_DIR/post-sync.sh" || warn "private post-sync.sh failed (continuing)"
+    echo ""
+fi
 
 # Install/update the starship-claude statusline script (drives the Claude Code
 # statusLine; reads ~/.claude/starship.toml which is symlinked from dotfiles).
