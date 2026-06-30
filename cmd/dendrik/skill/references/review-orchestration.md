@@ -16,6 +16,11 @@ output skeleton.
 | **repo / dir** | `git ls-files`, filter to the glob set below | every detected doc |
 | **PR** (`#123`, URL, `--pr`) | `gh pr diff <pr> --name-only` (fallback `git diff --name-only <base>...HEAD`), filter to the glob set | changed docs + bounded neighbors |
 
+**Repo scope vs PR scope.** If a **repo** target has unmerged commits vs its default base
+(`git log origin/main..HEAD --oneline` is non-empty), offer PR-scoped review instead — a
+"review my changes" intent shouldn't be diluted by unrelated docs the repo glob pulls in. This
+is an offered option, not a probe to run on every review.
+
 **Glob set:** `**/SKILL.md`, `**/CLAUDE.md`, `**/AGENTS.md`, `**/ARCHITECTURE.md`,
 `**/README.md`, `**/.claude/commands/*.md`, and `references/*.md` under any directory containing
 a `SKILL.md`. Using `git ls-files` honors `.gitignore` and skips `.git`/vendored content for
