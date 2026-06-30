@@ -33,6 +33,7 @@ exists or not), the runnable source decides — resolve by running, not debating
 - Tables and lists for structured information; prose only when flow matters.
 - Concise — no filler, no restated context.
 - Internal consistency — an edit matches its host section's cadence (no multi-clause bullet in a terse list, no lone heading mid-prose, no outsized example).
+- Edit regressions (diff only) — a list collapsed into prose (list→paragraph regression), or an edited section whose register/format drifts from untouched sibling sections *in the same file*. When no diff is available (plain single-file review), this axis does not fire — it is never a repo-wide "you have a paragraph" nag.
 - **pass:** clean imperative style, structured data in tables. **warn:** occasional
   second-person/passive but clear, or an edit that breaks its section's established cadence/concision. **fail:** predominantly second-person, prose walls where
   tables belong.
