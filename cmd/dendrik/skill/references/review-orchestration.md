@@ -51,7 +51,8 @@ sweep. Apply a check only when its evidence is present:
 
 The **ARCHITECTURE.md inlined/orphaned** and **README ↔ AGENTS.md split** checks are best-effort
 (they can require a whole-repo scan to fire). Project-vs-user-global scope ambiguity is resolved
-per the claude-md leaf (state and ask).
+per the claude-md leaf (state and ask). When a finding wants to point at a target *shape* rather
+than a single fix, name the recommended doc-set pattern (its `recommended-doc-set-pattern.md`).
 
 ## Aggregation & Caps (no silent truncation)
 

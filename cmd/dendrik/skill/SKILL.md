@@ -125,6 +125,7 @@ Maximum 5 findings. If everything passes, say so — don't manufacture problems.
 | `references/review-type-architecture-md.md` | Review lens — detected type: ARCHITECTURE.md |
 | `references/review-type-readme-md.md` | Review lens — detected type: README.md |
 | `references/review-orchestration.md` | Review lens — repo/PR target (multi-artifact) |
+| `references/recommended-doc-set-pattern.md` | Review lens — recommend a target doc-set shape (advice, not a check) |
 | `references/skill-conventions.md` | Review lens — skill convention details |
 | `references/cli-conventions.md` | Conventions lens — CLI details |
 | `references/distribution-conventions.md` | Conventions lens — cross-harness plugin/marketplace distribution |
