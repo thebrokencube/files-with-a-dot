@@ -3,6 +3,7 @@
   "skipAutoPermissionPrompt": true,
   "model": "opus",
   "theme": "dark-ansi",
+  "tui": "fullscreen",
   "skipWorkflowUsageWarning": true,
   "statusLine": {
     "type": "command",
