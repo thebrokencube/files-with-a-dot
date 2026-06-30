@@ -18,6 +18,9 @@ Evaluate each applicable dimension (the ones below + the leaf's) as **pass / war
 Surface the top findings ranked by impact. End with 1-2 concrete "do these first" items. If
 everything passes, say so — do not manufacture findings.
 
+**Dogfood tiebreaker:** when a finding hinges on a *verifiable* fact (a command/path/mode that
+exists or not), the runnable source decides — resolve by running, not debating.
+
 ## Universal Dimensions (every type)
 
 ### Link Integrity

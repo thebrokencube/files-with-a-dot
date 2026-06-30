@@ -46,9 +46,11 @@ sweep. Apply a check only when its evidence is present:
 | **Skill ↔ references** | a SKILL.md + its `references/` | arrow-refs resolve, no eager-loaded reference content, every leaf reachable (warn/fail) |
 | **ARCHITECTURE.md inlined/orphaned** | architecture prose inlined in AGENTS.md/CLAUDE.md, or an ARCHITECTURE.md nothing points to | move inline → ARCHITECTURE.md + reference; link an orphan (best-effort — the orphan inbound-ref search is whole-repo, not guaranteed) |
 | **README ↔ AGENTS.md split** | agent detail in README, or README+AGENTS.md duplication | agent detail belongs in AGENTS.md (best-effort) |
+| **Cross-doc contradiction** | two docs assert conflicting *verifiable* facts — a command/path/mode that exists-or-not, a "creds are/aren't committed" claim | reconcile to one authoritative home; resolve by running per the dogfood tiebreaker. Fires on conflicting *facts* only — never mere duplication (that is Adapter drift / CLAUDE.md hoarding) (warn) |
 
-The last two are best-effort (they can require a whole-repo scan to fire). Project-vs-user-global
-scope ambiguity is resolved per the claude-md leaf (state and ask).
+The **ARCHITECTURE.md inlined/orphaned** and **README ↔ AGENTS.md split** checks are best-effort
+(they can require a whole-repo scan to fire). Project-vs-user-global scope ambiguity is resolved
+per the claude-md leaf (state and ask).
 
 ## Aggregation & Caps (no silent truncation)
 
