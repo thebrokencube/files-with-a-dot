@@ -43,9 +43,9 @@ sweep. Apply a check only when its evidence is present:
 | **CLAUDE.md hoarding** | a *project* CLAUDE.md carries portable convention/command content | move it to AGENTS.md, leave a thin pointer (warn; project-scoped — honor the claude-md leaf's path branch) |
 | **Thin/absent AGENTS.md** | fat project CLAUDE.md beside a thin or missing AGENTS.md | content is in the wrong file; AGENTS.md should be source of truth (warn) |
 | **Adapter drift** | AGENTS.md + an adapter (CLAUDE.md/`.cursorrules`) duplicate the same instructions | adapter should point (`@AGENTS.md`), not duplicate (warn) |
-| **Skill ↔ references** | a SKILL.md + its `references/` | arrow-refs resolve, no eager-loaded reference content, every leaf reachable (warn/fail) |
+| **Skill ↔ references** | a SKILL.md + its `references/`, or a skill that fronts an external guide | arrow-refs resolve, no eager-loaded reference content, every leaf reachable; a routing skill must add discovery or behavioral value, not merely point at a doc; a thin skill fronting an *external* guide must point at it, not restate it (warn/fail) |
 | **ARCHITECTURE.md inlined/orphaned** | architecture prose inlined in AGENTS.md/CLAUDE.md, or an ARCHITECTURE.md nothing points to | move inline → ARCHITECTURE.md + reference; link an orphan (best-effort — the orphan inbound-ref search is whole-repo, not guaranteed) |
-| **README ↔ AGENTS.md split** | agent detail in README, or README+AGENTS.md duplication | agent detail belongs in AGENTS.md (best-effort) |
+| **README ↔ AGENTS.md split** | agent detail in README, or README+AGENTS.md duplication, or a front-door doc that dead-ends | agent detail belongs in AGENTS.md; a front-door doc (README/AGENTS) routes to detail, it does not dead-end (best-effort) |
 | **Cross-doc contradiction** | two docs assert conflicting *verifiable* facts — a command/path/mode that exists-or-not, a "creds are/aren't committed" claim | reconcile to one authoritative home; resolve by running per the dogfood tiebreaker. Fires on conflicting *facts* only — never mere duplication (that is Adapter drift / CLAUDE.md hoarding) (warn) |
 
 The **ARCHITECTURE.md inlined/orphaned** and **README ↔ AGENTS.md split** checks are best-effort
