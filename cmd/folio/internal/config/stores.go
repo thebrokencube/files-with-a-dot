@@ -17,7 +17,17 @@ import (
 const (
 	KindFolio    = "folio"    // a full folio home — listed, structure-aware, writable, validated
 	KindExternal = "external" // a non-folio KB — read-only, content-grep, missing target warns
+	KindCode     = "code"     // a code repo folio hovers over — branch + delegate, never main
+	KindDot      = "dot"      // a dotfiles repo managed by the `dot` tool — delegates wholesale to `dot`
 )
+
+const (
+	LocationContained  = "contained"  // under ~/.folio; folio may create/reconstruct it
+	LocationReferenced = "referenced" // lives in place; folio reads it, never rewrites its history
+)
+
+// maxSchema is the highest stores.yml schema version this binary understands (0 = unset).
+const maxSchema = 3
 
 const storesFile = "stores.yml"
 
@@ -30,13 +40,18 @@ const vaultName = "vault"
 
 // Store is one entry in the global store registry (~/.folio/stores.yml).
 type Store struct {
-	Name string // map key, filled on load
-	Path string // ~/ expanded to absolute
-	Kind string // KindFolio | KindExternal
+	Name          string // map key, filled on load
+	Path          string // ~/ expanded to absolute
+	Kind          string // KindFolio | KindExternal | KindCode | KindDot
+	Location      string // LocationContained (default) | LocationReferenced
+	DefaultBranch string // branch a code push must refuse; "" → "main"
 }
 
 // IsExternal reports whether the store is a read-only external KB.
 func (s Store) IsExternal() bool { return s.Kind == KindExternal }
+
+// IsReferenced reports whether the store lives in place (folio never rewrites its history).
+func (s Store) IsReferenced() bool { return s.Location == LocationReferenced }
 
 // Registry indexes every folio + external KB the user works across. It is
 // global: loaded once from the home dir and consulted by all resolution and
@@ -125,8 +140,10 @@ func defaultRegistry(homeDir string) *Registry {
 }
 
 type rawStore struct {
-	Path string `yaml:"path"`
-	Kind string `yaml:"kind"`
+	Path          string `yaml:"path"`
+	Kind          string `yaml:"kind"`
+	Location      string `yaml:"location"`
+	DefaultBranch string `yaml:"default_branch"`
 }
 
 // parseRegistry decodes stores.yml. The stores mapping is decoded via a
@@ -143,6 +160,9 @@ func parseRegistry(data []byte) (*Registry, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", storesFile, err)
 	}
+	if doc.Schema > maxSchema {
+		return nil, fmt.Errorf("%s: unsupported schema version %d (max %d)", storesFile, doc.Schema, maxSchema)
+	}
 
 	reg := &Registry{Stores: map[string]Store{}, Default: doc.Default}
 	content := doc.Stores.Content // mapping node: [key, val, key, val, ...]
@@ -154,10 +174,23 @@ func parseRegistry(data []byte) (*Registry, error) {
 		}
 		kind := rs.Kind
 		if kind == "" {
-			kind = KindFolio // default: a registered store is a folio unless told otherwise
+			kind = KindExternal // safe default: read-only until told otherwise (never assume the writable folio push)
 		}
-		if kind != KindFolio && kind != KindExternal {
-			return nil, fmt.Errorf("store %q: invalid kind %q (want %s|%s)", name, kind, KindFolio, KindExternal)
+		switch kind {
+		case KindFolio, KindExternal, KindCode, KindDot:
+		default:
+			return nil, fmt.Errorf("store %q: invalid kind %q (want %s|%s|%s|%s)", name, kind, KindFolio, KindExternal, KindCode, KindDot)
+		}
+		loc := rs.Location
+		if loc == "" {
+			loc = LocationContained
+		}
+		if loc != LocationContained && loc != LocationReferenced {
+			return nil, fmt.Errorf("store %q: invalid location %q (want %s|%s)", name, loc, LocationContained, LocationReferenced)
+		}
+		branch := rs.DefaultBranch
+		if branch == "" {
+			branch = "main"
 		}
 		if rs.Path == "" {
 			return nil, fmt.Errorf("store %q: missing path", name)
@@ -165,7 +198,7 @@ func parseRegistry(data []byte) (*Registry, error) {
 		if _, dup := reg.Stores[name]; dup {
 			return nil, fmt.Errorf("store %q: declared more than once", name)
 		}
-		reg.Stores[name] = Store{Name: name, Path: expandUser(rs.Path), Kind: kind}
+		reg.Stores[name] = Store{Name: name, Path: expandUser(rs.Path), Kind: kind, Location: loc, DefaultBranch: branch}
 		reg.Order = append(reg.Order, name)
 	}
 	return reg, nil
