@@ -10,6 +10,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/sync"
 )
 
 func mustGetwd() string {
@@ -98,7 +99,7 @@ func resolveFolioPath(value string) (string, error) {
 		if !found {
 			return "", fmt.Errorf("unknown store %q in --folio %q (not registered in stores.yml)", storeName, value)
 		}
-		if store.IsExternal() {
+		if !sync.CanPush(store) {
 			return "", fmt.Errorf("store %q is external (read-only) — not a write target", storeName)
 		}
 		return resolveInStore(store.Path, storeName, project)

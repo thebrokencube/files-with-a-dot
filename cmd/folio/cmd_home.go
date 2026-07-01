@@ -19,6 +19,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/sync"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
@@ -275,13 +276,16 @@ func runHomePush(args []string) int {
 	if code != dendrik.ExitOK {
 		return code
 	}
-	// External stores are read-only to folio — contributions go through that
-	// repo's own PR flow. Fires for both the positional and cwd-resolved paths.
-	if store.IsExternal() {
+	// Read-only stores (external) are never pushed — contributions go through
+	// that repo's own PR flow. Single refusal predicate (sync.CanPush), shared
+	// with the --folio write-target guard in helpers.go. Fires for both the
+	// positional and cwd-resolved paths.
+	if !sync.CanPush(store) {
 		fmt.Fprintln(os.Stderr, pal.Errf("store %q is external (read-only) — folio never pushes it; contribute via its own PR flow", store.Name))
 		return dendrik.ExitUserError
 	}
 
+	strategy := sync.For(store)
 	var pushErr error
 	if *folioName != "" {
 		// Scoped push: resolve the target folio and validate only it. A scoped
@@ -307,14 +311,14 @@ func runHomePush(args []string) int {
 			printValidationErrors(pal, errs)
 			return dendrik.ExitUserError
 		}
-		pushErr = repo.PushScoped(dir, *msg, []string{match.Section + "/" + match.Path})
+		_, pushErr = strategy.Push(dir, store, *msg, sync.PushOpts{Scoped: []string{match.Section + "/" + match.Path}})
 	} else {
 		// Whole-tree push: validate every active folio plus home structure.
 		if errs := validateActiveProjects(dir); len(errs) > 0 {
 			printValidationErrors(pal, errs)
 			return dendrik.ExitUserError
 		}
-		pushErr = repo.Push(dir, *msg)
+		_, pushErr = strategy.Push(dir, store, *msg, sync.PushOpts{})
 	}
 
 	if pushErr != nil {
@@ -357,12 +361,12 @@ func runHomePull(args []string) int {
 		storeName = rest[0]
 	}
 
-	dir, _, code := resolveSyncTarget(storeName)
+	dir, store, code := resolveSyncTarget(storeName)
 	if code != dendrik.ExitOK {
 		return code
 	}
 
-	if err := repo.Pull(dir); err != nil {
+	if err := sync.For(store).Pull(dir, store); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
