@@ -73,18 +73,47 @@ duplicated across the agnostic and harness layers (drift risk).
 
 ## Output Format
 
-Present each finding as:
+Reviews are **layered** so they read and share at three depths: a verdict line (the
+Slack-forward sentence), a TL;DR (the one-glance shape), then risk-grouped findings the reader
+opens on demand. Do not emit a flat list of equal-weight blocks.
 
 ```
-**[Area] — [pass/warn/fail] [brief verdict]**
+**Verdict: <✅ Approve | 🟡 Approve with fixes | 🔴 Request changes> — <one-line why>.**
+
+**▸ TL;DR** — <one-line quality read: what's strong>. Biggest issue: <the single top finding>.
+`N fix-first · M nits · K strengths`
+
+### 🔧 Fix first (N)
+**🟡 [Area] — [brief verdict]**
 > Specific observation. Concrete suggestion.
+
+### ⚪ Nits (M)
+**⚪ [Area] — [brief verdict]**
+> Specific observation. Concrete suggestion.
+
+### 👍 What's good (K)
+- <strength> · <strength>
 ```
+
+**Verdict maps off risk** (highest tier present wins):
+- any 🔴 fail → **Request changes**
+- only 🟡 warn / ⚪ nit → **Approve with fixes**
+- all pass / clean → **Approve**
+
+**Tiers** map from pass/warn/fail: **Fix first** = fails + high-impact warns; **Nits** =
+low-impact warns and optional cleanups. Each finding keeps its 🔴/🟡/⚪ tag so risk stays visible
+within a group.
+
+**Render targets:**
+- **Chat / terminal** (default) — use `###` group headers, as above.
+- **GitHub PR comment** — swap each `###` group header for `<details><summary><b>…</b></summary>`
+  so the groups collapse; keep the verdict + TL;DR outside any `<details>` so they're always visible.
 
 ## Presentation Rules
 
-- Maximum 5 findings per artifact, ranked by impact (for multi-artifact reviews, see the caps
-  in `review-orchestration.md`).
-- Lead with the highest-impact issue.
-- End with "do these 1-2 things first" — specific, actionable next steps.
-- If the artifact is strong, say so. Do not manufacture findings.
-- Use pass/warn/fail vocabulary consistently.
+- Maximum 5 findings per artifact (excluding strengths), ranked by impact (for multi-artifact
+  reviews, see the caps in `review-orchestration.md`).
+- Lead with the verdict, then the TL;DR's single biggest issue.
+- The "Fix first" group *is* the "do these 1-2 things first" — keep it to the highest-impact items.
+- If the artifact is strong, say so — the "What's good" group is required, not optional filler.
+- Use pass/warn/fail vocabulary (and the matching 🔴/🟡/⚪ tags) consistently.
