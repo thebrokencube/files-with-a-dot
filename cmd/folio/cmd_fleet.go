@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/fleet"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/sync"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
@@ -19,6 +21,8 @@ func runFleet(args []string) int {
 	switch args[0] {
 	case "status":
 		return runFleetStatus(args[1:])
+	case "workarea":
+		return runFleetWorkarea(args[1:])
 	case "--help", "-h", "help":
 		printFleetUsage()
 		return dendrik.ExitOK
@@ -31,7 +35,10 @@ func runFleet(args []string) int {
 
 func printFleetUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: folio fleet <command>")
-	fmt.Fprintln(os.Stderr, "  status [--dirty] [--json]   Read-only status across every registered store")
+	fmt.Fprintln(os.Stderr, "  status [--dirty] [--json]        Read-only status across every registered store")
+	fmt.Fprintln(os.Stderr, "  workarea open <store> <branch>   Create an isolated checkout (worktree/jj workspace)")
+	fmt.Fprintln(os.Stderr, "  workarea list                    Reconcile ledger vs VCS truth vs disk")
+	fmt.Fprintln(os.Stderr, "  workarea reap [<branch>|--all]   Remove stale work areas (tier-correct, dirty-guarded)")
 }
 
 // runFleetStatus fans a cheap, read-only probe across every registered store
@@ -179,4 +186,115 @@ func contains(xs []string, x string) bool {
 		}
 	}
 	return false
+}
+
+// runFleetWorkarea dispatches `folio fleet workarea <open|list|reap>`.
+func runFleetWorkarea(args []string) int {
+	pal := dendrik.NewPalette(true)
+	if len(args) == 0 {
+		printFleetUsage()
+		return dendrik.ExitUserError
+	}
+	umbrella, err := home.Dir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	switch args[0] {
+	case "open":
+		return runWorkareaOpen(umbrella, args[1:], pal)
+	case "list":
+		return runWorkareaList(umbrella, pal)
+	case "reap":
+		return runWorkareaReap(umbrella, args[1:], pal)
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown workarea command: %s\n", args[0])
+		printFleetUsage()
+		return dendrik.ExitUserError
+	}
+}
+
+func runWorkareaOpen(umbrella string, args []string, pal dendrik.Palette) int {
+	fs := dendrik.NewFlagSet("fleet workarea open")
+	base := fs.String('b', "base", "", "Base branch to fork from (default: store default_branch or main)")
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
+	}
+	rest := fs.GetArgs()
+	if len(rest) != 2 {
+		fmt.Fprintln(os.Stderr, pal.Errf("usage: folio fleet workarea open <store> <branch> [--base <ref>]"))
+		return dendrik.ExitUserError
+	}
+	storeName, branch := rest[0], rest[1]
+	reg, err := config.LoadRegistry()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	store, ok := reg.Lookup(storeName)
+	if !ok {
+		fmt.Fprintln(os.Stderr, pal.Errf("store %q is not registered in stores.yml", storeName))
+		return dendrik.ExitUserError
+	}
+	if store.Kind == config.KindFolio || store.Kind == config.KindExternal {
+		fmt.Fprintln(os.Stderr, pal.Errf("workarea is for code/dot stores; %q is %s (KB sync uses `folio home workspace`)", storeName, store.Kind))
+		return dendrik.ExitUserError
+	}
+	wa, err := fleet.Open(umbrella, store, branch, *base, os.Getenv("FOLIO_SESSION"))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	fmt.Println(pal.Successf("Opened %s work area at %s (branch %s, off %s)", wa.Tier, wa.Dir, wa.Branch, wa.Base))
+	fmt.Printf("  cd %s\n", wa.Dir)
+	return dendrik.ExitOK
+}
+
+func runWorkareaList(umbrella string, pal dendrik.Palette) int {
+	rows, orphans, err := fleet.Reconcile(umbrella)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if len(rows) == 0 && len(orphans) == 0 {
+		fmt.Println("No work areas.")
+		return dendrik.ExitOK
+	}
+	for _, r := range rows {
+		fmt.Printf("  %-10s  %-24s  %-14s  %s\n", r.State, r.Branch, r.Tier, r.Dir)
+	}
+	for _, o := range orphans {
+		fmt.Printf("  %-10s  %-24s  %-14s  %s\n", "orphan", "-", "-", o)
+	}
+	return dendrik.ExitOK
+}
+
+func runWorkareaReap(umbrella string, args []string, pal dendrik.Palette) int {
+	fs := dendrik.NewFlagSet("fleet workarea reap")
+	all := fs.BoolLong("all", "Reap every eligible work area (default without a branch)")
+	force := fs.BoolLong("force", "Remove even dirty/unpushed or severed areas")
+	if done, code := dendrik.ParseCheck(fs, args); done {
+		return code
+	}
+	only := ""
+	if rest := fs.GetArgs(); len(rest) > 0 {
+		only = rest[0]
+	}
+	if only == "" && !*all {
+		// Default reap prunes dead rows + removes clean areas; make intent explicit.
+		*all = true
+	}
+	actions, err := fleet.Reap(umbrella, only, *force)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if len(actions) == 0 {
+		fmt.Println("Nothing to reap.")
+		return dendrik.ExitOK
+	}
+	for _, a := range actions {
+		fmt.Printf("  %s\n", a)
+	}
+	return dendrik.ExitOK
 }
