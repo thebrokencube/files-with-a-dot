@@ -3,7 +3,14 @@
 
 The catalog of dendrik concepts a system can compose. Generated (pure projection); the
 authored fields live in `//dendrik:` tags at each concept's source. A blueprint's
-`composes:` ids resolve here. **4 blocks.**
+`composes:` ids resolve here. **6 blocks.**
+
+### agentskills
+- kind: component  ·  layer: skill  ·  status: shipped
+- source: `pkg/dendrik/agentskills/validate.go`
+- conformance: skill-frontmatter, skill-links, skill-size
+- definition: skill-layer validator — frontmatter, links, size gate (Layer 1)
+- intent: one validator so every agent skill is well-formed and discoverable
 
 ### contract
 - kind: primitive  ·  layer: bridge  ·  status: shipped
@@ -24,6 +31,12 @@ authored fields live in `//dendrik:` tags at each concept's source. A blueprint'
 - conformance: exit-constants
 - definition: four exit constants: 0 ok, 1 user-error, 2 external/retry, 3 conflict
 - intent: typed exit signal to route on (fix/retry/resolve), not just pass-fail
+
+### flag-registry
+- kind: component  ·  layer: bridge  ·  status: shipped
+- source: `pkg/dendrik/conventions/flag_registry.go`
+- definition: shared CLI flag vocabulary (short/long/meaning) + collision detection
+- intent: flags mean the same across every dendrik CLI; collisions caught at build
 
 ### result-envelope
 - kind: primitive  ·  layer: code  ·  status: shipped

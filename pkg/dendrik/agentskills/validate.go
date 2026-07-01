@@ -13,6 +13,14 @@ var namePattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 var mdLinkPattern = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
 var kebabPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*\.[a-z]+$`)
 
+//dendrik:block agentskills
+//dendrik:kind component
+//dendrik:layer skill
+//dendrik:status shipped
+//dendrik:definition skill-layer validator — frontmatter, links, size gate (Layer 1)
+//dendrik:intent one validator so every agent skill is well-formed and discoverable
+//dendrik:conformance skill-frontmatter skill-links skill-size
+
 // ValidateLayer1 runs Layer 1 checks (skill-exists through skill-size) against a skill directory.
 // skillDir is the absolute path to the directory containing SKILL.md (e.g., cmd/jf/skill/).
 // dirName is the expected skill name (must match frontmatter name field).
