@@ -1,6 +1,6 @@
 {
   "name": "dendrik",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Quality linter for agentic documentation and CLI tool conventions: reviews SKILL.md/CLAUDE.md/reference files and checks contract compliance.",
   "author": {
     "name": "thebrokencube"
