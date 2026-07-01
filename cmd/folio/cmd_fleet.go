@@ -236,8 +236,8 @@ func runWorkareaOpen(umbrella string, args []string, pal dendrik.Palette) int {
 		fmt.Fprintln(os.Stderr, pal.Errf("store %q is not registered in stores.yml", storeName))
 		return dendrik.ExitUserError
 	}
-	if store.Kind == config.KindFolio || store.Kind == config.KindExternal {
-		fmt.Fprintln(os.Stderr, pal.Errf("workarea is for code/dot stores; %q is %s (KB sync uses `folio home workspace`)", storeName, store.Kind))
+	if store.Kind != config.KindCode {
+		fmt.Fprintln(os.Stderr, pal.Errf("workarea is only for code stores; %q is %s (folio KBs use `folio home workspace`; dotfiles is worked in place)", storeName, store.Kind))
 		return dendrik.ExitUserError
 	}
 	wa, err := fleet.Open(umbrella, store, branch, *base, os.Getenv("FOLIO_SESSION"))

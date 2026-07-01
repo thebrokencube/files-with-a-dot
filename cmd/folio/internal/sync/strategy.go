@@ -23,9 +23,6 @@ import (
 // ErrReadOnly is returned by a read-only strategy's Push (external stores).
 var ErrReadOnly = errors.New("store is external (read-only) — folio never pushes it; contribute via its own PR flow")
 
-// ErrNotImplemented is returned by kinds whose sync is not yet wired.
-var ErrNotImplemented = errors.New("sync not yet implemented for this store kind")
-
 // ErrDelegate is the directive a `code` push emits: folio verified a non-main
 // branch, and the driving AGENT must run the Next skills to compose the commit/PR.
 // Folio never invokes skills. It is a plain typed Go struct on purpose (design
@@ -131,8 +128,8 @@ func (externalStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (Pu
 }
 
 // codeStrategy hovers over a code repo: real read-only Status + Pull (git fetch
-// only, never checkout/merge). Push is deferred to P3 (position a non-main branch
-// + emit a delegate directive); until then it returns ErrNotImplemented.
+// only, never checkout/merge). Push positions a non-main branch and emits a
+// delegate directive (never composes a commit/PR itself).
 type codeStrategy struct{}
 
 func (codeStrategy) ReadOnly() bool                                { return false }
@@ -145,28 +142,40 @@ func (codeStrategy) Pull(dir string, _ config.Store) error         { return gitF
 // branch it composes no commit/PR itself; it returns an ErrDelegate directing the
 // driving agent to run /commit (which owns commit format + stacks/PRs).
 func (codeStrategy) Push(dir string, s config.Store, _ string, _ PushOpts) (PushResult, error) {
+	return delegatePush(dir, s, "code repo")
+}
+
+// delegatePush is the shared never-main-guard + emit-directive mechanic used by
+// both code and dot pushes. Both target branch-protected git/jj repos whose
+// remote is reached via a PR (dotfiles main is branch-protected just like code),
+// so folio positions/verifies a non-main branch and hands off to /commit.
+func delegatePush(dir string, s config.Store, label string) (PushResult, error) {
 	def := s.DefaultBranch
 	if def == "" {
 		def = "main"
 	}
 	branch, err := currentBranch(dir)
 	if err != nil {
-		return PushResult{}, fmt.Errorf("refusing code push: %w", err)
+		return PushResult{}, fmt.Errorf("refusing %s push: %w", label, err)
 	}
 	if branch == def || branch == "main" || branch == "master" {
-		return PushResult{}, fmt.Errorf("refusing to push code repo on shared branch %q — switch to a feature branch first", branch)
+		return PushResult{}, fmt.Errorf("refusing to push %s on shared branch %q — switch to a feature branch first", label, branch)
 	}
 	return PushResult{}, &ErrDelegate{Dir: dir, Branch: branch, Next: []string{"/commit"}}
 }
 
 // dotStrategy manages a dotfiles repo. Status is per-VCS (the dotfiles repo is
 // jj-colocated, so jj gives the real branch+dirty; `dot status` is a verbose
-// report, not a status cell). Pull shells `dot pull`. Push is deferred to P4.
+// report, not a status cell). Pull shells `dot pull` (pull + re-apply). Push: the
+// dotfiles remote is branch-protected (PR-required) like code and `dot sync` only
+// APPLIES state locally (never pushes), so Push uses the same delegate mechanic as
+// code (never-main guard + hand off to /commit). `dot private push` for the
+// private overlay stays a manual `dot` op, out of folio's push path.
 type dotStrategy struct{}
 
 func (dotStrategy) ReadOnly() bool                                { return false }
 func (dotStrategy) Status(dir string, s config.Store) StoreStatus { return workRepoStatus(dir, s) }
 func (dotStrategy) Pull(dir string, _ config.Store) error         { return dotRun(dir, "pull") }
-func (dotStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
-	return PushResult{}, fmt.Errorf("%w: dotfiles push lands in P4", ErrNotImplemented)
+func (dotStrategy) Push(dir string, s config.Store, _ string, _ PushOpts) (PushResult, error) {
+	return delegatePush(dir, s, "dotfiles repo")
 }

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"errors"
+	"os/exec"
 	"testing"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
@@ -41,10 +42,22 @@ func TestExternalPushRefused(t *testing.T) {
 	}
 }
 
-// dot Push is deferred to P4 (code Push is implemented in P3, tested separately).
-func TestDotPushNotImplemented(t *testing.T) {
-	s := config.Store{Kind: config.KindDot}
-	if _, err := For(s).Push("/tmp/x", s, "feat(x): y", PushOpts{}); !errors.Is(err, ErrNotImplemented) {
-		t.Errorf("dot Push err = %v, want ErrNotImplemented", err)
+// dot Push (P4) uses the same delegate mechanic as code: it refuses on a shared
+// branch and, on a feature branch, emits an ErrDelegate to /commit.
+func TestDotPushRefusesMainEmitsDelegate(t *testing.T) {
+	dir := gitInit(t) // on main
+	s := config.Store{Name: "dotfiles", Kind: config.KindDot, Path: dir, DefaultBranch: "main"}
+
+	if _, err := For(s).Push(dir, s, "chore(x): y", PushOpts{}); err == nil {
+		t.Fatal("expected refusal on main for dot push")
+	}
+	cmd := exec.Command("git", "checkout", "-q", "-b", "feature/dots")
+	cmd.Dir = dir
+	if out, cerr := cmd.CombinedOutput(); cerr != nil {
+		t.Fatalf("checkout: %v\n%s", cerr, out)
+	}
+	var del *ErrDelegate
+	if _, err := For(s).Push(dir, s, "chore(x): y", PushOpts{}); !errors.As(err, &del) {
+		t.Fatalf("expected ErrDelegate for dot push on feature branch, got %v", err)
 	}
 }
