@@ -41,6 +41,10 @@ type PushResult struct{}
 type SyncStrategy interface {
 	// ReadOnly reports whether folio must never push to this kind.
 	ReadOnly() bool
+	// Status is cheap, read-only, and NEVER mutates; it powers `fleet status`.
+	// A per-repo failure is reported in StoreStatus.Err, never returned as a
+	// hard error, so one broken repo never blocks the fleet view.
+	Status(dir string, s config.Store) StoreStatus
 	// Pull refreshes the repo (read-only, safe for every kind).
 	Pull(dir string, s config.Store) error
 	// Push commits+pushes; read-only kinds return ErrReadOnly.
@@ -63,12 +67,22 @@ func For(s config.Store) SyncStrategy {
 	case config.KindExternal:
 		return externalStrategy{}
 	case config.KindCode:
-		return stubStrategy{kind: config.KindCode}
+		return codeStrategy{}
 	case config.KindDot:
-		return stubStrategy{kind: config.KindDot}
+		return dotStrategy{}
 	default:
 		return externalStrategy{}
 	}
+}
+
+// workRepoStatus reports a code/dot repo's status PER VCS: jj bookmark + @-dirty
+// for jj/colocated repos (git HEAD is detached there, so git would mislabel),
+// git branch + porcelain for git-only repos.
+func workRepoStatus(dir string, s config.Store) StoreStatus {
+	if repo.IsJJ(dir) {
+		return jjWorkStatus(dir, s)
+	}
+	return gitStatus(dir, s)
 }
 
 // CanPush reports whether folio may push to this store. It is the single
@@ -79,8 +93,9 @@ func CanPush(s config.Store) bool { return !For(s).ReadOnly() }
 // kbStrategy is the folio KB mechanic, wrapping internal/repo verbatim.
 type kbStrategy struct{}
 
-func (kbStrategy) ReadOnly() bool                        { return false }
-func (kbStrategy) Pull(dir string, _ config.Store) error { return repo.Pull(dir) }
+func (kbStrategy) ReadOnly() bool                                { return false }
+func (kbStrategy) Status(dir string, s config.Store) StoreStatus { return jjStatus(dir, s) }
+func (kbStrategy) Pull(dir string, _ config.Store) error         { return repo.Pull(dir) }
 func (kbStrategy) Push(dir string, _ config.Store, msg string, o PushOpts) (PushResult, error) {
 	if len(o.Scoped) > 0 {
 		return PushResult{}, repo.PushScoped(dir, msg, o.Scoped)
@@ -91,21 +106,33 @@ func (kbStrategy) Push(dir string, _ config.Store, msg string, o PushOpts) (Push
 // externalStrategy is a read-only KB: pullable (git pull) but never pushed.
 type externalStrategy struct{}
 
-func (externalStrategy) ReadOnly() bool                        { return true }
-func (externalStrategy) Pull(dir string, _ config.Store) error { return repo.Pull(dir) }
+func (externalStrategy) ReadOnly() bool                                { return true }
+func (externalStrategy) Status(dir string, s config.Store) StoreStatus { return gitStatus(dir, s) }
+func (externalStrategy) Pull(dir string, _ config.Store) error         { return repo.Pull(dir) }
 func (externalStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
 	return PushResult{}, ErrReadOnly
 }
 
-// stubStrategy is a placeholder for kinds wired in later phases (code=P3, dot=P4).
-// It is NOT read-only (those kinds do push, just via their own mechanic), so it
-// does not silently masquerade as external; it simply errors until implemented.
-type stubStrategy struct{ kind string }
+// codeStrategy hovers over a code repo: real read-only Status + Pull (git fetch
+// only, never checkout/merge). Push is deferred to P3 (position a non-main branch
+// + emit a delegate directive); until then it returns ErrNotImplemented.
+type codeStrategy struct{}
 
-func (stubStrategy) ReadOnly() bool { return false }
-func (s stubStrategy) Pull(_ string, _ config.Store) error {
-	return fmt.Errorf("%w: %s", ErrNotImplemented, s.kind)
+func (codeStrategy) ReadOnly() bool                                { return false }
+func (codeStrategy) Status(dir string, s config.Store) StoreStatus { return workRepoStatus(dir, s) }
+func (codeStrategy) Pull(dir string, _ config.Store) error         { return gitFetchOnly(dir) }
+func (codeStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
+	return PushResult{}, fmt.Errorf("%w: code push lands in P3", ErrNotImplemented)
 }
-func (s stubStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
-	return PushResult{}, fmt.Errorf("%w: %s", ErrNotImplemented, s.kind)
+
+// dotStrategy manages a dotfiles repo. Status is per-VCS (the dotfiles repo is
+// jj-colocated, so jj gives the real branch+dirty; `dot status` is a verbose
+// report, not a status cell). Pull shells `dot pull`. Push is deferred to P4.
+type dotStrategy struct{}
+
+func (dotStrategy) ReadOnly() bool                                { return false }
+func (dotStrategy) Status(dir string, s config.Store) StoreStatus { return workRepoStatus(dir, s) }
+func (dotStrategy) Pull(dir string, _ config.Store) error         { return dotRun(dir, "pull") }
+func (dotStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
+	return PushResult{}, fmt.Errorf("%w: dotfiles push lands in P4", ErrNotImplemented)
 }

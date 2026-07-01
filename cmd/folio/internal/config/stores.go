@@ -100,6 +100,20 @@ func (r *Registry) FolioStores() []Store {
 	return out
 }
 
+// AllStores returns every registered store in declaration order, regardless of
+// kind — the set the fleet fan-out (fleet status) iterates. Unlike FolioStores
+// it includes external, code, and dot stores.
+func (r *Registry) AllStores() []Store {
+	if r == nil {
+		return nil
+	}
+	out := make([]Store, 0, len(r.Order))
+	for _, name := range r.Order {
+		out = append(out, r.Stores[name])
+	}
+	return out
+}
+
 // LoadRegistry loads ~/.folio/stores.yml. An absent file yields the implicit
 // default registry {vault: {<home>/vault, folio}}, reproducing today's
 // single-home behavior byte-for-byte.
