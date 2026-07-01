@@ -5,6 +5,13 @@
 // and dendrik new (Track 5) for scaffolding.
 package conventions
 
+//dendrik:block flag-registry
+//dendrik:kind component
+//dendrik:layer bridge
+//dendrik:status shipped
+//dendrik:definition shared CLI flag vocabulary (short/long/meaning) + collision detection
+//dendrik:intent flags mean the same across every dendrik CLI; collisions caught at build
+
 // FlagEntry describes a short flag's meaning within a specific CLI.
 type FlagEntry struct {
 	Short    byte   // Single-character flag (e.g., 'f')
