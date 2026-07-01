@@ -36,6 +36,13 @@ type ContractEntry struct {
 	Remediation string // shown in lint output
 }
 
+//dendrik:block contract
+//dendrik:kind primitive
+//dendrik:layer bridge
+//dendrik:status shipped
+//dendrik:definition machine-readable registry of every lint check (id, layer, severity, remediation)
+//dendrik:intent one source of "conformant"; linter and docs both read it, so they can't drift
+
 // Contract is the complete dendrik tool contract.
 var Contract = []ContractEntry{
 	// --- Go Layer ---
