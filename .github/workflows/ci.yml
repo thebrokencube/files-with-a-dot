@@ -66,7 +66,7 @@ jobs:
           git diff --exit-code
       # Building-block map is a pure projection of the //dendrik: source tags. Regenerate and
       # assert no drift — a stale map means a blueprint's composes: ids resolve to wrong facts.
-      - name: building-block map matches //dendrik: tags (regenerate + no drift)
+      - name: "building-block map matches //dendrik tags (regenerate + no drift)"
         run: |
           scripts/generate-building-blocks
           git diff --exit-code
