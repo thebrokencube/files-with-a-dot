@@ -38,6 +38,10 @@ Editing the plugin registry? Edit `plugins.json` only, then run `scripts/marketp
 3. Keep the change scoped; one logical change per PR. Releases are maintainer-only
    (`workflow_dispatch`) — don't bump versions or cut a release in a contribution PR.
 
+The branch-protection policy is version-controlled at `.github/rulesets/main-protection.json`.
+GitHub doesn't auto-sync it — maintainers re-apply after edits with
+`gh api --method POST repos/thebrokencube/files-with-a-dot/rulesets --input .github/rulesets/main-protection.json`.
+
 ## Test a plugin locally before release
 
 ```
