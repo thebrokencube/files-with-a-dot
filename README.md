@@ -43,8 +43,14 @@ In Claude Code:
 
 Then invoke the tool (e.g. `/folio`) — its skill installs the binary on first use via the
 plugin's bundled, self-locating `bin/setup` (idempotent; safe to re-run). No repo path needed.
-See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; per-harness catalogs
-are generated).
+The binary lands in `~/.local/bin/`, so ensure that's on your `PATH`. Prebuilt release binaries
+cover macOS (arm64) and Linux (x86_64); other platforms fall back to a local `go build` (needs
+Go). See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; per-harness
+catalogs are generated).
+
+## Contributing
+
+Setup, the per-layer verify gates, and the PR flow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Day-to-Day
 
