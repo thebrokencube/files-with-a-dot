@@ -14,6 +14,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
@@ -22,8 +23,24 @@ import (
 // ErrReadOnly is returned by a read-only strategy's Push (external stores).
 var ErrReadOnly = errors.New("store is external (read-only) — folio never pushes it; contribute via its own PR flow")
 
-// ErrNotImplemented is returned by kinds whose sync is not yet wired (code/dot in P0).
+// ErrNotImplemented is returned by kinds whose sync is not yet wired.
 var ErrNotImplemented = errors.New("sync not yet implemented for this store kind")
+
+// ErrDelegate is the directive a `code` push emits: folio verified a non-main
+// branch, and the driving AGENT must run the Next skills to compose the commit/PR.
+// Folio never invokes skills. It is a plain typed Go struct on purpose (design
+// OQ3) — NOT modeled on dendrik's ResultEnvelope; typed-not-stringly is free and
+// premature-proof.
+type ErrDelegate struct {
+	Dir    string   // repo/worktree the agent should act in
+	Branch string   // the non-main branch commits land on
+	Next   []string // skills to run, in order (e.g. ["/commit"])
+}
+
+func (e *ErrDelegate) Error() string {
+	return fmt.Sprintf("delegate to agent: in %s on branch %q, run %s",
+		e.Dir, e.Branch, strings.Join(e.Next, " then "))
+}
 
 // PushOpts carries push variants. Scoped, when non-empty, limits a KB push to
 // those tree paths (the -f scoped-push case); empty means whole-tree.
@@ -121,8 +138,25 @@ type codeStrategy struct{}
 func (codeStrategy) ReadOnly() bool                                { return false }
 func (codeStrategy) Status(dir string, s config.Store) StoreStatus { return workRepoStatus(dir, s) }
 func (codeStrategy) Pull(dir string, _ config.Store) error         { return gitFetchOnly(dir) }
-func (codeStrategy) Push(_ string, _ config.Store, _ string, _ PushOpts) (PushResult, error) {
-	return PushResult{}, fmt.Errorf("%w: code push lands in P3", ErrNotImplemented)
+
+// Push never touches a shared main. It reads the current branch (per-VCS) and
+// REFUSES on the default branch or on ambiguity (detached/empty/unknown) — "never
+// main" is enforced defensively, not just by convention. On a safe non-main
+// branch it composes no commit/PR itself; it returns an ErrDelegate directing the
+// driving agent to run /commit (which owns commit format + stacks/PRs).
+func (codeStrategy) Push(dir string, s config.Store, _ string, _ PushOpts) (PushResult, error) {
+	def := s.DefaultBranch
+	if def == "" {
+		def = "main"
+	}
+	branch, err := currentBranch(dir)
+	if err != nil {
+		return PushResult{}, fmt.Errorf("refusing code push: %w", err)
+	}
+	if branch == def || branch == "main" || branch == "master" {
+		return PushResult{}, fmt.Errorf("refusing to push code repo on shared branch %q — switch to a feature branch first", branch)
+	}
+	return PushResult{}, &ErrDelegate{Dir: dir, Branch: branch, Next: []string{"/commit"}}
 }
 
 // dotStrategy manages a dotfiles repo. Status is per-VCS (the dotfiles repo is

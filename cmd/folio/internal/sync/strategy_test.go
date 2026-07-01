@@ -41,12 +41,10 @@ func TestExternalPushRefused(t *testing.T) {
 	}
 }
 
-// code/dot have real Status+Pull as of P1; only their Push is deferred (P3/P4).
-func TestCodeDotPushNotImplemented(t *testing.T) {
-	for _, k := range []string{config.KindCode, config.KindDot} {
-		s := config.Store{Kind: k}
-		if _, err := For(s).Push("/tmp/x", s, "feat(x): y", PushOpts{}); !errors.Is(err, ErrNotImplemented) {
-			t.Errorf("kind %q Push err = %v, want ErrNotImplemented", k, err)
-		}
+// dot Push is deferred to P4 (code Push is implemented in P3, tested separately).
+func TestDotPushNotImplemented(t *testing.T) {
+	s := config.Store{Kind: config.KindDot}
+	if _, err := For(s).Push("/tmp/x", s, "feat(x): y", PushOpts{}); !errors.Is(err, ErrNotImplemented) {
+		t.Errorf("dot Push err = %v, want ErrNotImplemented", err)
 	}
 }

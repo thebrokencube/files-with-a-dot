@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -9,7 +10,49 @@ import (
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 )
+
+// currentBranch resolves the branch a push would target, PER VCS:
+//   - jj (incl. colocated code): the bookmark on @ — git HEAD is detached under
+//     jj, so the git ref is meaningless; the bookmark is the branch. Refuses
+//     (with jj-appropriate guidance) when @ has no bookmark or several.
+//   - git-only: the checked-out branch via symbolic-ref; refuses on detached HEAD.
+//
+// Refusing on ambiguity is deliberate: never guess a ref to push.
+func currentBranch(dir string) (string, error) {
+	if repo.IsJJ(dir) {
+		return currentJJBookmark(dir)
+	}
+	out, err := run(dir, "git", "symbolic-ref", "--quiet", "--short", "HEAD")
+	if err != nil || strings.TrimSpace(out) == "" {
+		return "", fmt.Errorf("cannot determine current branch (detached HEAD or not a git repo)")
+	}
+	return strings.TrimSpace(out), nil
+}
+
+// currentJJBookmark returns the single bookmark on @, or a helpful error. It
+// reads clean bookmark names (no sync markers) via a template map.
+func currentJJBookmark(dir string) (string, error) {
+	out, err := run(dir, "jj", "--no-pager", "log", "-r", "@", "--no-graph", "-T", `bookmarks.map(|b| b.name()).join("\n")`)
+	if err != nil {
+		return "", fmt.Errorf("cannot read jj bookmarks: %w", err)
+	}
+	var names []string
+	for _, l := range strings.Split(strings.TrimSpace(out), "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			names = append(names, l)
+		}
+	}
+	switch len(names) {
+	case 0:
+		return "", fmt.Errorf("no bookmark on @ — set one first: jj bookmark set <name> -r @")
+	case 1:
+		return names[0], nil
+	default:
+		return "", fmt.Errorf("multiple bookmarks on @ (%s) — ambiguous; leave one on @", strings.Join(names, ", "))
+	}
+}
 
 // statusTimeout bounds every per-repo probe so one hung repo (auth prompt,
 // network stall) never blocks the whole fleet view. fleet status is read-only;

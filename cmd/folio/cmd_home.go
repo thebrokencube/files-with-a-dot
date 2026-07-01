@@ -286,8 +286,15 @@ func runHomePush(args []string) int {
 	}
 
 	strategy := sync.For(store)
+	// Folio-KB validation (home structure + project folio.yml) only applies to
+	// folio stores. code/dot/external stores have no folio structure — route them
+	// straight to their strategy (code emits a delegate; dot shells `dot`).
+	isFolioKB := store.Kind == config.KindFolio || store.Kind == ""
+
 	var pushErr error
-	if *folioName != "" {
+	if !isFolioKB {
+		_, pushErr = strategy.Push(dir, store, *msg, sync.PushOpts{})
+	} else if *folioName != "" {
 		// Scoped push: resolve the target folio and validate only it. A scoped
 		// push must isolate the caller from unrelated validation debt elsewhere
 		// in the tree — validating everything would defeat the point of -f.
@@ -322,6 +329,16 @@ func runHomePush(args []string) int {
 	}
 
 	if pushErr != nil {
+		// A code push is a HANDOFF, not a failure: folio positioned a non-main
+		// branch and hands off to the driving agent to run the composed skills.
+		var delegate *sync.ErrDelegate
+		if errors.As(pushErr, &delegate) {
+			fmt.Println(pal.Successf("%s repo %q ready to push — folio delegates commit/PR to you", store.Kind, store.Name))
+			fmt.Printf("  dir:    %s\n", delegate.Dir)
+			fmt.Printf("  branch: %s\n", delegate.Branch)
+			fmt.Printf("  next:   %s\n", strings.Join(delegate.Next, ", "))
+			return dendrik.ExitOK
+		}
 		if errors.Is(pushErr, repo.ErrNothingToCommit) {
 			fmt.Println("Nothing to commit (working tree clean)")
 			return dendrik.ExitOK
