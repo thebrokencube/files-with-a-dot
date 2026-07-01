@@ -105,14 +105,24 @@ Ambiguous? State the inferred type and ask before proceeding (see Context Detect
 
 ## Output Format
 
-All lenses produce findings in the same format:
+All lenses produce a **layered** review: a one-line verdict, a TL;DR, then risk-grouped findings.
+Full spec (verdict rules, tiers, render targets) is in `references/review-shared.md` — Output Format.
 
 ```
-**[Area] — [pass/warn/fail] [brief verdict]**
+**Verdict: <✅ Approve | 🟡 Approve with fixes | 🔴 Request changes> — <one-line why>.**
+
+**▸ TL;DR** — <one-line quality read>. Biggest issue: <the single top finding>.
+`N fix-first · M nits · K strengths`
+
+### 🔧 Fix first (N)
+**🟡 [Area] — [brief verdict]**
 > Specific observation. Concrete suggestion.
+
+### ⚪ Nits (M)
+### 👍 What's good (K)
 ```
 
-Maximum 5 findings. If everything passes, say so — don't manufacture problems.
+Maximum 5 findings (excluding strengths). If everything passes, say so — don't manufacture problems.
 
 ## Reference Library
 

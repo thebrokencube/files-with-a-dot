@@ -68,16 +68,27 @@ than a single fix, name the recommended doc-set pattern (its `recommended-doc-se
 
 ## Output Skeleton
 
+Same layered shape as a single-file review (see `review-shared.md` — Output Format): one verdict
++ TL;DR for the whole target, then risk-grouped detail. Per-artifact findings collapse under the
+"Fix first" / "Nits" groups, tagged with their path.
+
 ```
-# Review — <target>
-## <path/to/artifact-1>  (type: <detected>)
-> finding (pass/warn/fail) …            # top 3 per artifact
-## <path/to/artifact-2>  (type: <detected>)
-> …
-## Cross-Artifact (Right Layer?)
-> composition finding …                 # global top 5
-## Do First
-1-2 highest-impact actions across the whole review
-## Skipped
-N more docs / M more findings not shown   # only if capped; omit if nothing skipped
+**Verdict: <✅ | 🟡 | 🔴> — <one-line why across the whole target>.**
+
+**▸ TL;DR** — <docs reviewed; overall read>. Biggest issue: <single top finding>.
+`N fix-first · M nits · K strengths`
+
+### 🔧 Fix first (N)
+**🟡 <path/to/artifact> — [brief verdict]**    # top items across all artifacts, global top 5
+> finding + suggestion
+
+### ⚪ Nits (M)
+### 🔗 Cross-Artifact (Right Layer?)
+> composition finding …                          # the across-files opinion
+### 👍 What's good (K)
+### Skipped
+N more docs / M more findings not shown          # only if capped; omit if nothing skipped
 ```
+
+Verdict maps off the highest-risk finding anywhere in the target (any 🔴 → Request changes).
+For a PR-comment render, collapse each `###` group under `<details>` as in `review-shared.md`.
