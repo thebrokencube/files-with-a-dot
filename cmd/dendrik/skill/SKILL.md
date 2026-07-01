@@ -75,7 +75,7 @@ not one generic rubric. SKILL.md is just one type among many.
 | 2 | filename `SKILL.md` | skill → `review-type-skill.md` |
 | 2 | filename `CLAUDE.md` | claude-md → `review-type-claude-md.md` |
 | 2 | filename `AGENTS.md` | agents-md → `review-type-agents-md.md` |
-| 2 | filename `ARCHITECTURE.md` / `*-architecture.md` | architecture-md → `review-type-architecture-md.md` |
+| 2 | filename `ARCHITECTURE.md` / `architecture.md` / `docs/architecture.md` / `*-architecture.md` (case-insensitive) | architecture-md → `review-type-architecture-md.md` |
 | 2 | filename `README.md` | readme-md → `review-type-readme-md.md` |
 | 3 | frontmatter `name`+`description` | skill → `review-type-skill.md` |
 | — | no match | generic → `review-shared.md` only |

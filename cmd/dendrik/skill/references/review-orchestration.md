@@ -16,6 +16,11 @@ output skeleton.
 | **repo / dir** | `git ls-files`, filter to the glob set below | every detected doc |
 | **PR** (`#123`, URL, `--pr`) | `gh pr diff <pr> --name-only` (fallback `git diff --name-only <base>...HEAD`), filter to the glob set | changed docs + bounded neighbors |
 
+**Repo scope vs PR scope.** If a **repo** target has unmerged commits vs its default base
+(`git log origin/main..HEAD --oneline` is non-empty), offer PR-scoped review instead — a
+"review my changes" intent shouldn't be diluted by unrelated docs the repo glob pulls in. This
+is an offered option, not a probe to run on every review.
+
 **Glob set:** `**/SKILL.md`, `**/CLAUDE.md`, `**/AGENTS.md`, `**/ARCHITECTURE.md`,
 `**/README.md`, `**/.claude/commands/*.md`, and `references/*.md` under any directory containing
 a `SKILL.md`. Using `git ls-files` honors `.gitignore` and skips `.git`/vendored content for
@@ -44,7 +49,7 @@ sweep. Apply a check only when its evidence is present:
 | **Thin/absent AGENTS.md** | fat project CLAUDE.md beside a thin or missing AGENTS.md | content is in the wrong file; AGENTS.md should be source of truth (warn) |
 | **Adapter drift** | AGENTS.md + an adapter (CLAUDE.md/`.cursorrules`) duplicate the same instructions | adapter should point (`@AGENTS.md`), not duplicate (warn) |
 | **Skill ↔ references** | a SKILL.md + its `references/`, or a skill that fronts an external guide | arrow-refs resolve, no eager-loaded reference content, every leaf reachable; a routing skill must add discovery or behavioral value, not merely point at a doc; a thin skill fronting an *external* guide must point at it, not restate it (warn/fail) |
-| **ARCHITECTURE.md inlined/orphaned** | architecture prose inlined in AGENTS.md/CLAUDE.md, or an ARCHITECTURE.md nothing points to | move inline → ARCHITECTURE.md + reference; link an orphan (best-effort — the orphan inbound-ref search is whole-repo, not guaranteed) |
+| **ARCHITECTURE.md inlined/orphaned** | architecture prose inlined in AGENTS.md/CLAUDE.md, or an architecture-role doc (`ARCHITECTURE.md`, `docs/architecture.md`, `*-architecture.md`) nothing points to | move inline → ARCHITECTURE.md + reference; link an orphan (best-effort — the orphan inbound-ref search is whole-repo, not guaranteed) |
 | **README ↔ AGENTS.md split** | agent detail in README, or README+AGENTS.md duplication, or a front-door doc that dead-ends | agent detail belongs in AGENTS.md; a front-door doc (README/AGENTS) routes to detail, it does not dead-end (best-effort) |
 | **Cross-doc contradiction** | two docs assert conflicting *verifiable* facts — a command/path/mode that exists-or-not, a "creds are/aren't committed" claim | reconcile to one authoritative home; resolve by running per the dogfood tiebreaker. Fires on conflicting *facts* only — never mere duplication (that is Adapter drift / CLAUDE.md hoarding) (warn) |
 | **Doc-claims grounding** | a doc states concrete checkable claims — exact commands, file paths, env/config names, "X is/isn't committed" | verify a bounded sample (cap ~3-5 claims) against the repo with cheap exact tools — grep the command token in dispatch source, `ls` the path, grep the secret string. Literal matches only — never paraphrase, never a recursive read (touch only the targets a claim names). **fail** on an unambiguous verified-false claim (phantom command, absent path); **warn** when not run or ambiguous. Beyond the sample, recommend the repo adopt a read-only verifier (warn/fail) |

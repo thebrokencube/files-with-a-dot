@@ -24,6 +24,10 @@ by link from the front door. A reader (or agent) should never have to guess the 
 foundational concepts to their definition at first mention; keep a glossary reachable from the
 front door, not orphaned.
 
+Surface **operational links** — getting-help, owner/on-call, observability, runbook — from the
+front door too. When they live only in `catalog-info.yaml` or a single buried chat mention, a
+reader hitting trouble has no path to them.
+
 ## Routing-skill kernel
 
 A thin skill (or slash-command) that fronts a guide must **route, not restate**: point at the
