@@ -64,6 +64,12 @@ jobs:
         run: |
           scripts/marketplace-generate
           git diff --exit-code
+      # Building-block map is a pure projection of the //dendrik: source tags. Regenerate and
+      # assert no drift — a stale map means a blueprint's composes: ids resolve to wrong facts.
+      - name: "building-block map matches //dendrik tags (regenerate + no drift)"
+        run: |
+          scripts/generate-building-blocks
+          git diff --exit-code
       # Binary↔plugin coupling: a binary VERSION bump must carry a plugin.json.version bump, or
       # the new binary never reaches users (auto-update fires on the plugin version). The two
       # versions are otherwise independent (skill-only changes bump the plugin version alone).

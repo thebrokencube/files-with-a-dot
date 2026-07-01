@@ -5,6 +5,14 @@ import (
 	"io"
 )
 
+//dendrik:block result-envelope
+//dendrik:kind primitive
+//dendrik:layer code
+//dendrik:status shipped
+//dendrik:definition standard JSON output wrapper (data/error/detail/exit_code), one encoder
+//dendrik:intent one predictable JSON shape for success and failure, parseable on any stack
+//dendrik:conformance json-output no-json-encoder no-raw-json run-has-json
+
 // ResultEnvelope is the standard JSON output wrapper for dendrik commands.
 type ResultEnvelope struct {
 	Data     any    `json:"data"`
