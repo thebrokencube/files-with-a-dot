@@ -37,14 +37,8 @@ binary into `~/.local/bin/`.
 
 ## Build system
 
-- Each Go CLI has its own module root under `cmd/<tool>/` — use `cd cmd/<tool> && make build/test/check`
-- `make check` runs fmt + vet + test (full pre-commit validation)
-- **Build artifacts are checked into git** — this repo is deployment-via-clone, so binaries and bundles must be committed. `dot sync` does not run build steps.
-  - `cmd/folio/folio` — Go binary
-  - `cmd/jf/jf` — Go binary
-  - `cmd/jf/internal/pipeline/md2adf.bundle.mjs` — embedded marklassian bundle, rebuild with `make bundle`
-  - `cmd/dendrik/dendrik` — Go binary
-- Do NOT gitignore build outputs in this repo. Only gitignore transient dev state (`node_modules/`).
+- Each Go CLI is its own module under `cmd/<tool>/` — `cd cmd/<tool> && make build/test/check` (`make check` = fmt + vet + test, the full pre-commit gate).
+- **Binaries are fetched, not committed.** This repo delivers its tools via GitHub Releases: the `cmd/<tool>/<tool>` binaries are gitignored and installed by each plugin's `bin/setup` (or built locally with `make build`) — see `pkg/dendrik/conventions/release.md`. The lone committed build artifact is the `go:embed`-ed `cmd/jf/internal/pipeline/md2adf.bundle.mjs`, which must be in-tree to compile (`make bundle`).
 
 ## Contributing
 
