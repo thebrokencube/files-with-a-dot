@@ -127,6 +127,7 @@ Maximum 5 findings. If everything passes, say so — don't manufacture problems.
 | `references/review-orchestration.md` | Review lens — repo/PR target (multi-artifact) |
 | `references/recommended-doc-set-pattern.md` | Review lens — recommend a target doc-set shape (advice, not a check) |
 | `references/building-blocks.md` | The generated catalog of dendrik building blocks (blueprint `composes:` ids resolve here). DO NOT EDIT — run `scripts/generate-building-blocks` |
+| `references/*-blueprint.md` | Per-system blueprints — which dendrik concepts a system composes + honest conformance (e.g. `jf-blueprint.md`) |
 | `references/skill-conventions.md` | Review lens — skill convention details |
 | `references/cli-conventions.md` | Conventions lens — CLI details |
 | `references/distribution-conventions.md` | Conventions lens — cross-harness plugin/marketplace distribution |
