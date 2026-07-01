@@ -45,3 +45,8 @@ binary into `~/.local/bin/`.
   - `cmd/jf/internal/pipeline/md2adf.bundle.mjs` — embedded marklassian bundle, rebuild with `make bundle`
   - `cmd/dendrik/dendrik` — Go binary
 - Do NOT gitignore build outputs in this repo. Only gitignore transient dev state (`node_modules/`).
+
+## Contributing
+
+The contributor flow — setup, per-layer verify gates (`make check` / `dendrik lint` /
+`dot validate`), and the PR process — lives in [CONTRIBUTING.md](CONTRIBUTING.md).
