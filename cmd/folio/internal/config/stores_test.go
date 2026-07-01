@@ -106,6 +106,39 @@ func TestParseRegistryRejectsBadKind(t *testing.T) {
 	}
 }
 
+func TestParseRegistryCodeAndDot(t *testing.T) {
+	home := t.TempDir()
+	yaml := `schema: 3
+stores:
+  zp:  { path: ~/workspace/zenpayroll, kind: code, location: referenced, default_branch: main }
+  dot: { path: ~/.dotfiles, kind: dot, location: referenced }
+  kb:  { path: ~/.folio/kb }
+`
+	os.WriteFile(filepath.Join(home, "stores.yml"), []byte(yaml), 0644)
+	reg, err := LoadRegistryFrom(home)
+	if err != nil {
+		t.Fatalf("LoadRegistryFrom: %v", err)
+	}
+	if zp, _ := reg.Lookup("zp"); zp.Kind != KindCode || !zp.IsReferenced() || zp.DefaultBranch != "main" {
+		t.Errorf("zp = %+v, want code/referenced/main", zp)
+	}
+	if dot, _ := reg.Lookup("dot"); dot.Kind != KindDot {
+		t.Errorf("dot kind = %q, want dot", dot.Kind)
+	}
+	// kb omits kind → safe default is external (read-only), NOT folio; location/default_branch → contained/main
+	if kb, _ := reg.Lookup("kb"); kb.Kind != KindExternal || kb.Location != LocationContained || kb.DefaultBranch != "main" {
+		t.Errorf("kb defaults = %q/%q/%q, want external/contained/main", kb.Kind, kb.Location, kb.DefaultBranch)
+	}
+}
+
+func TestParseRegistryRejectsFutureSchema(t *testing.T) {
+	home := t.TempDir()
+	os.WriteFile(filepath.Join(home, "stores.yml"), []byte("schema: 99\nstores: {}\n"), 0644)
+	if _, err := LoadRegistryFrom(home); err == nil {
+		t.Fatal("expected error for unsupported schema, got nil")
+	}
+}
+
 func TestResolvePathStoreRefs(t *testing.T) {
 	reg := &Registry{
 		Stores: map[string]Store{

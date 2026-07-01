@@ -39,6 +39,8 @@ func main() {
 		os.Exit(runArchive(os.Args[2:]))
 	case "stores":
 		os.Exit(runStores(os.Args[2:]))
+	case "fleet":
+		os.Exit(runFleet(os.Args[2:]))
 
 	// Top-level utility commands
 	case "setup":
