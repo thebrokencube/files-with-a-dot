@@ -1,6 +1,7 @@
 # folio — blueprint
 
-Which dendrik concepts folio composes, and why. Concept ids resolve in `building-blocks.md`.
+Which dendrik concepts folio composes, and why. Concept ids resolve in dendrik's
+`building-blocks.md` (the generated map, shipped with the dendrik plugin).
 
 - composes: result-envelope, exit-code, core-shell
 - because: folio is a Go consumer — it imports dendrik's output + exit primitives and is wired as a

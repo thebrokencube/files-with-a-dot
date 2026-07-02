@@ -344,6 +344,7 @@ is how provenance chains break.
 
 ## Reference Files
 
+- **references/blueprint.md** — folio's blueprint: which dendrik concepts folio composes (+ honest conformance); ids resolve in dendrik's building-blocks map
 - **references/find.md** — Find workflow: vault-first search order, tiered scope expansion, output format
 - **references/lint.md** — Lint workflow: periodic knowledge integrity pass, two-layer scan, cleanup plan, folio-hygiene project
 - **references/observe.md** — Observe workflow: CLI commands, type disambiguation, alignment routing
