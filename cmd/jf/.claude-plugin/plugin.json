@@ -1,6 +1,6 @@
 {
   "name": "jf",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Jira Forest CLI: manage Jira issues and epic hierarchies, push descriptions and titles, search with JQL, and enforce ticket conventions.",
   "author": {
     "name": "thebrokencube"

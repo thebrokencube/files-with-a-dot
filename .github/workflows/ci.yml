@@ -70,6 +70,10 @@ jobs:
         run: |
           scripts/generate-building-blocks
           git diff --exit-code
+      # Every per-system blueprint's composes: ids must resolve in the map, or the blueprint
+      # references a concept that doesn't exist.
+      - name: "blueprint composes ids resolve in the map"
+        run: scripts/check-blueprints
       # Binary↔plugin coupling: a binary VERSION bump must carry a plugin.json.version bump, or
       # the new binary never reaches users (auto-update fires on the plugin version). The two
       # versions are otherwise independent (skill-only changes bump the plugin version alone).

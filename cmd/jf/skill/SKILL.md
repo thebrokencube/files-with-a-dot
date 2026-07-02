@@ -44,6 +44,8 @@ Most commands accept `--json` for structured output.
 
 -> Read references/safety-model.md for tier details, blocked operation examples, plan display format, and the failure decision tree.
 
+-> Read references/blueprint.md for which dendrik concepts jf composes (and their conformance).
+
 ## Preflight Checklist (MANDATORY)
 
 Run this sequence before ANY jf operation. Do not skip steps.

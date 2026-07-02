@@ -1,7 +1,7 @@
 # jf — blueprint
 
-Which dendrik concepts jf composes, and why. Concept ids resolve in `building-blocks.md` (the
-generated map shipped alongside this file).
+Which dendrik concepts jf composes, and why. Concept ids resolve in dendrik's `building-blocks.md`
+(the generated map, shipped with the dendrik plugin).
 
 - composes: result-envelope, exit-code, core-shell
 - because: jf wraps its own `NodeResult`/`StatusResult` inside the result-envelope's `Data` rather
