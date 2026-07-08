@@ -9,7 +9,7 @@
       "name": "folio",
       "source": "./cmd/folio",
       "description": "Lifecycle toolkit for knowledge work: folio.yml-driven source-to-target composition, diverge-converge planning, and work-track management.",
-      "version": "0.0.8"
+      "version": "0.0.9"
     },
     {
       "name": "jf",

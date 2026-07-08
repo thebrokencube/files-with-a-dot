@@ -6,15 +6,19 @@ End-of-session workflow. Invoked via explicit `/folio wrap-up` subcommand only.
 
 ## Workflow
 
-Each step is independently safe — the user can skip or abandon at any point without leaving broken state. Archiving without successor tracks is fine (create them next session). Handoff without archive is fine (archive next session).
+Each step is **safe to abandon** — stopping mid-flow never leaves broken state (archiving without successor tracks, or a handoff without archive, are both fine — do them next session). Safety is not optionality, though: wrap-up's one required output is the retro (step 2) — always captured, never asked.
 
 1. **Scan** — identify projects touched this session.
    Primary: check mtime on work track directories for recent changes (same mechanism as Stale Detection in `references/lifecycle.md`, inverted — look for dirs modified today or within the last few hours).
    Fallback: ask the user which projects were touched.
 
-2. **Retro gate** (soft) — present a session summary, then ask if it warrants a retro.
+2. **Retro — always captured, never ask.** Invoking `/folio wrap-up` *is* the decision to retro.
+   Never ask whether it's warranted; always capture something. Match the artifact to the session's
+   substance (this is folio's existing lightweight-retro rule, not a new escape hatch):
+   - **Substantial session** → a retro doc via `folio new retro <topic>`.
+   - **Trivial session** → observation items alone suffice — no separate doc, but capture is never skipped.
 
-   **2a. Session summary.** Before asking the retro question, compile and present:
+   **2a. Session summary.** Compile and present:
    - Projects touched (from step 1)
    - Key actions taken (commits, artifacts created, bugs fixed, decisions made)
    - Things that went sideways (failed approaches, rework, user corrections)
@@ -23,9 +27,8 @@ Each step is independently safe — the user can skip or abandon at any point wi
    Keep it to 5-10 bullet points. The goal is shared context — the user shouldn't
    have to recall the session from memory.
 
-   **2b. Retro question.** "Worth capturing as a retro, or just move on?"
-   If yes: `folio new retro <topic>`, pre-fill from the summary, commit via `folio home push`.
-   If no: proceed.
+   **2b. Capture from the summary.** Retro doc (`What Happened / What Worked / What Didn't /
+   Action Items`) or observation items per the tier above; commit via `folio home push`.
 
 3. **Archive gate** (hard) — run lifecycle derivation on all touched projects. Tracks matching rules 5 or 6 (all done, or all done + retro) are archive candidates.
    Present all eligible tracks as a single batch across all projects:
@@ -58,7 +61,7 @@ If the current session has an active plan-design session (design doc exists but 
 | Wrap-up step | Delegates to |
 |---|---|
 | Step 1 (scan) | Wrap-up owns this |
-| Step 2 (retro) | plan-design Session Exit Step 2 (Retro) |
+| Step 2 (retro) | plan-design Session Exit Step 2 (Retro) — mechanics only; wrap-up's always-capture rule (step 2) still holds |
 | Step 3 (archive) | Wrap-up owns this — plan-design has no archive concept |
 | Steps 4-5 (successor + state update) | plan-design Session Exit Step 3 (Update State and Commit) |
 | Step 6 (cleanup) | Wrap-up owns this |
