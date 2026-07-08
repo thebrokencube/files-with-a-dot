@@ -24,24 +24,12 @@ func resolveVersion(dir, override string) (string, error) {
 	return build.ParseVersion(string(b), "")
 }
 
-func runBuild(args []string) int {
-	fs := dendrik.NewFlagSet("dendrik build")
-	matrix := fs.BoolLong("matrix", "Build the release matrix (darwin/arm64, linux/amd64) instead of the host platform")
-	outDir := fs.StringLong("out", "dist", "Output directory for artifacts")
-	versionOverride := fs.StringLong("version", "", "Override the version (default: read <dir>/VERSION)")
-	jsonFlag := fs.BoolLong("json", "JSON output")
-	plainFlag := fs.BoolLong("plain", "Undecorated text output (no color, no JSON)")
-	noColor := fs.BoolLong("no-color", "Disable color output")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	out := dendrik.NewOutput(*jsonFlag, *plainFlag, *noColor)
+func runBuild(o buildOpts, pos []string) int {
+	out := dendrik.NewOutput(o.json, o.plain, o.noColor)
 
 	dir := "."
-	if rem := fs.GetArgs(); len(rem) > 0 {
-		dir = rem[0]
+	if len(pos) > 0 {
+		dir = pos[0]
 	}
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -49,12 +37,12 @@ func runBuild(args []string) int {
 	}
 	tool := filepath.Base(absDir)
 
-	version, err := resolveVersion(absDir, *versionOverride)
+	version, err := resolveVersion(absDir, o.versionOverride)
 	if err != nil {
 		return buildFail(out, "resolving version", err)
 	}
 
-	absOut, err := filepath.Abs(*outDir)
+	absOut, err := filepath.Abs(o.outDir)
 	if err != nil {
 		return buildFail(out, "resolving out dir", err)
 	}
@@ -63,7 +51,7 @@ func runBuild(args []string) int {
 	}
 
 	var artifacts []build.Artifact
-	for _, t := range build.Targets(*matrix) {
+	for _, t := range build.Targets(o.matrix) {
 		outPath := filepath.Join(absOut, build.ArtifactName(tool, t.OS, t.Arch))
 		cmd := exec.Command("go", "build", "-C", absDir,
 			"-trimpath", "-buildvcs=false",

@@ -15,26 +15,13 @@ import (
 	"golang.org/x/term"
 )
 
-func runSync(args []string) int {
-	fs := dendrik.NewFlagSet("sync")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	resolve := fs.String('r', "resolve", "", "Conflict resolution: local|remote (default: block)")
-	dryRun := fs.Bool('n', "dry-run", "Preview what would be synced without side effects")
-	scaffold := fs.BoolLong("scaffold", "Create stub files for new Jira children")
-	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
-	jsonOut := fs.Bool('j', "json", "Output plan as structured JSON")
-	yes := fs.BoolLong("yes", "Proceed without confirmation in non-interactive mode")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if *resolve != "" && *resolve != "local" && *resolve != "remote" {
+func runSync(dir, resolve string, dryRun, scaffold, plainText, jsonOut, yes bool) int {
+	if resolve != "" && resolve != "local" && resolve != "remote" {
 		fmt.Fprintf(os.Stderr, "✗ --resolve must be 'local' or 'remote'\n")
 		return dendrik.ExitUserError
 	}
 
-	f, roots, err := loadForest(*dir)
+	f, roots, err := loadForest(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 		return dendrik.ExitUserError
@@ -55,22 +42,22 @@ func runSync(args []string) int {
 		return dendrik.ExitExternalErr
 	}
 
-	opts := engine.PlanOpts{Direction: "both", Resolve: *resolve, PlainText: *plainText}
+	opts := engine.PlanOpts{Direction: "both", Resolve: resolve, PlainText: plainText}
 	plan := engine.Plan(readings, opts)
 
-	if *jsonOut {
+	if jsonOut {
 		writePlanJSON(plan)
 		return dendrik.ExitOK
 	}
 
 	displayPlan(plan)
 
-	if *dryRun {
+	if dryRun {
 		return dendrik.ExitOK
 	}
 
 	// Batch safety gate
-	if isBatch(plan) && !term.IsTerminal(int(os.Stdin.Fd())) && !*yes {
+	if isBatch(plan) && !term.IsTerminal(int(os.Stdin.Fd())) && !yes {
 		fmt.Fprintln(os.Stderr, "Non-interactive batch sync. Run with --yes for non-interactive execution.")
 		return dendrik.ExitUserError
 	}
@@ -84,10 +71,10 @@ func runSync(args []string) int {
 	// Completeness check
 	fmt.Println()
 	fmt.Println("── Completeness ──")
-	newChildren := checkCompleteness(f, roots, p, *dryRun, *scaffold)
+	newChildren := checkCompleteness(f, roots, p, dryRun, scaffold)
 
 	// Summary
-	displayResults(results, newChildren, *scaffold)
+	displayResults(results, newChildren, scaffold)
 
 	if hasFailures(results) {
 		return dendrik.ExitUserError

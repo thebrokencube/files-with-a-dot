@@ -11,32 +11,19 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/lint"
 )
 
-func runLint(args []string) int {
-	fs := dendrik.NewFlagSet("dendrik lint")
-	jsonFlag := fs.BoolLong("json", "JSON output")
-	plainFlag := fs.BoolLong("plain", "Undecorated text output (no color, no JSON)")
-	strictFlag := fs.BoolLong("strict", "Promote warnings to errors")
-	fixFlag := fs.BoolLong("fix", "Apply mechanical fixes for auto-fixable checks, then re-lint")
-	explainFlag := fs.StringLong("explain", "", "Show rationale for a check ID")
-	noColor := fs.BoolLong("no-color", "Disable color output")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
+func runLint(o lintOpts, pos []string) int {
 	// --explain mode
-	if *explainFlag != "" {
-		return handleExplain(*explainFlag, *jsonFlag, *noColor)
+	if o.explain != "" {
+		return handleExplain(o.explain, o.json, o.noColor)
 	}
 
 	// Positional arg: tool directory path
-	remaining := fs.GetArgs()
-	if len(remaining) == 0 {
+	if len(pos) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: dendrik lint <path> [--json] [--plain] [--strict]")
 		return dendrik.ExitUserError
 	}
 
-	toolDir, err := filepath.Abs(remaining[0])
+	toolDir, err := filepath.Abs(pos[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return dendrik.ExitUserError
@@ -48,12 +35,12 @@ func runLint(args []string) int {
 		fmt.Fprintf(os.Stderr, "Error gathering tool data: %v\n", err)
 		return dendrik.ExitExternalErr
 	}
-	results := lint.Run(data, lint.Options{Strict: *strictFlag})
+	results := lint.Run(data, lint.Options{Strict: o.strict})
 
 	// --fix: apply mechanical fixes, then re-gather and re-lint so output reflects
 	// the post-fix state.
 	var fixed []string
-	if *fixFlag {
+	if o.fix {
 		fixed, err = lint.ApplyFixes(data, results)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error applying fixes: %v\n", err)
@@ -64,12 +51,12 @@ func runLint(args []string) int {
 				fmt.Fprintf(os.Stderr, "Error gathering tool data: %v\n", err)
 				return dendrik.ExitExternalErr
 			}
-			results = lint.Run(data, lint.Options{Strict: *strictFlag})
+			results = lint.Run(data, lint.Options{Strict: o.strict})
 		}
 	}
 
 	// Output
-	out := dendrik.NewOutput(*jsonFlag, *plainFlag, *noColor)
+	out := dendrik.NewOutput(o.json, o.plain, o.noColor)
 
 	if out.IsJSON() {
 		type jsonOutput struct {

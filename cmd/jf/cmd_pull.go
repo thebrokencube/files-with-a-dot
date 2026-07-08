@@ -12,27 +12,14 @@ import (
 	"golang.org/x/term"
 )
 
-func runPull(args []string) int {
-	fs := dendrik.NewFlagSet("pull")
-	subtree := fs.String('s', "subtree", "", "Pull node and all descendants")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	dryRun := fs.Bool('n', "dry-run", "Preview what would be pulled without side effects")
-	jsonOut := fs.Bool('j', "json", "Output plan as structured JSON")
-	yes := fs.BoolLong("yes", "Proceed without confirmation in non-interactive mode")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	positional := fs.GetArgs()
-
+func runPull(subtree, dir string, dryRun, jsonOut, yes bool, positional []string) int {
 	// Level 0: explicit key + file
 	if len(positional) >= 2 {
 		return pullSingle(positional[0], positional[1])
 	}
 
 	// Forest mode
-	return pullForest(*dir, positional, *subtree, *dryRun, *jsonOut, *yes)
+	return pullForest(dir, positional, subtree, dryRun, jsonOut, yes)
 }
 
 func pullSingle(key, filePath string) int {

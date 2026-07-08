@@ -9,21 +9,8 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runRm(args []string) int {
-	fs := dendrik.NewFlagSet("rm")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	keys := fs.GetArgs()
-	if len(keys) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: jf rm <KEY>...\n")
-		return dendrik.ExitUserError
-	}
-
-	f, roots, code := loadForestOrFail(*dir, false)
+func runRm(dir string, keys []string) int {
+	f, roots, code := loadForestOrFail(dir, false)
 	if code != 0 {
 		return code
 	}

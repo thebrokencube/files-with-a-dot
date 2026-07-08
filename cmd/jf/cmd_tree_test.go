@@ -20,7 +20,7 @@ func TestRunTree(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"tree", "--dir", dir})
 
 	w.Close()
 	os.Stdout = old
@@ -46,7 +46,7 @@ func TestRunTree(t *testing.T) {
 
 func TestRunTreeNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runTree([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"tree", "--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -63,7 +63,7 @@ func TestRunTreeJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"--dir", dir, "--json"})
+	code := buildRoot().Execute([]string{"tree", "--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -95,7 +95,7 @@ func TestRunTreeVerbose(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runTree([]string{"--dir", dir, "--verbose"})
+	code := buildRoot().Execute([]string{"tree", "--dir", dir, "--verbose"})
 
 	w.Close()
 	os.Stdout = old
@@ -122,7 +122,7 @@ func TestRunTreeEmpty(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
-	code := runTree([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"tree", "--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0 for empty forest, got %d", code)
 	}

@@ -11,22 +11,13 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runTree(args []string) int {
-	fs := dendrik.NewFlagSet("tree")
-	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool('j', "json", "Output as JSON")
-	verbose := fs.Bool('v', "verbose", "Show sync direction and file paths")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	f, roots, code := loadForestOrFail(*dir, *jsonOut)
+func runTree(dir string, jsonOut, verbose bool) int {
+	f, roots, code := loadForestOrFail(dir, jsonOut)
 	if code != 0 {
 		return code
 	}
 
-	if *jsonOut {
+	if jsonOut {
 		all := forest.Flatten(roots)
 		var items []output.NodeInfo
 		for _, n := range all {
@@ -44,7 +35,7 @@ func runTree(args []string) int {
 	// Print header
 	fmt.Printf("Forest: %s (%d nodes)\n\n", filepath.Dir(f.Dir), len(forest.Flatten(roots)))
 
-	printTree(roots, "", *verbose)
+	printTree(roots, "", verbose)
 	return dendrik.ExitOK
 }
 

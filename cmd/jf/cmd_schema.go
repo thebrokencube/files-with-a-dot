@@ -7,15 +7,8 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runSchema(args []string) int {
-	fs := dendrik.NewFlagSet("schema")
-	outputSchema := fs.Bool('o', "output", "Emit command output schemas instead of input schemas")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if *outputSchema {
+func runSchema(outputSchema bool) int {
+	if outputSchema {
 		return printOutputSchemas()
 	}
 	return printInputSchemas()

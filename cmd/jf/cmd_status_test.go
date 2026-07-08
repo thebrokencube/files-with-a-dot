@@ -26,7 +26,7 @@ func TestRunStatus(t *testing.T) {
 	// TBD node
 	os.WriteFile(filepath.Join(dir, ".jf", "task-c.md"), []byte("---\njira: TBD\n---\n# Task C\n"), 0644)
 
-	code := runStatus([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"status", "--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -53,7 +53,7 @@ func TestRunStatusWithState(t *testing.T) {
 	data, _ := json.Marshal(stateData)
 	os.WriteFile(filepath.Join(jfDir, "state.json"), data, 0644)
 
-	code := runStatus([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"status", "--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -71,7 +71,7 @@ func TestRunStatusCorruptState(t *testing.T) {
 	os.MkdirAll(jfDir, 0755)
 	os.WriteFile(filepath.Join(jfDir, "state.json"), []byte("{bad json"), 0644)
 
-	code := runStatus([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"status", "--dir", dir})
 	if code != 0 {
 		t.Fatalf("expected exit 0 with corrupt state (graceful degradation), got %d", code)
 	}
@@ -87,7 +87,7 @@ func TestRunStatusJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStatus([]string{"--dir", dir, "--json"})
+	code := buildRoot().Execute([]string{"status", "--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -112,7 +112,7 @@ func TestRunStatusJSON(t *testing.T) {
 
 func TestRunStatusNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runStatus([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"status", "--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing forest, got %d", code)
 	}
@@ -154,7 +154,7 @@ func TestStatusWithPRBadges(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStatus([]string{"--dir", dir, "--json"})
+	code := buildRoot().Execute([]string{"status", "--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -242,7 +242,7 @@ func TestStatusWithoutRepo(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStatus([]string{"--dir", dir, "--json"})
+	code := buildRoot().Execute([]string{"status", "--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old

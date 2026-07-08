@@ -16,16 +16,8 @@ defaults:
   project: %s
 `
 
-func runInit(args []string) int {
-	fs := dendrik.NewFlagSet("init")
-	project := fs.String('p', "project", "BEN", "Jira project key")
-	dir := fs.String('d', "dir", ".", "Directory to create .jf/forest.yml in")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	jfDir := filepath.Join(*dir, ".jf")
+func runInit(project, dir string) int {
+	jfDir := filepath.Join(dir, ".jf")
 	path := filepath.Join(jfDir, "forest.yml")
 
 	if _, err := os.Stat(path); err == nil {
@@ -38,12 +30,12 @@ func runInit(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	content := fmt.Sprintf(defaultForestYml, *project)
+	content := fmt.Sprintf(defaultForestYml, project)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ Failed to create forest.yml: %s\n", err)
 		return dendrik.ExitUserError
 	}
 
-	fmt.Printf("✓ Created .jf/forest.yml (project: %s)\n", *project)
+	fmt.Printf("✓ Created .jf/forest.yml (project: %s)\n", project)
 	return dendrik.ExitOK
 }

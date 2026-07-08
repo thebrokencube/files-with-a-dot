@@ -12,29 +12,12 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runClone(args []string) int {
-	fs := dendrik.NewFlagSet("clone")
-	dir := fs.String('d', "dir", ".", "Parent directory for cloned forest")
-	depth := fs.IntLong("depth", 0, "Max hierarchy depth (0 = unlimited)")
-	syncMode := fs.StringLong("sync", "", "Sync direction override for scaffolded nodes: push|pull|both (default: omit, derives from mutability)")
-	repo := fs.StringLong("repo", "", "GitHub org/repo for PR badge enrichment (e.g. Gusto/hawaiian-ice)")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if *syncMode != "" && *syncMode != "push" && *syncMode != "pull" && *syncMode != "both" {
+func runClone(dir string, depth int, syncMode, repo, rootKey string) int {
+	if syncMode != "" && syncMode != "push" && syncMode != "pull" && syncMode != "both" {
 		fmt.Fprintf(os.Stderr, "✗ --sync must be 'push', 'pull', or 'both'\n")
 		return dendrik.ExitUserError
 	}
 
-	positional := fs.GetArgs()
-	if len(positional) != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: jf clone <KEY> [--dir DIR] [--depth N] [--sync push|pull|both]")
-		return dendrik.ExitUserError
-	}
-
-	rootKey := positional[0]
 	p := &pipeline.Pipeline{Run: pipeline.DefaultRunner}
 
 	fmt.Printf("Fetching %s...\n", rootKey)
@@ -44,7 +27,7 @@ func runClone(args []string) int {
 		return dendrik.ExitExternalErr
 	}
 
-	tree, err := fetchTree(p, root, *depth, 0)
+	tree, err := fetchTree(p, root, depth, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 		return dendrik.ExitExternalErr
@@ -53,20 +36,20 @@ func runClone(args []string) int {
 	total := countNodes(tree)
 	fmt.Printf("Found %d total nodes\n\n", total)
 
-	forestDir := filepath.Join(*dir, ".jf")
+	forestDir := filepath.Join(dir, ".jf")
 
 	// Safety: refuse to overwrite existing forest
 	if _, err := os.Stat(filepath.Join(forestDir, "forest.yml")); err == nil {
-		fmt.Fprintf(os.Stderr, "✗ .jf/forest.yml already exists in %s\n  Remove .jf/ first or use a different --dir\n", *dir)
+		fmt.Fprintf(os.Stderr, "✗ .jf/forest.yml already exists in %s\n  Remove .jf/ first or use a different --dir\n", dir)
 		return dendrik.ExitUserError
 	}
 
-	if err := scaffoldTree(forestDir, tree, "", *syncMode); err != nil {
+	if err := scaffoldTree(forestDir, tree, "", syncMode); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ scaffold error: %s\n", err)
 		return dendrik.ExitUserError
 	}
 
-	if err := generateForestYAML(forestDir, root, *syncMode, *repo); err != nil {
+	if err := generateForestYAML(forestDir, root, syncMode, repo); err != nil {
 		fmt.Fprintf(os.Stderr, "✗ forest.yml error: %s\n", err)
 		return dendrik.ExitUserError
 	}

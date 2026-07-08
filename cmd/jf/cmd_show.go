@@ -9,27 +9,13 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runShow(args []string) int {
-	fs := dendrik.NewFlagSet("show")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	jsonOut := fs.Bool('j', "json", "Output as JSON")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	positional := fs.GetArgs()
-	if len(positional) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: jf show <target>\n")
-		return dendrik.ExitUserError
-	}
-
-	f, roots, code := loadForestOrFail(*dir, false)
+func runShow(dir string, jsonOut bool, target string) int {
+	f, roots, code := loadForestOrFail(dir, false)
 	if code != 0 {
 		return code
 	}
 
-	node, err := forest.Resolve(roots, positional[0])
+	node, err := forest.Resolve(roots, target)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "✗ %s\n", err)
 		return dendrik.ExitUserError
@@ -42,7 +28,7 @@ func runShow(args []string) int {
 
 	staleStr := nodeStatus(node, f, state)
 
-	if *jsonOut {
+	if jsonOut {
 		info := nodeToInfo(node)
 		info.Status = staleStr
 		dendrik.WriteResult(os.Stdout, info)

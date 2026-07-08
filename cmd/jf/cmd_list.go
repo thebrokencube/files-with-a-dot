@@ -9,23 +9,15 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runList(args []string) int {
-	fs := dendrik.NewFlagSet("list")
-	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool('j', "json", "Output as JSON")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	_, roots, code := loadForestOrFail(*dir, *jsonOut)
+func runList(dir string, jsonOut bool) int {
+	_, roots, code := loadForestOrFail(dir, jsonOut)
 	if code != 0 {
 		return code
 	}
 
 	all := forest.Flatten(roots)
 
-	if *jsonOut {
+	if jsonOut {
 		var items []output.NodeInfo
 		for _, n := range all {
 			items = append(items, nodeToInfo(n))
