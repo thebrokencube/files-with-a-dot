@@ -308,3 +308,42 @@ func TestPalette(t *testing.T) {
 		}
 	})
 }
+
+func TestIsHelpArg(t *testing.T) {
+	for _, s := range []string{"--help", "-h", "help"} {
+		if !IsHelpArg(s) {
+			t.Errorf("IsHelpArg(%q) = false, want true", s)
+		}
+	}
+	for _, s := range []string{"", "create", "--halp", "h", "-help"} {
+		if IsHelpArg(s) {
+			t.Errorf("IsHelpArg(%q) = true, want false", s)
+		}
+	}
+}
+
+func TestNoExtraArgs(t *testing.T) {
+	t.Run("no positionals is clean", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		if err := Parse(fs, []string{}); err != nil {
+			t.Fatal(err)
+		}
+		if done, _ := NoExtraArgs(fs); done {
+			t.Fatal("expected done=false with no positionals")
+		}
+	})
+
+	t.Run("stray positional is rejected", func(t *testing.T) {
+		fs := NewFlagSet("test")
+		if err := Parse(fs, []string{"unexpected"}); err != nil {
+			t.Fatal(err)
+		}
+		done, code := NoExtraArgs(fs)
+		if !done {
+			t.Fatal("expected done=true for stray positional")
+		}
+		if code != ExitUserError {
+			t.Fatalf("got code %d, want ExitUserError", code)
+		}
+	})
+}
