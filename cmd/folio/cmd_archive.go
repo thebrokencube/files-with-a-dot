@@ -15,27 +15,14 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runArchive(args []string) int {
+func runArchive(folioPath string, dryRun, noPush bool, trackName string) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("archive")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	dryRun := fs.Bool('n', "dry-run", "Print what would happen, no side effects")
-	noPush := fs.BoolLong("no-push", "Skip auto-commit")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if len(fs.GetArgs()) < 1 {
-		fmt.Fprintln(os.Stderr, pal.Errf("usage: folio archive <track-name> [--folio PATH] [--dry-run] [--no-push]"))
-		return dendrik.ExitUserError
-	}
-	trackName := fs.GetArgs()[0]
-
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	activeDir := filepath.Join(folioDir, "work", "active", trackName)
 	archiveDir := filepath.Join(folioDir, "work", "archive", trackName)
 
@@ -53,7 +40,7 @@ func runArchive(args []string) int {
 	}
 
 	// Read raw folio.yml bytes
-	raw, err := os.ReadFile(*folioPath)
+	raw, err := os.ReadFile(folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("reading folio.yml: %s", err))
 		return dendrik.ExitUserError
@@ -64,7 +51,7 @@ func runArchive(args []string) int {
 
 	rewritten, count := rewritePaths(raw, oldPrefix, newPrefix)
 
-	if *dryRun {
+	if dryRun {
 		fmt.Printf("Would move: %s → %s\n", activeDir, archiveDir)
 		fmt.Printf("Would rewrite %d path reference(s) in folio.yml\n", count)
 		return dendrik.ExitOK
@@ -97,13 +84,13 @@ func runArchive(args []string) int {
 	}
 
 	// Atomic write: tmp file then rename
-	tmpPath := *folioPath + ".tmp"
+	tmpPath := folioPath + ".tmp"
 	if err := os.WriteFile(tmpPath, rewritten, 0644); err != nil {
 		rollbackDirMove(activeDir, archiveDir)
 		fmt.Fprintln(os.Stderr, pal.Errf("writing temp file: %s", err))
 		return dendrik.ExitUserError
 	}
-	if err := os.Rename(tmpPath, *folioPath); err != nil {
+	if err := os.Rename(tmpPath, folioPath); err != nil {
 		rollbackDirMove(activeDir, archiveDir)
 		os.Remove(tmpPath) // best-effort cleanup
 		fmt.Fprintln(os.Stderr, pal.Errf("replacing folio.yml: %s", err))
@@ -119,7 +106,7 @@ func runArchive(args []string) int {
 	fmt.Printf("Rewrote %d path reference(s) in folio.yml\n", count)
 
 	// Auto-commit unless --no-push
-	if !*noPush {
+	if !noPush {
 		homeDir, err := home.Dir()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("resolving FOLIO_HOME: %s", err))

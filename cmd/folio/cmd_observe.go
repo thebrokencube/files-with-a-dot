@@ -16,6 +16,10 @@ import (
 )
 
 func runObserve(args []string) int {
+	if len(args) > 0 && dendrik.IsHelpArg(args[0]) {
+		printObserveUsage()
+		return dendrik.ExitOK
+	}
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		switch args[0] {
 		case "list":
@@ -29,6 +33,14 @@ func runObserve(args []string) int {
 		}
 	}
 	return runObserveAppend(args)
+}
+
+func printObserveUsage() {
+	fmt.Fprintf(os.Stderr, "Usage: folio observe <item text> [--folio PATH]\n")
+	fmt.Fprintf(os.Stderr, "       folio observe list [--json] [--scope X] [--type X]\n")
+	fmt.Fprintf(os.Stderr, "       folio observe resolve <match> [match...]\n")
+	fmt.Fprintf(os.Stderr, "       folio observe types\n")
+	fmt.Fprintf(os.Stderr, "       folio observe lint\n")
 }
 
 func runObserveAppend(args []string) int {

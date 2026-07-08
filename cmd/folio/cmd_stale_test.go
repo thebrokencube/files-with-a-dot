@@ -22,7 +22,7 @@ func ageFile(t *testing.T, path string) {
 }
 
 func TestRunStaleMissingFile(t *testing.T) {
-	code := runStale([]string{"--folio", "/nonexistent/folio.yml"})
+	code := buildRoot().Execute([]string{"stale", "--folio", "/nonexistent/folio.yml"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for missing file, got %d", code)
 	}
@@ -33,7 +33,7 @@ func TestRunStaleNoTargets(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runStale([]string{"--folio", yml})
+	code := buildRoot().Execute([]string{"stale", "--folio", yml})
 	if code != 0 {
 		t.Errorf("expected exit code 0 for no targets, got %d", code)
 	}
@@ -68,7 +68,7 @@ targets:
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStale([]string{"--folio", yml})
+	code := buildRoot().Execute([]string{"stale", "--folio", yml})
 
 	w.Close()
 	os.Stdout = old
@@ -108,7 +108,7 @@ func TestRunStaleJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStale([]string{"--folio", yml, "--json"})
+	code := buildRoot().Execute([]string{"stale", "--folio", yml, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -162,7 +162,7 @@ targets:
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStale([]string{"--folio", yml, "--json"})
+	code := buildRoot().Execute([]string{"stale", "--folio", yml, "--json"})
 
 	w.Close()
 	os.Stdout = old
@@ -232,7 +232,7 @@ targets:
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runStale([]string{"--folio", yml, "--no-color"})
+	code := buildRoot().Execute([]string{"stale", "--folio", yml, "--no-color"})
 
 	w.Close()
 	os.Stdout = old

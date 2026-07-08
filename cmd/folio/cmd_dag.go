@@ -27,32 +27,25 @@ type dagEdge struct {
 	To   string `json:"to"`
 }
 
-func runDag(args []string) int {
+func runDag(folioPath string, jsonMode, noColor bool) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("dag")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		if *jsonMode {
-			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
+		if jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", folioPath))
 		}
 		return dendrik.ExitUserError
 	}
 
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
-		if *jsonMode {
+		if jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -67,7 +60,7 @@ func runDag(args []string) int {
 
 	allTargets := maputil.SortedKeys(f.Targets)
 
-	if *jsonMode {
+	if jsonMode {
 		dj := dagJSON{}
 		for _, tid := range allTargets {
 			node := dagNode{ID: tid}
@@ -99,7 +92,7 @@ func runDag(args []string) int {
 		}
 		dendrik.WriteResult(os.Stdout, dj)
 	} else {
-		output.PrintDAGTerminal(os.Stdout, f.Targets, merged, allTargets, !*noColor)
+		output.PrintDAGTerminal(os.Stdout, f.Targets, merged, allTargets, !noColor)
 	}
 
 	return dendrik.ExitOK

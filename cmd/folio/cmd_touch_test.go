@@ -8,7 +8,7 @@ import (
 )
 
 func TestRunTouchNoArgs(t *testing.T) {
-	code := runTouch([]string{})
+	code := buildRoot().Execute([]string{"touch"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for no args, got %d", code)
 	}
@@ -19,7 +19,7 @@ func TestRunTouchTargetNotFound(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runTouch([]string{"--folio", yml, "nonexistent"})
+	code := buildRoot().Execute([]string{"touch", "--folio", yml, "nonexistent"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for missing target, got %d", code)
 	}
@@ -39,7 +39,7 @@ targets:
         field: description
 `), 0644)
 
-	code := runTouch([]string{"--folio", yml, "my-target"})
+	code := buildRoot().Execute([]string{"touch", "--folio", yml, "my-target"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for no local output, got %d", code)
 	}
@@ -66,7 +66,7 @@ targets:
 `), 0644)
 
 	before := time.Now()
-	code := runTouch([]string{"--folio", yml, "my-target"})
+	code := buildRoot().Execute([]string{"touch", "--folio", yml, "my-target"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}

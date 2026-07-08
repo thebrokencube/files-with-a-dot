@@ -88,7 +88,7 @@ func TestRunArchive(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		code := runArchive([]string{"--folio", yml, "--no-push", "2026-01-01-test-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "2026-01-01-test-track"})
 
 		w.Close()
 		os.Stdout = old
@@ -136,7 +136,7 @@ func TestRunArchive(t *testing.T) {
 		os.MkdirAll(otherTrack, 0755)
 		os.WriteFile(filepath.Join(otherTrack, "README.md"), []byte("# Other\n"), 0644)
 
-		code := runArchive([]string{"--folio", yml, "--no-push", "2026-01-01-test-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "2026-01-01-test-track"})
 		if code != 0 {
 			t.Fatalf("expected exit code 0, got %d", code)
 		}
@@ -155,7 +155,7 @@ func TestRunArchive(t *testing.T) {
 		yml := filepath.Join(dir, "folio.yml")
 		os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-		code := runArchive([]string{"--folio", yml, "--no-push", "nonexistent-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "nonexistent-track"})
 		if code != 1 {
 			t.Errorf("expected exit code 1 for missing track, got %d", code)
 		}
@@ -168,7 +168,7 @@ func TestRunArchive(t *testing.T) {
 		// Pre-create archive directory
 		os.MkdirAll(filepath.Join(dir, "work", "archive", "2026-01-01-test-track"), 0755)
 
-		code := runArchive([]string{"--folio", yml, "--no-push", "2026-01-01-test-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "2026-01-01-test-track"})
 		if code != 1 {
 			t.Errorf("expected exit code 1 for already archived, got %d", code)
 		}
@@ -183,7 +183,7 @@ func TestRunArchive(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		code := runArchive([]string{"--folio", yml, "--dry-run", "2026-01-01-test-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--dry-run", "2026-01-01-test-track"})
 
 		w.Close()
 		os.Stdout = old
@@ -232,7 +232,7 @@ sources:
   - path: work/active/2026-01-01-bad-track/missing.md
 `), 0644)
 
-		code := runArchive([]string{"--folio", yml, "--no-push", "2026-01-01-bad-track"})
+		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "2026-01-01-bad-track"})
 		if code != 1 {
 			t.Errorf("expected exit code 1 for validation failure, got %d", code)
 		}

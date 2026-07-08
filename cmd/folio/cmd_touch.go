@@ -10,27 +10,14 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runTouch(args []string) int {
+func runTouch(folioPath, targetID string) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("touch")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	if len(fs.GetArgs()) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio touch <target-id> [--folio PATH]\n")
-		fmt.Fprintf(os.Stderr, "  Marks a target as current by updating output file mtimes.\n")
-		return dendrik.ExitUserError
-	}
-
-	targetID := fs.GetArgs()[0]
-
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
@@ -42,7 +29,7 @@ func runTouch(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	touched, err := touch.Target(folioDir, &target)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))

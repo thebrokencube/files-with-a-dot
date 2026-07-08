@@ -14,34 +14,26 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runValidate(args []string) int {
-	fs := dendrik.NewFlagSet("validate")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if !resolveOrDie(folioPath) {
+func runValidate(folioPath string, jsonMode, noColor bool) int {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	color := dendrik.ColorEnabled(*noColor)
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 
-	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		if *jsonMode {
-			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
+		if jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", folioPath))
 		}
 		return dendrik.ExitExternalErr
 	}
 
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
-		if *jsonMode {
+		if jsonMode {
 			dendrik.WriteError(os.Stdout, "folio.yml is not valid YAML", "")
 		} else {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -49,13 +41,13 @@ func runValidate(args []string) int {
 		return dendrik.ExitExternalErr
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	result := validate.Validate(f, folioDir)
 
-	if *jsonMode {
+	if jsonMode {
 		output.PrintValidateJSON(os.Stdout, result)
 	} else {
-		output.PrintValidateTerminal(os.Stdout, result, *folioPath, color)
+		output.PrintValidateTerminal(os.Stdout, result, folioPath, color)
 	}
 
 	if !result.Valid {
@@ -64,34 +56,26 @@ func runValidate(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runStatus(args []string) int {
-	fs := dendrik.NewFlagSet("status")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if !resolveOrDie(folioPath) {
+func runStatus(folioPath string, jsonMode, noColor bool) int {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	color := dendrik.ColorEnabled(*noColor)
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 
-	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		if *jsonMode {
-			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
+		if jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", folioPath))
 		}
 		return dendrik.ExitUserError
 	}
 
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
-		if *jsonMode {
+		if jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -99,10 +83,10 @@ func runStatus(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	ps, causedBy := status.DeriveWithDAG(f, folioDir)
 
-	if *jsonMode {
+	if jsonMode {
 		output.PrintStatusJSON(os.Stdout, ps)
 	} else {
 		output.PrintStatusTerminal(os.Stdout, ps, causedBy, color)
@@ -111,16 +95,10 @@ func runStatus(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runInit(args []string) int {
+func runInit(name, pathFlag string) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("init")
-	name := fs.String('n', "name", "", "Project name")
-	pathFlag := fs.String('p', "path", "", "Relative path under active/ (e.g., ret/kafka)")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if *name == "" {
+	if name == "" {
 		fmt.Fprintln(os.Stderr, pal.Errf("--name is required"))
 		return dendrik.ExitUserError
 	}
@@ -131,9 +109,9 @@ func runInit(args []string) int {
 	if homeDir, err := home.Dir(); err == nil {
 		activeDir := filepath.Join(homeDir, "active")
 		if fi, err := os.Stat(activeDir); err == nil && fi.IsDir() {
-			slug := *pathFlag
+			slug := pathFlag
 			if slug == "" {
-				slug = strings.ToLower(strings.ReplaceAll(*name, " ", "-"))
+				slug = strings.ToLower(strings.ReplaceAll(name, " ", "-"))
 			}
 			targetPath = filepath.Join(activeDir, slug, "folio.yml")
 		}
@@ -152,7 +130,7 @@ sources: []
 targets: {}
 
 observations: []
-`, *name)
+`, name)
 
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -164,7 +142,7 @@ observations: []
 		return dendrik.ExitUserError
 	}
 
-	fmt.Println(pal.Successf("Created folio.yml for %s%s%s", pal.Bold, *name, pal.Reset))
+	fmt.Println(pal.Successf("Created folio.yml for %s%s%s", pal.Bold, name, pal.Reset))
 	fmt.Printf("  %s\n", targetPath)
 	return dendrik.ExitOK
 }

@@ -12,32 +12,25 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runStale(args []string) int {
+func runStale(folioPath string, jsonMode, noColor bool) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("stale")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	if _, err := os.Stat(*folioPath); os.IsNotExist(err) {
-		if *jsonMode {
-			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", *folioPath), "")
+	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
+		if jsonMode {
+			dendrik.WriteError(os.Stdout, fmt.Sprintf("folio.yml not found at %s", folioPath), "")
 		} else {
-			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", *folioPath))
+			fmt.Fprintln(os.Stderr, pal.Errf("folio.yml not found at %s", folioPath))
 		}
 		return dendrik.ExitUserError
 	}
 
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
-		if *jsonMode {
+		if jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -45,7 +38,7 @@ func runStale(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	ps, causedBy := status.DeriveWithDAG(f, folioDir)
 
 	// Build enriched entries for stale/missing/unknown targets
@@ -108,7 +101,7 @@ func runStale(args []string) int {
 		code = dendrik.ExitUserError
 	}
 
-	if *jsonMode {
+	if jsonMode {
 		if entries == nil {
 			entries = []output.StaleEntry{}
 		}
@@ -116,7 +109,7 @@ func runStale(args []string) int {
 			Stale []output.StaleEntry `json:"stale"`
 		}{Stale: entries}, code)
 	} else {
-		output.PrintStaleTerminal(os.Stdout, entries, !*noColor)
+		output.PrintStaleTerminal(os.Stdout, entries, !noColor)
 	}
 
 	return code
