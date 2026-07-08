@@ -11,7 +11,7 @@ import (
 )
 
 func TestRunGatherNoArgs(t *testing.T) {
-	code := runGather([]string{})
+	code := buildRoot().Execute([]string{"gather"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for no args, got %d", code)
 	}
@@ -22,7 +22,7 @@ func TestRunGatherInvalidURL(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "not-a-url"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "not-a-url"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for invalid URL, got %d", code)
 	}
@@ -33,7 +33,7 @@ func TestRunGatherReadFlag(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--read", "https://example.com/doc"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "--read", "https://example.com/doc"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for --read flag, got %d", code)
 	}
@@ -44,7 +44,7 @@ func TestRunGatherURLOnly(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "https://example.com/guide.html"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "https://example.com/guide.html"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
@@ -73,7 +73,7 @@ func TestRunGatherMaterializeRequiresType(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "https://example.com/api-spec"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "--materialize", "https://example.com/api-spec"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for --materialize without --type, got %d", code)
 	}
@@ -84,7 +84,7 @@ func TestRunGatherMaterialize(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "--type", "survey", "https://example.com/api-spec"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "--materialize", "--type", "survey", "https://example.com/api-spec"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
@@ -116,7 +116,7 @@ func TestRunGatherMaterializeWithName(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "--type", "guide", "--name", "my-ref", "https://example.com/page"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "--materialize", "--type", "guide", "--name", "my-ref", "https://example.com/page"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
@@ -137,7 +137,7 @@ func TestRunGatherMaterializeSpikeRejected(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\ntargets: {}\nobservations: []\n"), 0644)
 
-	code := runGather([]string{"--folio", yml, "--materialize", "--type", "spike", "https://example.com/page"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "--materialize", "--type", "spike", "https://example.com/page"})
 	if code == 0 {
 		t.Error("expected non-zero exit for spike (no longer a reference type)")
 	}
@@ -171,7 +171,7 @@ observations:
 `
 	os.WriteFile(yml, []byte(original), 0644)
 
-	code := runGather([]string{"--folio", yml, "https://example.com/new-source"})
+	code := buildRoot().Execute([]string{"gather", "--folio", yml, "https://example.com/new-source"})
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}

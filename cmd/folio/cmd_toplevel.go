@@ -7,20 +7,15 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runSetup(args []string) int {
+func runSetup(checkMode bool) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("setup")
-	checkMode := fs.Bool('c', "check", "Silent mode: exit 0 if OK, exit 1 if missing")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
 	folioBin, err := os.Executable()
 	if err != nil {
 		folioBin = "folio"
 	}
 
-	if !*checkMode {
+	if !checkMode {
 		fmt.Println(pal.Successf("folio %s (%s)", version, folioBin))
 		fmt.Printf("\n%s%sAll dependencies satisfied.%s\n", pal.Green, pal.Bold, pal.Reset)
 	}

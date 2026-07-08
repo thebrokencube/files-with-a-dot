@@ -16,7 +16,7 @@ import (
 
 func TestRunSyncNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runSync([]string{"--dir", dir})
+	code := runSync(dir, "", false, false, false, false, false)
 	if code != dendrik.ExitUserError {
 		t.Fatalf("expected exit %d for missing forest, got %d", dendrik.ExitUserError, code)
 	}
@@ -27,7 +27,7 @@ func TestRunSyncEmptyForest(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, ".jf"), 0755)
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 
-	code := runSync([]string{"--dir", dir, "--dry-run"})
+	code := runSync(dir, "", true, false, false, false, false)
 	if code != dendrik.ExitOK {
 		t.Fatalf("expected exit 0 for empty forest, got %d", code)
 	}
@@ -39,7 +39,7 @@ func TestRunSyncTBDOnlyForest(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "task.md"), []byte("---\njira: TBD\ntype: Task\n---\n# TBD Task\n"), 0644)
 
-	code := runSync([]string{"--dir", dir, "--dry-run"})
+	code := runSync(dir, "", true, false, false, false, false)
 	if code != dendrik.ExitOK {
 		t.Fatalf("expected exit 0 for TBD-only forest, got %d", code)
 	}
@@ -49,7 +49,7 @@ func TestSyncDryRunShowsPlan(t *testing.T) {
 	dir := setupSyncTestForest(t)
 
 	// Dry-run shows plan without executing
-	code := runSync([]string{"--dir", dir, "--dry-run"})
+	code := runSync(dir, "", true, false, false, false, false)
 	if code != dendrik.ExitOK {
 		t.Fatalf("expected exit 0 for dry-run, got %d", code)
 	}
@@ -63,7 +63,7 @@ func TestSyncDryRunJson(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runSync([]string{"--dir", dir, "--json"})
+	code := runSync(dir, "", false, false, false, true, false)
 
 	w.Close()
 	os.Stdout = old

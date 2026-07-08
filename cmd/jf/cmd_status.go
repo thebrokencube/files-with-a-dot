@@ -17,16 +17,8 @@ import (
 // prFetcher is the function used to fetch PRs. Tests override this.
 var prFetcher gh.Fetcher = gh.DefaultFetcher
 
-func runStatus(args []string) int {
-	fs := dendrik.NewFlagSet("status")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	jsonOut := fs.Bool('j', "json", "Output as JSON")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	f, roots, code := loadForestOrFail(*dir, *jsonOut)
+func runStatus(dir string, jsonOut bool) int {
+	f, roots, code := loadForestOrFail(dir, jsonOut)
 	if code != 0 {
 		return code
 	}
@@ -229,7 +221,7 @@ func runStatus(args []string) int {
 
 	// JSON output: PushTotal includes empty/blocked "both" nodes for backward compat
 	// (old code counted all non-pull nodes as push)
-	if *jsonOut {
+	if jsonOut {
 		dendrik.WriteResult(os.Stdout, output.StatusResult{
 			Forest:    filepath.Dir(f.Dir),
 			Total:     len(all),

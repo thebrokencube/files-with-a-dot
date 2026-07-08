@@ -12,22 +12,13 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runSetup(args []string) int {
-	fs := dendrik.NewFlagSet("setup")
-	checkOnly := fs.Bool('c', "check", "Non-interactive check only")
-	jsonOut := fs.Bool('j', "json", "Output as JSON (with --check)")
-	discover := fs.BoolLong("discover", "Discover and save Jira site from acli auth")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if *discover {
+func runSetup(checkOnly, jsonOut, discover bool) int {
+	if discover {
 		return setupDiscover()
 	}
 
-	if *checkOnly {
-		return setupCheck(*jsonOut)
+	if checkOnly {
+		return setupCheck(jsonOut)
 	}
 
 	return setupInteractive()

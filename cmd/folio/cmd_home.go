@@ -84,7 +84,7 @@ func resolveHomeOrFail() (string, int) {
 	return dir, code
 }
 
-func runHomeInit(args []string) int {
+func runHomeInit() int {
 	pal := dendrik.NewPalette(true)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
@@ -100,14 +100,8 @@ func runHomeInit(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runHomeValidate(args []string) int {
-	fs := dendrik.NewFlagSet("home validate")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	color := dendrik.ColorEnabled(*noColor)
+func runHomeValidate(noColor bool) int {
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
@@ -136,15 +130,8 @@ func runHomeValidate(args []string) int {
 	return dendrik.ExitExternalErr
 }
 
-func runHomeList(args []string) int {
-	fs := dendrik.NewFlagSet("home list")
-	jsonMode := fs.Bool('j', "json", "Machine-readable JSON output")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	color := dendrik.ColorEnabled(*noColor)
+func runHomeList(jsonMode, noColor bool) int {
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
@@ -153,7 +140,7 @@ func runHomeList(args []string) int {
 
 	entries, err := list.Scan(dir)
 	if err != nil {
-		if *jsonMode {
+		if jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
 		} else {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -161,7 +148,7 @@ func runHomeList(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	if *jsonMode {
+	if jsonMode {
 		dendrik.WriteResult(os.Stdout, entries)
 		return dendrik.ExitOK
 	}
@@ -392,19 +379,12 @@ func runHomePull(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runHomeArchive(args []string) int {
+func runHomeArchive(relPath string) int {
 	pal := dendrik.NewPalette(true)
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio home archive <path>\n")
-		fmt.Fprintf(os.Stderr, "  Path is relative to active/, e.g., 'ben/my-project'\n")
-		return dendrik.ExitUserError
-	}
-
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
 	}
-	relPath := args[0]
 
 	if err := move.Archive(dir, relPath); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -415,19 +395,12 @@ func runHomeArchive(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runHomeActivate(args []string) int {
+func runHomeActivate(relPath string) int {
 	pal := dendrik.NewPalette(true)
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio home activate <path>\n")
-		fmt.Fprintf(os.Stderr, "  Path is relative to archive/, e.g., 'ben/2026-02-20-my-project'\n")
-		return dendrik.ExitUserError
-	}
-
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
 	}
-	relPath := args[0]
 
 	if err := move.Activate(dir, relPath); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
@@ -440,14 +413,8 @@ func runHomeActivate(args []string) int {
 
 var statDatePrefixRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-`)
 
-func runHomeStats(args []string) int {
-	fs := dendrik.NewFlagSet("home stats")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	color := dendrik.ColorEnabled(*noColor)
+func runHomeStats(noColor bool) int {
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
@@ -619,39 +586,28 @@ func runHomeStats(args []string) int {
 	return dendrik.ExitOK
 }
 
-func runHomeWorkspace(args []string) int {
-	pal := dendrik.NewPalette(true)
-
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio home workspace <create|list|cleanup>\n")
-		return dendrik.ExitUserError
-	}
-
+// resolveWorkspaceHome resolves the FOLIO_HOME the workspace subcommands act on
+// and enforces the jj requirement. Under the command tree each workspace leaf
+// calls this itself (help/arity already resolved by the router before Run).
+func resolveWorkspaceHome(pal dendrik.Palette) (string, int) {
 	dir, code := resolveHomeOrFail()
+	if code != dendrik.ExitOK {
+		return "", code
+	}
+	if !repo.IsJJ(dir) {
+		fmt.Fprintln(os.Stderr, pal.Errf("workspace requires jj — no .jj directory in %s", dir))
+		return "", dendrik.ExitUserError
+	}
+	return dir, dendrik.ExitOK
+}
+
+func runWorkspaceCreate() int {
+	pal := dendrik.NewPalette(true)
+	homeDir, code := resolveWorkspaceHome(pal)
 	if code != dendrik.ExitOK {
 		return code
 	}
 
-	// Workspace commands require jj
-	if !repo.IsJJ(dir) {
-		fmt.Fprintln(os.Stderr, pal.Errf("workspace requires jj — no .jj directory in %s", dir))
-		return dendrik.ExitUserError
-	}
-
-	switch args[0] {
-	case "create":
-		return runWorkspaceCreate(dir, pal)
-	case "list":
-		return runWorkspaceList(dir, pal)
-	case "cleanup":
-		return runWorkspaceCleanup(dir, args[1:], pal)
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown workspace command: %s\n", args[0])
-		return dendrik.ExitUserError
-	}
-}
-
-func runWorkspaceCreate(homeDir string, pal dendrik.Palette) int {
 	wsID := fmt.Sprintf("folio-ws-%d-%d", time.Now().Unix(), os.Getpid())
 	wsDir := filepath.Join("/tmp", wsID)
 
@@ -667,7 +623,13 @@ func runWorkspaceCreate(homeDir string, pal dendrik.Palette) int {
 	return dendrik.ExitOK
 }
 
-func runWorkspaceList(homeDir string, pal dendrik.Palette) int {
+func runWorkspaceList() int {
+	pal := dendrik.NewPalette(true)
+	homeDir, code := resolveWorkspaceHome(pal)
+	if code != dendrik.ExitOK {
+		return code
+	}
+
 	cmd := exec.Command("jj", "--no-pager", "workspace", "list", "-R", homeDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -678,11 +640,17 @@ func runWorkspaceList(homeDir string, pal dendrik.Palette) int {
 	return dendrik.ExitOK
 }
 
-func runWorkspaceCleanup(homeDir string, args []string, pal dendrik.Palette) int {
+func runWorkspaceCleanup(positional []string) int {
+	pal := dendrik.NewPalette(true)
+	homeDir, code := resolveWorkspaceHome(pal)
+	if code != dendrik.ExitOK {
+		return code
+	}
+
 	// Determine workspace path: from args, or from FOLIO_HOME if it's a workspace
 	var wsDir string
-	if len(args) > 0 {
-		wsDir = args[0]
+	if len(positional) > 0 {
+		wsDir = positional[0]
 	} else {
 		// Use current FOLIO_HOME if it looks like a workspace
 		folio := os.Getenv("FOLIO_HOME")

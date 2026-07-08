@@ -53,10 +53,10 @@ var Contract = []ContractEntry{
 		Remediation: "Create go.mod with `go mod init` and add a `use` entry for this tool in the root go.work file.",
 	},
 	{
-		ID: "main-dispatch", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "main.go has func main() with at least one os.Exit(run*(...)) call",
-		Rationale:   "The run-function pattern isolates command logic from process lifecycle. os.Exit in main ensures defer runs in run functions and exit codes propagate correctly.",
-		Remediation: "In main.go, ensure func main() delegates to run*() functions via os.Exit(run*(...)).",
+		ID: "dispatch-router", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "func main() dispatches via dendrik.Command.Execute and no non-test file hand-rolls a switch on os.Args",
+		Rationale:   "Subcommand dispatch is data (a dendrik.Command tree), not control flow. main() must call os.Exit(buildRoot().Execute(os.Args[1:])); a switch on os.Args[N] is the pre-migration hand-rolled router the tree replaces. Genuine escape hatches (RunRaw leaves that switch on a pre-sliced args param) are annotated with //nolint:dispatch-router and covered by leaf-strictness.",
+		Remediation: "In main(), call os.Exit(buildRoot().Execute(os.Args[1:])). Replace any switch on os.Args[N] with a Command tree, or annotate the switch with //nolint:dispatch-router.",
 	},
 	{
 		ID: "core-in-pkg", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
@@ -113,10 +113,10 @@ var Contract = []ContractEntry{
 		Remediation: "Fix broken links in the ## Documentation section of README.md — ensure referenced files exist.",
 	},
 	{
-		ID: "version-flag", Layer: LayerGo, Scope: ScopeUniversal, Severity: SeverityWarning,
-		Summary:     "main.go handles a --version flag (distinct from the version subcommand)",
-		Rationale:   "A --version flag (with -V) is a near-universal CLI convention (clig.dev, 12-factor CLI) for scriptable version reporting. A `version` subcommand alone does not satisfy the flag form that users and agents expect, so dendrik tools should handle both.",
-		Remediation: "In main()'s dispatch, fold the flag forms into the version case: `case \"version\", \"--version\", \"-V\":` printing the version and exiting 0.",
+		ID: "leaf-strictness", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityWarning,
+		Summary:     "Every RunRaw escape hatch carries a //nolint:dispatch-router annotation",
+		Rationale:   "RunRaw bypasses strict Command-tree dispatch (free-text fallbacks, defaulted subcommands, optional positionals). Each use must be a deliberate, documented exception rather than an accidental regression to hand-rolled parsing, so it is annotated at the RunRaw field.",
+		Remediation: "Annotate the RunRaw field with //nolint:dispatch-router (same line or the line above) explaining why strict dispatch does not apply.",
 	},
 
 	// --- Skill Layer ---

@@ -15,35 +15,21 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runNew(args []string) int {
+func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw string) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("new")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	noRegister := fs.BoolLong("no-register", "Skip adding source entry to folio.yml")
-	dryRun := fs.Bool('n', "dry-run", "Print what would be created, no side effects")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if len(fs.GetArgs()) < 2 {
-		printNewUsage()
-		return dendrik.ExitUserError
-	}
-
-	artifactType := fs.GetArgs()[0]
-	topic := strings.ReplaceAll(fs.GetArgs()[1], " ", "-")
+	topic := strings.ReplaceAll(topicRaw, " ", "-")
 
 	// Handle vault: prefix — scaffold directly in vault directory (no folio.yml needed)
 	if strings.HasPrefix(artifactType, "vault:") {
-		return runNewVault(artifactType, topic, *dryRun)
+		return runNewVault(artifactType, topic, dryRun)
 	}
 
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
 	if artifactType == "round" {
-		return runNewRound(topic, *folioPath, *dryRun)
+		return runNewRound(topic, folioPath, dryRun)
 	}
 
 	// Deprecation check
@@ -60,7 +46,7 @@ func runNew(args []string) int {
 	}
 
 	// Resolve path
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 
 	relPath := taxonomy.TypePath(artifactType, topic)
 	if relPath == "" {
@@ -104,19 +90,19 @@ func runNew(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	if *dryRun {
+	if dryRun {
 		fmt.Printf("Would create: %s\n", relPath)
 		if colocated {
 			fmt.Printf("  → colocated with %s/\n", filepath.Dir(relPath))
 		}
-		if !*noRegister {
+		if !noRegister {
 			fmt.Printf("  Would add source entry to folio.yml\n")
 		}
 		return dendrik.ExitOK
 	}
 
 	// Validate folio.yml parses before modifying
-	if _, err := config.Load(*folioPath); err != nil {
+	if _, err := config.Load(folioPath); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
@@ -135,8 +121,8 @@ func runNew(args []string) int {
 	}
 
 	// Register in folio.yml
-	if !*noRegister {
-		if err := appendNewSource(*folioPath, relPath); err != nil {
+	if !noRegister {
+		if err := appendNewSource(folioPath, relPath); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 			return dendrik.ExitUserError
 		}
@@ -146,7 +132,7 @@ func runNew(args []string) int {
 	if colocated {
 		fmt.Printf("  → colocated with %s/\n", filepath.Dir(relPath))
 	}
-	if !*noRegister {
+	if !noRegister {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
 	return dendrik.ExitOK
@@ -269,26 +255,6 @@ func validTypeList() string {
 	}
 	sort.Strings(types)
 	return strings.Join(types, ", ")
-}
-
-func printNewUsage() {
-	fmt.Fprintf(os.Stderr, `Usage: folio new <type> <topic> [--folio PATH] [--no-register] [--dry-run]
-
-Scaffold a typed artifact at the correct path.
-
-Types:
-  Lifecycle:   spike, design, plan, retro
-  Reference:   %s
-  Vault:       vault:research, vault:domain, vault:guide, vault:insight
-  Alias:       brief (-> plan)
-  Dual-layer:  design, retro (colocate with work dir if one matches topic)
-  Convention:  round (auto-incrementing agent-research dir under work dir)
-
-Options:
-  --folio PATH      Path or shortname (default: ./folio.yml)
-  --no-register     Skip adding source entry to folio.yml
-  --dry-run         Print what would be created, no side effects
-`, strings.Join(taxonomy.ReferenceTypes, ", "))
 }
 
 func isColocatable(t string) bool { return taxonomy.ColocatableTypes[t] }

@@ -126,7 +126,7 @@ func TestRunCreateMissingDryRun(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TBD\ntype: Epic\n---\n# New Epic\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "task-b.md"), []byte("---\njira: TBD\ntype: Task\n---\n# New Task\n"), 0644)
 
-	code := runCreateMissing([]string{"--dir", dir, "--dry-run"})
+	code := runCreateMissing(dir, true, false)
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -139,7 +139,7 @@ func TestRunCreateMissingNoTBD(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n  project: TEST\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Existing\n"), 0644)
 
-	code := runCreateMissing([]string{"--dir", dir, "--dry-run"})
+	code := runCreateMissing(dir, true, false)
 	if code != 0 {
 		t.Fatalf("expected exit 0 for no TBD nodes, got %d", code)
 	}
@@ -147,7 +147,7 @@ func TestRunCreateMissingNoTBD(t *testing.T) {
 
 func TestRunCreateMissingNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runCreateMissing([]string{"--dir", dir})
+	code := runCreateMissing(dir, false, false)
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}

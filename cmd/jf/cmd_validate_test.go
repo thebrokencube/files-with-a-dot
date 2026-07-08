@@ -18,7 +18,7 @@ func TestRunValidate(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runValidate([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"validate", "--dir", dir})
 
 	w.Close()
 	os.Stdout = old
@@ -38,7 +38,7 @@ func TestRunValidate(t *testing.T) {
 
 func TestRunValidateNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runValidate([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"validate", "--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -52,7 +52,7 @@ func TestRunValidateWithErrors(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "a.md"), []byte("---\njira: TEST-1\n---\n# A\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "b.md"), []byte("---\njira: TEST-1\n---\n# B\n"), 0644)
 
-	code := runValidate([]string{"--dir", dir})
+	code := buildRoot().Execute([]string{"validate", "--dir", dir})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for duplicate keys, got %d", code)
 	}
@@ -68,7 +68,7 @@ func TestRunValidateJSON(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runValidate([]string{"--dir", dir, "--json"})
+	code := buildRoot().Execute([]string{"validate", "--dir", dir, "--json"})
 
 	w.Close()
 	os.Stdout = old

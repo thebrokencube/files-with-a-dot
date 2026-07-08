@@ -2,6 +2,7 @@ package lint
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"os"
 	"path/filepath"
@@ -38,8 +39,8 @@ func GoLint(data *ToolData) []Result {
 			"Add `./cmd/"+data.ToolName+"` to the `use` block in go.work."))
 	}
 
-	results = append(results, checkMainDispatch(data)...)
-	results = append(results, checkVersionFlag(data)...)
+	results = append(results, checkDispatchRouter(data)...)
+	results = append(results, checkLeafStrictness(data)...)
 	results = append(results, checkCoreInPkg(data)...)
 
 	hasCmdFile := false
@@ -75,10 +76,13 @@ func GoLint(data *ToolData) []Result {
 	return results
 }
 
-func checkMainDispatch(data *ToolData) []Result {
+// checkDispatchRouter enforces that subcommand dispatch is data (a
+// dendrik.Command tree), not a hand-rolled switch on os.Args. Two assertions:
+// (a) func main() must dispatch via <expr>.Execute(...); (b) no top-level
+// switch on os.Args[N] may appear in a non-test file unless annotated.
+func checkDispatchRouter(data *ToolData) []Result {
 	var results []Result
 
-	// Find main.go
 	var mainFile *GoFileData
 	for i := range data.GoFiles {
 		if data.GoFiles[i].Path == "main.go" {
@@ -86,53 +90,29 @@ func checkMainDispatch(data *ToolData) []Result {
 			break
 		}
 	}
-
-	if mainFile == nil {
-		results = append(results, lintResult("main-dispatch", conventions.SeverityError,
+	switch {
+	case mainFile == nil:
+		results = append(results, lintResult("dispatch-router", conventions.SeverityError,
 			"main.go not found",
 			"main.go", 0,
-			"Create main.go with func main() that delegates to run*() functions via os.Exit()."))
-		return results
-	}
-
-	if mainFile.AST == nil {
-		results = append(results, lintResult("main-dispatch", conventions.SeverityError,
+			"Create main.go with func main() that calls os.Exit(buildRoot().Execute(os.Args[1:]))."))
+	case mainFile.AST == nil:
+		results = append(results, lintResult("dispatch-router", conventions.SeverityError,
 			"main.go has parse errors",
 			"main.go", 0,
 			"Fix syntax errors in main.go."))
-		return results
+	case !mainDispatchesViaExecute(mainFile.AST):
+		results = append(results, lintResult("dispatch-router", conventions.SeverityError,
+			"func main() must dispatch via dendrik.Command.Execute",
+			"main.go", 0,
+			"In main(), call os.Exit(buildRoot().Execute(os.Args[1:])) instead of a hand-rolled switch."))
 	}
 
-	// Walk func main() body looking for os.Exit(run*(...)) calls
-	found := false
-	ast.Inspect(mainFile.AST, func(n ast.Node) bool {
-		if found {
-			return false
+	for _, gf := range data.GoFiles {
+		if !strings.HasSuffix(gf.Path, ".go") || strings.HasSuffix(gf.Path, "_test.go") {
+			continue
 		}
-		fn, ok := n.(*ast.FuncDecl)
-		if !ok || fn.Name.Name != "main" {
-			return true
-		}
-		// Walk the body of main() for os.Exit calls with run* args
-		ast.Inspect(fn.Body, func(inner ast.Node) bool {
-			call, ok := inner.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			if isOsExitCall(call) && hasRunArg(call) {
-				found = true
-				return false
-			}
-			return true
-		})
-		return false
-	})
-
-	if !found {
-		results = append(results, lintResult("main-dispatch", conventions.SeverityError,
-			"func main() has no os.Exit(run*(...)) call",
-			"main.go", 0,
-			"In main.go, delegate to run*() functions via os.Exit(run*(...))."))
+		results = append(results, dispatchSwitchViolations(gf)...)
 	}
 
 	return results
@@ -151,78 +131,120 @@ func isOsExitCall(call *ast.CallExpr) bool {
 	return ident.Name == "os" && sel.Sel.Name == "Exit"
 }
 
-// hasRunArg checks if an os.Exit call has a run*(...) call as its argument
-func hasRunArg(call *ast.CallExpr) bool {
-	if len(call.Args) != 1 {
-		return false
-	}
-	innerCall, ok := call.Args[0].(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	ident, ok := innerCall.Fun.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	return strings.HasPrefix(ident.Name, "run")
-}
-
-// checkVersionFlag verifies main.go handles a --version flag (distinct from any
-// `version` subcommand). Stays silent when main.go is missing or unparseable —
-// main-dispatch already reports that, and double-reporting would be noise.
-func checkVersionFlag(data *ToolData) []Result {
-	var mainFile *GoFileData
-	for i := range data.GoFiles {
-		if data.GoFiles[i].Path == "main.go" {
-			mainFile = &data.GoFiles[i]
-			break
-		}
-	}
-	if mainFile == nil || mainFile.AST == nil {
-		return nil
-	}
-	if mainHandlesVersionFlag(mainFile.AST) {
-		return nil
-	}
-	return []Result{lintResult("version-flag", conventions.SeverityWarning,
-		"main.go does not handle a --version flag",
-		"main.go", 0,
-		"In main()'s dispatch, fold the flag forms into the version case: `case \"version\", \"--version\", \"-V\":`.")}
-}
-
-// mainHandlesVersionFlag reports whether func main() has a switch case whose
-// expression is the string literal "--version" — the flag form, distinct from
-// the "version" subcommand (which a naive string match would falsely accept).
-func mainHandlesVersionFlag(file *ast.File) bool {
+// mainDispatchesViaExecute reports whether func main() contains an
+// os.Exit(<expr>.Execute(...)) call — the dendrik.Command dispatch entrypoint.
+func mainDispatchesViaExecute(file *ast.File) bool {
 	found := false
 	ast.Inspect(file, func(n ast.Node) bool {
 		if found {
 			return false
 		}
 		fn, ok := n.(*ast.FuncDecl)
-		if !ok || fn.Name.Name != "main" {
+		if !ok || fn.Name.Name != "main" || fn.Body == nil {
 			return true
 		}
 		ast.Inspect(fn.Body, func(inner ast.Node) bool {
-			cc, ok := inner.(*ast.CaseClause)
+			call, ok := inner.(*ast.CallExpr)
+			if !ok || !isOsExitCall(call) || len(call.Args) != 1 {
+				return true
+			}
+			arg, ok := call.Args[0].(*ast.CallExpr)
 			if !ok {
 				return true
 			}
-			for _, expr := range cc.List {
-				lit, ok := expr.(*ast.BasicLit)
-				if !ok || lit.Kind != token.STRING {
-					continue
-				}
-				if val, err := strconv.Unquote(lit.Value); err == nil && val == "--version" {
-					found = true
-					return false
-				}
+			if sel, ok := arg.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Execute" {
+				found = true
+				return false
 			}
 			return true
 		})
 		return false
 	})
 	return found
+}
+
+// dispatchSwitchViolations flags any switch whose tag indexes os.Args — the
+// hand-rolled top-level dispatch the Command tree replaces. RunRaw leaves that
+// switch on a pre-sliced `args` param are the sanctioned escape hatch and are
+// governed by leaf-strictness at the RunRaw site, not here. A switch is exempt
+// when its source line (or the line above) carries //nolint:dispatch-router.
+func dispatchSwitchViolations(gf GoFileData) []Result {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, gf.Path, gf.Content, parser.AllErrors)
+	if file == nil || err != nil {
+		return nil
+	}
+	lines := strings.Split(string(gf.Content), "\n")
+	var results []Result
+	ast.Inspect(file, func(n ast.Node) bool {
+		sw, ok := n.(*ast.SwitchStmt)
+		if !ok || sw.Tag == nil || !isArgsIndexTag(sw.Tag) {
+			return true
+		}
+		line := fset.Position(sw.Pos()).Line
+		if lineHasNolintDispatch(lines, line) {
+			return true
+		}
+		results = append(results, lintResult("dispatch-router", conventions.SeverityError,
+			"hand-rolled subcommand dispatch in "+gf.Path,
+			gf.Path, line,
+			"Build a dendrik.Command tree or annotate the switch with //nolint:dispatch-router."))
+		return true
+	})
+	return results
+}
+
+// isArgsIndexTag reports whether the switch tag is an index into os.Args — e.g.
+// `switch os.Args[1]`. Kept conservative: only the os.Args base counts so a
+// RunRaw leaf's `switch args[0]` (a pre-sliced param) is not misflagged.
+func isArgsIndexTag(tag ast.Expr) bool {
+	idx, ok := tag.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := idx.X.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	base, ok := sel.X.(*ast.Ident)
+	return ok && base.Name == "os" && sel.Sel.Name == "Args"
+}
+
+// lineHasNolintDispatch reports whether the 1-indexed source line or the line
+// directly above it contains a //nolint:dispatch-router annotation.
+func lineHasNolintDispatch(lines []string, line int) bool {
+	for _, idx := range []int{line - 1, line - 2} {
+		if idx >= 0 && idx < len(lines) && strings.Contains(lines[idx], "//nolint:dispatch-router") {
+			return true
+		}
+	}
+	return false
+}
+
+// checkLeafStrictness warns when a RunRaw escape hatch is used without an
+// explicit //nolint:dispatch-router annotation (same line or the line above).
+// Every escape from strict Command-tree dispatch must be deliberately marked.
+func checkLeafStrictness(data *ToolData) []Result {
+	var results []Result
+	for _, gf := range data.GoFiles {
+		if !strings.HasSuffix(gf.Path, ".go") || strings.HasSuffix(gf.Path, "_test.go") {
+			continue
+		}
+		lines := strings.Split(string(gf.Content), "\n")
+		for i, line := range lines {
+			if !strings.Contains(line, "RunRaw:") {
+				continue
+			}
+			if lineHasNolintDispatch(lines, i+1) {
+				continue
+			}
+			results = append(results, lintResult("leaf-strictness", conventions.SeverityWarning,
+				"RunRaw escape hatch in "+gf.Path+" lacks //nolint:dispatch-router",
+				gf.Path, i+1,
+				"Annotate the RunRaw field with //nolint:dispatch-router explaining why strict dispatch does not apply."))
+		}
+	}
+	return results
 }
 
 // checkCoreInPkg guards against verb logic drifting back into package main: once

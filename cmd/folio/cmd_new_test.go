@@ -10,7 +10,7 @@ import (
 )
 
 func TestRunNewNoArgs(t *testing.T) {
-	code := runNew([]string{})
+	code := buildRoot().Execute([]string{"new"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for no args, got %d", code)
 	}
@@ -21,7 +21,7 @@ func TestRunNewOneArg(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "spike"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "spike"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for one arg, got %d", code)
 	}
@@ -32,7 +32,7 @@ func TestRunNewInvalidType(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "invalid", "topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "invalid", "topic"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for invalid type, got %d", code)
 	}
@@ -43,7 +43,7 @@ func TestRunNewSpikeCreatesFile(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "spike", "test-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "spike", "test-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -77,7 +77,7 @@ func TestRunNewDesignCreatesWorkDir(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "design", "my-feature"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "design", "my-feature"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -109,7 +109,7 @@ func TestRunNewBriefCreatesDirectory(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "brief", "my-project"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "brief", "my-project"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -131,12 +131,12 @@ func TestRunNewDuplicateErrors(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "spike", "dup-test"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "spike", "dup-test"})
 	if code != 0 {
 		t.Fatalf("first create expected exit code 0, got %d", code)
 	}
 
-	code = runNew([]string{"--folio", yml, "spike", "dup-test"})
+	code = buildRoot().Execute([]string{"new", "--folio", yml, "spike", "dup-test"})
 	if code != 1 {
 		t.Errorf("duplicate create expected exit code 1, got %d", code)
 	}
@@ -147,7 +147,7 @@ func TestRunNewNoRegister(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "--no-register", "spike", "no-reg"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "--no-register", "spike", "no-reg"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -171,7 +171,7 @@ func TestRunNewPreservesExistingSources(t *testing.T) {
 	original := "schema: 1\nproject: \"Test\"\n\nsources:\n  - path: existing.md\n\ntargets: {}\nobservations: []\n"
 	os.WriteFile(yml, []byte(original), 0644)
 
-	code := runNew([]string{"--folio", yml, "spike", "my-spike"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "spike", "my-spike"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -199,7 +199,7 @@ func TestRunNewNoteDeprecation(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "note", "topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "note", "topic"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for deprecated note type, got %d", code)
 	}
@@ -215,7 +215,7 @@ func TestRunNewRetroColocated(t *testing.T) {
 	os.MkdirAll(workDir, 0755)
 	os.WriteFile(filepath.Join(workDir, "README.md"), []byte("# Brief\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "retro", "mytopic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "retro", "mytopic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -243,7 +243,7 @@ func TestRunNewRetroStandalone(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "retro", "standalone-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "retro", "standalone-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -265,7 +265,7 @@ func TestRunNewDesignColocatedExistingWorkDir(t *testing.T) {
 	os.MkdirAll(workDir, 0755)
 	os.WriteFile(filepath.Join(workDir, "README.md"), []byte("# Brief\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "design", "mydesign"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "design", "mydesign"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -294,7 +294,7 @@ func TestRunNewDesignAutoCreatesWorkDir(t *testing.T) {
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
 	// No existing work dir — design should auto-create one
-	code := runNew([]string{"--folio", yml, "design", "standalone-design"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "design", "standalone-design"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -321,7 +321,7 @@ func TestRunNewPlanUsesExistingWorkDir(t *testing.T) {
 	workDir := filepath.Join(dir, "work", "active", "2026-01-15-my-topic")
 	os.MkdirAll(workDir, 0755)
 
-	code := runNew([]string{"--folio", yml, "plan", "my-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "plan", "my-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -347,7 +347,7 @@ func TestRunNewRoundCreatesFirstRound(t *testing.T) {
 	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
 	os.MkdirAll(workDir, 0755)
 
-	code := runNew([]string{"--folio", yml, "round", "my-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "round", "my-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -367,7 +367,7 @@ func TestRunNewRoundAutoIncrements(t *testing.T) {
 	os.MkdirAll(filepath.Join(workDir, "agent-research", "0001-round"), 0755)
 	os.MkdirAll(filepath.Join(workDir, "agent-research", "0002-round"), 0755)
 
-	code := runNew([]string{"--folio", yml, "round", "my-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "round", "my-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -383,7 +383,7 @@ func TestRunNewRoundMissingWorkDir(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
 
-	code := runNew([]string{"--folio", yml, "round", "nonexistent"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "round", "nonexistent"})
 	if code != 1 {
 		t.Errorf("expected exit code 1 for missing work dir, got %d", code)
 	}
@@ -397,7 +397,7 @@ func TestRunNewRoundDryRun(t *testing.T) {
 	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
 	os.MkdirAll(workDir, 0755)
 
-	code := runNew([]string{"--folio", yml, "--dry-run", "round", "my-topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "--dry-run", "round", "my-topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d", code)
 	}
@@ -416,7 +416,7 @@ func TestRunNewSlugifiesSpaces(t *testing.T) {
 	workDir := filepath.Join(dir, "work", "active", "2026-01-01-my-topic")
 	os.MkdirAll(workDir, 0755)
 
-	code := runNew([]string{"--folio", yml, "round", "my topic"})
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "round", "my topic"})
 	if code != 0 {
 		t.Fatalf("expected exit code 0 with spaces in topic, got %d", code)
 	}

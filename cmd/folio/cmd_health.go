@@ -13,42 +13,29 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runHealth(args []string) int {
-	fs := dendrik.NewFlagSet("health")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	if !resolveOrDie(folioPath) {
+func runHealth(folioPath string, noColor bool) int {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	color := dendrik.ColorEnabled(*noColor)
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 
-	f, err := config.Load(*folioPath)
+	f, err := config.Load(folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 	report := health.Analyze(f, folioDir)
 	printHealthReport(report, color)
 
 	return dendrik.ExitOK // always exit 0 (advisory)
 }
 
-func runHomeHealth(args []string) int {
-	fs := dendrik.NewFlagSet("home health")
-	noColor := fs.BoolLong("no-color", "Disable colored output")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	color := dendrik.ColorEnabled(*noColor)
+func runHomeHealth(noColor bool) int {
+	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 	homeDir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {

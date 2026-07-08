@@ -13,35 +13,18 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runGather(args []string) int {
+func runGather(folioPath string, materialize bool, typeFlag, name string, read bool, rawURL string) int {
 	pal := dendrik.NewPalette(true)
-	fs := dendrik.NewFlagSet("gather")
-	folioPath := fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
-	materialize := fs.Bool('m', "materialize", "Create reference file stub and wire path")
-	typeFlag := fs.String('t', "type", "", "Reference type (spike, survey, design, ...)")
-	name := fs.String('n', "name", "", "Reference file name (default: derived from URL)")
-	read := fs.Bool('r', "read", "Read and summarize URL (requires Claude skill)")
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
 
-	if !resolveOrDie(folioPath) {
+	if !resolveOrDie(&folioPath) {
 		return dendrik.ExitUserError
 	}
 
-	if len(fs.GetArgs()) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: folio gather <url> [--materialize --type <type>] [--name <name>] [--folio PATH]\n")
-		fmt.Fprintf(os.Stderr, "  Adds a source entry to folio.yml for the given URL.\n")
-		return dendrik.ExitUserError
-	}
-
-	if *read {
+	if read {
 		fmt.Fprintln(os.Stderr, "The --read flag requires /folio gather (Claude skill).")
 		fmt.Fprintln(os.Stderr, "Use the skill invocation to read, summarize, and materialize URLs.")
 		return dendrik.ExitUserError
 	}
-
-	rawURL := fs.GetArgs()[0]
 
 	// Validate URL
 	parsed, err := url.Parse(rawURL)
@@ -51,35 +34,35 @@ func runGather(args []string) int {
 	}
 
 	// Validate the file parses before modifying
-	if _, err := config.Load(*folioPath); err != nil {
+	if _, err := config.Load(folioPath); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
 
 	// Derive name from URL if not specified
-	refName := *name
+	refName := name
 	if refName == "" {
 		refName = deriveNameFromURL(parsed)
 	}
 
 	today := time.Now().Format("2006-01-02")
-	folioDir := filepath.Dir(*folioPath)
+	folioDir := filepath.Dir(folioPath)
 
-	if *materialize {
+	if materialize {
 		// --type is required with --materialize
-		if *typeFlag == "" {
+		if typeFlag == "" {
 			fmt.Fprintln(os.Stderr, pal.Errf("--materialize requires --type <type> (spike, survey, design, ...)"))
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
 			return dendrik.ExitUserError
 		}
-		if !taxonomy.IsReferenceDir(*typeFlag) {
-			fmt.Fprintln(os.Stderr, pal.Errf("unknown reference type %q", *typeFlag))
+		if !taxonomy.IsReferenceDir(typeFlag) {
+			fmt.Fprintln(os.Stderr, pal.Errf("unknown reference type %q", typeFlag))
 			fmt.Fprintf(os.Stderr, "  Valid types: %s\n", strings.Join(taxonomy.ReferenceTypes, ", "))
 			return dendrik.ExitUserError
 		}
 
 		// Create reference file stub in type directory
-		refRelPath := filepath.Join("reference", *typeFlag, today+"-"+refName+".md")
+		refRelPath := filepath.Join("reference", typeFlag, today+"-"+refName+".md")
 		refAbsPath := filepath.Join(folioDir, refRelPath)
 		if err := os.MkdirAll(filepath.Dir(refAbsPath), 0755); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("creating reference directory: %s", err))
@@ -97,7 +80,7 @@ func runGather(args []string) int {
 		}
 
 		// Add materialized source entry (path + derived_from)
-		if err := appendMaterializedSource(*folioPath, refRelPath, rawURL, today); err != nil {
+		if err := appendMaterializedSource(folioPath, refRelPath, rawURL, today); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 			return dendrik.ExitUserError
 		}
@@ -107,7 +90,7 @@ func runGather(args []string) int {
 		fmt.Printf("  Added source entry to folio.yml\n")
 	} else {
 		// Add URL-only source entry (external + derived_from, no path)
-		if err := appendURLSource(*folioPath, rawURL, today); err != nil {
+		if err := appendURLSource(folioPath, rawURL, today); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 			return dendrik.ExitUserError
 		}

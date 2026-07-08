@@ -148,3 +148,45 @@ func writeStores(t *testing.T, dir, yaml string) {
 		t.Fatal(err)
 	}
 }
+
+// The router handles help/empty-group at the workspace group level before any
+// home resolution or jj requirement — so a bare '--help' never falls through to
+// running create (the bug that spawned this).
+func TestWorkspaceDispatchHelp(t *testing.T) {
+	t.Run("no args prints usage and errors", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace"}); code != dendrik.ExitUserError {
+			t.Fatalf("code = %d, want ExitUserError", code)
+		}
+	})
+	t.Run("--help returns ExitOK", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace", "--help"}); code != dendrik.ExitOK {
+			t.Fatalf("code = %d, want ExitOK", code)
+		}
+	})
+	t.Run("help returns ExitOK", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace", "help"}); code != dendrik.ExitOK {
+			t.Fatalf("code = %d, want ExitOK", code)
+		}
+	})
+}
+
+// The router parses flags and enforces arity before Run, so bad flags and stray
+// positionals are rejected (not silently ignored) without needing a jj repo —
+// the leaf's home/jj resolution is never reached.
+func TestWorkspaceCreateStrictArgs(t *testing.T) {
+	t.Run("--help short-circuits to ExitOK", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace", "create", "--help"}); code != dendrik.ExitOK {
+			t.Fatalf("code = %d, want ExitOK", code)
+		}
+	})
+	t.Run("unknown flag is rejected", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace", "create", "--bogus"}); code != dendrik.ExitUserError {
+			t.Fatalf("code = %d, want ExitUserError", code)
+		}
+	})
+	t.Run("stray positional is rejected", func(t *testing.T) {
+		if code := buildRoot().Execute([]string{"home", "workspace", "create", "oops"}); code != dendrik.ExitUserError {
+			t.Fatalf("code = %d, want ExitUserError", code)
+		}
+	})
+}

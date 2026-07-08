@@ -39,24 +39,23 @@ func TestGoLint_GoWorkLink(t *testing.T) {
 	})
 }
 
-func TestGoLint_MainDispatch(t *testing.T) {
-	t.Run("valid dispatch", func(t *testing.T) {
+func TestGoLint_DispatchRouter(t *testing.T) {
+	t.Run("main dispatches via Execute, no raw switch -> passes", func(t *testing.T) {
 		data := minimalToolData("test")
 		data.GoFiles = []GoFileData{
 			parseGoFile("main.go", `package main
 import "os"
-func main() { os.Exit(runFoo(os.Args[1:])) }
-func runFoo(args []string) int { return 0 }
+func main() { os.Exit(buildRoot().Execute(os.Args[1:])) }
 `),
 			cmdFile("cmd_foo.go"),
 		}
-		results := filterCheck(GoLint(data), "main-dispatch")
+		results := filterCheck(GoLint(data), "dispatch-router")
 		if len(results) > 0 {
-			t.Errorf("expected no main-dispatch errors, got %v", results)
+			t.Errorf("expected no dispatch-router findings, got %v", results)
 		}
 	})
 
-	t.Run("no os.Exit(run*())", func(t *testing.T) {
+	t.Run("main does not dispatch via Execute -> fails", func(t *testing.T) {
 		data := minimalToolData("test")
 		data.GoFiles = []GoFileData{
 			parseGoFile("main.go", `package main
@@ -65,70 +64,124 @@ func main() { fmt.Println("hello") }
 `),
 			cmdFile("cmd_foo.go"),
 		}
-		results := filterCheck(GoLint(data), "main-dispatch")
-		assertCheckPresent(t, results, "main-dispatch")
+		results := filterCheck(GoLint(data), "dispatch-router")
+		assertCheckPresent(t, results, "dispatch-router")
 	})
 
-	t.Run("missing main.go", func(t *testing.T) {
+	t.Run("missing main.go -> fails", func(t *testing.T) {
 		data := minimalToolData("test")
 		data.GoFiles = []GoFileData{cmdFile("cmd_foo.go")}
-		results := filterCheck(GoLint(data), "main-dispatch")
-		assertCheckPresent(t, results, "main-dispatch")
+		results := filterCheck(GoLint(data), "dispatch-router")
+		assertCheckPresent(t, results, "dispatch-router")
 	})
-}
 
-func TestGoLint_VersionFlag(t *testing.T) {
-	t.Run("handles --version flag", func(t *testing.T) {
+	t.Run("switch on os.Args without nolint -> fails", func(t *testing.T) {
 		data := minimalToolData("test")
 		data.GoFiles = []GoFileData{
-			parseGoFile("main.go", `package main
-import ("fmt"; "os")
-func main() {
+			validExecuteMainFile(),
+			parseGoFile("cmd_foo.go", `package main
+import "os"
+func runFoo() int {
 	switch os.Args[1] {
-	case "version", "--version", "-V":
-		fmt.Println("v1")
-		os.Exit(0)
-	case "lint":
-		os.Exit(runLint(os.Args[2:]))
+	case "a":
+		return 0
 	}
+	return 0
 }
 `),
-			cmdFile("cmd_foo.go"),
 		}
-		results := filterCheck(GoLint(data), "version-flag")
+		results := filterCheck(GoLint(data), "dispatch-router")
+		assertCheckPresent(t, results, "dispatch-router")
+		if results[0].Severity != conventions.SeverityError {
+			t.Errorf("dispatch-router should be error, got %s", results[0].Severity)
+		}
+	})
+
+	t.Run("switch on os.Args with nolint on line above -> passes", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.GoFiles = []GoFileData{
+			validExecuteMainFile(),
+			parseGoFile("cmd_foo.go", `package main
+import "os"
+func runFoo() int {
+	//nolint:dispatch-router // legacy escape hatch
+	switch os.Args[1] {
+	case "a":
+		return 0
+	}
+	return 0
+}
+`),
+		}
+		results := filterCheck(GoLint(data), "dispatch-router")
 		if len(results) > 0 {
-			t.Errorf("expected no version-flag warning, got %v", results)
+			t.Errorf("expected no dispatch-router findings with nolint, got %v", results)
 		}
 	})
 
-	t.Run("version subcommand only does not satisfy", func(t *testing.T) {
+	t.Run("RunRaw leaf switching on pre-sliced args param -> not flagged", func(t *testing.T) {
 		data := minimalToolData("test")
 		data.GoFiles = []GoFileData{
-			parseGoFile("main.go", `package main
-import ("fmt"; "os")
-func main() {
-	switch os.Args[1] {
-	case "version":
-		fmt.Println("v1")
-		os.Exit(0)
+			validExecuteMainFile(),
+			parseGoFile("cmd_foo.go", `package main
+func runFoo(args []string) int {
+	switch args[0] {
+	case "a":
+		return 0
 	}
+	return 0
 }
 `),
-			cmdFile("cmd_foo.go"),
 		}
-		results := filterCheck(GoLint(data), "version-flag")
-		assertCheckPresent(t, results, "version-flag")
+		results := filterCheck(GoLint(data), "dispatch-router")
+		if len(results) > 0 {
+			t.Errorf("expected no dispatch-router findings for pre-sliced args switch, got %v", results)
+		}
+	})
+}
+
+func TestGoLint_LeafStrictness(t *testing.T) {
+	t.Run("RunRaw without annotation -> warns", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.GoFiles = []GoFileData{
+			validExecuteMainFile(),
+			parseGoFile("cmd_foo.go", `package main
+import "github.com/x/dendrik"
+func cmdFoo() dendrik.Command {
+	return dendrik.Command{
+		Name:   "foo",
+		RunRaw: runFoo,
+	}
+}
+func runFoo(args []string) int { return 0 }
+`),
+		}
+		results := filterCheck(GoLint(data), "leaf-strictness")
+		assertCheckPresent(t, results, "leaf-strictness")
 		if results[0].Severity != conventions.SeverityWarning {
-			t.Errorf("version-flag should be warning, got %s", results[0].Severity)
+			t.Errorf("leaf-strictness should be warning, got %s", results[0].Severity)
 		}
 	})
 
-	t.Run("silent when main.go missing", func(t *testing.T) {
+	t.Run("RunRaw with annotation on line above -> clean", func(t *testing.T) {
 		data := minimalToolData("test")
-		data.GoFiles = []GoFileData{cmdFile("cmd_foo.go")}
-		results := filterCheck(GoLint(data), "version-flag")
+		data.GoFiles = []GoFileData{
+			validExecuteMainFile(),
+			parseGoFile("cmd_foo.go", `package main
+import "github.com/x/dendrik"
+func cmdFoo() dendrik.Command {
+	return dendrik.Command{
+		Name: "foo",
+		//nolint:dispatch-router // free-text fallback, not strict dispatch
+		RunRaw: runFoo,
+	}
+}
+func runFoo(args []string) int { return 0 }
+`),
+		}
+		results := filterCheck(GoLint(data), "leaf-strictness")
 		if len(results) > 0 {
-			t.Errorf("version-flag should stay silent when main.go missing, got %v", results)
+			t.Errorf("expected no leaf-strictness findings with annotation, got %v", results)
 		}
 	})
 }
@@ -260,8 +313,12 @@ func parseGoFile(name, src string) GoFileData {
 func validMainFile() GoFileData {
 	return parseGoFile("main.go", `package main
 import "os"
-func main() { os.Exit(runFoo(os.Args[1:])) }
+func main() { os.Exit(buildRoot().Execute(os.Args[1:])) }
 `)
+}
+
+func validExecuteMainFile() GoFileData {
+	return validMainFile()
 }
 
 func cmdFile(name string) GoFileData {

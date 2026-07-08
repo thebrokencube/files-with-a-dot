@@ -57,6 +57,26 @@ func (fs *FlagSet) GetArgs() []string {
 	return fs.inner.Args()
 }
 
+// IsHelpArg reports whether s is a help request (--help, -h, or help).
+// Use it in manual subcommand dispatch so help is recognized uniformly,
+// the same way FlagSet-based commands get it for free via pflag.
+func IsHelpArg(s string) bool {
+	return s == "--help" || s == "-h" || s == "help"
+}
+
+// NoExtraArgs reports a user error if any positional args remain after
+// parsing. Flag-less subcommands use it so stray arguments are rejected
+// instead of silently ignored. Returns (true, code) when the caller should
+// return immediately.
+func NoExtraArgs(fs *FlagSet) (bool, int) {
+	rest := fs.GetArgs()
+	if len(rest) > 0 {
+		fmt.Fprintf(os.Stderr, "unexpected argument: %s\n", rest[0])
+		return true, ExitUserError
+	}
+	return false, 0
+}
+
 // Bool defines a boolean flag with short and long names.
 func (fs *FlagSet) Bool(short rune, long string, usage string) *bool {
 	return fs.inner.BoolP(long, string(short), false, usage)

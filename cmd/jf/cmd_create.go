@@ -15,17 +15,8 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runCreateMissing(args []string) int {
-	fs := dendrik.NewFlagSet("create-missing")
-	dir := fs.String('d', "dir", ".", "Directory to scan for forest.yml")
-	dryRun := fs.Bool('n', "dry-run", "Show what would be created without side effects")
-	plainText := fs.Bool('p', "plain-text", "Push as plain text if marklassian conversion fails")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	f, roots, code := loadForestOrFail(*dir, false)
+func runCreateMissing(dir string, dryRun, plainText bool) int {
+	f, roots, code := loadForestOrFail(dir, false)
 	if code != 0 {
 		return code
 	}
@@ -63,11 +54,11 @@ func runCreateMissing(args []string) int {
 		cfg = &config.Config{}
 	}
 
-	if *dryRun {
+	if dryRun {
 		return dryRunCreate(tbdNodes, f)
 	}
 
-	return executeCreate(tbdNodes, f, cfg, *plainText)
+	return executeCreate(tbdNodes, f, cfg, plainText)
 }
 
 func dryRunCreate(nodes []*forest.Node, f *forest.Forest) int {

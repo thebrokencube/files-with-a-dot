@@ -10,11 +10,11 @@ go.mod exists and go.work links this tool to pkg/dendrik.
 
 **Fix**: Create go.mod with `go mod init` and add `./cmd/<tool>` to the `use` block in go.work.
 
-### main-dispatch (Error)
+### dispatch-router (Error)
 
-main.go has `func main()` with at least one `os.Exit(run*(...))` call.
+`func main()` dispatches via `dendrik.Command.Execute` and no non-test file hand-rolls a `switch` on `os.Args[N]`. RunRaw leaves that switch on a pre-sliced `args` param are the sanctioned escape hatch (annotated `//nolint:dispatch-router`, covered by leaf-strictness).
 
-**Fix**: Delegate to `run*()` functions via `os.Exit(run*(...))` in main.go.
+**Fix**: In `main()`, call `os.Exit(buildRoot().Execute(os.Args[1:]))`. Replace any `switch os.Args[N]` with a Command tree, or annotate the switch with `//nolint:dispatch-router`.
 
 ### core-in-pkg (Error)
 
@@ -70,11 +70,11 @@ Links in README.md `## Documentation` section resolve to existing files.
 
 **Fix**: Ensure all `[text](path)` links in the Documentation section point to existing files.
 
-### version-flag (Warning)
+### leaf-strictness (Warning)
 
-main.go handles a `--version` flag (with `-V`), distinct from the `version` subcommand.
+Every `RunRaw:` escape hatch carries a `//nolint:dispatch-router` annotation (same line or the line above).
 
-**Fix**: In `main()`'s dispatch, fold the flag forms into the version case: `case "version", "--version", "-V":` printing the version and exiting 0.
+**Fix**: Annotate the `RunRaw` field with `//nolint:dispatch-router` explaining why strict dispatch does not apply.
 
 ## Skill Layer
 

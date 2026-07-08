@@ -14,13 +14,13 @@ func TestRunShow(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\ntype: Epic\n---\n# My Epic\n"), 0644)
 
 	// By key
-	code := runShow([]string{"--dir", dir, "TEST-1"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "TEST-1"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
 
 	// By filename stem
-	code = runShow([]string{"--dir", dir, "task-a"})
+	code = buildRoot().Execute([]string{"show", "--dir", dir, "task-a"})
 	if code != 0 {
 		t.Fatalf("expected exit 0 for stem match, got %d", code)
 	}
@@ -33,14 +33,14 @@ func TestRunShowNotFound(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "task-a.md"), []byte("---\njira: TEST-1\n---\n# Task\n"), 0644)
 
-	code := runShow([]string{"--dir", dir, "NONEXISTENT"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "NONEXISTENT"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for not-found, got %d", code)
 	}
 }
 
 func TestRunShowNoTarget(t *testing.T) {
-	code := runShow([]string{})
+	code := buildRoot().Execute([]string{"show"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for missing target, got %d", code)
 	}
@@ -56,7 +56,7 @@ func TestRunShowWithChildren(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "sub", "child.md"), []byte("---\njira: TEST-2\n---\n# Child\n"), 0644)
 
 	// Show parent — should have 1 child
-	code := runShow([]string{"--dir", dir, "TEST-1"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "TEST-1"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -69,7 +69,7 @@ func TestRunShowPullNode(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".jf", "forest.yml"), []byte("schema: 1\ndefaults:\n  sync: push\n  type: Story\n"), 0644)
 	os.WriteFile(filepath.Join(dir, ".jf", "pulled.md"), []byte("---\njira: TEST-5\nsync: pull\n---\n# Pulled\n"), 0644)
 
-	code := runShow([]string{"--dir", dir, "TEST-5"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "TEST-5"})
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d", code)
 	}
@@ -89,7 +89,7 @@ func TestRunShowOutputFormat(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runShow([]string{"--dir", dir, "TEST-1"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "TEST-1"})
 
 	w.Close()
 	os.Stdout = old
@@ -129,7 +129,7 @@ func TestRunShowTBDNode(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runShow([]string{"--dir", dir, "tbd"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "tbd"})
 
 	w.Close()
 	os.Stdout = old
@@ -149,7 +149,7 @@ func TestRunShowTBDNode(t *testing.T) {
 
 func TestRunShowNoForest(t *testing.T) {
 	dir := t.TempDir()
-	code := runShow([]string{"--dir", dir, "TEST-1"})
+	code := buildRoot().Execute([]string{"show", "--dir", dir, "TEST-1"})
 	if code != 1 {
 		t.Fatalf("expected exit 1 for no forest, got %d", code)
 	}

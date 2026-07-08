@@ -12,7 +12,7 @@ func TestRunSchemaInput(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runSchema([]string{})
+	code := buildRoot().Execute([]string{"schema"})
 
 	w.Close()
 	os.Stdout = old
@@ -52,7 +52,7 @@ func TestRunSchemaOutput(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code := runSchema([]string{"--output"})
+	code := buildRoot().Execute([]string{"schema", "--output"})
 
 	w.Close()
 	os.Stdout = old

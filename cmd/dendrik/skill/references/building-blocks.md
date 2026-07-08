@@ -21,7 +21,7 @@ authored fields live in `//dendrik:` tags at each concept's source. A blueprint'
 ### core-shell
 - kind: component  ·  layer: bridge  ·  status: shipped
 - source: `pkg/dendrik/lint/lint_bridge.go`
-- conformance: dendrik-import, go-work-sync, symlink-entries, core-in-pkg, main-dispatch
+- conformance: dendrik-import, go-work-sync, symlink-entries, core-in-pkg, dispatch-router
 - definition: a tool's skill half wired to its importable Go core (go.work use, symlink_map, pkg core)
 - intent: the skill-CLI pair is the reusable unit; wire it once, mechanically
 

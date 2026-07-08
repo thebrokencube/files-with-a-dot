@@ -9,23 +9,15 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-func runValidate(args []string) int {
-	fs := dendrik.NewFlagSet("validate")
-	dir := fs.String('d', "dir", ".", "Directory to scan (default: current directory)")
-	jsonOut := fs.Bool('j', "json", "Output as JSON")
-
-	if done, code := dendrik.ParseCheck(fs, args); done {
-		return code
-	}
-
-	f, roots, code := loadForestOrFail(*dir, *jsonOut)
+func runValidate(dir string, jsonOut bool) int {
+	f, roots, code := loadForestOrFail(dir, jsonOut)
 	if code != 0 {
 		return code
 	}
 
 	issues := forest.Validate(roots, f)
 
-	if *jsonOut {
+	if jsonOut {
 		result := output.ValidateResult{
 			Valid: true,
 			Nodes: len(forest.Flatten(roots)),

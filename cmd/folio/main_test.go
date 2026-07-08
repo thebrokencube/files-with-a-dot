@@ -7,7 +7,7 @@ import (
 )
 
 func TestRunValidateMissingFile(t *testing.T) {
-	code := runValidate([]string{"--folio", "/nonexistent/folio.yml"})
+	code := runValidate("/nonexistent/folio.yml", false, false)
 	if code != 2 {
 		t.Errorf("expected exit code 2 for missing file, got %d", code)
 	}
@@ -18,7 +18,7 @@ func TestRunValidateMinimalValid(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runValidate([]string{"--folio", yml, "--no-color"})
+	code := runValidate(yml, false, true)
 	if code != 0 {
 		t.Errorf("expected exit code 0 for valid folio, got %d", code)
 	}
@@ -29,7 +29,7 @@ func TestRunValidateInvalidSchema(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 99\nproject: \"Test\"\n"), 0644)
 
-	code := runValidate([]string{"--folio", yml, "--no-color"})
+	code := runValidate(yml, false, true)
 	if code != 2 {
 		t.Errorf("expected exit code 2 for invalid schema, got %d", code)
 	}
@@ -40,14 +40,14 @@ func TestRunValidateJSON(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runValidate([]string{"--folio", yml, "--json"})
+	code := runValidate(yml, true, false)
 	if code != 0 {
 		t.Errorf("expected exit code 0 for JSON mode, got %d", code)
 	}
 }
 
 func TestRunStatusMissingFile(t *testing.T) {
-	code := runStatus([]string{"--folio", "/nonexistent/folio.yml"})
+	code := runStatus("/nonexistent/folio.yml", false, false)
 	if code != 1 {
 		t.Errorf("expected exit code 1 for missing file, got %d", code)
 	}
@@ -58,7 +58,7 @@ func TestRunStatusMinimal(t *testing.T) {
 	yml := filepath.Join(dir, "folio.yml")
 	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\n"), 0644)
 
-	code := runStatus([]string{"--folio", yml, "--no-color"})
+	code := runStatus(yml, false, true)
 	if code != 0 {
 		t.Errorf("expected exit code 0 for minimal folio, got %d", code)
 	}
@@ -73,7 +73,7 @@ func TestRunInitAlreadyExists(t *testing.T) {
 	os.WriteFile(filepath.Join(activeDir, "test", "folio.yml"), []byte("schema: 1\n"), 0644)
 	t.Setenv("FOLIO_HOME", homeDir)
 
-	code := runInit([]string{"--name", "test"})
+	code := runInit("test", "")
 	if code != 1 {
 		t.Errorf("expected exit code 1 for existing folio.yml, got %d", code)
 	}
@@ -85,7 +85,7 @@ func TestRunInitMissingName(t *testing.T) {
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
 
-	code := runInit([]string{})
+	code := runInit("", "")
 	if code != 1 {
 		t.Errorf("expected exit code 1 for missing --name, got %d", code)
 	}
@@ -98,7 +98,7 @@ func TestRunInitCreatesFile(t *testing.T) {
 	os.MkdirAll(activeDir, 0755)
 	t.Setenv("FOLIO_HOME", homeDir)
 
-	code := runInit([]string{"--name", "my-project"})
+	code := runInit("my-project", "")
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
@@ -122,7 +122,7 @@ func TestRunInitFallsBackToCWD(t *testing.T) {
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
 
-	code := runInit([]string{"--name", "my-project"})
+	code := runInit("my-project", "")
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
@@ -137,14 +137,14 @@ func TestRunInitFallsBackToCWD(t *testing.T) {
 }
 
 func TestRunSetup(t *testing.T) {
-	code := runSetup([]string{})
+	code := runSetup(false)
 	if code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
 }
 
 func TestRunSetupCheck(t *testing.T) {
-	code := runSetup([]string{"--check"})
+	code := runSetup(true)
 	if code != 0 {
 		t.Errorf("expected exit code 0 for --check, got %d", code)
 	}
