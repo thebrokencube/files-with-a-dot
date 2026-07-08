@@ -16,7 +16,7 @@ var goWorkUsePattern = regexp.MustCompile(`\./cmd/([a-zA-Z0-9_-]+)`)
 //dendrik:status shipped
 //dendrik:definition a tool's skill half wired to its importable Go core (go.work use, symlink_map, pkg core)
 //dendrik:intent the skill-CLI pair is the reusable unit; wire it once, mechanically
-//dendrik:conformance dendrik-import go-work-sync symlink-entries core-in-pkg main-dispatch
+//dendrik:conformance dendrik-import go-work-sync symlink-entries core-in-pkg dispatch-router
 
 // BridgeLint validates bridge layer conventions. Pure function — no I/O.
 func BridgeLint(data *ToolData) []Result {
