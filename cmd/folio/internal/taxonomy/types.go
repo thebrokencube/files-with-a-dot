@@ -19,6 +19,7 @@ type LifecycleStage int
 const (
 	StageObservation LifecycleStage = iota
 	StageSpike
+	StageIdea // sketch (idea/arch), between spike and design
 	StageDesign
 	StagePlan
 	StageImplementation
@@ -62,6 +63,8 @@ func StageForType(t string) LifecycleStage {
 		return StageObservation
 	case "spike":
 		return StageSpike
+	case "sketch":
+		return StageIdea
 	case "design":
 		return StageDesign
 	case "plan", "brief":
@@ -124,20 +127,25 @@ var ReferenceTypes = []string{
 var ValidTypes map[string]bool
 
 func init() {
-	ValidTypes = make(map[string]bool, len(ReferenceTypes)+5) // +5 for brief, design, plan, spike, retro
+	ValidTypes = make(map[string]bool, len(ReferenceTypes)+len(ReferenceLabels)+6)
 	for _, t := range ReferenceTypes {
+		ValidTypes[t] = true
+	}
+	// schema-2 labels (research, insight, …) must be valid; IsReferenceDir already accepts them.
+	for t := range ReferenceLabels {
 		ValidTypes[t] = true
 	}
 	ValidTypes["brief"] = true
 	ValidTypes["design"] = true
 	ValidTypes["plan"] = true
-	ValidTypes["spike"] = true // lifecycle type, not reference
-	ValidTypes["retro"] = true // lifecycle type, not reference
+	ValidTypes["spike"] = true  // lifecycle type, not reference
+	ValidTypes["retro"] = true  // lifecycle type, not reference
+	ValidTypes["sketch"] = true // lifecycle type, not reference
 }
 
 // IsReferenceType returns true if t is a recognized reference-layer type.
 func IsReferenceType(t string) bool {
-	if t == "brief" || t == "plan" || t == "design" || t == "spike" || t == "retro" {
+	if t == "brief" || t == "plan" || t == "design" || t == "spike" || t == "retro" || t == "sketch" {
 		return false
 	}
 	return ValidTypes[t]
@@ -147,13 +155,14 @@ func IsReferenceType(t string) bool {
 // This includes all ReferenceTypes plus "design" (which was removed from
 // ReferenceTypes but still lives in reference/).
 func IsReferenceDir(t string) bool {
-	return IsReferenceType(t) || t == "design" || t == "research" || t == "insight"
+	return IsReferenceType(t) || t == "design" || t == "sketch" || t == "research" || t == "insight"
 }
 
 // ColocatableTypes lists types that colocate with a matching work directory.
 var ColocatableTypes = map[string]bool{
 	"design": true,
 	"retro":  true,
+	"sketch": true,
 }
 
 // IsWorkType returns true if t is a recognized work-layer type.
@@ -186,6 +195,11 @@ func TypePath(artifactType, topic string) string {
 
 	if artifactType == "design" {
 		return filepath.Join("reference", "design", fmt.Sprintf("%s.md", slug))
+	}
+
+	// non-empty default for the early path guard; cmd_new recomputes the colocated path
+	if artifactType == "sketch" {
+		return filepath.Join("work", "active", slug, "reference", "sketch", "index.html")
 	}
 
 	// Lifecycle types → work/ (lightweight work track)
