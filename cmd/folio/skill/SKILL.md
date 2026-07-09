@@ -162,7 +162,7 @@ Manage the open-items queue in folio.yml — bugs, gaps, ideas, debt, tasks. All
 
 ### /folio wrap-up
 
-End-of-session workflow: retro, archive completed tracks, create successor tracks, update folio state, workspace cleanup. Each step is independently safe — skip or abandon at any point.
+End-of-session workflow: retro, archive completed tracks, create successor tracks, update folio state, workspace cleanup. Steps are safe to abandon mid-flow; the one always-captured output is the retro (see references/wrap-up.md).
 
 -> Read references/wrap-up.md for full workflow.
 
