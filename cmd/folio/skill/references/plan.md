@@ -22,9 +22,9 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
   └───────────┘         └───────────┘
 ```
 
-The forward path: gather sources (Phase 1), freeze architecture in a design doc (Phase 4a-4b), decompose into tracks (Phase 5), write execution-level briefs (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
+The forward path: gather sources (Phase 1), sketch the idea/architecture as an HTML page you react to and freeze it (Phase 1.5), freeze architecture in a design doc (Phase 4a-4b), decompose into tracks (Phase 5), write execution-level briefs (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
 
-Phase 7 is a loop: implement → validate → review (mandatory gate) → commit.
+Phase 1.5 (idea/arch sketch) fronts the pipeline and decides lightweight-vs-full — see `references/plan-idea.md`. Phase 7 is a loop: implement → validate → review (mandatory gate) → commit.
 
 ## Pipeline
 
@@ -36,6 +36,8 @@ The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate 
 | Brief | 5-6 | Design doc | Work plan with tracks |
 | Execute | 7-8 | Work plan | Code + retro |
 
+Phase 1.5 (idea/arch sketch) runs inside the Design agent — lead-driven, before Phase 2, committed before the design doc. See `references/plan-idea.md`.
+
 **Why three agents, not one:**
 
 1. **Checkpoint principle**: Commit each artifact before starting the next — a late failure can't lose prior work.
@@ -44,7 +46,7 @@ The plan workflow runs as a 3-agent pipeline. Each agent operates in a separate 
 
 **Invocation**: Agent 1 is invoked by `/folio plan`. Agents 2 and 3 are separate sessions — the user starts them after reviewing the prior agent's committed output.
 
-**Hard rule: execution REQUIRES a committed work plan.** The lifecycle is Design → Brief → Execute. No phase can be skipped. Even if the work seems "simple enough" or "just file edits," the brief must exist as a committed `README.md` in the work directory before any execution begins. This applies equally to lightweight mode — the combined design+brief doc IS the brief. If you find yourself starting execution without a committed work plan, STOP and write the brief first.
+**Hard rule: execution REQUIRES a committed plan artifact.** No mode skips this. In full mode it's a committed `README.md` work plan (Design → Brief → Execute). In lightweight (N==1) mode it's the frozen idea/arch sketch + a committed `track-1.md`. If you'd start execution with neither committed, STOP.
 
 ## Iteration Across Sessions
 
@@ -94,24 +96,23 @@ history or any other file beyond the design doc + observations.
 
 Custom lenses are specified naturally in the topic text (e.g., `/folio plan redesign auth, considering performance and readability`). The agent parses the user's intent and crafts lens descriptions accordingly. Default lenses (pragmatic vs thorough) apply when no lens guidance is given.
 
-## Lightweight Mode
+## Three Modes (decided at Phase 1.5 sketch-freeze)
 
-When design doc scope is 5 or fewer files with clear implementation, collapse Design + Brief
-into a single document. The design agent writes execution-level detail directly — skip Agent 2.
-Criteria: file count, scope clarity, single-repo. If ambiguous, use the full pipeline.
+The idea/arch sketch's track-title fan-out (`references/plan-idea.md`) picks the mode:
 
-The combined doc must include the brief's required sections: Direction Summary,
-Interface Spec, Track Decomposition, Test Strategy, and Execution Setup. These
-sections appear in the design doc's
-Execution Brief — see `references/plan-brief.md` for section specs. The handoff prompt is
-the acid test: if it needs context beyond "read the doc and execute," the doc is
-underspecified.
+1. **Skip planning** — trivial single-file fix; never reaches `/folio plan` (do it directly).
+2. **Lightweight (N == 1 track)** — the frozen sketch decomposes to a single `type(scope):` line
+   (single clear change, single repo). Skip the design doc AND the brief; create one `track-1.md`
+   and go straight to execution + commits. The committed plan artifact is the **sketch page + that
+   single track file** — this satisfies the "execution requires a committed plan" rule.
+3. **Full (N ≥ 2 tracks)** — run Phases 2-8: design doc → brief → (burndown?) → execute.
 
-Commit checkpoints are still mandatory: the combined design+brief doc must be committed before
-execution begins. Lightweight mode reduces agents, not checkpoints. **Lightweight mode does NOT
-mean "skip the brief" — it means the brief sections are written inside the design doc instead
-of a separate file. The 5 required brief sections (Direction Summary, Interface Spec, Track
-Decomposition, Test Strategy, Execution Setup) must still exist before execution begins.**
+Co-signal + track-count details: `references/plan-idea.md`. If ambiguous, use the full pipeline.
+
+Commit checkpoints are mandatory in every mode. Lightweight reduces artifacts, not checkpoints:
+the sketch and the single track file must both be committed before execution begins. In lightweight
+mode the Phase 7 per-commit review + adversarial verify are the ONLY quality gates (design/brief
+gates are skipped), so they are mandatory — see `references/plan-execute.md`.
 
 ## Re-run Rule
 
@@ -138,7 +139,7 @@ Use the strongest available agent mode per phase, with graceful degradation:
 | Phase 2 (Propose) | Agent team (parallel lenses) | 2 sequential subagents | Divergence benefits from independence |
 | Phase 3 (Converge) | Single agent | Single agent | Convergence is inherently serial |
 | Phase 4a (Fill) | Single agent | Single agent | Mechanical mapping from converge output |
-| Phase 4b (Review) | 2 parallel opus subagents (devil's advocate + blast radius) | 1 opus subagent with adversarial prompt (lightweight mode) | Adversarial perspectives catch what accuracy checks miss |
+| Phase 4b (Review) | 2 parallel opus subagents (devil's advocate + blast radius) | 1 opus subagent with adversarial prompt (single-agent fallback) | Adversarial perspectives catch what accuracy checks miss |
 | Phase 5-6 (Brief) | Single agent | Single agent | Serial work, no parallelism benefit |
 | Phase 7 (Execute) | Single agent per track | Single agent per track | Execution is focused, bounded |
 | Phase 8 (Retro) | Single agent | Single agent | Reflection is serial |
@@ -153,6 +154,7 @@ against context compaction in long sessions.
 
 ## Phase References
 
+-> Read references/plan-idea.md for Phase 1.5 (idea/arch sketch — fronts the pipeline)
 -> Read references/plan-design.md for Phases 1-4 (Design agent)
 -> Read references/plan-brief.md for Phases 5-6 (Brief agent)
 -> Read references/plan-execute.md for Phases 7-8 (Execute agent)

@@ -38,12 +38,13 @@ Before handling any folio request, check for a folio.yml in the current director
 Folio tracks a knowledge lifecycle:
 
 ```
-observation -> spike -> design -> plan[tracks] -> implementation -> retro
-     ^                                                                |
-     '---------------------- findings feed back ----------------------'
+observation -> spike -> sketch -> design -> plan[tracks] -> implementation -> retro
+     ^                      |                                                 |
+     |                      '- N==1 lightweight: sketch -> implementation      |
+     '---------------------- findings feed back ------------------------------'
 ```
 
-**Lifecycle types** progress through stages: observation, spike, design, plan, track, retro.
+**Lifecycle types** progress through stages: observation, spike, sketch, design, plan, track, retro.
 **References** (labels: research, insight, guide, domain, review) feed in at any stage.
 **Outputs** are composed artifacts for external systems.
 
@@ -54,7 +55,9 @@ observation -> spike -> design -> plan[tracks] -> implementation -> retro
 | From | To | Trigger |
 |------|------|---------|
 | observation | spike | "I should investigate this" |
-| spike | design | Findings warrant a solution |
+| spike | sketch | Lay out the whole shape as a birds-eye to react to (or enter sketch directly) |
+| sketch | design | Sketch frozen AND N≥2 tracks — harden into a design doc |
+| sketch | implementation | N==1 (lightweight) — single track + commits, skip design + brief |
 | design | plan | Design approved, ready to execute |
 | plan | implementation | Tracks created from plan |
 | implementation | retro | Work complete or paused |
@@ -300,6 +303,7 @@ Two gate types, proportional to risk:
 | compose | Soft | After composition loop, before final status | Targets composed, paths, sizes (cap 5) |
 | gather (snapshot) | Soft | Before file write | Proposed filename, length, 3 key facts |
 | gather (re-seed) | Soft | Before file update | Summary of changes to existing file |
+| plan | Hard | Phase 1.5 idea/arch freeze | Rendered birds-eye sketch page (show it, don't summarize) |
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 Test Strategy | Test strategy section, user approval required |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
@@ -318,6 +322,7 @@ before the next phase begins. This is enforced by the skill, not optional.
 | gather | snapshot (Shape A) | reference file | `folio new <inferred-type> <topic>` |
 | gather | re-seed (Shape C) | updated reference file | edit existing file |
 | plan | Phase 1 research | spike(s) | `folio new spike <topic>` |
+| plan | Phase 1.5 idea/arch | sketch HTML page | `folio new sketch <topic>` (creates work dir, colocates) |
 | plan | Phase 4b design | design doc | `folio new design <topic>` (creates work dir if none exists, colocates inside it) |
 | plan | Phase 7 retro | retro file | `folio new retro <topic>` (colocates with work dir if topic matches) |
 
@@ -327,10 +332,12 @@ they do not count as materialization.
 
 ## Source Declaration Checklist
 
-Before creating or updating any folio artifact (design doc, spike, retro, brief), verify:
+Before creating or updating any folio artifact (design doc, spike, retro, brief, idea/arch sketch), verify:
 
 1. **List sources read.** Enumerate every file, vault entry, or external reference you
    consumed to produce this artifact. If you cannot list them, you haven't done the work.
+   Route each source to its correct type: transient → observation; investigation → spike;
+   external knowledge → vault research; plan-level detail → brief.
 2. **Register in folio.yml.** Every source must appear in `sources:` with a `depends_on`
    pointing to the artifact being created. Use `folio home push` to commit.
 3. **Verify sources exist.** Every path in `depends_on` must resolve to a real file.
@@ -355,6 +362,7 @@ is how provenance chains break.
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
 - **references/notion-proposal-template.md** — Default Notion template: feedback table with reviewer stance/comments
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
+  - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, build conventions, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
   - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief
   - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
