@@ -28,7 +28,9 @@ Groups are the primitive. A wave is a set of groups. Serial execution is a wave 
 ## Wave Ordering
 
 Order waves by ascending complexity — simplest first to learn the pattern, hardest last
-when the approach is proven. Each wave definition includes:
+when the approach is proven. A wave label groups existing track titles — no new `type(scope)`
+is minted at the wave layer; groups inside a wave commit with the design's scope. Each wave
+definition includes:
 
 - **Group list** — which groups are in this wave
 - **Expected ratchet delta** — how much the ratchet should improve
