@@ -65,19 +65,24 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 		}
 	}
 
-	// Colocatable types (design, retro): colocate inside work dir
+	// Colocatable types (design, retro, sketch): colocate inside work dir
 	if !colocated && isColocatable(artifactType) {
 		workDir := findWorkDir(folioDir, topic)
-		if workDir == "" && artifactType == "design" {
-			// Design creates the work directory
+		if workDir == "" && (artifactType == "design" || artifactType == "sketch") {
+			// design & sketch create the work dir when none exists
 			date := time.Now().Format("2006-01-02")
 			workDir = filepath.Join(folioDir, "work", "active", date+"-"+topic)
 		}
 		if workDir != "" {
 			rel, _ := filepath.Rel(folioDir, workDir)
-			// Nested colocation: reference/<type>/YYYY-MM-DD-<topic>.md
-			date := time.Now().Format("2006-01-02")
-			relPath = filepath.Join(rel, "reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
+			if artifactType == "sketch" {
+				// sketch is a fixed-name HTML page, not a dated .md
+				relPath = filepath.Join(rel, "reference", "sketch", "index.html")
+			} else {
+				// Nested colocation: reference/<type>/YYYY-MM-DD-<topic>.md
+				date := time.Now().Format("2006-01-02")
+				relPath = filepath.Join(rel, "reference", artifactType, fmt.Sprintf("%s-%s.md", date, topic))
+			}
 			colocated = true
 		}
 	}
@@ -115,6 +120,9 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 
 	// Write template
 	tmpl := taxonomy.Template(artifactType, topic)
+	if artifactType == "sketch" {
+		tmpl = taxonomy.SketchTemplate(topic)
+	}
 	if err := os.WriteFile(absPath, []byte(tmpl), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("writing file: %s", err))
 		return dendrik.ExitUserError

@@ -411,3 +411,43 @@ func TestColocatableTypesRetroStillTrue(t *testing.T) {
 		t.Error("ColocatableTypes[retro] = false, want true (kept for old single-file pattern)")
 	}
 }
+
+func TestStageForTypeSketch(t *testing.T) {
+	if StageForType("sketch") != StageIdea {
+		t.Error("StageForType(sketch) != StageIdea")
+	}
+	if !(StageSpike < StageIdea && StageIdea < StageDesign) {
+		t.Error("StageIdea should be ordered between StageSpike and StageDesign")
+	}
+}
+
+func TestSketchIsColocatableNotReference(t *testing.T) {
+	if !ColocatableTypes["sketch"] {
+		t.Error("ColocatableTypes[sketch] = false, want true")
+	}
+	if !ValidTypes["sketch"] {
+		t.Error("ValidTypes[sketch] = false, want true")
+	}
+	if IsReferenceType("sketch") {
+		t.Error("IsReferenceType(sketch) = true, want false")
+	}
+	if !IsReferenceDir("sketch") {
+		t.Error("IsReferenceDir(sketch) = false, want true (colocates under reference/sketch/)")
+	}
+}
+
+func TestInferTypeSketch(t *testing.T) {
+	got := InferType("work/active/2026-07-10-x/reference/sketch/index.html")
+	if got != "sketch" {
+		t.Errorf("InferType(...reference/sketch/index.html) = %q, want %q", got, "sketch")
+	}
+}
+
+// regression: schema-2 labels must be valid types
+func TestValidTypesIncludesReferenceLabels(t *testing.T) {
+	for _, l := range []string{"research", "insight"} {
+		if !ValidTypes[l] {
+			t.Errorf("ValidTypes[%q] = false, want true", l)
+		}
+	}
+}

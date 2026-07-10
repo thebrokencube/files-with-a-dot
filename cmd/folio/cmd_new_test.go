@@ -104,6 +104,59 @@ func TestRunNewDesignCreatesWorkDir(t *testing.T) {
 	}
 }
 
+func TestRunNewSketchCreatesWorkDir(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "sketch", "my-capability"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	target := filepath.Join(dir, "work", "active")
+	matches, _ := filepath.Glob(filepath.Join(target, "*-my-capability", "reference", "sketch", "index.html"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file at work/active/*-my-capability/reference/sketch/index.html, got %d", len(matches))
+	}
+
+	data, _ := os.ReadFile(matches[0])
+	content := string(data)
+	if !strings.Contains(content, "<!DOCTYPE html>") {
+		t.Error("sketch file is not HTML")
+	}
+	if !strings.Contains(content, "My Capability") {
+		t.Error("sketch file did not substitute the title from the topic")
+	}
+	if strings.Contains(content, "{{TITLE}}") {
+		t.Error("sketch file still contains the {{TITLE}} placeholder")
+	}
+
+	ymlData, _ := os.ReadFile(yml)
+	if !strings.Contains(string(ymlData), "reference/sketch/index.html") {
+		t.Error("folio.yml missing sketch source entry")
+	}
+	if _, err := config.Load(yml); err != nil {
+		t.Errorf("folio.yml no longer parses: %v", err)
+	}
+}
+
+// regression: 'new research' errored "unknown type" (ValidTypes missed ReferenceLabels)
+func TestRunNewResearchCreatesFile(t *testing.T) {
+	dir := t.TempDir()
+	yml := filepath.Join(dir, "folio.yml")
+	os.WriteFile(yml, []byte("schema: 1\nproject: \"Test\"\nsources: []\n"), 0644)
+
+	code := buildRoot().Execute([]string{"new", "--folio", yml, "research", "some-topic"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 for `new research`, got %d", code)
+	}
+	matches, _ := filepath.Glob(filepath.Join(dir, "reference", "research", "*-some-topic.md"))
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 file in reference/research/, got %d", len(matches))
+	}
+}
+
 func TestRunNewBriefCreatesDirectory(t *testing.T) {
 	dir := t.TempDir()
 	yml := filepath.Join(dir, "folio.yml")

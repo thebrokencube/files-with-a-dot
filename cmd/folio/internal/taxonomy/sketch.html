@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — Sketch</title>
+<!--
+  IDEA / ARCHITECTURE SKETCH — folio's birds-eye layer. Conventions (keep these):
+  · Single self-contained HTML file. Inline all CSS/JS. NO external deps / CDNs.
+  · HTML-first for information + visuals: cards, tables, ladders carry the content.
+    Reach for a graph diagram (inline SVG) only when a visual needs real 2D structure.
+  · Capability noun-phrase title (no type/scope). NO private/internal tool or project
+    names — this is the shareable surface.
+  Fill each slot below, delete the guidance comments, then open in a browser to react.
+-->
+<style>
+  :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#fff;
+          --a:#6366f1; --b:#06b6d4; --c:#22c55e; --d:#eab308; --e:#f43f5e; }
+  @media (prefers-color-scheme: dark){ :root{--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--bg:#0b1120;} }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:38px 26px 70px}
+  h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0}
+  .one{margin:20px 0;padding:14px 18px;border-left:4px solid var(--a);
+       background:color-mix(in srgb,var(--a) 8%,transparent);border-radius:0 8px 8px 0;font-size:16px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:34px 0 12px;font-weight:650}
+  .row{display:flex;gap:4px;flex-wrap:wrap;align-items:stretch}
+  .card{flex:1 1 0;min-width:150px;border:1px solid var(--line);border-top:3px solid var(--k,var(--a));
+        border-radius:8px;padding:12px 14px;background:color-mix(in srgb,var(--k,var(--a)) 5%,transparent)}
+  .card h3{margin:0 0 6px;font-size:14px}
+  .card .rep{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .card .out{font-size:12.5px;padding:6px 9px;border-radius:6px;
+             border:1px dashed color-mix(in srgb,var(--k,var(--a)) 55%,var(--line));
+             background:color-mix(in srgb,var(--k,var(--a)) 7%,transparent)}
+  .card .out b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}
+  .arrow{align-self:center;color:var(--muted);font-size:20px}
+  @media(max-width:720px){.arrow{transform:rotate(90deg);width:100%;text-align:center}}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  code{font-size:12.5px;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:4px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .box{border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  ul{margin:6px 0;padding-left:20px} li{margin:4px 0}
+  .oq{background:color-mix(in srgb,var(--d) 8%,transparent);
+      border:1px solid color-mix(in srgb,var(--d) 40%,var(--line));border-radius:10px;padding:8px 20px}
+  footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>{{TITLE}}</h1>
+    <p class="sub">Idea / Architecture sketch · react to this before design</p>
+  </header>
+
+  <!-- ONE-LINER: the whole idea in one sentence. If it takes two, it isn't clear yet. -->
+  <p class="one">TODO: one-sentence statement of the idea/capability.</p>
+
+  <!-- FLOW / SHAPE: the stages, pieces, or user flow as co-located cards (stage + what it produces).
+       Set --k per card to an accent (--a … --e). Add/remove cards to fit. Delete if not a pipeline. -->
+  <h2>Shape</h2>
+  <div class="row">
+    <div class="card" style="--k:var(--a)"><h3>① TODO stage</h3><div class="rep">what you see here</div><div class="out"><b>output</b>TODO artifact</div></div>
+    <div class="arrow">→</div>
+    <div class="card" style="--k:var(--c)"><h3>② TODO stage</h3><div class="rep">what you see here</div><div class="out"><b>output</b>TODO artifact</div></div>
+  </div>
+
+  <!-- AT A GLANCE: the key pieces/systems and one fact each. Tables beat prose for scanning. -->
+  <h2>At a glance</h2>
+  <table>
+    <tr><th>Piece</th><th>Role</th><th>Note</th></tr>
+    <tr><td>TODO</td><td>TODO</td><td>TODO</td></tr>
+  </table>
+
+  <!-- SCOPE: what this supports vs deliberately does not. The right column is where reactions land. -->
+  <h2>Supports / doesn't</h2>
+  <div class="cols">
+    <div class="box"><h3 style="color:var(--c)">Supports</h3><ul><li>TODO</li></ul></div>
+    <div class="box"><h3 style="color:var(--e)">Doesn't (out of scope)</h3><ul><li>TODO</li></ul></div>
+  </div>
+
+  <!-- OPEN QUESTIONS: what your reaction resolves. -->
+  <h2>Open questions</h2>
+  <div class="oq"><ul><li>TODO</li></ul></div>
+
+  <footer>Idea/architecture sketch — react to it; your reactions harden the design next.</footer>
+</div>
+</body>
+</html>
