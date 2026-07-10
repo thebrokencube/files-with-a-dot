@@ -56,10 +56,19 @@ conclusion to its source artifact: `[conclusion] <- [source path]`.
 **Live data**: Use WebFetch to verify live data (npm versions, API docs, external specs) — do
 not rely on training data. Flag facts that couldn't be live-verified.
 
-**Scaffold work directory (mandatory):** Before spawning Phase 2 agents, scaffold the design
-doc early via `folio new design <topic>`. This creates the work directory at
-`work/active/YYYY-MM-DD-<topic>/` and the design doc at
-`reference/design/YYYY-MM-DD-<topic>.md` inside it. The design doc starts as a template —
+**Best-practices-compare (feeds the sketch):** before drafting the idea/arch sketch, pull fresh
+external context (WebFetch live docs) + comparable folio artifacts (via the `/folio find` workflow)
++ sibling code, and compare the candidate approach against them. This grounds the birds-eye.
+
+**Phase 1.5 — Idea/architecture sketch (before Phase 2):** produce the sketch HTML page
+(`folio new sketch <capability>`), run the birds-eye sign-off gate (show the rendered page, react,
+freeze), and commit it. This creates the work dir and decides lightweight-vs-full via the
+track-count. Full details: `references/plan-idea.md`. In lightweight (N==1) the flow leaves this
+file for `plan-execute.md`.
+
+**Scaffold work directory:** the sketch (Phase 1.5) already created the work dir at
+`work/active/YYYY-MM-DD-<topic>/`. Scaffold the design doc inside it via `folio new design <topic>`
+(it colocates in the existing work dir). The design doc starts as a template —
 it gets filled in during Phase 4. Early scaffolding ensures:
 - `folio new round` has a work dir to create rounds in
 - Vault research produced during Phase 2 can be registered with `depends_on` pointing to the
@@ -219,6 +228,11 @@ Be concrete. Read real code. No hand-waving.
 - **Pragmatic**: "Minimize the number of files changed and lines of code written. Reuse existing patterns and utilities. Prefer the simplest correct solution. Avoid new abstractions unless they pay for themselves immediately."
 - **Thorough**: "Consider edge cases, error handling, and how this change interacts with the rest of the codebase. Prioritize maintainability and architectural consistency. Flag potential issues even if fixing them adds scope."
 
+**Lens Selection Patterns.** Key lenses off the frozen sketch's shape rather than defaulting:
+system-map-heavy → architecture + migration + evolvability; UI-heavy → UX + accessibility;
+data/perf-heavy → correctness + performance; security-sensitive → +security. Always include a
+devil's-advocate lens in team mode. Single-track (lightweight) → no diverge, no lenses.
+
 ## Phase 3: Converge
 
 Launch 1 agent (subagent_type: general-purpose, model: session default) to merge proposals into a single plan.
@@ -317,8 +331,14 @@ Also return a 5-10 line summary of key decisions made.
 ## Phase 4a: Fill Design Doc
 
 The design doc was scaffolded after Phase 1 — it already exists at
-`reference/design/YYYY-MM-DD-<topic>.md` inside the work directory. Every plan produces
-one — lightweight for simple changes, but it always exists.
+`reference/design/YYYY-MM-DD-<topic>.md` inside the work directory. Full-mode plans always
+produce one; lightweight (N==1) plans skip it (see `references/plan-idea.md`).
+
+**Freeze title (do this first).** Mint the design's `type(scope): description` from the sketch's
+capability noun-phrase. This is the single freeze point — the `scope` token carries down to every
+track title and commit (a soft convention: editable on genuine scope change; cross-cutting commits
+like `refactor:`/`chore(deps):` keep their own scope). The title must match a conventional-commit
+header; the sketch title (a noun-phrase) must not.
 
 1. Fill in the design doc using the layer-tagged template below. Source content from the
    converge output, mapping it to the appropriate layer sections.
@@ -429,10 +449,10 @@ For each issue: what's wrong, severity, and a fix.
 Loop: fix issues in the design doc, re-run both review agents. Cap at 3 iterations — if
 issues persist after 3 rounds, present remaining issues to the user for judgment.
 
-**Lightweight mode exception**: When the design doc qualifies for lightweight mode (<=5
-files, clear implementation), use 1 opus agent with the adversarial prompt tier instead
-of 2 parallel agents. The single agent covers all 6 dimensions (accuracy, feasibility,
-scope, completeness + devil's advocate + blast radius) in one pass. Cap at 3 iterations.
+**Single-agent fallback**: When TeamCreate is unavailable (or the design is small, single-track,
+and low-risk), use 1 opus agent with the adversarial prompt tier instead of 2 parallel agents. The
+single agent covers all 6 dimensions (accuracy, feasibility, scope, completeness + devil's advocate
++ blast radius) in one pass. Cap at 3 iterations.
 
 ### Review Gate Checklist (must pass before commit)
 
