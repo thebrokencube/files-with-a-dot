@@ -14,6 +14,10 @@ Analyze the design doc and break it into implementation tracks:
    context from other tracks.
    Default to one track for small features (3 or fewer commits). Decompose only when there are
    genuinely independent streams or different risk profiles.
+   Each track title is phrased as its future Jira issue title (`type(scope): description`) with the
+   frozen design title as parent — a **soft convention**: carry the design's `scope` forward; edit
+   only on genuine scope change; a track may become an epic or a story by size. Cross-cutting
+   commits (`refactor:`/`chore(deps):`) keep their own scope per `/commit`.
 3. **Sequence by risk.** Order tracks so the highest-risk work runs first — failures surface
    early rather than after low-risk work is committed. Risk factors: architectural novelty,
    cross-file dependencies, test coverage gaps, integration surface area.
@@ -180,6 +184,8 @@ mentally processing every item.
 7. [ ] User approved track structure (Phase 5 gate passed)
 8. [ ] Test strategy approved by user (Test Strategy hard gate passed)
 9. [ ] Content review passed (see below)
+10. [ ] Titles carry the frozen design `type(scope)` (track/commit titles); cross-cutting commits excepted
+11. [ ] CLI ops verified — every CLI command/subcommand/flag the brief references actually exists (read source or `--help`; don't assume `--help` works)
 
 Fix any inaccuracies, then commit via `folio home push`. The committed work plan is the
 contract for Agent 3.

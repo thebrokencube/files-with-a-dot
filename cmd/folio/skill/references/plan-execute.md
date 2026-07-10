@@ -33,7 +33,8 @@ mandatory. If the work fans out mid-execution, escalate per the layered-escalati
       actual code
    4. Draft implementation sequence: what changes in what order
    5. **Conflict check**: For each file path in spec — does it exist? For each type
-      signature — does it match? For each scope assumption — still valid?
+      signature — does it match? For each CLI op referenced — does the command/subcommand/flag
+      exist (read source or `--help`)? For each scope assumption — still valid?
    6. If conflicts found: classify per the layered escalation table below and escalate.
       If clean: proceed to Step 1.
 
