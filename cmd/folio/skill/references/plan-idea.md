@@ -7,34 +7,47 @@ code is committed. Direction is hardened by reacting to a visual shape, not by r
 
 ## The artifact
 `folio new sketch <capability>` scaffolds `work/active/<date>-<topic>/reference/sketch/index.html`
-from an embedded seed and creates the work dir (like `design`). One self-contained HTML file.
+from an embedded seed and creates the work dir (like `design`). One self-contained HTML file. The
+seed is a **minimal skeleton** — replace its card/table slots with the visuals below; do not treat
+the seed's shape as the target.
 
 **Title** = a capability **noun-phrase** — no `type(scope)`. It must NOT parse as a
 conventional-commit header (the design phase mints that later from this phrase).
 
 ## Layout catalog (fill the seed's slots)
+Each slot is realized as a **visual** wherever the content admits one; prose drops to a one-line
+caption beneath it.
 - **One-liner** — the whole idea in one sentence.
-- **Shape** — stages/pieces/flow as co-located cards (each card: what it is + what it produces).
+- **Shape** — stages/pieces/flow as a diagram, wireframe, or map (each piece: what it is + what it
+  produces). Cards only when there is no 2D structure to draw.
 - **At a glance** — key pieces/systems, one fact each (a table).
 - **Supports / doesn't** — what's in scope vs deliberately out (the right column is where
   reactions land).
 - **Open questions** — what the user's reaction resolves.
 
-## Build conventions (HTML-first)
+## Build conventions (visual-first, self-contained)
 Adopt the self-containment + aesthetic conventions of the interactive-artifact ecosystem, minus the
 interactivity (see Read-only below):
-- **Single self-contained HTML file. Inline all CSS/JS. NO external deps / CDNs.**
-- **HTML-first for information and visuals** — cards, tables, ladders carry the content. This is the
-  default and usually sufficient.
-- **A graph diagram (inline SVG) only when a visual genuinely needs 2D structure** (system map,
-  dependency graph) AND it's asked for. Not by default. If a text-DSL (e.g. D2) is compiled to SVG,
-  strip its opaque page background (both the background rect and the `.fill-N7`-style rule that
-  overrides fills) and the root `<svg>` width/height, and cap the rendered size so it stays
-  proportional to the page.
-- Dark-mode via `prefers-color-scheme`; sensible defaults; scannable density.
+- **Single self-contained HTML file. Inline all CSS / JS / SVG. NO external deps / CDNs.**
+- **Visual-first: a diagram, wireframe, or map carries each section; prose is demoted to captions.**
+  Reach for the strongest visual the content admits and keep text to a one-line legend under it:
+  - **Wireframe** — a browser/app frame (title bar, nav, breadcrumb, stage) mocking the actual
+    screens, when the idea is a UI or page flow.
+  - **System / architecture map** — inline SVG boxes + arrows, when it's components, ownership, or
+    dependency structure.
+  - **Diagram** — a stack, fan-out, pipeline, or resolution chain, for flow and layering.
+  - **Monospace tree** — for URL schemas, directory layouts, or hierarchies.
+  - **Cards / tables** are the fallback for content with no natural 2D structure — not the default lede.
+- **Inline SVG is the default medium, not an exception.** Hand-author it, or compile a text-DSL
+  (e.g. D2) to SVG; if compiled, strip its opaque page background (both the background rect and the
+  `.fill-N7`-style rule that overrides fills) and the root `<svg>` width/height, and cap the rendered
+  size so it stays proportional to the page. For repeated iconography, inline a `<symbol>` sprite and
+  reference it with `<use>` so every surface renders the same mark.
+- Dark-mode via `prefers-color-scheme`; drive the palette from CSS vars so SVG and HTML share it;
+  scannable density.
 - **No private/internal tool or project names** — the sketch is the shareable surface. Local
   markdown planning docs may name things freely.
-- Roughly-right, then frozen — not iterated line-by-line (HTML diffs coarsely; that's acceptable
+- Roughly-right, then frozen — not iterated line-by-line (HTML/SVG diff coarsely; that's acceptable
   for a layer meant to be socialized and frozen).
 
 ## Read-only (v1)
