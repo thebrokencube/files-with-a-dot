@@ -9,10 +9,11 @@ add_newline = true
 command_timeout = 500
 
 # Format - minimal for speed
-# directory + git branch + prompt character
+# directory + jj/git branch + prompt character
 format = """
 $directory\
-$git_branch\
+${custom.jj}\
+${custom.git_branch}\
 $cmd_duration\
 $line_break\
 $character"""
@@ -23,10 +24,34 @@ truncation_length = 3
 truncate_to_repo = true
 style = "bold cyan"
 
-# Git branch - fast, just reads HEAD
+# Native git_branch prints literal "HEAD" on jj's detached HEAD, so disable it
+# and use custom.git_branch (gated to non-jj repos) instead.
 [git_branch]
+disabled = true
+
+# jj change id + bookmarks. Only runs in jj repos (detect_folders = .jj).
+# --ignore-working-copy => never snapshots/mutates, so no oplog spam or races
+# with the Claude statusline rendering the same repo. Fast enough (~30ms) to
+# stay well under command_timeout.
+[custom.jj]
+description = "jj change id + bookmarks"
+detect_folders = [".jj"]
+ignore_timeout = true
 symbol = " "
 style = "bold purple"
+command = '''jj log -r@ -n1 --no-graph --ignore-working-copy --color never -T 'separate(" ", bookmarks.join(" "), change_id.shortest(4), if(empty, "(empty)"), if(conflict, "×"))' '''
+format = "[$symbol$output]($style) "
+
+# Git branch, but only on an actual branch that is NOT inside a jj repo (jj owns
+# the display there via custom.jj). The `when` gate requires a non-empty branch,
+# so plain dirs and jj repos render nothing.
+[custom.git_branch]
+description = "git branch, hidden inside jj repos"
+when = 'test -n "$(git branch --show-current 2>/dev/null)" && ! jj root >/dev/null 2>&1'
+command = "git branch --show-current"
+symbol = " "
+style = "bold purple"
+format = "on [$symbol$output]($style) "
 
 # Character (prompt symbol)
 [character]
