@@ -4,10 +4,11 @@
 
 add_newline = false
 
-# directory + git + Claude model/context/cost
+# directory + jj/git + Claude model/context/cost
 format = """
 $directory \
-$git_branch$git_status \
+${custom.jj}\
+${custom.git_branch} \
 ${env_var.CLAUDE_MODEL} \
 ${env_var.CLAUDE_CONTEXT} \
 ${env_var.CLAUDE_COST}\
@@ -19,14 +20,33 @@ format = "[$path]($style)"
 truncation_length = 3
 truncate_to_repo = true
 
+# Native git_branch prints literal "HEAD" on jj's detached HEAD, so it's driven
+# through custom.git_branch (gated to non-jj repos) instead of the format.
 [git_branch]
+disabled = true
+
+# jj change id + bookmarks. Only runs in jj repos (detect_folders = .jj).
+# --ignore-working-copy => never snapshots/mutates, so it can't race the shell
+# prompt rendering the same repo. In colocated repos git HEAD is detached, so
+# git_branch stays empty and this takes over.
+[custom.jj]
+description = "jj change id + bookmarks"
+detect_folders = [".jj"]
+ignore_timeout = true
 symbol = " "
 style = "bold purple"
-format = "[$symbol$branch]($style)"
+command = '''jj log -r@ -n1 --no-graph --ignore-working-copy --color never -T 'separate(" ", bookmarks.join(" "), change_id.shortest(4), if(empty, "(empty)"), if(conflict, "×"))' '''
+format = "[$symbol$output]($style) "
 
-[git_status]
+# Git branch, only on an actual branch outside a jj repo. git_status is
+# intentionally omitted: `git status` is slow in large monorepos (the shell
+# prompt disables it for the same reason), so the statusline shows branch only.
+[custom.git_branch]
+when = 'test -n "$(git branch --show-current 2>/dev/null)" && ! jj root >/dev/null 2>&1'
+command = "git branch --show-current"
+symbol = " "
 style = "bold purple"
-format = "[($all_status$ahead_behind)]($style)"
+format = "[$symbol$output]($style)"
 
 [env_var.CLAUDE_MODEL]
 variable = "CLAUDE_MODEL"
