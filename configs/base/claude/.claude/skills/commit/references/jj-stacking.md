@@ -108,6 +108,8 @@ Use direnv to automate: `echo 'export GIT_DIR=$(jj git root)' > .envrc`
 
 **Always set `--base` to the parent branch** — `gh pr create` defaults to `main`, which is wrong for child branches.
 
+For the PR body itself (house style vs a repo template, and the `## The stack` list every stacked PR should carry), see `pr-descriptions.md`.
+
 ## Addressing Review Feedback
 
 ### Edit the target change directly
