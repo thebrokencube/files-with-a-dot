@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Conventional commit format, message conventions, green commit rules, and VCS history structuring for both git and jj (Jujutsu). Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, or deciding how to decompose work into commits. Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
+description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing a PR title/body (including whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
 user_invocable: false
 ---
 
@@ -143,3 +143,9 @@ No staging area — the working copy IS the change. Files are auto-snapshotted.
 ## jj: Stacking
 
 -> Read references/jj-stacking.md for building stacks, bookmark management, push semantics, PR creation, review cycles, and post-merge cleanup.
+
+## PR Descriptions
+
+A house style for PR bodies applies to **all repos**. **If the repo has a PR template (`.github/pull_request_template.md`), ask the user whether to use the template or the house style** — don't silently pick (a settled per-repo preference in CLAUDE.md/memory overrides the ask).
+
+-> Read references/pr-descriptions.md for the house style (title, What/How/Notes structure, diagram conventions, and the stack list for stacked PRs).

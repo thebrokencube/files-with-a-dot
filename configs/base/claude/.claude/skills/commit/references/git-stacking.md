@@ -191,9 +191,11 @@ When a root PR merges into main, advance the stack:
 
 When creating PRs for a stack:
 - **Set `--base` to the parent branch** — `gh pr create` defaults to `main`, which is wrong for child branches. Always pass `--base <parent-branch>` explicitly.
-- Include a stack overview in each PR description showing the branch order and which PR is current
+- Include a stack overview in each PR description showing the branch order and which PR is current — the `## The stack` list in `pr-descriptions.md`
 - Mark child PRs as draft until their parent is approved
 - After propagation, update PR descriptions if the diff changed materially
+
+For the PR body itself (house style vs a repo template), see `pr-descriptions.md`.
 
 ## Decomposition
 
