@@ -259,6 +259,17 @@ func extractPaths(item string) []string {
 		if !strings.Contains(candidate, "/") && !strings.Contains(candidate, ":") {
 			return
 		}
+		// A "::" is a language namespace (e.g. Ruby "Foo::Bar"), never a
+		// "<store>:<path>" ref — treating it as one flags an unknown store prefix.
+		if strings.Contains(candidate, "::") {
+			return
+		}
+		// A slashed candidate is only a path when it has real path shape — a file
+		// extension, a trailing slash, or a leading ./ ../ ~ / — otherwise a bare
+		// word run like "active/completed/failed/skipped" is prose, not a ref.
+		if strings.Contains(candidate, "/") && !hasPathShape(candidate) {
+			return
+		}
 		if !seen[candidate] {
 			seen[candidate] = true
 			paths = append(paths, candidate)
@@ -276,4 +287,20 @@ func extractPaths(item string) []string {
 	}
 
 	return paths
+}
+
+// hasPathShape reports whether a slashed candidate looks like a real path
+// reference rather than a prose word run. True when it carries a file extension
+// on its last segment, ends in a slash (a directory ref), or starts with an
+// explicit path indicator (./ ../ ~ /).
+func hasPathShape(s string) bool {
+	if strings.HasPrefix(s, "/") || strings.HasPrefix(s, "./") ||
+		strings.HasPrefix(s, "../") || strings.HasPrefix(s, "~") {
+		return true
+	}
+	if strings.HasSuffix(s, "/") {
+		return true
+	}
+	last := s[strings.LastIndex(s, "/")+1:]
+	return strings.Contains(last, ".") && !strings.HasSuffix(last, ".")
 }

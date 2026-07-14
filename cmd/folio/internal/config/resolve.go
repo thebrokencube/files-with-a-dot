@@ -70,6 +70,10 @@ func splitStorePrefix(path string) (prefix, remainder string, isRef bool) {
 	if i <= 0 {
 		return "", "", false
 	}
+	// A "::" is a language namespace (e.g. Ruby "Foo::Bar"), not "<store>:<path>".
+	if i+1 < len(path) && path[i+1] == ':' {
+		return "", "", false
+	}
 	prefix = path[:i]
 	if strings.ContainsAny(prefix, "/\\. \t") {
 		return "", "", false

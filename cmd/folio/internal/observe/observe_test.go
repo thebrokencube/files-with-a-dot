@@ -359,6 +359,23 @@ func TestLintSkipsProseInParens(t *testing.T) {
 	}
 }
 
+func TestLintSkipsProseSlashRunsAndNamespaces(t *testing.T) {
+	dir := t.TempDir()
+	// Prose the parenthetical matcher captures but which are not path refs: a
+	// slash-delimited word run (no extension) and a "::" language namespace.
+	// Neither should be flagged (regression for validation false-positives that
+	// blocked pushes and forced hand-edits to unrelated projects).
+	items := []string{
+		"idea(ui): show states (active/completed/failed/skipped) not the run breakdown",
+		"idea(color): give each concept (grove/canopies/wardens/repos) one registry color",
+		"idea(jobs): Gloppy sweep (CodeReviews::CodeReviewJob) runs every 10 min",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for prose slash-runs and :: namespaces, got %d: %v", len(issues), issues)
+	}
+}
+
 func TestLintSeePath(t *testing.T) {
 	dir := t.TempDir()
 	items := []string{
