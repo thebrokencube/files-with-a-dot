@@ -61,8 +61,8 @@ external context (WebFetch live docs) + comparable folio artifacts (via the `/fo
 + sibling code, and compare the candidate approach against them. This grounds the birds-eye.
 
 **Phase 1.5 — Idea/architecture sketch (before Phase 2):** produce the sketch HTML page
-(`folio new sketch <capability>`), run the birds-eye sign-off gate (show the rendered page, react,
-freeze), and commit it. This creates the work dir and decides lightweight-vs-full via the
+(`folio new sketch <capability>`), run it past the reviewer gate (a fresh subagent), then the
+birds-eye sign-off gate (show the rendered page, react, freeze), and commit it. This creates the work dir and decides lightweight-vs-full via the
 track-count. Full details: `references/plan-idea.md`. In lightweight (N==1) the flow leaves this
 file for `plan-execute.md`.
 

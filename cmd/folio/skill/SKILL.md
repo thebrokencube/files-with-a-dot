@@ -295,6 +295,10 @@ Two gate types, proportional to risk:
 | **Hard** | Stop. Present summary. Require explicit "yes" to proceed. | Destructive/external-facing operations |
 | **Soft** | Present summary. Proceed unless user objects. | Local/reversible operations |
 
+Some Hard gates are fronted by an **automated fresh-subagent QA/review loop** that runs to completion
+before the gate presents — the Phase 1.5 sketch reviewer and the Phase 4b adversarial design review.
+That loop is an internal fix-loop, not a user gate; the Hard gate is the human sign-off that follows.
+
 ### Gate placement
 
 | Workflow | Gate | Placement | What's shown |
@@ -362,7 +366,7 @@ is how provenance chains break.
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
 - **references/notion-proposal-template.md** — Default Notion template: feedback table with reviewer stance/comments
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
-  - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, build conventions, sign-off gate, lightweight track-count decision
+  - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, visual vocabulary, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
   - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief
   - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
