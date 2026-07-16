@@ -112,6 +112,7 @@ Schema 2 (`schema: 2`) introduces:
 - **`observations:`** single list for all captured items (replaced former `pending:` + `tasks:`).
 - **`plan` type** (alias: `brief`). `folio new plan <topic>` scaffolds `work/active/<date>-<topic>/README.md`. If a work dir already exists for the topic (e.g., from a prior `folio new design`), the README.md is added to it instead of creating a new dir.
 - **`design` type** scaffolds inside a work directory: `folio new design <topic>` creates `work/active/<date>-<topic>/reference/design/<date>-<topic>.md`, auto-creating the work dir if it doesn't exist. Designs always live in work directories — not at project-level `reference/design/`.
+- **`sketch` type** scaffolds inside a work directory: `folio new sketch <capability>` creates `work/active/<date>-<topic>/reference/sketch/index.html` (a fixed-name HTML page), auto-creating the work dir. A colocatable lifecycle type like `design`, sitting between spike and design in the lifecycle.
 - **Reference labels**: research, insight, guide, domain, review. Mapped from old names (survey→research, synthesis→research, pattern→insight).
 - **`how:` optional**: Missing `how` produces a warning (data-declaration target), not an error.
 

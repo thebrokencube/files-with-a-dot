@@ -24,7 +24,7 @@ Use `/folio plan` instead of `EnterPlanMode` for any non-trivial task — multi-
 
 The forward path: gather sources (Phase 1), sketch the idea/architecture as an HTML page you react to and freeze it (Phase 1.5), freeze architecture in a design doc (Phase 4a-4b), decompose into tracks (Phase 5), write execution-level briefs (Phase 6), execute per track (Phase 7). Each agent commits its output before the next begins.
 
-Phase 1.5 (idea/arch sketch) fronts the pipeline and decides lightweight-vs-full — see `references/plan-idea.md`. Phase 7 is a loop: implement → validate → review (mandatory gate) → commit.
+Phase 1.5 (idea/arch sketch) fronts the pipeline, runs the sketch past a fresh reviewer subagent then a birds-eye sign-off gate, and decides lightweight-vs-full — see `references/plan-idea.md`. Phase 7 is a loop: implement → validate → review (mandatory gate) → commit.
 
 ## Pipeline
 
@@ -110,9 +110,10 @@ The idea/arch sketch's track-title fan-out (`references/plan-idea.md`) picks the
 Co-signal + track-count details: `references/plan-idea.md`. If ambiguous, use the full pipeline.
 
 Commit checkpoints are mandatory in every mode. Lightweight reduces artifacts, not checkpoints:
-the sketch and the single track file must both be committed before execution begins. In lightweight
-mode the Phase 7 per-commit review + adversarial verify are the ONLY quality gates (design/brief
-gates are skipped), so they are mandatory — see `references/plan-execute.md`.
+the sketch and the single track file must both be committed before execution begins. The Phase 1.5
+sketch gates (fresh-subagent review + birds-eye sign-off) run in both modes; beyond them, in
+lightweight mode the Phase 7 per-commit review + adversarial verify are the only code-level quality
+gates (design/brief gates are skipped), so they are mandatory — see `references/plan-execute.md`.
 
 ## Re-run Rule
 
@@ -136,6 +137,7 @@ Use the strongest available agent mode per phase, with graceful degradation:
 | Phase | Preferred mode | Fallback mode | Rationale |
 |-------|---------------|---------------|-----------|
 | Phase 1 (Research) | Agent team (parallel explorers) | Sequential subagents | Breadth matters; parallel exploration finds more |
+| Phase 1.5 (Sketch review) | Single fresh subagent (general-purpose) | Same | Single-file defect/render QA — lead-driven, no team |
 | Phase 2 (Propose) | Agent team (parallel lenses) | 2 sequential subagents | Divergence benefits from independence |
 | Phase 3 (Converge) | Single agent | Single agent | Convergence is inherently serial |
 | Phase 4a (Fill) | Single agent | Single agent | Mechanical mapping from converge output |

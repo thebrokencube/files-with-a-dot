@@ -6,17 +6,19 @@ Suggests next actions for a project based on `type` and `status` fields on folio
 
 Check in order. Present the first matching suggestion per active work track.
 
-1. Active work track with spike(s) but no design → "Spike may be ready to promote to design, or archive if investigation concluded"
+1. Active work track with spike(s) but no sketch or design → "Spike may be ready to lay out as a sketch, or archive if investigation concluded"
    When the user brings work items at this stage, route to: `/folio observe` or `/folio gather`
-2. Design with `status: active` → "Design is iterating — continue or settle"
+2. Frozen sketch but no design → "Sketch is frozen — harden into a design (N≥2 tracks) or go straight to implementation (lightweight, N==1)"
+   When the user brings work items at this stage, route to: `/folio plan` or `track-1.md` content
+3. Design with `status: active` → "Design is iterating — continue or settle"
    When the user brings work items at this stage, route to: design doc content or `/folio compose`
-3. Design with `status: done`, no plan → "Design is settled — create execution brief"
+4. Design with `status: done`, no plan → "Design is settled — create execution brief"
    When the user brings work items at this stage, route to: execution brief content or `/folio plan`
-4. Plan with `status: active` → find first track without `status: done` → "Execute Track N"
+5. Plan with `status: active` → find first track without `status: done` → "Execute Track N"
    When the user brings work items at this stage, route to: `/folio observe` or track status update
-5. All tracks `status: done`, no retro in the work track → "Write retro, then archive"
+6. All tracks `status: done`, no retro in the work track → "Write retro, then archive"
    When the user brings work items at this stage, route to: `folio new retro` or observation
-6. All done + retro exists → "Archive work track (`folio archive`)"
+7. All done + retro exists → "Archive work track (`folio archive`)"
    When the user brings work items at this stage, route to: `/folio wrap-up`
 
 Phrase suggestions conversationally based on context, not robotically from the list above.
@@ -50,7 +52,7 @@ Used by the bare `/folio` invocation to present a recency-ranked project list in
 ```
 Recently active:
   1. SRM — "Legacy Launch Prep" (design, 2h ago)
-  2. Folio — "Session Handoff" (spike, 1d ago)
+  2. Folio — "Session Handoff" (sketch, 1d ago)
 Also active but stale:
   3. dot — 3 observations (14d+)
 Pick up where I left off — or name a project/command.

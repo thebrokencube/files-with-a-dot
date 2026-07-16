@@ -23,8 +23,8 @@ Before starting Step 0, check the work plan's `shape:` field:
 idea/arch sketch + a single `track-1.md` at `work/active/<date>-<topic>/track-1.md`, authored at
 sketch-freeze with execution-level detail for the one track (the author who froze the sketch writes
 it — no Brief agent runs). Execute it as a single track. With design/brief gates absent, the
-per-commit review + adversarial verify (Step 5 gate below) are the ONLY quality gates and are
-mandatory. If the work fans out mid-execution, escalate per the layered-escalation table.
+per-commit review + adversarial verify (Step 5 gate below) are the only *execution-phase* quality
+gates and are mandatory (the upstream Phase 1.5 sketch gates still ran). If the work fans out mid-execution, escalate per the layered-escalation table.
 
 0. **Spike** — before touching any code for a track:
    1. Read the track spec (file paths, interfaces, constraints, deferral markers)

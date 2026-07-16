@@ -2,6 +2,8 @@
 
 Cross-cutting principle applied wherever an agent exercises subjective judgment.
 Referenced by plan-design, plan-brief, plan-execute, compose, gather, and observe workflows.
+plan-idea's Phase 1.5 sketch reviewer borrows the review *structure* (cold subagent + fix-loop) but
+is a defect/rendering QA pass, not one of the tiers below.
 
 ## Principle
 
