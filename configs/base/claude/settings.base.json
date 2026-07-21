@@ -83,6 +83,7 @@
       "Bash(acli *)",
 
       "Bash(dot*)",
+      "Bash(direnv exec *)",
       "Bash(folio*)",
       "Bash(FOLIO_HOME=/tmp/folio-ws-* folio *)",
       "Bash(brew *)",
