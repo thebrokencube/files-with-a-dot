@@ -37,6 +37,7 @@ cmd/dot/dot:$HOME/.local/bin/dot
 # Claude Code (granular linking to allow private skills and rules)
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
 configs/base/claude/.claude/starship.toml:$HOME/.claude/starship.toml
+configs/base/claude/.claude/rules/concision.md:$HOME/.claude/rules/concision.md
 configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
 configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles

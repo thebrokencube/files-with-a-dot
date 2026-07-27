@@ -146,6 +146,21 @@
           { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/folio-session-start.sh" }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "~/.dotfiles/configs/base/claude/.claude/hooks/concision-check.sh" },
+          {
+            "type": "prompt",
+            "statusMessage": "Checking concision...",
+            "continueOnBlock": true,
+            "timeout": 20,
+            "prompt": "You are a strict editor enforcing a concision rule. Input JSON: $ARGUMENTS — judge ONLY the `last_assistant_message` field.\n\nFail it if it does ANY of these:\n- Opens with preamble, or restates the request before answering.\n- Recaps work whose result is already visible, or ends with a summary of what was just done.\n- Labels the significance of its own findings (\"the important part\", \"the key thing\", \"notably\").\n- Gives rationale nobody asked for, or explains why a choice was good.\n- Validates or flatters the user in any way.\n- Ends with an offer of further help.\n- Uses headers or bold section labels in a reply under ~15 lines.\n\nDo NOT fail it for: being long when the user explicitly asked for a report, list, review, or document; required templates with sections; quoting someone else's words; code, logs, file paths, or command output; a bare factual statement of what changed plus its verification status.\n\nBias toward ok — fail only on a clear, nameable violation. If you fail it, the reason must be one sentence naming the specific offending text and what to cut."
+          }
+        ]
+      }
     ]
   }
 }
