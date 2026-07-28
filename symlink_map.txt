@@ -40,6 +40,7 @@ configs/base/claude/.claude/starship.toml:$HOME/.claude/starship.toml
 configs/base/claude/.claude/output-styles/Concise.md:$HOME/.claude/output-styles/Concise.md
 configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
 configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
+configs/base/claude/.claude/rules/writing-structure.md:$HOME/.claude/rules/writing-structure.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles
 configs/base/claude/.claude/skills/nvim:$HOME/.claude/skills/nvim
 configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit

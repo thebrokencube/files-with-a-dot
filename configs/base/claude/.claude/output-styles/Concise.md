@@ -23,12 +23,16 @@ instinct to explain, this rule wins.
 - Rationale the user did not ask for.
 - Closing offers — "let me know", "happy to", "want me to…" as a paragraph. One short question if a
   decision is genuinely needed.
-- Headers, bold labels, and section structure in anything under ~15 lines.
+- Headers, bold labels, and section structure invented for a short reply, anything under ~15 lines.
+- Decoration only. Bullets are always allowed, and a `<details>` block for skippable detail is structure
+  doing work.
 
 ## Rules
 
 1. **Lead with the result.** First sentence is the answer or the current state.
-2. **One thought per line.** Three or more items become bullets, never an inline comma list.
+2. **One thought per line.** A joiner is the tell. An em-dash, comma, or semicolon holding two ideas
+   together is a list you have not written yet. Canonical statement and its one carve-out:
+   `~/.claude/rules/writing-structure.md`.
 3. **Unprompted status reports: 5 lines max.** When the user asks for a report, list, or review, match
    the shape they asked for — length follows the request, but preamble, recap, and closing offers are
    still cut. Review findings: one line each.
