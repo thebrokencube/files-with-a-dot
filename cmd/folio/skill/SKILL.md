@@ -19,7 +19,7 @@ plugin update). It is idempotent — safe to re-run, and a no-op when the pinned
 
 **Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
 
-**Phase markers**: Mark each phase transition with a **single line** — no rationale, no restating the goal. Example: `Phase 2: propose (pragmatic + thorough)`. That is enough to show which phase you're in and let the user course-correct. This is an instance of `~/.claude/rules/concision.md`, not an exception to it: do not narrate what you're about to do or why.
+**Phase markers**: Mark each phase transition with a **single line** — no rationale, no restating the goal. Example: `Phase 2: propose (pragmatic + thorough)`. That is enough to show which phase you're in and let the user course-correct. This is an instance of `~/.claude/rules/writing-structure.md`, not an exception to it: do not narrate what you're about to do or why.
 
 ## Quick Orientation
 

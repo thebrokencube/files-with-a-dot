@@ -12,18 +12,50 @@ Before writing a body, check for a repo PR template (`.github/pull_request_templ
 
 ## House style
 
-**Title** — conventional-commit style, same as a commit subject: `type(scope): short description`.
+**Title** — conventional-commit style, same as a commit subject: `type(scope): short description`. The
+description says what changes for a reader, not where the bytes live. Don't lead with storage or internal
+vocabulary (table and column names, class names, queue names, "unify the write path") when a behavioural
+phrasing exists.
 
 **Body** — these sections, in order. Drop any that don't earn their place; match fidelity to the change (a one-line fix doesn't need all four).
 
-- `## What` — the point first, then concise **list-forward** bullets (see One thought per bullet). Bold the key concepts/terms. Describe what the PR does **now** — no history narration ("originally bundled with…", "split out of #X", "as discussed"). A reviewer doesn't care how it got here.
+- `## What` — the point first, then concise **list-forward** bullets (see One thought per line). Bold the key concepts/terms. Describe what the PR does **now** — no history narration ("originally bundled with…", "split out of #X", "as discussed"). A reviewer doesn't care how it got here.
 - `## How` — **optional, and only when a diagram teaches the core concept** (a data flow, a seam, a state path). Less is more: skip it for mechanical or pure-fix PRs. See Diagrams below.
 - `## Notes` — terse bullets: caveats, follow-ups, how it was validated ("green in isolation: rubocop + typecheck + tests"), links.
 - `## The stack` — only for stacked PRs. See below.
 
-## One thought per bullet
+## Depth order
 
-A bullet holds one thought. **If you reach for a semicolon, a middot (`·`), or an em-dash (`—`) to pack more items into one bullet, that's the signal to split** — each item becomes its own bullet or a sub-bullet under a lead-in. Run-on bullets hide structure; nesting shows it. This applies to `## What` and `## Notes` alike.
+Answer in this order. A reviewer should be able to stop after the first two and still know what landed.
+
+1. **Outcome.** One or two lines: what is true once this merges.
+2. **Deploy impact.** Answer "does anything change for a human on deploy?" in the first few lines, including
+   when the answer is "nothing". Never leave it to be discovered in `## Notes`.
+3. **Vocabulary.** Define every domain noun the body leans on, before its second use. A reviewer who does
+   not know what the nouns mean cannot evaluate the change.
+4. **Mechanics.** How it works, list-forward.
+5. **In-the-weeds detail.** Per-file walkthroughs, enumerated states, migration steps, CSS traps: put them in
+   a collapsed block rather than deleting them.
+
+   ```markdown
+   <details><summary>Migration steps</summary>
+
+   …
+
+   </details>
+   ```
+
+## One thought per line — a joiner is the tell
+
+**If a sentence joins two ideas with an em-dash, a comma, a semicolon, or a middot (`·`), make it a list.**
+Reaching for a joiner means you wrote a list as prose. There is no threshold: two ideas is enough.
+
+This applies to every line of the body, not just bullets:
+
+- A run-on bullet splits into sub-bullets under a lead-in.
+- A run-on sentence becomes bullets.
+- Run-on structure hides the shape.
+- Nesting shows it.
 
 Before (one run-on bullet):
 

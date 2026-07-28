@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing a PR title/body (including whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
+description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing, editing, or rewriting a PR title/body (including `gh pr edit`, revising a description after review feedback, tightening an existing body, whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
 user_invocable: false
 ---
 
@@ -148,4 +148,10 @@ No staging area — the working copy IS the change. Files are auto-snapshotted.
 
 A house style for PR bodies applies to **all repos**. **If the repo has a PR template (`.github/pull_request_template.md`), ask the user whether to use the template or the house style** — don't silently pick (a settled per-repo preference in CLAUDE.md/memory overrides the ask).
 
--> Read references/pr-descriptions.md for the house style (title, What/How/Notes structure, diagram conventions, and the stack list for stacked PRs).
+**Before writing or editing a PR title or body, read references/pr-descriptions.md.** That includes a
+one-line tweak through `gh pr edit`. It carries what this file does not: title vocabulary, depth order
+(outcome → deploy impact → vocabulary → mechanics → collapsed detail), the joiner rule, What/How/Notes,
+diagram conventions, and the stack list for stacked PRs.
+
+This applies even when the skill was invoked for something else. Being loaded for a commit or a push does
+not cover a PR body written later in the same session.
