@@ -209,6 +209,8 @@ type LintIssue struct {
 var (
 	parenPathRe = regexp.MustCompile(`\(([^)]+)\)`)
 	seePathRe   = regexp.MustCompile(`(?:See|see) ([^\s,]+)`)
+	// A trailing line or line-range reference: "foo.rb:7", "Show.tsx:12-20".
+	lineRefSuffixRe = regexp.MustCompile(`:\d+(?:-\d+)?$`)
 )
 
 // Lint checks observations for format errors and broken inline path references.
@@ -251,6 +253,13 @@ func extractPaths(item string) []string {
 		// A path reference has no whitespace — reject prose the parenthetical
 		// matcher captures, e.g. "(esp ~/.dotfiles)".
 		if strings.ContainsAny(candidate, " \t") {
+			return
+		}
+		// A trailing ":12" or ":12-20" is a line reference, not part of the path. Strip it so the
+		// path half is what gets resolved — otherwise "app/models/foo.rb:7" is looked up verbatim
+		// and reported broken, and a bare "Show.tsx:393" reads as an unknown "<store>:<path>".
+		candidate = lineRefSuffixRe.ReplaceAllString(candidate, "")
+		if candidate == "" {
 			return
 		}
 		// Path-likeness: require a separator '/' or a store prefix ':'. A bare
