@@ -359,6 +359,35 @@ func TestLintSkipsProseInParens(t *testing.T) {
 	}
 }
 
+func TestLintStripsLineReferences(t *testing.T) {
+	dir := t.TempDir()
+	// A bare "file.ext:NN" is a code reference, not a "<store>:<path>" ref — the colon must not make
+	// it look like an unknown store. A line range and a bare ":NN-NN" are the same class.
+	items := []string{
+		"bug(review): the transcript is Redis-only (activity_log.rb:7) so it expires (Show.tsx:393)",
+		"bug(ui): the empty state renders wrong (ActivityStream.tsx:18-21) and again (:87-98)",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for line references, got %d: %v", len(issues), issues)
+	}
+}
+
+func TestLintChecksPathHalfOfALineReference(t *testing.T) {
+	dir := t.TempDir()
+	// Stripping the line suffix must not stop the path itself being verified.
+	items := []string{
+		"bug(cli): broken ref (reference/missing.md:12)",
+	}
+	issues := Lint(dir, items)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue, got %d: %v", len(issues), issues)
+	}
+	if !strings.Contains(issues[0].Reason, "broken path") {
+		t.Errorf("reason = %q, want broken path", issues[0].Reason)
+	}
+}
+
 func TestLintSkipsProseSlashRunsAndNamespaces(t *testing.T) {
 	dir := t.TempDir()
 	// Prose the parenthetical matcher captures but which are not path refs: a
