@@ -209,6 +209,17 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio home workspace create` | Manually create a jj workspace |
 | `folio home workspace cleanup [path]` | Remove a workspace — errors if unpushed changes exist |
 
+**Fleet** — the code and dotfiles repos folio hovers over (read-only status; isolated checkouts):
+
+| Command | Purpose |
+|---|---|
+| `folio fleet status [--dirty] [--json]` | Read-only branch + dirty state across every registered store, grouped by kind |
+| `folio fleet workarea open <store> <branch>` | Create an isolated checkout at `~/.folio/.worktrees/<store>/<slug>` (`-b` to fork off a base other than the store's default branch) |
+| `folio fleet workarea list` | Every work area — folio-placed, plus hand-made ones read from `jj workspace list` / `git worktree list` |
+| `folio fleet workarea reap [--force]` | Remove folio-placed areas (tier-correct; keeps dirty/unpushed) |
+
+Folio never commits or opens a PR for a code store — `folio home push <code-store>` positions the branch and hands off to `/commit`.
+
 Some commands have corresponding skill workflows that add creative/judgmental work on top: `gather` (snapshot/re-seed), `observe` (type disambiguation via alignment).
 
 **Flag ordering**: Flags go **before** positional arguments. `folio new --folio my-project spike topic` works; `folio new spike topic --folio my-project` does not.
@@ -217,7 +228,11 @@ If any CLI command fails, run `folio setup --check` first.
 
 ## Terminology Note
 
-**"workspace"** in folio CLI always means a **jj workspace** (a session-isolated checkout of `~/.folio`). It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
+**"workspace"** in folio CLI always means a **jj workspace** of a KB store — a session-isolated checkout under `/tmp/folio-ws-<id>`. It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
+
+**"work area"** is the code-side counterpart: an isolated checkout of a `code` store, at `~/.folio/.worktrees/<store>/<slug>`. Created with `folio fleet workarea open`, not `folio home workspace create`.
+
+Where each root goes and why neither may sit beside its repo: `~/.claude/rules/isolated-checkouts.md`.
 
 ## Session Lifecycle
 

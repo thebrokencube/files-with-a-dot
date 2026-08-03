@@ -155,6 +155,107 @@ func TestReapKeepsUnpushedCommitsWithoutUpstream(t *testing.T) {
 	}
 }
 
+// A worktree made by hand — beside the repo, not under .worktrees — is invisible
+// to Reconcile, which walks only the canonical root. ScanVCS is what surfaces it,
+// so this is the load-bearing case: without it, `workarea list` reports "no work
+// areas" while checkouts pile up next to the repo.
+func TestScanVCSSurfacesHandMadeGitWorktree(t *testing.T) {
+	umbrella := t.TempDir()
+	repo := gitRepo(t)
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	beside := filepath.Join(filepath.Dir(repo), "code1-sibling")
+	runOK(t, repo, "git", "worktree", "add", "-q", beside, "-b", "sibling")
+
+	// Reconcile alone sees nothing — it only knows the ledger and .worktrees.
+	rows, orphans, err := Reconcile(umbrella)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 || len(orphans) != 0 {
+		t.Fatalf("Reconcile should not see a hand-made sibling: rows=%+v orphans=%v", rows, orphans)
+	}
+
+	areas := ScanVCS(umbrella, []config.Store{store})
+	if len(areas) != 1 {
+		t.Fatalf("ScanVCS areas = %+v, want exactly the sibling", areas)
+	}
+	if areas[0].State != StateStray {
+		t.Errorf("state = %q, want %q", areas[0].State, StateStray)
+	}
+	if !sameDir(areas[0].Dir, beside) {
+		t.Errorf("dir = %q, want %q", areas[0].Dir, beside)
+	}
+	if areas[0].Tier != string(TierGitWorktree) {
+		t.Errorf("tier = %q, want %q", areas[0].Tier, TierGitWorktree)
+	}
+}
+
+// A registration whose directory was deleted behind the VCS's back is the residue
+// that accumulates when sessions exit without deregistering.
+func TestScanVCSReportsDanglingRegistration(t *testing.T) {
+	umbrella := t.TempDir()
+	repo := gitRepo(t)
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	beside := filepath.Join(filepath.Dir(repo), "code1-deleted")
+	runOK(t, repo, "git", "worktree", "add", "-q", beside, "-b", "deleted")
+	if err := os.RemoveAll(beside); err != nil {
+		t.Fatal(err)
+	}
+
+	areas := ScanVCS(umbrella, []config.Store{store})
+	if len(areas) != 1 || areas[0].State != StateDangling {
+		t.Fatalf("areas = %+v, want one %q", areas, StateDangling)
+	}
+}
+
+// An area folio placed itself is already covered by Reconcile, so ScanVCS must
+// not report it a second time.
+func TestScanVCSSkipsLedgeredAndMainWorkingCopy(t *testing.T) {
+	umbrella := t.TempDir()
+	repo := gitRepo(t)
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	if _, err := Open(umbrella, store, "feature/y", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if areas := ScanVCS(umbrella, []config.Store{store}); len(areas) != 0 {
+		t.Fatalf("ScanVCS reported %+v; a ledgered area and the main copy must be skipped", areas)
+	}
+}
+
+func TestScanVCSSurfacesHandMadeJJWorkspace(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not on PATH")
+	}
+	umbrella := t.TempDir()
+	repo := t.TempDir()
+	runOK(t, repo, "jj", "git", "init", "--colocate")
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	beside := filepath.Join(filepath.Dir(repo), "code1-jj-sibling")
+	runOK(t, repo, "jj", "--no-pager", "workspace", "add", "--name", "sibling", beside)
+
+	areas := ScanVCS(umbrella, []config.Store{store})
+	// A colocated repo is probed for both tiers; only the jj workspace is an area.
+	var jjAreas []Unledgered
+	for _, a := range areas {
+		if a.Tier == string(TierJJ) {
+			jjAreas = append(jjAreas, a)
+		}
+	}
+	if len(jjAreas) != 1 {
+		t.Fatalf("jj areas = %+v, want exactly the sibling (default must be skipped)", areas)
+	}
+	if jjAreas[0].Name != "sibling" || jjAreas[0].State != StateStray {
+		t.Errorf("area = %+v, want name=sibling state=%s", jjAreas[0], StateStray)
+	}
+	if !sameDir(jjAreas[0].Dir, beside) {
+		t.Errorf("dir = %q, want %q", jjAreas[0].Dir, beside)
+	}
+}
+
 func anyContains(xs []string, sub string) bool {
 	for _, x := range xs {
 		if strings.Contains(x, sub) {

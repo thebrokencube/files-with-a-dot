@@ -71,7 +71,7 @@ func resolveSyncTarget(storeName string) (string, config.Store, int) {
 		dir = store.Path
 		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, dir, pal.Reset)
 	}
-	if strings.HasPrefix(filepath.Base(dir), "folio-ws-") {
+	if home.IsSessionWorkspace(dir) {
 		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, dir, pal.Reset)
 	}
 	return dir, store, dendrik.ExitOK
@@ -608,7 +608,7 @@ func runWorkspaceCreate() int {
 		return code
 	}
 
-	wsID := fmt.Sprintf("folio-ws-%d-%d", time.Now().Unix(), os.Getpid())
+	wsID := fmt.Sprintf("%s%d-%d", home.SessionWorkspacePrefix, time.Now().Unix(), os.Getpid())
 	wsDir := filepath.Join("/tmp", wsID)
 
 	cmd := exec.Command("jj", "--no-pager", "workspace", "add", wsDir, "-r", "main", "-R", homeDir)
@@ -654,7 +654,7 @@ func runWorkspaceCleanup(positional []string) int {
 	} else {
 		// Use current FOLIO_HOME if it looks like a workspace
 		folio := os.Getenv("FOLIO_HOME")
-		if folio == "" || !strings.HasPrefix(filepath.Base(folio), "folio-ws-") {
+		if folio == "" || !home.IsSessionWorkspace(folio) {
 			fmt.Fprintln(os.Stderr, pal.Errf("specify workspace path or set FOLIO_HOME to a workspace"))
 			return dendrik.ExitUserError
 		}
