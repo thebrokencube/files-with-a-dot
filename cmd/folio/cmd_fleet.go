@@ -204,7 +204,17 @@ func runWorkareaList() int {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
-	if len(rows) == 0 && len(orphans) == 0 {
+
+	// The ledger and .worktrees only describe areas folio placed. Ask each
+	// store's VCS for its own list too, so an area made by hand beside a repo is
+	// surfaced rather than silently accumulating. A missing registry is not
+	// fatal — the ledger view still prints.
+	var unledgered []fleet.Unledgered
+	if reg, rerr := config.LoadRegistry(); rerr == nil {
+		unledgered = fleet.ScanVCS(umbrella, reg.AllStores())
+	}
+
+	if len(rows) == 0 && len(orphans) == 0 && len(unledgered) == 0 {
 		fmt.Println("No work areas.")
 		return dendrik.ExitOK
 	}
@@ -214,7 +224,39 @@ func runWorkareaList() int {
 	for _, o := range orphans {
 		fmt.Printf("  %-10s  %-24s  %-14s  %s\n", "orphan", "-", "-", o)
 	}
+	printUnledgered(unledgered, pal)
 	return dendrik.ExitOK
+}
+
+// printUnledgered renders VCS-known areas folio didn't place, grouped by store
+// and annotated with the remediation for each state. Nothing here is ever
+// auto-removed, so the output has to say what to run.
+func printUnledgered(areas []fleet.Unledgered, pal dendrik.Palette) {
+	if len(areas) == 0 {
+		return
+	}
+	fmt.Printf("\n%d unledgered (folio didn't place these; never auto-reaped):\n", len(areas))
+	storeW := 5
+	for _, a := range areas {
+		if len(a.Store) > storeW {
+			storeW = len(a.Store)
+		}
+	}
+	for _, a := range areas {
+		// A dangling area has no directory left, so its jj workspace name is the
+		// only handle the user can act on.
+		where := a.Dir
+		if a.State == fleet.StateDangling {
+			where = a.Name + " (directory gone)"
+		}
+		note := "-"
+		if home.IsSessionWorkspace(a.Name) || home.IsSessionWorkspace(a.Dir) {
+			note = "kb-session"
+		}
+		fmt.Printf("  %-8s  %-10s  %-*s  %-12s  %s\n", a.State, note, storeW, a.Store, a.Tier, where)
+	}
+	fmt.Printf("\n%s\n", pal.Dim+"  stray    → move to ~/.folio/.worktrees via `folio fleet workarea open <store> <branch>`, or remove by hand"+pal.Reset)
+	fmt.Printf("%s\n", pal.Dim+"  dangling → deregister: `jj workspace forget <name>` (jj) / `git worktree prune` (git)"+pal.Reset)
 }
 
 func runWorkareaReap(all, force bool, only string) int {

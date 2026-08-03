@@ -113,6 +113,140 @@ type Reconciled struct {
 	State string // "ok" | "severed" (on disk, VCS forgot) | "gone" (disk absent)
 }
 
+// Unledgered states. These read from the VCS's side of the join, so they are
+// deliberately distinct from Reconciled.State: "severed" there means the ledger
+// and disk agree but git forgot, whereas "dangling" here is the mirror image —
+// the VCS still remembers an area whose directory is gone.
+const (
+	StateStray    = "stray"    // on disk, outside .worktrees, absent from the ledger
+	StateDangling = "dangling" // still registered with the VCS; its directory is gone
+)
+
+// Unledgered is an isolated checkout the VCS itself knows about but the ledger
+// does not — an area made by hand, wherever on disk it happens to sit. Folio did
+// not place it and cannot know what it holds, so these are surfaced and never
+// auto-reaped.
+type Unledgered struct {
+	Store string // registry store the area belongs to
+	Tier  string // TierJJ | TierGitWorktree
+	Name  string // jj workspace name; "" for a git worktree
+	Dir   string // resolved path; "" when the registration resolves nowhere
+	State string // StateStray | StateDangling
+}
+
+// ScanVCS asks each store's own VCS which isolated checkouts it knows about and
+// returns the ones the ledger does not cover. This is the truth half of
+// reconciliation: Reconcile walks only <umbrella>/.worktrees, so an area created
+// by hand beside a repo — or a registration whose directory was deleted — is
+// invisible without this. Read-only and best-effort; a store that cannot be
+// probed is skipped rather than failing the scan.
+func ScanVCS(umbrella string, stores []config.Store) []Unledgered {
+	var ledgered []string
+	if areas, err := ReadLedger(umbrella); err == nil {
+		for _, wa := range areas {
+			ledgered = append(ledgered, wa.Dir)
+		}
+	}
+
+	var out []Unledgered
+	for _, s := range stores {
+		if s.Path == "" || !pathExists(s.Path) {
+			continue
+		}
+		// Probed independently rather than through DetectTier: a colocated repo
+		// can carry both jj workspaces and git worktrees, and DetectTier answers
+		// "which tier would folio pick", which is a different question.
+		if pathExists(filepath.Join(s.Path, ".jj")) {
+			out = append(out, scanJJWorkspaces(s, ledgered)...)
+		}
+		if pathExists(filepath.Join(s.Path, ".git")) {
+			out = append(out, scanGitWorktrees(s, ledgered)...)
+		}
+	}
+	return out
+}
+
+// scanJJWorkspaces lists a jj repo's workspaces and resolves each root. jj keeps
+// a workspace registered after its directory is deleted, which is the residue
+// that accumulates when sessions exit without `workspace forget`.
+func scanJJWorkspaces(s config.Store, ledgered []string) []Unledgered {
+	// --ignore-working-copy so a stale working copy in ANY workspace doesn't
+	// fail the listing, and so a read-only scan never snapshots.
+	out, err := run(s.Path, "jj", "--no-pager", "--ignore-working-copy",
+		"workspace", "list", "-T", `name ++ "\t" ++ root ++ "\n"`)
+	if err != nil {
+		return nil
+	}
+	var found []Unledgered
+	for line := range strings.SplitSeq(out, "\n") {
+		name, root, ok := strings.Cut(line, "\t")
+		if !ok || name == "" {
+			continue
+		}
+		area := Unledgered{Store: s.Name, Tier: string(TierJJ), Name: name}
+		// jj renders an unresolvable root as an inline "<Error: …>" instead of
+		// failing the listing, so the test is absolute-and-present. The error
+		// text itself is not a stable interface and is never parsed.
+		if !filepath.IsAbs(root) || !pathExists(root) {
+			area.State = StateDangling
+			found = append(found, area)
+			continue
+		}
+		if sameDir(root, s.Path) || covered(ledgered, root) {
+			continue
+		}
+		area.Dir, area.State = root, StateStray
+		found = append(found, area)
+	}
+	return found
+}
+
+// scanGitWorktrees lists a git repo's worktrees. One porcelain entry is the main
+// working copy — the repo itself, never an area.
+func scanGitWorktrees(s config.Store, ledgered []string) []Unledgered {
+	out, err := run(s.Path, "git", "worktree", "list", "--porcelain")
+	if err != nil {
+		return nil
+	}
+	var found []Unledgered
+	for line := range strings.SplitSeq(out, "\n") {
+		dir, ok := strings.CutPrefix(strings.TrimSpace(line), "worktree ")
+		if !ok || dir == "" {
+			continue
+		}
+		if sameDir(dir, s.Path) || covered(ledgered, dir) {
+			continue
+		}
+		area := Unledgered{Store: s.Name, Tier: string(TierGitWorktree), Dir: dir, State: StateStray}
+		if !pathExists(dir) {
+			area.State = StateDangling
+		}
+		found = append(found, area)
+	}
+	return found
+}
+
+// covered reports whether the ledger already accounts for dir.
+func covered(ledgered []string, dir string) bool {
+	for _, l := range ledgered {
+		if sameDir(l, dir) {
+			return true
+		}
+	}
+	return false
+}
+
+// sameDir compares paths after resolving symlinks, so macOS's /tmp vs
+// /private/tmp — or a symlinked store path — doesn't read as two directories.
+func sameDir(a, b string) bool {
+	if a == b {
+		return true
+	}
+	ra, ea := filepath.EvalSymlinks(a)
+	rb, eb := filepath.EvalSymlinks(b)
+	return ea == nil && eb == nil && ra == rb
+}
+
 // Reconcile intersects the ledger with on-disk reality. Orphans (dirs under
 // .worktrees not in the ledger) are returned separately — listed, never trusted.
 func Reconcile(umbrella string) (rows []Reconciled, orphans []string, err error) {
