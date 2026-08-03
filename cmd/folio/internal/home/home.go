@@ -13,6 +13,18 @@ import (
 
 const defaultHome = ".folio"
 
+// SessionWorkspacePrefix names the jj workspaces `folio home workspace create`
+// makes for KB sessions. They sit under /tmp on their own lifetime (reaped at
+// -mtime +2), unlike code work areas, which are durable and ledgered under
+// <umbrella>/.worktrees. Every caller that classifies a path by this prefix
+// shares the constant so the two roots can't drift apart.
+const SessionWorkspacePrefix = "folio-ws-"
+
+// IsSessionWorkspace reports whether dir is a KB session workspace.
+func IsSessionWorkspace(dir string) bool {
+	return strings.HasPrefix(filepath.Base(dir), SessionWorkspacePrefix)
+}
+
 // lookJJ reports whether the jj binary is available on PATH. It is a package
 // var so tests can force either VCS branch in Init deterministically.
 var lookJJ = func() bool {

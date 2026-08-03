@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 )
 
 // ErrNothingToCommit is returned when there are no changes to commit.
@@ -99,7 +101,7 @@ func Pull(home string) error {
 // isWorkspace returns true if dir is a jj workspace (not the repo root).
 // Workspaces are created in /tmp with a "folio-ws-" prefix.
 func isWorkspace(dir string) bool {
-	return strings.HasPrefix(filepath.Base(dir), "folio-ws-")
+	return home.IsSessionWorkspace(dir)
 }
 
 // isColocated returns true if dir has both .jj and .git (jj+git colocated repo).
