@@ -42,6 +42,7 @@ configs/base/claude/.claude/rules/code-comments.md:$HOME/.claude/rules/code-comm
 configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
 configs/base/claude/.claude/rules/isolated-checkouts.md:$HOME/.claude/rules/isolated-checkouts.md
 configs/base/claude/.claude/rules/no-memory-files.md:$HOME/.claude/rules/no-memory-files.md
+configs/base/claude/.claude/rules/working-discipline.md:$HOME/.claude/rules/working-discipline.md
 configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
 configs/base/claude/.claude/rules/writing-structure.md:$HOME/.claude/rules/writing-structure.md
 configs/base/claude/.claude/skills/dotfiles:$HOME/.claude/skills/dotfiles

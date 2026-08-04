@@ -14,6 +14,21 @@ review output, Slack drafts.
 - **Collapse the weeds rather than deleting them.** Per-file walkthroughs, enumerated states, and migration
   steps go inside a `<details>` block.
 
+- **Link every identifier, never cite it bare.** A ticket key, PR number or build id gets a link and its
+  title on first mention: `[RETIRE-16417](…/browse/RETIRE-16417) — [GLOPPY] Roll out the AI reviewer`. A bare
+  five-digit key is indistinguishable from an invented one, so it reads as a hallucination and derails the
+  task into proving provenance. The Jira base URL comes from `site:` in `~/.jf.yml`.
+
+## Match the artifact to its audience
+
+| Artifact | Shape |
+|---|---|
+| Sketch, explainer, option comparison | **Diagram-first.** A matrix, flowchart, timeline or inline SVG carries each idea; text is labels and one-line captions. Prose cards and bullet lists are the failure mode. Pick the strongest visual the content admits — for a comparison, the differing cell *is* the story. |
+| Leadership or non-engineering reader | Goal, three bullets, a link out to the epic. Add only when asked. Not tables of tickets, not per-stream diagrams. |
+| User-facing (onboarding, UX flow, a doc to dip into) | The newcomer's plain-language journey, not the maintainer's seat. Leading with file names and CLI flags hides the idea and offloads decisions that are not the reader's. |
+| Jira ticket | Brief Context / Goal / Scope, as if briefing a teammate. Attach references rather than inlining them, and invent nothing the request did not state. |
+| Peer review of a person | Draft notes, not prose. The voice wanted is grounded and willing to admit uncertainty, and a polished draft reads as inauthentic — leave the final wording to the user. |
+
 For PR titles and bodies the full house style lives in the commit skill, at
 `~/.claude/skills/commit/references/pr-descriptions.md`. Read it before writing or editing either.
 

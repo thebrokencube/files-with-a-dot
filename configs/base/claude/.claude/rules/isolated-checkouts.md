@@ -27,6 +27,22 @@ what lets `reap` clean up correctly later — removal differs per tier, and `rm 
 strands a registration that then blocks re-checkout of that branch anywhere else. A repo that can
 isolate neither way is refused with a message rather than guessed at; work it in place.
 
+## Fetch before you branch
+
+`jj git fetch` / `git fetch origin` first, and base new work on `origin/main`, not local `main`. Two of four
+parallel worktrees once branched off a local main that was 252 commits stale, and recovery was cherry-picks.
+
+## cwd persists between Bash calls — always `cd` in the same call
+
+Two colocated jj repos are usually in play: the code repo and a folio workspace. cwd carries over silently,
+so a bare `jj git push` after a `folio observe` pushes the code branch to the **folio** remote. That has
+happened.
+
+- Prefix every jj/git command with an explicit `cd <repo> && …` in the *same* call.
+- Before any `jj git push`, confirm `git remote get-url origin` is the repo you meant.
+- Run `folio home workspace create` from a neutral cwd (`cd /tmp`, `cd ~`). Inside a jj repo it creates a
+  workspace *of that repo* instead — recover with `jj workspace forget <name>` plus `/bin/rm -rf <path>`.
+
 ## Never operate from a checkout you don't own
 
 A repo's main checkout, and every other session's work area, belong to someone else. Two rules follow,
