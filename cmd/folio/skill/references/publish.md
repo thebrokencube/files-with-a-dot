@@ -87,6 +87,24 @@ publish pushes it to Notion as-is.
 
 -> See references/notion-proposal-template.md for the full template spec.
 
+### Notion rendering constraints
+
+Each of these has cost a fetch-fix-push cycle. Always fetch the page back and confirm it rendered.
+
+- **Pass real newline and tab characters**, never `\n` / `\t` escapes. Escaped, they reach Notion's markdown
+  engine as backslash-escapes, get stripped to bare `n`/`t`, and the whole body renders as one paragraph with
+  visible `<table>` markup. Applies to `notion-create-pages` `content` and `notion-update-page`
+  `replace_content` / `new_str` / `content_updates`.
+- **Tables:** `<tr>`/`<td>` only — a `<thead>` or `<tbody>` collapses the header into the first data row.
+- **Bold:** `**markdown**`, not `<strong>`, which renders as raw HTML.
+- **Empty cells** need `<td> </td>` with a space; `<td></td>` merges columns.
+
+### SRM tech specs and design docs
+
+Reshape to the retirement team's design-doc skeleton — Background + Related Resources, SMART Goals, Solution
+Options / Preferred Design, Rollout, Mitigation, Open Issues. Fetch the template first, and publish into a
+private page under the user's scratchpad.
+
 ## Other Publish Targets
 
 | Target type | Publish approach |

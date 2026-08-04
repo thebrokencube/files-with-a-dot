@@ -204,6 +204,84 @@ jj op restore <op-id>
 
 Every `jj` command is an operation. If propagation, squash, or rebase goes wrong, `jj op undo` restores the entire repo state in one step.
 
+## Restructuring an Existing Stack
+
+### Moving a change into the right commit
+
+| Tool | Use |
+|---|---|
+| `jj squash -u --into <change> <paths>` | move file-level changes into a specific commit |
+| `jj squash -u --from X --into Y <paths>` | move a change *down* the stack |
+| `jj squash -u -r <child>` | fold a child into its direct parent — a union of diffs, so it **never** conflicts |
+| `jj split <paths>` | partition by fileset, no diff editor |
+| `jj rebase -r <rev> -A/-B <target>` | reorder, descendants preserved |
+| `jj absorb` | line-level auto-fixup to the nearest mutable ancestor that last touched those lines |
+
+**Target the newest commit that touches the file.** That applies cleanly. A fix that *depends* on later code
+must land at or above the commit introducing that code, or the lower commit stops compiling.
+
+**Pre-flight every non-adjacent move — one command, decisive:**
+
+```
+jj log -r 'A..B & files("PATH")'
+```
+
+Zero intervening touchers → safe. Several → expect a cascade, and prefer a different seam.
+
+**`jj absorb` is not a general fixup tool.** It is safe only where the lines have one unambiguous owner. On
+pervasively-shared files it cascades conflicts across many commits at once and leaves orphan hunks. A late
+cross-cutting sweep (a comment trim, a rename) becomes the "newest toucher" of nearly everything and poisons
+absorb's targeting — re-run the revset with `& ~<sweep>` to find the real owner.
+
+**Partial-file move with no interactive editor:** `jj edit <source>`, delete the block, `jj new <dest>`,
+paste it back, `jj squash`. The tree-invariant check below catches any drift.
+
+### Verify a restructure preserved behaviour
+
+After a reflow, the final tree must be unchanged:
+
+```
+jj diff --from <original-tip-commit-id> --to <new-tip> --stat     # must be empty
+```
+
+Run it after **every** structural step, not only at the end. When content intentionally moved to a sibling,
+the diff shows exactly those files and nothing else.
+
+**Moving a change across a stacked-PR boundary needs three checks, not one:**
+
+1. child tip tree identical before/after — behaviour preserved
+2. parent tip tree identical to what the remote already had — the donor PR's diff never moved, so its review
+   comments survive
+3. `jj diff --from main --to <parent-bookmark> --git | grep -c '<moved-symbol>'` → **0**
+
+Checks 1 and 2 both pass even if the lines never moved. Check 3 is what proves the boundary is right.
+
+**Validate each chunk in isolation before opening its PR.** A branch authored as one green unit often has
+its lint or test fixes in a *later* commit than the code they cover, so the base PR fails CI alone even
+though the tip is green. `jj new <bookmark>`, run the CI-parity checks, fix *at that chunk*.
+
+### Stack-wide rename
+
+- **Content — use `jj fix`, never per-commit edits.** Configure a sed tool
+  (`jj config set --repo fix.tools.<name>.command`, plus `.patterns`), then `jj fix -s 'roots(main..<tip>)'`.
+  It rewrites each commit's changed lines with **zero new conflicts**. Editing the base and letting it rebase
+  cascades into every descendant.
+- `jj fix` touches content only, and only paths matching `patterns`. Repo-root files outside the globs are
+  missed — `grep -rIl -i <oldname>` afterwards and fix stragglers at their owning commit.
+- **File moves go at the file's creating commit** (`jj log -r 'roots(main..<tip> & files("PATH"))'`). Every
+  later commit editing it still gets a delete/modify conflict, bounded by the toucher count.
+- One file per step, verifying `@` after each. Rapid successive `jj edit`s let the working copy drift.
+
+### When a change fights the stack, move the seam
+
+A semantic edit to a file that many later commits churn cascades as modify/modify. Combining two PRs — rebase
+the upper onto `main`, close the lower, fold its commits in — reaches the same end state with a base change
+and one close instead of hand-merging N commits.
+
+**Re-point bases before deleting a bookmark.** Deleting a bookmark that is another PR's base auto-closes that
+PR, and a closed PR's base cannot be re-pointed (`gh pr edit --base` fails) — it has to be recreated under a
+new number.
+
 ## Conflict Resolution
 
 Three categories with different handling — same taxonomy as git stacking.
@@ -246,6 +324,12 @@ Same ordering principle as git: foundational changes first, then implementation,
 
 | Symptom | Cause | Recovery |
 |---------|-------|----------|
+| A jj command hangs for minutes | `squash`/`describe` opened `$EDITOR`; any squash whose *source* has a description does | Always `-u` / `--use-destination-message`; run with `JJ_EDITOR=true` (`JJ_EDITOR=:` fails — `:` is a shell builtin). Diagnose: `ps -o %cpu,time -p <pid>` near 0% means blocked, and `pgrep -P <pid>` names the editor |
+| `jj new <change-id>` leaves `@` unmoved | the change is divergent; jj prints only a `Hint:` line | Pass the 12-hex commit id, then confirm with `jj log -r '@-'`. List copies with `jj log -r 'change_id(<id>)'` and abandon the obsolete ones |
+| `jj git push` rejects for conflicts but `jj status` is clean | a mid-stack commit records a conflict that a later commit resolves | Check the whole stack: `jj log -r 'main..@' -T 'if(conflict,"x ","") ++ description.first_line() ++ "\n"'`. Trust the flag, not `jj diff -r <conflicted>`, whose output is scrambled |
+| `jj diff`/`jj status` shows stale state | `--ignore-working-copy` skips the snapshot | Run a plain `jj st` first |
+| One operation must be undone without rewinding others' work | `jj op restore` rewinds the whole repo, including concurrent sessions' bookmarks | `jj operation revert <op-id>` reverts that operation alone |
+| Changes vanish from a descendant after peeling a commit out | the descendant edits the same file in non-overlapping regions, so jj auto-merges with no conflict | Capture the descendant's bytes first (`jj file show -r <tip> PATH`) and write them back; re-run the tree-invariant check |
 | Bookmark not on expected change | Forgot `jj bookmark set` after extending | `jj bookmark set <name> -r <change-id>` |
 | Orphaned change after squash-merge | GitHub squash-merge creates new commit jj doesn't recognize | `jj abandon <change-id>`, rebase children onto main |
 | Push rejected | Remote bookmark diverged (someone else pushed) | `jj git fetch`, inspect with `jj log`, decide with user |

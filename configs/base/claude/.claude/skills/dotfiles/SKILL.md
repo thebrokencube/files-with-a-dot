@@ -99,6 +99,26 @@ Managed files drift when external tools modify the destination file after compil
 
 ## Development Guidelines
 
+### Use the existing mechanisms
+
+- **To push a source change into a managed file, run `dot sync --force`.** That is what it is for. The
+  drift-guard deliberately skips files whose on-disk content differs from the merged source, and a source
+  edit is indistinguishable from a hand-edit — `--force` is the intended override, and
+  `reconcile_plugin_drift` already protects the disk-ahead plugin manifests.
+- **Do not `rm` a destination to force regeneration**, and do not design new manifest or snapshot machinery.
+  Both have been pushed back on.
+- **Private-only files** (no base half) belong in `~/.dotfiles.private` plus its own `symlink_map.txt`
+  (e.g. `jf.yml:$HOME/.jf.yml`) — not as a base+overlay managed merge.
+
+### Releasing a CLI tool
+
+Bump the **patch** version (`0.0.x`) in `cmd/<tool>/VERSION`. The tools sit on a deliberate `v0.0.1` baseline
+and stay on patch increments until graduated to a first minor by decision, so do not auto-pick a minor for an
+additive feature. Then dispatch: `gh workflow run release.yml -f tool=<tool>`.
+
+`release.yml` only publishes Go binaries and only accepts `folio`, `jf`, `dendrik`. A rules- or skill-only
+change ships through `dot sync` and needs no release.
+
 ### Adding a New Config
 
 1. Create directory: `configs/base/<app>/` mirroring target structure

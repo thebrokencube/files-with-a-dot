@@ -10,6 +10,18 @@ Before writing a body, check for a repo PR template (`.github/pull_request_templ
 - **Template exists** → **ask the user**: use the repo template, or the house style? Don't silently pick either.
 - **Settled per-repo preference wins over the ask.** If a project CLAUDE.md or a memory records a decision (e.g. "zenpayroll → use its `.github/pull_request_template.md`"), follow it without asking.
 
+## Per-repo shapes (settled — do not re-ask)
+
+| Repo | Body | Title |
+|---|---|---|
+| `guideline-app/groot` | `## What` · `## Why` · `## How` · `## Notes` · `## Screenshots / Demos` (placeholder for the user to fill). No `TL;DR`. No template file exists — read a recent non-dependabot PR to confirm, since older ones vary. | conventional commit |
+| `zenpayroll` | its `.github/pull_request_template.md`: *What is this change doing?* · *Why is this change being made?* · *How did you test this change?* with Happy/Sad-Path checkboxes · *Related documentation:* with `Ticket:` + `Tech Spec:` | conventional commit |
+| `guideline-app/app`, `guideline-app/radr` | the repo's `PULL_REQUEST_TEMPLATE.md`, with structured fields wrapped in `[[[` / `]]]` — the wrapper is required and has been missed on four PRs | `[TICKET-123] type(scope): description` — ticket key **in brackets** |
+
+**Never add an `## AI-Assisted` section, to any repo, ever.** Rejected twice in groot and skipped in
+zenpayroll's template. Finding it on an older PR is not licence to include it. Where it would have gone,
+`## Screenshots / Demos` goes instead. This extends to any AI-attribution footer.
+
 ## House style
 
 **Title** — conventional-commit style, same as a commit subject: `type(scope): short description`. The
