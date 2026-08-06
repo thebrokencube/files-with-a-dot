@@ -38,6 +38,12 @@ cmd/dot/dot:$HOME/.local/bin/dot
 configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
 configs/base/claude/.claude/starship.toml:$HOME/.claude/starship.toml
 configs/base/claude/.claude/output-styles/Concise.md:$HOME/.claude/output-styles/Concise.md
+# Same file, second destination on purpose: an output style is invisible to subagents and
+# swappable with /output-style, while a rule reaches both. Do not de-duplicate these two lines.
+configs/base/claude/.claude/output-styles/Concise.md:$HOME/.claude/rules/concision.md
+# Not under rules/ — Claude Code auto-loads every rules/*.md, and a runbook should cost
+# nothing until the rule that names it sends you here.
+configs/base/claude/.claude/references/isolated-checkouts-runbook.md:$HOME/.claude/references/isolated-checkouts-runbook.md
 configs/base/claude/.claude/rules/code-comments.md:$HOME/.claude/rules/code-comments.md
 configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
 configs/base/claude/.claude/rules/isolated-checkouts.md:$HOME/.claude/rules/isolated-checkouts.md

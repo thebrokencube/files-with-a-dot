@@ -4,9 +4,10 @@ Default to zero. A comment earns its place only where a reader would otherwise d
 
 ## When called out
 
-Do not answer the critique with a metric. Placement and shape are the axis, not density or block length.
-A number showing "within baseline" is a defence rather than an answer, and self-chosen comparables make it
-a worthless one. Re-read the comments, find the narration, cut it.
+Do not answer the critique with a metric — the general rule is `concision.md` rule 7. Placement and shape
+are the axis here, not density or block length. A number showing "within baseline" is a defence rather than
+an answer, and self-chosen comparables make it a worthless one. Re-read the comments, find the narration,
+cut it.
 
 ## The bar
 
