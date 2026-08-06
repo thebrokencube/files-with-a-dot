@@ -38,6 +38,22 @@ exists or not), the runnable source decides — resolve by running, not debating
   second-person/passive but clear, or an edit that breaks its section's established cadence/concision. **fail:** predominantly second-person, prose walls where
   tables belong.
 
+### Instruction Economy
+
+What an instruction costs the model — distinct from how it reads (Writing Quality) and where it sits
+(Right Layer?). Grounded in Anthropic's
+[Opus 5 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5).
+
+- **Instructs behavior the model already has** — "double-check", "re-verify", "use a subagent to verify".
+  These cause *over*-verification; removing them costs no quality. A domain check the model would not
+  invent ("loop the suite over every commit, not the tip") is not this and stays.
+- **Deny-list with no target stated** — negatives nudge unwanted tokens down, a positive statement of the
+  wanted shape pulls harder. Three to five hard constraints beside a target is the working shape.
+- **Mandated fan-out** — small or serial work routed through subagents.
+- **Budget pressure** — an always-loaded file where a new line makes the existing lines less likely to be
+  followed. Per line: would removing this cause a mistake?
+- **fail** on an instruction to self-verify. **warn** on the other three.
+
 ## Right Layer? (cross-cutting — every type)
 
 The one question applied to every agentic document: **is this content in the layer that matches
