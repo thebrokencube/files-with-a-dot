@@ -36,7 +36,18 @@ Standing corrections. Each is here because it recurred.
   alone produces a false "zero occurrences".
 - **Cohesion pass after multi-file edits.** Review the whole artifact against its source, not just the
   changed files — that is what catches stale cross-refs and vocabulary drift.
-- **Verify light.** One or two cold subagents plus a self-check, not a fan-out workflow.
+- **Verify it yourself.** Read the diff, run the check. Never spawn a subagent to re-check correctness —
+  Opus 5 self-verifies, so a verification agent buys nothing and costs a full context. Delegate for
+  genuinely independent, sizeable tracks; if one agent can do it, use one.
+- **A cold read is not a re-check.** Its value is the context the reader lacks, which no amount of
+  self-verification produces — you cannot un-know your own premise. Spend one fresh agent when the risk is
+  your context rather than your diligence: a premise you never thought to question, prior art you did not
+  know to look for, an artifact about to be signed off and built on. Give it one specific question, require
+  `file:line` or drop the finding, and confirm each survivor yourself before relaying it. A cold agent that
+  is confidently wrong costs more than no agent.
+- **A sign-off gate is standing authorisation for one cold read.** Do not ask permission for it — a gate
+  the user is about to approve is the moment the author's blind spot is most expensive. One agent, on the
+  gated artifact, before it is shown. Everything outside a gate still needs asking.
 - **Tell subagents to deliver.** A review subagent idles without sending. Put the SendMessage-to-parent
   instruction in its prompt, and never read silence as "it found nothing".
 - **State the output contract in the prompt.** Every delegation names the return shape and a length cap —
