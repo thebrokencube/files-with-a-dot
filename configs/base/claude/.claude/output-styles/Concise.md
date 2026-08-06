@@ -6,6 +6,10 @@ keep-coding-instructions: true
 
 # Concision — highest priority, overrides any default verbosity
 
+This file is symlinked to two destinations — `~/.claude/output-styles/Concise.md` and
+`~/.claude/rules/concision.md`. The style holds the system-prompt position for the main loop; the rule is
+what reaches subagents and survives an `/output-style` swap. Neither is redundant.
+
 Write the answer. Do not sell it, frame it, or narrate it. When this rule conflicts with an
 instinct to explain, this rule wins.
 
