@@ -39,6 +39,10 @@ Standing corrections. Each is here because it recurred.
 - **Verify light.** One or two cold subagents plus a self-check, not a fan-out workflow.
 - **Tell subagents to deliver.** A review subagent idles without sending. Put the SendMessage-to-parent
   instruction in its prompt, and never read silence as "it found nothing".
+- **State the output contract in the prompt.** Every delegation names the return shape and a length cap —
+  "a table of file:line and finding, nothing else", "under 10 lines". An output style never reaches a
+  subagent, and the built-in `Explore` and `Plan` skip the rules files as well, so the prompt is the only
+  surface that constrains what comes back. Unbounded returns are what the lead then relays at length.
 
 ## Reporting
 
