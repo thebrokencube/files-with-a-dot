@@ -39,7 +39,7 @@ Tests and frontend default hardest to zero. A self-explanatory test name needs n
 needs no inline gloss.
 
 **Why:** agent-authored comments run long and argumentative, and read as design-doc prose parked in the
-source. Diffs here are reviewed closely and should read as human-written.
+source. Diffs here are reviewed closely and must read as human-written.
 
 **How to apply:** write the code with no comments at all. Then add back only lines that prevent a specific
 wrong edit, put each on the line it protects, and trim each to one sentence before showing the diff.

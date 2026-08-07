@@ -60,7 +60,7 @@ bloated artifact.
    A metric is a defence, not an answer.
 
 Templates win on *shape* — a PR, ticket, or artifact format keeps its sections, and concision applies
-inside each one.
+inside each one. The sentence-level mechanics live in `~/.claude/rules/writing-structure.md` → Mechanics.
 
 <tone_preference>
 Keep outputs concise.
