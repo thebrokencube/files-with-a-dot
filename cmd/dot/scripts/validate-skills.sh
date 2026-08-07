@@ -42,7 +42,7 @@ while IFS=: read -r source dest; do
 
     if [[ ! -f "$skill_file" ]]; then
         echo -e "  ${RED}MISSING:${NC} $skill_name/SKILL.md (source: $source)"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
         continue
     fi
 
@@ -50,7 +50,7 @@ while IFS=: read -r source dest; do
     first_line=$(head -1 "$skill_file")
     if [[ "$first_line" != "---" ]]; then
         echo -e "  ${RED}NO FRONTMATTER:${NC} $skill_name/SKILL.md"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
         continue
     fi
 
@@ -72,7 +72,7 @@ while IFS=: read -r source dest; do
         [[ "$has_name" == false ]] && missing="name"
         [[ "$has_description" == false ]] && missing="${missing:+$missing, }description"
         echo -e "  ${RED}MISSING FIELDS:${NC} $skill_name ($missing)"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done < "$SYMLINK_MAP"
 

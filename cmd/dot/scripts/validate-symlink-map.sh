@@ -31,7 +31,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     if [[ ! -e "$source_path" ]]; then
         echo -e "  ${RED}MISSING:${NC} $source"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done < "$SYMLINK_MAP"
 
