@@ -30,15 +30,16 @@ CHECKS_PASSED=0
 run_check() {
     local name="$1"
     shift
-    ((CHECKS_RUN++))
+    # Bare ((VAR++)) returns exit status 1 when VAR is 0, which set -e treats as failure.
+    CHECKS_RUN=$((CHECKS_RUN + 1))
 
     echo -e "${CYAN}[$CHECKS_RUN]${NC} $name"
     if "$@"; then
-        ((CHECKS_PASSED++))
+        CHECKS_PASSED=$((CHECKS_PASSED + 1))
         echo ""
     else
         local rc=$?
-        ((TOTAL_ERRORS += rc))
+        TOTAL_ERRORS=$((TOTAL_ERRORS + rc))
         echo ""
     fi
 }
@@ -86,7 +87,7 @@ shellcheck_scripts() {
             :
         else
             echo -e "  ${RED}FAIL:${NC} $name"
-            ((errors++))
+            errors=$((errors + 1))
         fi
     done
 
@@ -126,7 +127,7 @@ syntax_check() {
         local name="${f#"$REPO_DIR/"}"
         if ! bash -n "$f" 2>&1; then
             echo -e "  ${RED}FAIL:${NC} $name"
-            ((errors++))
+            errors=$((errors + 1))
         fi
     done
 

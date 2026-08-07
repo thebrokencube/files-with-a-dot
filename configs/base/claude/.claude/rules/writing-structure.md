@@ -6,7 +6,6 @@ review output, Slack drafts.
 - **A joiner is the tell.** An em-dash, comma, semicolon, or middot holding two ideas together means a list
   got written as prose. Two ideas is enough to bullet it. A closed enumeration of like items on one line is
   not a joiner: two *ideas* is the trigger, not two words.
-- **Outcome first.** Lead with what is true after the change. Mechanics come second.
 - **Say what changes for a human.** When the artifact describes a change that ships, answer whether anything
   changes for a person on deploy. Say it even when the answer is nothing.
 - **Define the domain nouns.** Define each one before its second use. A term used more than twice and never
@@ -18,6 +17,20 @@ review output, Slack drafts.
   title on first mention: `[RETIRE-16417](…/browse/RETIRE-16417) — [GLOPPY] Roll out the AI reviewer`. A bare
   five-digit key is indistinguishable from an invented one, so it reads as a hallucination and derails the
   task into proving provenance. The Jira base URL comes from `site:` in `~/.jf.yml`.
+
+## Mechanics
+
+Quote the bullets below verbatim into a subagent prompt. The built-in `Explore` and `Plan` agent types
+never load this file, so the prompt is the only surface that reaches them.
+
+- **Use must, can, will.** Never write *should*. A model reads it as optional.
+- **Condition first, then the command.** "If the build fails, read the log." Never the reverse.
+- **One noun per concept.** Do not rotate synonyms once a term is introduced.
+- **Outcome first.** Lead with what is true after the change. Mechanics come second.
+- **Do not fuse an instruction with its rationale.** A lens for new writing, not a retrofit.
+
+Absorbed from ASD-STE100 Simplified Technical English, cited as provenance. Never cite one of its rule
+numbers. A model without the catalog invents them.
 
 ## Match the artifact to its audience
 
@@ -32,5 +45,5 @@ review output, Slack drafts.
 For PR titles and bodies the full house style lives in the commit skill, at
 `~/.claude/skills/commit/references/pr-descriptions.md`. Read it before writing or editing either.
 
-This is the canonical statement. It lives here rather than in the Concise output style because output styles
-do not load into subagents, and rules files do.
+This is the canonical statement. It lives in a rules file because every subagent except the built-in
+`Explore` and `Plan` types loads the rules hierarchy, and those two are what the Mechanics block covers.

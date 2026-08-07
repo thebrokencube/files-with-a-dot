@@ -2,6 +2,16 @@
 
 Read by Agent 1 (Design). Self-contained for design sessions.
 
+## `{writing_mechanics}`
+
+Several prompt templates below end with a `## Writing` section holding this placeholder. Replace it with
+the bullets under **Mechanics** in `~/.claude/rules/writing-structure.md`, quoted verbatim. Do not
+paraphrase. Do not copy them into this file, because a second copy drifts.
+
+Only the templates whose output survives as prose carry it: Propose and Converge write files a human
+later reads. Devil's Advocate and Blast Radius return findings the lead re-states, so their prose never
+ships.
+
 ## Phase 1: Understand
 
 Gather context before spawning any agents. This happens in the main conversation.
@@ -190,6 +200,9 @@ Propose an implementation plan. Your plan should:
 Focus on architecture, file-level changes, and key design trade-offs. Defer per-function implementation detail, test strategy, and commit structure to the execution brief.
 
 Keep your proposal under 80 lines. Be concrete — file paths, function names, specific changes. No hand-waving.
+
+## Writing
+{writing_mechanics}
 ```
 
 ### Propose Agent Prompt (Team Mode)
@@ -221,6 +234,9 @@ You are a research/design agent on a team exploring: {task_description}
 5. Report back with: file path, 3-5 line summary of key findings
 
 Be concrete. Read real code. No hand-waving.
+
+## Writing
+{writing_mechanics}
 ```
 
 **Default lens descriptions:**
@@ -295,6 +311,9 @@ Merge the two proposals into a single implementation plan:
 - Pre-decide function signatures, type definitions, and edge-case handling where feasible
 
 Keep the merged plan under 100 lines. Be concrete.
+
+## Writing
+{writing_mechanics}
 ```
 
 ### Converge Agent Prompt (Team Mode)
@@ -326,6 +345,9 @@ Synthesize into a single unified plan:
 
 Write your output to: {round_dir}/converged.md
 Also return a 5-10 line summary of key decisions made.
+
+## Writing
+{writing_mechanics}
 ```
 
 ## Phase 4a: Fill Design Doc

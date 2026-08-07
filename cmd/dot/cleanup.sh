@@ -18,6 +18,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOT_DIR="$SCRIPT_DIR"
+# shellcheck disable=SC2034  # consumed by lib/config.sh and lib/brew.sh, which shellcheck cannot follow
 DOTFILES_DIR="$(cd "$DOT_DIR/../.." && pwd)"
 
 # shellcheck source=lib/colors.sh

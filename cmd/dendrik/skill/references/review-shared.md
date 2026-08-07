@@ -32,11 +32,18 @@ exists or not), the runnable source decides — resolve by running, not debating
 - Imperative/infinitive form (verb-first), not second person ("Run X", not "you should run X").
 - Tables and lists for structured information; prose only when flow matters.
 - Concise — no filler, no restated context.
+- Modal ladder — an instruction uses `must`, `can`, or `will`. A requirement written as `should` reads as optional. A `should` describing behavior is fine, so judge which one it is.
+- Condition before command — "If the build fails, read the log", never the reverse.
+- One noun per concept — `config` here and `settings` there is a defect, not a stylistic wobble.
 - Internal consistency — an edit matches its host section's cadence (no multi-clause bullet in a terse list, no lone heading mid-prose, no outsized example).
 - Edit regressions (diff only) — a list collapsed into prose (list→paragraph regression), or an edited section whose register/format drifts from untouched sibling sections *in the same file*. When no diff is available (plain single-file review), this axis does not fire — it is never a repo-wide "you have a paragraph" nag.
 - **pass:** clean imperative style, structured data in tables. **warn:** occasional
-  second-person/passive but clear, or an edit that breaks its section's established cadence/concision. **fail:** predominantly second-person, prose walls where
-  tables belong.
+  second-person/passive but clear, an edit that breaks its section's established cadence/concision, or a
+  single modal-ladder or condition-order slip. **fail:** predominantly second-person, prose walls where
+  tables belong, or a `should` carrying a requirement the reader must follow.
+
+-> Read references/writing-replace-table.md when a finding's fix is a word swap.
+
 
 ### Instruction Economy
 
