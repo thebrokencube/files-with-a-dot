@@ -119,12 +119,34 @@ For each item in the cleanup plan:
 
 - **Mechanical items**: Batch-resolve with `folio observe resolve`. Use `folio archive` for completed work tracks. Present batch before executing.
 - **Judgment items**: Present one at a time. User decides.
-- **Deeper work (external)**: Add observation to target project via `folio observe`. This enforces type disambiguation and alignment — no direct folio.yml edits.
+- **Deeper work (external)**: Add observation to target project via `folio observe`. This enforces type disambiguation and alignment — no direct folio.yml edits. Read the target's queue first — see [Dedupe before filing](#dedupe-before-filing).
 - **Deeper work (hygiene)**: Run `/folio plan` within folio-hygiene. The lint spike's findings are the input; the plan workflow produces a design doc, execution brief, and burndown tracking — all colocated inside the lint work track (not a separate work track). Lint stays in the driver's seat — this is not deferred. When execution uses burndown waves, `progress/waves.md` becomes the resumption signal for the preflight's **Execute** routing.
 
 **Cross-project mutation gate (hard)**: Lint never directly writes to another project's folio.yml without explicit user confirmation. Present the proposed command and wait.
 
 **Self-cleaning invariant**: As items resolve during execution, the lint work track's state reflects it. When execution is complete, the work track should have no open items.
+
+### Dedupe before filing
+
+Run `folio observe list --folio <target>` and read it before adding an observation to another project.
+Then pick one of three outcomes:
+
+| The target already holds | Do this |
+|---|---|
+| The same fault | Merge your evidence into the existing entry — resolve both, re-add one. Never file a second. |
+| The same mechanism failing the other way | File yours, and name the sibling in both entries. |
+| Nothing matching | File it. |
+
+**Name a sibling by quoting its description, never by index.** Indices are positional and reindex on
+every resolve, so an `obs #N` written today points elsewhere after the next cleanup.
+
+**Why:** lint is the workflow whose whole purpose is asking "does this already exist", and it is the one
+that skipped the read. Evidence from the 2026-08-16 groot pass:
+
+- Five findings filed into a 62-entry `tooling/folio` with no dedupe check. One was a straight
+  duplicate; two were the opposite failure direction of entries already there.
+- The same queue held four separate records of one `workspace create` bug, and five of two
+  `workarea open` bugs — each written by a later session that never read it.
 
 ## Phase 4 — Retro
 

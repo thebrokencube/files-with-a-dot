@@ -30,6 +30,8 @@ Standing corrections. Each is here because it recurred.
   survives every tip-only check, and a bisect lands on a broken tree.
 - **Mutation-test the guard.** After writing a test for a mechanism, delete the mechanism and confirm the
   test fails. Restore in the same step, never a later one. A green test is not evidence it guards anything.
+  Then exercise the guard through its real caller — tested in isolation it is not evidence the guard holds
+  in situ, and ~12k passing assertions once shipped a hole that one real call found immediately.
 - **Match CI exactly.** Run CI's own whole-repo command, not a filtered subset — a `*.rb`-only lint misses
   `bin/` scripts.
 - **Rename sweeps need three passes:** case-insensitive, line-wrap-aware, and identifier-vs-prose. Any one
