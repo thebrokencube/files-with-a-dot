@@ -32,6 +32,11 @@ isolate neither way is refused with a message rather than guessed at; work it in
 `jj git fetch` / `git fetch origin` first, and base new work on `origin/main`, not local `main`. Two of four
 parallel worktrees once branched off a local main that was 252 commits stale, and recovery was cherry-picks.
 
+In a repo holding work you do not own, note which bookmarks already carry conflicts before fetching, and
+report any conflict the fetch introduced. A fetch auto-rebases, so it can leave someone else's in-flight
+stack conflicted in a file your session never touched — that happened once, inherited from a parent
+commit, and went unnoticed until cleanup.
+
 ## cwd persists between Bash calls — always `cd` in the same call
 
 Two colocated jj repos are usually in play: the code repo and a folio workspace. cwd carries over silently,
