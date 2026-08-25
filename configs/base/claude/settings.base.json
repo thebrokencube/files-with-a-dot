@@ -1,7 +1,7 @@
 {
   "effortLevel": "low",
   "skipAutoPermissionPrompt": true,
-  "model": "opus",
+  "model": "claude-opus-4-6[1m]",
   "outputStyle": "Concise",
   "theme": "dark-ansi",
   "tui": "fullscreen",
