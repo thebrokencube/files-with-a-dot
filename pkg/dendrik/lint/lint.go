@@ -55,8 +55,10 @@ type ToolData struct {
 	RefContents map[string][]byte // reference file name -> content
 
 	// Bridge layer
-	SymlinkMap []byte   // symlink_map.txt content (nil if missing)
-	CmdDirs    []string // cmd/*/ directories that contain go.mod
+	SymlinkMap       []byte   // symlink_map.txt content (nil if missing)
+	CmdDirs          []string // cmd/*/ directories that contain go.mod
+	BundleFiles      []string // files under plugins/<tool>, relative to bundle root
+	LegacyPluginPath bool     // cmd/<tool> still contains plugin delivery content
 
 	PkgVerbCores []string // pkg/dendrik subdirs holding a verb core (e.g. "build", "lint")
 }

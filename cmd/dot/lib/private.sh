@@ -121,6 +121,37 @@ apply_private_symlinks() {
     done < "$symlink_map"
 }
 
+# Reject public/private destination collisions before either map mutates the machine.
+# Errors identify only the public destination; private source names remain undisclosed.
+check_private_destination_collisions() {
+    local public_map="$1" private_root="$2"
+    [[ -d "$private_root" ]] || return 0
+    local private_map="$private_root/symlink_map.txt" line dest skill private_dest
+    local private_dests=()
+    if [[ -f "$private_map" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            private_dests+=("$(get_dest "$line")")
+        done < "$private_map"
+    fi
+    if [[ -d "$private_root/skills" ]]; then
+        for skill in "$private_root"/skills/*/; do
+            [[ -d "$skill" ]] || continue
+            private_dests+=("$HOME/.claude/skills/$(basename "$skill")")
+        done
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        dest=$(get_dest "$line")
+        for private_dest in "${private_dests[@]}"; do
+            if [[ "$dest" == "$private_dest" ]]; then
+                echo "ERROR: private overlay conflicts with public destination: $dest" >&2
+                return 1
+            fi
+        done
+    done < "$public_map"
+}
+
 # ── Migration ─────────────────────────────────────────────────────────────────
 
 # Detect and migrate legacy structures into the current private overlay format.
@@ -136,66 +167,65 @@ migrate_private_overlay() {
         echo "Migrating private overlay from legacy profile structure..."
         did_migrate=true
 
-        # Find which profile dir has content (only one will in practice)
-        local active_profile=""
+        local profile pdir has_entries skill skill_name archive other_profile
         for profile in work personal; do
-            local pdir="$PRIVATE_DIR/$profile"
-            [[ ! -d "$pdir" ]] && continue
-            local real_files
-            real_files=$(find "$pdir" -not -name '.gitkeep' -not -path "$pdir" -not -type d 2>/dev/null | head -1)
-            if [[ -n "$real_files" ]]; then
-                active_profile="$profile"
-                break
-            fi
+            pdir="$PRIVATE_DIR/$profile"
+            [[ -d "$pdir/skills" ]] || continue
+            for skill in "$pdir"/skills/*/; do
+                [[ -d "$skill" ]] || continue
+                skill_name=$(basename "$skill")
+                [[ "$skill_name" == ".gitkeep" ]] && continue
+                if [[ -e "$PRIVATE_DIR/skills/$skill_name" ]]; then
+                    echo "ERROR: legacy $profile skill conflicts with existing private skill: $skill_name" >&2
+                    return 1
+                fi
+                other_profile=personal
+                [[ "$profile" == personal ]] && other_profile=work
+                if [[ -d "$PRIVATE_DIR/$other_profile/skills/$skill_name" ]]; then
+                    echo "ERROR: legacy profiles contain conflicting skill: $skill_name" >&2
+                    return 1
+                fi
+            done
         done
 
-        if [[ -n "$active_profile" ]]; then
-            local pdir="$PRIVATE_DIR/$active_profile"
-            echo "  Active profile: $active_profile"
+        for profile in work personal; do
+            pdir="$PRIVATE_DIR/$profile"
+            [[ -d "$pdir" ]] || continue
 
-            # Merge symlink_map.txt
             if [[ -f "$pdir/symlink_map.txt" ]]; then
-                local has_entries
                 has_entries=$(grep -cv '^\s*#\|^\s*$' "$pdir/symlink_map.txt" 2>/dev/null || echo 0)
                 if [[ "$has_entries" -gt 0 ]]; then
-                    echo "" >> "$PRIVATE_DIR/symlink_map.txt"
-                    echo "# Migrated from $active_profile/" >> "$PRIVATE_DIR/symlink_map.txt"
+                    printf '\n# Migrated from %s/\n' "$profile" >> "$PRIVATE_DIR/symlink_map.txt"
                     grep -v '^\s*#\|^\s*$' "$pdir/symlink_map.txt" >> "$PRIVATE_DIR/symlink_map.txt"
-                    echo "  Merged $has_entries symlink(s) from $active_profile/symlink_map.txt"
+                    echo "  Merged $has_entries symlink(s) from $profile/symlink_map.txt"
                 fi
             fi
 
-            # Merge Brewfile
             if [[ -f "$pdir/Brewfile" ]]; then
-                local has_entries
                 has_entries=$(grep -cv '^\s*#\|^\s*$' "$pdir/Brewfile" 2>/dev/null || echo 0)
                 if [[ "$has_entries" -gt 0 ]]; then
-                    echo "" >> "$PRIVATE_DIR/Brewfile"
-                    echo "# Migrated from $active_profile/" >> "$PRIVATE_DIR/Brewfile"
+                    printf '\n# Migrated from %s/\n' "$profile" >> "$PRIVATE_DIR/Brewfile"
                     grep -v '^\s*#\|^\s*$' "$pdir/Brewfile" >> "$PRIVATE_DIR/Brewfile"
-                    echo "  Merged $has_entries package(s) from $active_profile/Brewfile"
+                    echo "  Merged $has_entries package(s) from $profile/Brewfile"
                 fi
             fi
 
-            # Move skills
             if [[ -d "$pdir/skills" ]]; then
                 mkdir -p "$PRIVATE_DIR/skills"
-                for skill in "$pdir/skills"/*/; do
+                for skill in "$pdir"/skills/*/; do
                     [[ -d "$skill" ]] || continue
-                    local skill_name
                     skill_name=$(basename "$skill")
                     [[ "$skill_name" == ".gitkeep" ]] && continue
-                    if [[ ! -d "$PRIVATE_DIR/skills/$skill_name" ]]; then
-                        mv "$skill" "$PRIVATE_DIR/skills/$skill_name"
-                        echo "  Moved skill: $skill_name"
-                    fi
+                    mv "$skill" "$PRIVATE_DIR/skills/$skill_name"
+                    echo "  Moved skill: $skill_name"
                 done
             fi
-        fi
 
-        rm -rf "$PRIVATE_DIR/work" "$PRIVATE_DIR/personal"
+            archive="$PRIVATE_DIR/.legacy-${profile}-$(date +%Y%m%d%H%M%S)"
+            mv "$pdir" "$archive"
+            echo "  Archived legacy $profile profile at $(basename "$archive")"
+        done
         [[ -d "$PRIVATE_DIR/shared" ]] && rmdir "$PRIVATE_DIR/shared" 2>/dev/null || true
-        echo "  Removed legacy profile directories"
     fi
 
     # ── Legacy local/ config files → adopt into private overlay ───────────

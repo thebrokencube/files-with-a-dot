@@ -10,7 +10,7 @@ dendrik validates a contract across three layers, each guarding a different conc
 
 The enumerated catalog — every check ID, severity, and remediation — lives in one derived reference, kept honest against the canonical `Contract` slice in `pkg/dendrik/conventions/contract.go`:
 
--> See [skill/references/contract-checks.md](../skill/references/contract-checks.md) for the full check catalog. Use `dendrik lint --explain <id>` for any individual check's rationale.
+-> See [`plugins/dendrik/skills/dendrik/references/contract-checks.md`](../../../plugins/dendrik/skills/dendrik/references/contract-checks.md) for the full check catalog. Use `dendrik lint --explain <id>` for any individual check's rationale.
 
 ## Severity Model
 

@@ -43,8 +43,11 @@ func TestTargets(t *testing.T) {
 	if len(m) != len(ReleaseMatrix) {
 		t.Fatalf("matrix len = %d, want %d", len(m), len(ReleaseMatrix))
 	}
-	// The matrix must include the two platforms dot sync / the marketplace consume.
-	want := map[string]bool{"darwin/arm64": false, "linux/amd64": false}
+	// The matrix must include every platform accepted by bundled setup scripts.
+	want := map[string]bool{
+		"darwin/arm64": false, "darwin/amd64": false,
+		"linux/arm64": false, "linux/amd64": false,
+	}
 	for _, target := range m {
 		want[target.OS+"/"+target.Arch] = true
 	}

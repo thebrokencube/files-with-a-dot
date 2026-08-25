@@ -77,8 +77,8 @@ func GatherToolData(toolDir string) (*ToolData, error) {
 		}
 	}
 
-	// Skill layer
-	data.SkillDir = filepath.Join(toolDir, "skill")
+	// Skill layer: CLI-backed skills live in their closed publishable bundle.
+	data.SkillDir = filepath.Join(repoRoot, "plugins", toolName, "skills", toolName)
 	data.SkillMD, _ = os.ReadFile(filepath.Join(data.SkillDir, "SKILL.md"))
 
 	data.RefContents = map[string][]byte{}
@@ -91,6 +91,22 @@ func GatherToolData(toolDir string) (*ToolData, error) {
 					data.RefContents[e.Name()] = content
 				}
 			}
+		}
+	}
+	bundleDir := filepath.Join(repoRoot, "plugins", toolName)
+	_ = filepath.WalkDir(bundleDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return nil
+		}
+		rel, relErr := filepath.Rel(bundleDir, path)
+		if relErr == nil {
+			data.BundleFiles = append(data.BundleFiles, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	for _, legacy := range []string{"skill", ".claude-plugin", "bin"} {
+		if _, err := os.Stat(filepath.Join(toolDir, legacy)); err == nil {
+			data.LegacyPluginPath = true
 		}
 	}
 

@@ -33,20 +33,20 @@ After first sync:
 
 ## Plugin marketplace
 
-This repo is also a cross-harness plugin marketplace for its CLI tools (`folio`, `jf`, `dendrik`).
-In Claude Code:
+This repo is the Claude Code plugin marketplace for its CLI tools (`folio`, `jf`, `dendrik`).
+Portable skill content is kept harness-neutral; other native adapters are evidence-gated and not emitted.
 
 ```
 /plugin marketplace add thebrokencube/files-with-a-dot
 /plugin install folio@files-with-a-dot   # or jf, dendrik
 ```
 
-Then invoke the tool (e.g. `/folio`) — its skill installs the binary on first use via the
-plugin's bundled, self-locating `bin/setup` (idempotent; safe to re-run). No repo path needed.
-The binary lands in `~/.local/bin/`, so ensure that's on your `PATH`. Prebuilt release binaries
-cover macOS (arm64) and Linux (x86_64); other platforms fall back to a local `go build` (needs
-Go). See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; per-harness
-catalogs are generated).
+After installing a plugin, run its bundled, self-locating `bin/setup` once (idempotent; safe to
+re-run). The skill's Setup section carries the same instruction; no repository path is needed.
+The binary lands in `~/.local/bin/`, so ensure that's on your `PATH`. Bundled setup supports the
+prebuilt macOS/Linux arm64/amd64 release assets; other platforms require a manual build/install.
+See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; only the proven
+Claude catalog is generated).
 
 ## Contributing
 

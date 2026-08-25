@@ -84,34 +84,18 @@ files provide depth for complex workflows. Current production sizes:
 
 ## Directory Layout
 
-### CLI-backed skill (jf, folio)
+### CLI-backed portable skill (jf, folio, dendrik)
 
 ```
-cmd/{cli}/skill/
-  SKILL.md                    # Main skill file
+plugins/{cli}/skills/{cli}/
+  SKILL.md                    # Canonical portable source
   references/                 # Progressive depth
-    getting-started.md
-    configuration.md
-    conventions.md
-    ...
-  tooling.yml                 # Optional: external system routing
+  tooling.yml                 # Optional external-system routing
 ```
 
-### Plugin-compatible layout
-
-For dual-homing (symlink + plugin install), skills use the plural `skills/`
-directory with a CLI subdirectory:
-
-```
-cmd/{cli}/skills/{cli}/
-  SKILL.md
-  references/
-```
-
-Note: jf and folio currently use `cmd/{cli}/skill/` (singular). Migration to
-`skills/` (plural) is part of Track 8 (plugin packaging).
-
-How this layout gets packaged into a plugin and published across harnesses: see
+The same authored tree is symlinked for local Claude discovery and shipped inside the closed native
+bundle. Implementation source remains under `cmd/{cli}` and is never published as plugin content.
+How the bundle is generated, validated, and admitted for a native harness is defined in
 `distribution.md`.
 
 ### Standalone skill (no CLI)

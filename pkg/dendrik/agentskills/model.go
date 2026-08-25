@@ -23,7 +23,9 @@ type ValidationResult struct {
 type SkillFrontmatter struct {
 	Name          string `yaml:"name"`
 	Description   string `yaml:"description"`
-	UserInvocable any    `yaml:"user_invocable"` // bool, but accept any for type coercion
+	License       string `yaml:"license"`
+	AllowedTools  any    `yaml:"allowed-tools"`
+	UserInvocable any    `yaml:"user_invocable"`
 	ArgumentHint  string `yaml:"argument-hint"`
 	Compatibility any    `yaml:"compatibility"`
 	Metadata      any    `yaml:"metadata"`
@@ -40,6 +42,8 @@ type SkillFrontmatter struct {
 var KnownFields = map[string]bool{
 	"name":           true,
 	"description":    true,
+	"license":        true,
+	"allowed-tools":  true,
 	"user_invocable": true,
 	"argument-hint":  true,
 	"compatibility":  true,
@@ -49,4 +53,9 @@ var KnownFields = map[string]bool{
 	"trigger":   true,
 	"skip_when": true,
 	"related":   true,
+}
+
+var PortableFields = map[string]bool{
+	"name": true, "description": true, "license": true, "compatibility": true,
+	"metadata": true, "allowed-tools": true,
 }

@@ -20,9 +20,9 @@ func contractChecksRefPath(t *testing.T) string {
 	if !ok {
 		t.Fatal("could not resolve test file path")
 	}
-	// pkg/dendrik/conventions/ -> repo root -> cmd/dendrik/skill/references/
+	// pkg/dendrik/conventions/ -> repo root -> plugins/dendrik/skills/dendrik/references/
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
-	return filepath.Join(root, "cmd", "dendrik", "skill", "references", "contract-checks.md")
+	return filepath.Join(root, "plugins", "dendrik", "skills", "dendrik", "references", "contract-checks.md")
 }
 
 var refHeadingRe = regexp.MustCompile(`(?m)^### ([a-z][a-z0-9-]*)`)

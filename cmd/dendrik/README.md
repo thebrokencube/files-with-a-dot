@@ -59,20 +59,19 @@ dendrik lint cmd/folio --json | jq '.data.errors'
 ```
 cmd/dendrik/
 ├── main.go           # Entry point, command dispatch
-├── cmd_lint.go       # Orchestrator: flags, gatherToolData(), output formatting
-├── lint_go.go        # GoLint: Go layer checks
-├── lint_skill.go     # SkillLint: Layer 1 delegation + Layer 2 checks
-├── lint_bridge.go    # BridgeLint: Bridge layer checks
-├── *_test.go         # Tests for each linter
-├── Makefile          # build, test, check targets
-└── skill/            # Claude Code skill (SKILL.md + references)
+├── cmd_lint.go       # Thin CLI shell over pkg/dendrik/lint
+├── *_test.go         # CLI tests
+└── Makefile          # build, test, check targets
 
 pkg/dendrik/
 ├── conventions/
-│   └── contract.go   # the canonical Contract slice: each entry has ID, rationale, remediation
+│   └── contract.go   # canonical Contract slice
 ├── agentskills/
-│   └── validate.go   # Layer 1 SKILL.md validator (standalone, does its own I/O)
-└── output_format.go  # Output type (inert formatter, parallel to Palette)
+│   └── validate.go   # Agent Skills validator
+├── lint/             # importable gather + pure lint core
+└── output_format.go  # inert Output formatter
+
+plugins/dendrik/skills/dendrik/ # Canonical Agent Skill and references
 ```
 
 ## Contract Layers
@@ -81,7 +80,7 @@ pkg/dendrik/
 - **Skill layer** — Agent discovery: SKILL.md frontmatter, links, arrow refs, activation guidance
 - **Bridge layer** — Integration: dendrik imports, exit constants, JSON output, symlink entries
 
-All linters are pure functions. The orchestrator (`cmd_lint.go`) handles all filesystem reads via `gatherToolData()` → `ToolData` struct → linters.
+`lint.GatherToolData` owns filesystem reads; `lint.Run` and the per-layer checks remain pure over `ToolData`.
 
 ## Releasing
 
@@ -101,6 +100,6 @@ See the [build & release convention](../../pkg/dendrik/conventions/release.md).
 
 ## Claude Code Integration
 
-dendrik includes a skill file for Claude Code agent use:
+dendrik includes a bundled Agent Skill:
 
-- [skill/SKILL.md](skill/SKILL.md) — agent-facing reference with check IDs and remediation guidance
+- [`plugins/dendrik/skills/dendrik/SKILL.md`](../../plugins/dendrik/skills/dendrik/SKILL.md) — agent-facing workflow and references

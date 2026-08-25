@@ -63,20 +63,20 @@ func TestApplyFixes_SymlinkEntries(t *testing.T) {
 		t.Fatalf("expected symlink-entries fixed, got %v", fixed)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, "symlink_map.txt"))
-	want := "configs/base/x:$HOME/.x\ncmd/newtool/skill:$HOME/.claude/skills/newtool\n"
+	want := "configs/base/x:$HOME/.x\nplugins/newtool/skills/newtool:$HOME/.claude/skills/newtool\n"
 	if string(got) != want {
 		t.Errorf("symlink_map after fix:\n%q\nwant:\n%q", got, want)
 	}
 }
 
 func TestApplyFixes_Idempotent(t *testing.T) {
-	root := writeSyntheticRoot(t, "go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n", "cmd/jf/skill:$HOME/.claude/skills/jf\n")
+	root := writeSyntheticRoot(t, "go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n", "plugins/jf/skills/jf:$HOME/.claude/skills/jf\n")
 	data := &ToolData{
 		RepoRoot:   root,
 		ToolName:   "jf",
 		GoWork:     []byte("go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n"),
 		CmdDirs:    []string{"jf"},
-		SymlinkMap: []byte("cmd/jf/skill:$HOME/.claude/skills/jf\n"),
+		SymlinkMap: []byte("plugins/jf/skills/jf:$HOME/.claude/skills/jf\n"),
 	}
 	// Already correct: nothing should be reported fixed.
 	fixed, err := ApplyFixes(data, []Result{{CheckID: "go-work-sync"}, {CheckID: "symlink-entries"}})

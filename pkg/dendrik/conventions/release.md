@@ -14,7 +14,7 @@ kept distinct, each canonical for its own surface:
 | File | Is the… | Drives | Bump when |
 |---|---|---|---|
 | `cmd/<tool>/VERSION` | **binary version** | `dendrik build` (`-ldflags -X main.version`), the `release.yml` tag, and `bin/setup`'s download | the binary changes |
-| `<plugin>/.claude-plugin/plugin.json` `.version` | **plugin version** | the Claude plugin auto-update, and the generated `marketplace.json` catalog versions | *any* bundle content changes (skill, setup, manifests, **or** a binary bump) |
+| `plugins/<tool>/.claude-plugin/plugin.json` `.version` | **plugin version** | the Claude plugin auto-update, and the generated `marketplace.json` catalog versions | *any* bundle content changes (skill, setup, manifests, **or** a binary bump) |
 
 `main.go` declares `var version = "dev"`, overridden at build time from `VERSION`. `plugin.json`
 is hand-authored (incl. `version`); catalogs are generated from it — never carry an *independent*
@@ -64,13 +64,13 @@ every other tool is built via `dendrik build`.
 ## Flow
 
 **Skill / plugin-content change only (no binary change):**
-1. Bump `<plugin>/.claude-plugin/plugin.json` `.version`; run `scripts/marketplace-generate` to
+1. Bump `plugins/<tool>/.claude-plugin/plugin.json` `.version`; run `scripts/marketplace-generate` to
    refresh catalogs; commit + push. No binary release — the marketplace serves the new content
    from the repo and auto-update reaches users; `bin/setup` finds the binary `VERSION` unchanged
    and no-ops.
 
 **Binary change (new binary to ship):**
-1. Bump `cmd/<tool>/VERSION` **and** `plugin.json.version` (the coupling rule), run
+1. Bump `cmd/<tool>/VERSION` **and** `plugins/<tool>/.claude-plugin/plugin.json.version` (the coupling rule), run
    `scripts/marketplace-generate`, commit + push.
 2. `gh workflow run release.yml -f tool=<tool>` (or the Actions UI button).
 3. The workflow: bootstrap-builds dendrik → `dendrik build cmd/<tool> --matrix` → guards

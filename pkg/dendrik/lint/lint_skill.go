@@ -30,7 +30,7 @@ func SkillLint(data *ToolData) []Result {
 		return results // Structure gate
 	}
 
-	layer1Results := agentskills.ValidateLayer1(data.SkillDir, data.ToolName)
+	layer1Results := agentskills.ValidatePortable(data.SkillDir, data.ToolName)
 	for _, r := range layer1Results {
 		results = append(results, Result{
 			CheckID:     r.CheckID,

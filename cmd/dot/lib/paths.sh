@@ -7,11 +7,18 @@
 # Resolves both paths to handle DOTFILES_DIR being a symlink
 is_ours() {
     local path="$1"
-    [[ -e "$path" ]] || return 1
-    local real_path real_dotfiles
-    real_path=$(realpath "$path" 2>/dev/null || echo "")
+    local real_path real_dotfiles target
     real_dotfiles=$(realpath "$DOTFILES_DIR" 2>/dev/null || echo "$DOTFILES_DIR")
-    [[ -n "$real_path" && "$real_path" == "$real_dotfiles"* ]]
+    if [[ -L "$path" ]]; then
+        target=$(readlink "$path")
+        [[ "$target" != /* ]] && target="$(dirname "$path")/$target"
+        real_path=$(realpath "$target" 2>/dev/null || echo "$target")
+    elif [[ -e "$path" ]]; then
+        real_path=$(realpath "$path" 2>/dev/null || echo "")
+    else
+        return 1
+    fi
+    [[ -n "$real_path" ]] && { [[ "$real_path" == "$real_dotfiles" ]] || [[ "$real_path" == "$real_dotfiles/"* ]]; }
 }
 
 # Check if path is a symlink NOT managed by dotfiles

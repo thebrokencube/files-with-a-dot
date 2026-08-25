@@ -1,39 +1,35 @@
 # files-with-a-dot
 
-This repo is both a dotfiles manager and a **cross-harness plugin marketplace** for the Go CLI
-tools it ships: `folio`, `jf`, and `dendrik`. This file is the harness-agnostic baseline; a thin
-`CLAUDE.md` overlays Claude-specific notes on top.
+This repo is a dotfiles manager and the Claude Code plugin marketplace for the Go CLI tools
+`folio`, `jf`, and `dendrik`. Portable Agent Skills and this `AGENTS.md` form the harness-agnostic
+kernel; native harness distribution is supported only after validation and behavioral proof.
 
 ## Plugin marketplace
 
-The repo distributes its CLI tools as plugins that work on any agent harness.
+The repo currently distributes its CLI tools through one proven adapter: Claude Code.
 
-- **`plugins.json` (repo root) is the one canonical, hand-edited manifest.** It lists each plugin
-  (`name`, `path`, `description`). Edit this file and nothing else.
-- **Per-harness catalogs are generated, never hand-edited.** `scripts/marketplace-generate` reads
-  `plugins.json` and writes:
-  - `.claude-plugin/marketplace.json` — Claude (guaranteed)
-  - `.cursor-plugin/marketplace.json` — Cursor (best-effort; format pending confirmation)
-  - `.agents/plugins/marketplace.json` — Codex / agents (best-effort; same caveat)
-
-  Each carries a `_generated: DO NOT EDIT` header. Regenerate after editing `plugins.json`; the
-  smoke test fails on drift.
-- **Each plugin lives at `cmd/<tool>/`** with a `.claude-plugin/plugin.json` (name, version,
-  description), its `skills/<tool>` skill, and a uniform `bin/setup`.
+- **`plugins.json` is the canonical hand-edited inventory.** Each `path` names a closed
+  `plugins/<tool>` publishable bundle, never the `cmd/<tool>` implementation tree.
+- **`.claude-plugin/marketplace.json` is generated.** Run `scripts/marketplace-generate`; never edit
+  the catalog or bundle `VERSION` mirrors by hand. Cursor/Codex artifacts do not exist until native
+  contracts and isolated discovery/invocation proof are implemented.
+- **Each plugin bundle** contains `.claude-plugin/plugin.json`, `skills/<tool>`, `bin/setup`, and
+  generated `VERSION` only. Go source, tests, build files, runtime state, and private material stay out.
+- **Versions are independent:** `cmd/<tool>/VERSION` owns the binary; the bundle mirrors it;
+  `plugins/<tool>/.claude-plugin/plugin.json.version` owns Claude plugin updates. A binary bump
+  requires a plugin bump, while a skill-only plugin bump is valid.
 
 ### Install a tool
 
 In this repo, run that plugin's `bin/setup` once:
 
 ```sh
-cmd/<tool>/bin/setup
+plugins/<tool>/bin/setup
 ```
 
-Installed as a plugin, the skill runs the bundled `bin/setup` from the plugin root on first use
-(no `cmd/<tool>/` prefix — that's the repo path only). It is the same script either way:
-idempotent — self-locating, self-contained, safe to re-run, and a no-op when the pinned
-version (from the plugin's `VERSION`) is already installed. It downloads the matching release
-binary into `~/.local/bin/`.
+The script is idempotent, self-locating, self-contained, and installs the release version mirrored
+in the bundle into `~/.local/bin/`. `dot sync` installs the same binary version directly from the
+implementation authority at `cmd/<tool>/VERSION`.
 
 ## Build system
 

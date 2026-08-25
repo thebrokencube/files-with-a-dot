@@ -25,9 +25,9 @@ make check
 
 ## Binary Distribution
 
-Built binary at `cmd/folio/folio`, symlinked to `~/.local/bin/folio` via `symlink_map.txt`.
-Skill at `cmd/folio/skill/`, symlinked to `~/.claude/skills/folio`.
-After code changes: rebuild the binary and commit it.
+Release binaries install to `~/.local/bin/folio` through `dot sync` or `plugins/folio/bin/setup`.
+Skill at `plugins/folio/skills/folio/`, symlinked to `~/.claude/skills/folio`.
+After code changes: run `make check && make build`; the in-tree binary is transient and not committed.
 
 ## Code Conventions
 

@@ -1,84 +1,107 @@
 #!/usr/bin/env bash
-# smoke-test.sh — clean-install acceptance test for the plugin marketplace.
-# Exit 0 = all checks pass. The primary guard for the marketplace (generation, manifests, install).
-# Network is used only in the install step (step 5); it gates/skips offline.
+# smoke-test.sh — deterministic acceptance test for the proven Claude distribution.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
-
-PLUGINS=(folio jf dendrik)
-CATALOGS=(.claude-plugin/marketplace.json .cursor-plugin/marketplace.json .agents/plugins/marketplace.json)
+CATALOG=.claude-plugin/marketplace.json
 fail() { echo "FAIL: $*" >&2; exit 1; }
-ok()   { echo "  ok: $*"; }
+ok() { echo "  ok: $*"; }
 
 command -v jq >/dev/null || fail "jq is required"
 command -v shellcheck >/dev/null || fail "shellcheck is required"
+PLUGINS=()
+while IFS= read -r plugin; do
+  PLUGINS+=("$plugin")
+done < <(jq -r '.plugins[].name' plugins.json)
 
-echo "[1] catalogs present + deterministic (drift guard) + _generated header"
-sum_catalogs() { for c in "${CATALOGS[@]}"; do md5 -q "$c" 2>/dev/null || md5sum "$c" | awk '{print $1}'; done; }
-for c in "${CATALOGS[@]}"; do [[ -f "$c" ]] || fail "$c missing — run scripts/marketplace-generate"; done
-before="$(sum_catalogs)"
-./scripts/marketplace-generate >/dev/null
-after="$(sum_catalogs)"
-[[ "$before" == "$after" ]] || fail "catalog drift — regenerated output differs from committed; regenerate and commit"
-for c in "${CATALOGS[@]}"; do
-  jq -e '._generated' "$c" >/dev/null || fail "$c missing _generated header"
+before="$(md5 -q "$CATALOG" 2>/dev/null || md5sum "$CATALOG" | cut -d' ' -f1)"
+scripts/marketplace-generate >/dev/null
+after="$(md5 -q "$CATALOG" 2>/dev/null || md5sum "$CATALOG" | cut -d' ' -f1)"
+[[ "$before" == "$after" ]] || fail "generated Claude catalog drifted"
+[[ ! -e .cursor-plugin && ! -e .agents/plugins ]] || fail "unsupported catalog artifact exists"
+ok "only deterministic Claude catalog exists"
+
+jq -e . plugins.json >/dev/null
+jq -e --argjson count "${#PLUGINS[@]}" '.description and (.plugins | length == $count)' "$CATALOG" >/dev/null
+for tool in "${PLUGINS[@]}"; do
+  bundle="plugins/$tool"
+  manifest="$bundle/.claude-plugin/plugin.json"
+  [[ -f "$manifest" && -f "$bundle/skills/$tool/SKILL.md" && -x "$bundle/bin/setup" ]] || fail "$tool bundle incomplete"
+  cmp -s "cmd/$tool/VERSION" "$bundle/VERSION" || fail "$tool VERSION mirror drift"
+  plugin_ver="$(jq -r '.version' "$manifest")"
+  catalog_ver="$(jq -r --arg n "$tool" '.plugins[] | select(.name == $n) | .version' "$CATALOG")"
+  [[ "$plugin_ver" == "$catalog_ver" ]] || fail "$tool native/catalog plugin version mismatch"
+  while IFS= read -r path; do
+    [[ ! -L "$bundle/$path" ]] || fail "$tool bundle contains symlink: $path"
+    case "$path" in
+      .claude-plugin/plugin.json|bin/setup|VERSION|skills/"$tool"/*) ;;
+      *) fail "$tool bundle contains undeclared file: $path" ;;
+    esac
+  done < <(cd "$bundle" && find . \( -type f -o -type l \) | sed 's#^./##' | sort)
+  shellcheck "$bundle/bin/setup"
+  grep -q 'PLUGIN_RELEASE_BASE_URL' "$bundle/bin/setup" || fail "$tool setup lacks fixture seam"
 done
-ok "3 catalogs present, deterministic, headered"
+cmp -s plugins/folio/bin/setup plugins/jf/bin/setup
+cmp -s plugins/folio/bin/setup plugins/dendrik/bin/setup
+ok "bundle closure, versions, and setup contracts pass"
 
-echo "[2] jq-parse plugins.json + catalogs + each plugin.json"
-jq -e . plugins.json >/dev/null || fail "plugins.json not valid JSON"
-for c in "${CATALOGS[@]}"; do jq -e . "$c" >/dev/null || fail "$c not valid JSON"; done
-for t in "${PLUGINS[@]}"; do jq -e . "cmd/$t/.claude-plugin/plugin.json" >/dev/null || fail "cmd/$t plugin.json not valid JSON"; done
-ok "all manifests parse"
-
-echo "[3] version triple per tool: VERSION == plugin.json.version == catalog listing"
-for t in "${PLUGINS[@]}"; do
-  vfile="$(tr -d '[:space:]' < "cmd/$t/VERSION")"
-  vjson="$(jq -r '.version' "cmd/$t/.claude-plugin/plugin.json")"
-  [[ "$vfile" == "$vjson" ]] || fail "$t: VERSION ($vfile) != plugin.json.version ($vjson)"
-  # catalog must list the plugin AND carry the same version (synced, never independent)
-  for c in "${CATALOGS[@]}"; do
-    vcat="$(jq -r --arg n "$t" '.plugins[] | select(.name == $n) | .version' "$c")"
-    [[ -n "$vcat" && "$vcat" != "null" ]] || fail "$t: not listed (with version) in $c"
-    [[ "$vcat" == "$vfile" ]] || fail "$t: catalog version in $c ($vcat) != VERSION ($vfile)"
-  done
-  ok "$t: VERSION == plugin.json.version == catalog version == $vfile"
-done
-
-echo "[4] bin/setup conventions: byte-identical x3, shellcheck-clean, self-locating, no CLAUDE_PLUGIN_ROOT, no sibling source"
-ref="cmd/folio/bin/setup"
-refsum="$(md5 -q "$ref" 2>/dev/null || md5sum "$ref" | awk '{print $1}')"
-for t in "${PLUGINS[@]}"; do
-  s="cmd/$t/bin/setup"
-  [[ -x "$s" ]] || fail "$s not executable"
-  sum="$(md5 -q "$s" 2>/dev/null || md5sum "$s" | awk '{print $1}')"
-  [[ "$sum" == "$refsum" ]] || fail "$s not byte-identical to $ref"
-  shellcheck "$s" || fail "$s shellcheck failed"
-  # shellcheck disable=SC2016  # literal $0 is intended — asserting the script self-locates
-  grep -q 'dirname "\$0"' "$s" || fail "$s not self-locating (\$0)"
-  grep -q 'CLAUDE_PLUGIN_ROOT' "$s" && fail "$s references CLAUDE_PLUGIN_ROOT"
-  grep -qE '^\s*(source|\.)\s' "$s" && fail "$s sources a sibling file"
-done
-ok "bin/setup x3 byte-identical, shellcheck-clean, self-locating, harness-neutral"
-
-echo "[5] HOME-isolated install of cmd/folio/bin/setup + idempotent re-run"
-if ! curl -fsI "https://github.com" >/dev/null 2>&1; then
-  echo "  SKIP: offline — install step needs network"
+if command -v claude >/dev/null; then
+  claude plugin validate --strict "$CATALOG" >/dev/null
+  for tool in "${PLUGINS[@]}"; do claude plugin validate --strict "plugins/$tool" >/dev/null; done
+  ok "Claude native validation passes"
 else
-  TMPHOME="$(mktemp -d)"
-  trap 'rm -rf "$TMPHOME"' EXIT
-  HOME="$TMPHOME" ./cmd/folio/bin/setup
-  dest="$TMPHOME/.local/bin/folio"
-  [[ -x "$dest" ]] || fail "folio not installed at $dest"
-  got="$("$dest" --version | awk '{print $2}')"
-  want="$(tr -d '[:space:]' < cmd/folio/VERSION)"
-  [[ "$got" == "$want" ]] || fail "installed folio version ($got) != VERSION ($want)"
-  # idempotent re-run: must report no-op and not re-download
-  out="$(HOME="$TMPHOME" ./cmd/folio/bin/setup)"
-  echo "$out" | grep -q "already installed" || fail "re-run was not a no-op: $out"
-  ok "installed folio $got and re-run is a no-op"
+  echo "  SKIP: claude not installed"
 fi
 
-echo "PASS: all smoke-test checks green"
+TMP="$(mktemp -d)"
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+case "$(uname -m)" in arm64|aarch64) arch=arm64 ;; x86_64|amd64) arch=amd64 ;; *) fail "unsupported test architecture" ;; esac
+ver="$(tr -d '[:space:]' < cmd/folio/VERSION)"
+asset="$TMP/http/folio/v$ver/folio-$os-$arch"
+trap 'kill "${SERVER_PID:-}" 2>/dev/null || true; rm -rf "$TMP"' EXIT
+mkdir -p "$(dirname "$asset")"
+cat > "$asset" <<SCRIPT
+#!/bin/sh
+printf 'folio $ver\n'
+SCRIPT
+chmod +x "$asset"
+port=18765
+python3 -m http.server "$port" --directory "$TMP/http" >"$TMP/server.log" 2>&1 &
+SERVER_PID=$!
+sleep 1
+out="$(HOME="$TMP/home" PLUGIN_RELEASE_BASE_URL="http://127.0.0.1:$port" plugins/folio/bin/setup)"
+[[ -x "$TMP/home/.local/bin/folio" ]] || fail "fixture install missing"
+[[ "$("$TMP/home/.local/bin/folio" --version)" == "folio $ver" ]] || fail "fixture version mismatch"
+out="$(HOME="$TMP/home" PLUGIN_RELEASE_BASE_URL="http://127.0.0.1:$port" plugins/folio/bin/setup)"
+grep -q 'already installed' <<<"$out" || fail "setup rerun not idempotent"
+ok "network-free setup install and idempotency pass"
+
+
+COLLISION_HOME="$TMP/collision-home"
+PUBLIC_MAP="$TMP/public-map.txt"
+PRIVATE_ROOT="$COLLISION_HOME/.dotfiles.private"
+mkdir -p "$PRIVATE_ROOT/skills/folio"
+printf 'plugins/folio/skills/folio:$HOME/.claude/skills/folio\n' > "$PUBLIC_MAP"
+collision_out="$(HOME="$COLLISION_HOME" bash -c '
+  set -e
+  DOTFILES_DIR="$1"
+  source "$1/cmd/dot/lib/paths.sh"
+  source "$1/cmd/dot/lib/private.sh"
+  check_private_destination_collisions "$2" "$3"
+' _ "$ROOT" "$PUBLIC_MAP" "$PRIVATE_ROOT" 2>&1 || true)"
+grep -q 'private overlay conflicts with public destination:' <<<"$collision_out" || fail "private collision not detected"
+grep -q 'skills/folio' <<<"$collision_out" || fail "public destination missing from collision error"
+! grep -q "$PRIVATE_ROOT" <<<"$collision_out" || fail "private source leaked in collision error"
+ok "private collision fails without private source disclosure"
+
+OWNERSHIP_HOME="$TMP/ownership-home"
+mkdir -p "$OWNERSHIP_HOME/.dotfiles" "$OWNERSHIP_HOME/.dotfiles-evil"
+ln -s "$OWNERSHIP_HOME/.dotfiles-evil/skill" "$OWNERSHIP_HOME/foreign-link"
+if HOME="$OWNERSHIP_HOME" DOTFILES_DIR="$OWNERSHIP_HOME/.dotfiles" bash -c '
+  source "$1/cmd/dot/lib/paths.sh"
+  is_ours "$2"
+' _ "$ROOT" "$OWNERSHIP_HOME/foreign-link"; then
+  fail "sibling dotfiles path classified as managed"
+fi
+ok "managed path ownership requires an exact root boundary"
+echo "PASS: Claude distribution smoke green"

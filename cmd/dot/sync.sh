@@ -597,6 +597,10 @@ create_dotfiles_symlink
 migrate_private_overlay
 
 # Migrate from ~/.claude directory symlink to granular linking
+if has_private_overlay; then
+    check_private_destination_collisions "$SYMLINK_MAP" "$PRIVATE_DIR"
+fi
+
 if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
     target=$(readlink "$HOME/.claude")
     if [[ "$target" == *"shared/claude/.claude"* || "$target" == *"configs/base/claude/.claude"* || "$target" == *".dotfiles"*"/.claude"* ]]; then

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # check-blueprints — assert every per-system blueprint's `composes:` ids resolve to a real entry
 # in dendrik's generated building-block map. A blueprint is only build-from-able if its concept
-# references point at concepts that actually exist. Repo-level: blueprints live in each tool's own
-# plugin (cmd/<tool>/skill/references/blueprint.md); the map is dendrik's (it owns the concepts).
+# references point at concepts that actually exist. Blueprints live in each tool's closed plugin
+# bundle (`plugins/<tool>/skills/<tool>/references/blueprint.md`); dendrik owns the concept map.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MAP="${ROOT}/cmd/dendrik/skill/references/building-blocks.json"
+MAP="${ROOT}/plugins/dendrik/skills/dendrik/references/building-blocks.json"
 command -v jq >/dev/null || { echo "ERROR: jq is required" >&2; exit 1; }
 [[ -f "$MAP" ]] || { echo "ERROR: ${MAP} not found (run scripts/generate-building-blocks)" >&2; exit 1; }
 cd "$ROOT"
@@ -14,7 +14,7 @@ cd "$ROOT"
 known="$(jq -r '.blocks[].id' "$MAP")"
 rc=0
 found_any=0
-for bp in cmd/*/skill/references/blueprint.md; do
+for bp in plugins/*/skills/*/references/blueprint.md; do
   [[ -f "$bp" ]] || continue
   found_any=1
   # the `composes:` line, ids comma-separated
@@ -32,6 +32,6 @@ for bp in cmd/*/skill/references/blueprint.md; do
     fi
   done
 done
-[[ "$found_any" == 1 ]] || { echo "ERROR: no cmd/*/skill/references/blueprint.md found" >&2; exit 1; }
+[[ "$found_any" == 1 ]] || { echo "ERROR: no plugins/*/skills/*/references/blueprint.md found" >&2; exit 1; }
 [[ "$rc" == 0 ]] && echo "==> all blueprint composes: ids resolve in the map"
 exit "$rc"

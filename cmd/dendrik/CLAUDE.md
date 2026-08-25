@@ -26,26 +26,23 @@ dendrik lint cmd/dendrik
 
 ## Binary Distribution
 
-Built binary at `cmd/dendrik/dendrik`, symlinked to `~/.local/bin/dendrik` via `symlink_map.txt`.
-Skill at `cmd/dendrik/skill/`, symlinked to `~/.claude/skills/dendrik`.
-After code changes: rebuild the binary and commit it.
+Release binaries install to `~/.local/bin/dendrik` through `dot sync` or `plugins/dendrik/bin/setup`.
+Skill at `plugins/dendrik/skills/dendrik/`, symlinked to `~/.claude/skills/dendrik`.
+After code changes: run `make check && make build`; the in-tree binary is transient and not committed.
 
 ## Code Conventions
 
 ### Linter Architecture
 
-All linters are pure functions. The orchestrator (`cmd_lint.go`) handles I/O via `gatherToolData()` which builds a `ToolData` struct, then passes it to each layer:
-
-- `lint_go.go` -- Go layer checks (build infrastructure)
-- `lint_skill.go` -- Skill layer checks (agent discovery)
-- `lint_bridge.go` -- Bridge layer checks (integration)
+`lint.GatherToolData` owns filesystem reads and builds `ToolData`; `lint.Run` dispatches the pure
+Go, Skill, and Bridge layer checks.
 
 ### Adding a Check
 
-1. Add the check function to the appropriate `lint_*.go` file
-2. Register it in the layer's check list
-3. Use the `ToolData` struct for all file access (no direct I/O in check functions)
-4. Return `[]conventions.Issue` with severity `Error` or `Warning`
+1. Add the pure check function under `pkg/dendrik/lint/`
+2. Register it in the layer dispatch and `pkg/dendrik/conventions/contract.go`
+3. Gather any new filesystem data only in `lint.GatherToolData`
+4. Return `[]lint.Result` with a contract severity and remediation
 
 ### Shared Package
 

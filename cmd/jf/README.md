@@ -77,9 +77,10 @@ cmd/jf/
 ├── internal/          # Internal packages (forest, jira, markdown)
 ├── scripts/           # Build/test scripts
 ├── docs/              # 01-getting-started, 02-workflows, 03-reference, 04-architecture
-├── skill/             # Claude Code skill (SKILL.md + references)
 ├── Makefile           # build, test, check targets
 └── testdata/          # Test fixtures
+
+plugins/jf/skills/jf/  # Canonical Agent Skill and references
 ```
 
 ## Releasing
@@ -101,6 +102,6 @@ See the [build & release convention](../../pkg/dendrik/conventions/release.md).
 
 ## Claude Code Integration
 
-jf includes a skill file for Claude Code agent use:
+jf includes a bundled Agent Skill:
 
-- [skill/SKILL.md](skill/SKILL.md) — agent-facing reference with decision trees, conventions, and JQL patterns
+- [`plugins/jf/skills/jf/SKILL.md`](../../plugins/jf/skills/jf/SKILL.md) — agent-facing workflows and references
