@@ -1,0 +1,5 @@
+display:
+  showTokenUsage: true
+  cacheMissMarker: true
+
+# Near-empty on purpose: omp's cost mechanisms are already on by default, so only settings that ship OFF belong here.

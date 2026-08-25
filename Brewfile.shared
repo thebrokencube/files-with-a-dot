@@ -35,6 +35,10 @@ brew "curl"
 brew "colima"                   # Lightweight Docker runtime
 brew "docker"                   # Docker CLI
 
+# Coding agents
+tap "can1357/tap"
+brew "can1357/tap/omp", trusted: true
+
 # Terminal
 cask "ghostty"                  # Modern terminal emulator
 cask "iterm2"                   # Fallback terminal
