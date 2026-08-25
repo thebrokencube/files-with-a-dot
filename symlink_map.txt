@@ -62,6 +62,3 @@ cmd/dendrik/skill:$HOME/.claude/skills/dendrik
 
 # Mise (version manager)
 configs/base/mise/.config/mise/config.toml:$HOME/.config/mise/config.toml
-
-# oh-my-pi (omp) agent config
-configs/base/omp/.omp/agent/config.yml:$HOME/.omp/agent/config.yml
