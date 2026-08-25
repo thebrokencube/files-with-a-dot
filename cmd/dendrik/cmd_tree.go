@@ -64,7 +64,7 @@ func cmdBuild() dendrik.Command {
 	return dendrik.Command{
 		Name: "build", Short: "Build a tool's release artifacts (reproducible, version-stamped)", Args: dendrik.ArgsBetween(0, 1),
 		Flags: func(fs *dendrik.FlagSet) {
-			matrix = fs.BoolLong("matrix", "Build the release matrix (darwin/arm64, linux/amd64) instead of the host platform")
+			matrix = fs.BoolLong("matrix", "Build the release matrix (darwin/linux, arm64/amd64) instead of the host platform")
 			outDir = fs.StringLong("out", "dist", "Output directory for artifacts")
 			versionOverride = fs.StringLong("version", "", "Override the version (default: read <dir>/VERSION)")
 			jsonFlag = fs.BoolLong("json", "JSON output")

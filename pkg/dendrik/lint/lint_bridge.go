@@ -3,6 +3,7 @@ package lint
 import (
 	"go/ast"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
@@ -16,7 +17,7 @@ var goWorkUsePattern = regexp.MustCompile(`\./cmd/([a-zA-Z0-9_-]+)`)
 //dendrik:status shipped
 //dendrik:definition a tool's skill half wired to its importable Go core (go.work use, symlink_map, pkg core)
 //dendrik:intent the skill-CLI pair is the reusable unit; wire it once, mechanically
-//dendrik:conformance dendrik-import go-work-sync symlink-entries core-in-pkg dispatch-router
+//dendrik:conformance dendrik-import go-work-sync symlink-entries bundle-boundary core-in-pkg dispatch-router
 
 // BridgeLint validates bridge layer conventions. Pure function — no I/O.
 func BridgeLint(data *ToolData) []Result {
@@ -27,6 +28,7 @@ func BridgeLint(data *ToolData) []Result {
 	results = append(results, checkJSONFlagCoverage(data)...)
 	results = append(results, checkGoWorkSync(data)...)
 	results = append(results, checkSymlinkEntries(data)...)
+	results = append(results, checkBundleBoundary(data)...)
 	results = append(results, checkMakefileGofiles(data)...)
 	results = append(results, checkNoJsonEncoder(data)...)
 	results = append(results, checkNoRawJSONPassthrough(data)...)
@@ -135,22 +137,28 @@ func checkGoWorkSync(data *ToolData) []Result {
 		diskCmds[name] = true
 	}
 
-	// In go.work but not on disk
+	// In go.work but not on disk.
+	goWorkNames := make([]string, 0, len(goWorkCmds))
 	for name := range goWorkCmds {
+		goWorkNames = append(goWorkNames, name)
+	}
+	sort.Strings(goWorkNames)
+	for _, name := range goWorkNames {
 		if !diskCmds[name] {
 			results = append(results, lintResult("go-work-sync", conventions.SeverityError,
-				"go.work references ./cmd/"+name+" but directory has no go.mod",
-				"go.work", 0,
+				"go.work references ./cmd/"+name+" but directory has no go.mod", "go.work", 0,
 				"Remove `./cmd/"+name+"` from go.work or create go.mod in cmd/"+name+"/."))
 		}
 	}
-
-	// On disk but not in go.work
+	diskNames := make([]string, 0, len(diskCmds))
 	for name := range diskCmds {
+		diskNames = append(diskNames, name)
+	}
+	sort.Strings(diskNames)
+	for _, name := range diskNames {
 		if !goWorkCmds[name] {
 			results = append(results, lintResult("go-work-sync", conventions.SeverityError,
-				"cmd/"+name+"/ has go.mod but is not in go.work",
-				"go.work", 0,
+				"cmd/"+name+"/ has go.mod but is not in go.work", "go.work", 0,
 				"Add `./cmd/"+name+"` to the `use` block in go.work."))
 		}
 	}
@@ -162,20 +170,62 @@ func checkSymlinkEntries(data *ToolData) []Result {
 	if data.SymlinkMap == nil {
 		return nil // Opt-in: only runs when symlink_map.txt exists
 	}
-
-	var results []Result
-	content := string(data.SymlinkMap)
-
-	// Binaries are installed from GitHub Releases by `dot sync` (not symlinked from the
-	// repo) — see pkg/dendrik/conventions/release.md. Only the skill directory is symlinked.
-	skillPath := "cmd/" + data.ToolName + "/skill"
-	if !strings.Contains(content, skillPath) {
-		results = append(results, lintResult("symlink-entries", conventions.SeverityError,
-			"symlink_map.txt missing skill entry for "+skillPath,
-			"symlink_map.txt", 0,
-			"Add a symlink_map.txt entry for the skill directory."))
+	expectedSource := "plugins/" + data.ToolName + "/skills/" + data.ToolName
+	expectedDest := "$HOME/.claude/skills/" + data.ToolName
+	found := false
+	for _, line := range strings.Split(string(data.SymlinkMap), "\n") {
+		parts := strings.SplitN(strings.TrimSpace(line), ":", 2)
+		if len(parts) == 2 && parts[0] == expectedSource && parts[1] == expectedDest {
+			found = true
+			break
+		}
 	}
-
+	if !found {
+		return []Result{lintResult("symlink-entries", conventions.SeverityError,
+			"symlink_map.txt missing exact skill entry for "+expectedSource,
+			"symlink_map.txt", 0,
+			"Add `"+expectedSource+":"+expectedDest+"`.")}
+	}
+	return nil
+}
+func checkBundleBoundary(data *ToolData) []Result {
+	var results []Result
+	if data.LegacyPluginPath {
+		results = append(results, lintResult("bundle-boundary", conventions.SeverityError,
+			"plugin delivery content remains under cmd/"+data.ToolName,
+			"cmd/"+data.ToolName, 0,
+			"Move skill, native manifest, and setup into plugins/"+data.ToolName+"."))
+	}
+	required := map[string]bool{
+		".claude-plugin/plugin.json":            false,
+		"bin/setup":                             false,
+		"VERSION":                               false,
+		"skills/" + data.ToolName + "/SKILL.md": false,
+	}
+	for _, path := range data.BundleFiles {
+		if _, ok := required[path]; ok {
+			required[path] = true
+		}
+		allowed := path == ".claude-plugin/plugin.json" || path == "bin/setup" || path == "VERSION" ||
+			strings.HasPrefix(path, "skills/"+data.ToolName+"/")
+		if !allowed {
+			results = append(results, lintResult("bundle-boundary", conventions.SeverityError,
+				"undeclared file in publishable bundle: "+path, path, 0,
+				"Keep only the native manifest, canonical skill tree, bin/setup, and VERSION."))
+		}
+	}
+	requiredPaths := make([]string, 0, len(required))
+	for path := range required {
+		requiredPaths = append(requiredPaths, path)
+	}
+	sort.Strings(requiredPaths)
+	for _, path := range requiredPaths {
+		if !required[path] {
+			results = append(results, lintResult("bundle-boundary", conventions.SeverityError,
+				"publishable bundle missing "+path, path, 0,
+				"Add the required closed-bundle file."))
+		}
+	}
 	return results
 }
 

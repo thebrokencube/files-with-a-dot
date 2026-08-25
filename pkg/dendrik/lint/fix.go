@@ -91,14 +91,18 @@ func fixSymlinkEntries(data *ToolData) (bool, error) {
 	if data.SymlinkMap == nil {
 		return false, nil
 	}
-	skillPath := "cmd/" + data.ToolName + "/skill"
-	if strings.Contains(string(data.SymlinkMap), skillPath) {
-		return false, nil
+	skillPath := "plugins/" + data.ToolName + "/skills/" + data.ToolName
+	destPath := "$HOME/.claude/skills/" + data.ToolName
+	for _, line := range strings.Split(string(data.SymlinkMap), "\n") {
+		parts := strings.SplitN(strings.TrimSpace(line), ":", 2)
+		if len(parts) == 2 && parts[0] == skillPath && parts[1] == destPath {
+			return false, nil
+		}
 	}
 	content := string(data.SymlinkMap)
 	if !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
-	content += skillPath + ":$HOME/.claude/skills/" + data.ToolName + "\n"
+	content += skillPath + ":" + destPath + "\n"
 	return true, os.WriteFile(filepath.Join(data.RepoRoot, "symlink_map.txt"), []byte(content), 0o644)
 }

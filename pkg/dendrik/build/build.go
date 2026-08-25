@@ -32,6 +32,8 @@ type Result struct {
 // ReleaseMatrix is the standard set of platforms produced for a release.
 var ReleaseMatrix = []Target{
 	{OS: "darwin", Arch: "arm64"},
+	{OS: "darwin", Arch: "amd64"},
+	{OS: "linux", Arch: "arm64"},
 	{OS: "linux", Arch: "amd64"},
 }
 

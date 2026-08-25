@@ -1,9 +1,9 @@
 # Contributing
 
 Thanks for helping with files-with-a-dot — a dotfiles manager that also ships Go CLI tools
-(`folio`, `jf`, `dendrik`, `dot`) as cross-harness plugins. This is the contributor how-to. For
-the plugin/marketplace model see [AGENTS.md](AGENTS.md); for releases (maintainer-only) see
-`pkg/dendrik/conventions/release.md`.
+(`folio`, `jf`, `dendrik`, `dot`) and a proven Claude Code plugin marketplace. This is the
+contributor how-to. For the portable-kernel/native-adapter model see [AGENTS.md](AGENTS.md); for
+releases (maintainer-only) see `pkg/dendrik/conventions/release.md`.
 
 ## Setup
 
@@ -23,11 +23,11 @@ Work by layer; verify with that layer's gate. `<tool-root>` is the tool's module
 | Layer | Where | Verify |
 |---|---|---|
 | A tool's Go CLI | `<tool-root>/` | `cd <tool-root> && make check` (fmt + vet + test) |
-| A tool's skill / agentic doc | `<tool-root>/skill/` | `dendrik lint <tool-root>`; `/dendrik review <file>` |
+| A tool's skill / agentic doc | `plugins/<tool>/skills/<tool>/` | `dendrik lint <tool-root>`; `/dendrik review <file>` |
 | Repo config / dotfiles | `configs/`, scripts, manifests | `dot validate` |
 
-Editing the plugin registry? Edit `plugins.json` only, then run `scripts/marketplace-generate`
-(never hand-edit the generated catalogs) — CI fails on drift.
+Editing the plugin registry? Edit `plugins.json` and native manifests, then run
+`scripts/marketplace-generate` (never hand-edit the generated Claude catalog or VERSION mirrors).
 
 ## Submit a PR
 
@@ -50,4 +50,4 @@ GitHub doesn't auto-sync it — maintainers re-apply after edits with
 ```
 
 Installs from your working copy so you can exercise the skill and its `bin/setup` before anything
-ships. (Claude Code is the golden path; Cursor/Codex are best-effort.)
+ships. Claude Code is the only currently supported marketplace adapter.

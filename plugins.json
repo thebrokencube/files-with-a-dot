@@ -6,17 +6,17 @@
   "plugins": [
     {
       "name": "folio",
-      "path": "cmd/folio",
+      "path": "plugins/folio",
       "description": "Lifecycle toolkit for knowledge work: folio.yml-driven source-to-target composition, diverge-converge planning, and work-track management."
     },
     {
       "name": "jf",
-      "path": "cmd/jf",
+      "path": "plugins/jf",
       "description": "Jira Forest CLI: manage Jira issues and epic hierarchies, push descriptions and titles, search with JQL, and enforce ticket conventions."
     },
     {
       "name": "dendrik",
-      "path": "cmd/dendrik",
+      "path": "plugins/dendrik",
       "description": "Quality linter for agentic documentation and CLI tool conventions: reviews SKILL.md/CLAUDE.md/reference files and checks contract compliance."
     }
   ]

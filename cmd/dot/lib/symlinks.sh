@@ -19,6 +19,8 @@ check_symlink() {
     if [[ -L "$dest" ]]; then
         if [[ "$(realpath "$dest" 2>/dev/null)" == "$(realpath "$source_path" 2>/dev/null)" ]]; then
             DONE_SYMLINKS+=("$name")
+        elif is_ours "$dest"; then
+            ACTIONS+=("Relink $name to its current managed source")
         else
             FRICTIONS+=("$dest is a symlink to $(readlink "$dest"), conflicts with $name")
         fi

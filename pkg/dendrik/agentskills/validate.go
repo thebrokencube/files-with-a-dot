@@ -22,7 +22,7 @@ var kebabPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*\.[a-z]+$`)
 //dendrik:conformance skill-frontmatter skill-links skill-size
 
 // ValidateLayer1 runs Layer 1 checks (skill-exists through skill-size) against a skill directory.
-// skillDir is the absolute path to the directory containing SKILL.md (e.g., cmd/jf/skill/).
+// skillDir is the absolute path to the directory containing SKILL.md.
 // dirName is the expected skill name (must match frontmatter name field).
 func ValidateLayer1(skillDir, dirName string) []ValidationResult {
 	var results []ValidationResult
@@ -72,6 +72,29 @@ func ValidateLayer1(skillDir, dirName string) []ValidationResult {
 	// skill-size: Size constraints
 	results = append(results, validateSize(content, bodyStart)...)
 
+	return results
+}
+
+// ValidatePortable applies Layer 1 plus the standard Agent Skills frontmatter boundary.
+func ValidatePortable(skillDir, dirName string) []ValidationResult {
+	results := ValidateLayer1(skillDir, dirName)
+	content, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return results
+	}
+	_, rawMap, _, err := ParseFrontmatter(content)
+	if err != nil {
+		return results
+	}
+	for field := range rawMap {
+		if !PortableFields[field] {
+			results = append(results, ValidationResult{
+				CheckID: "portable-skill-fields", Severity: SeverityError,
+				Message: fmt.Sprintf("harness-specific frontmatter field in portable skill: %q", field),
+				File:    "SKILL.md", Remediation: "Move the field to a native adapter or remove it.",
+			})
+		}
+	}
 	return results
 }
 

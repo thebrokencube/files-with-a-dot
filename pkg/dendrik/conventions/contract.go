@@ -214,9 +214,15 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "symlink-entries", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "symlink_map.txt has an entry for the skill directory",
-		Rationale:   "The skill directory is symlinked by `dot sync` so agents can discover it. (Binaries are installed from GitHub Releases, not symlinked — see pkg/dendrik/conventions/release.md.)",
-		Remediation: "Add a symlink_map.txt entry for the skill directory (e.g., cmd/jf/skill -> ~/.claude/skills/jf).",
+		Summary:     "symlink_map.txt has an entry for the canonical bundle skill",
+		Rationale:   "The canonical skill lives in the closed publishable bundle and is symlinked by `dot sync` for local discovery. Binaries install from releases.",
+		Remediation: "Add `plugins/<tool>/skills/<tool>:$HOME/.claude/skills/<tool>` to symlink_map.txt.",
+	},
+	{
+		ID: "bundle-boundary", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
+		Summary:     "Publishable plugin bundles contain only declared delivery files",
+		Rationale:   "A plugin bundle is a closed delivery boundary, not a Go source tree. Source, tests, build files, runtime state, and private material must never ship incidentally.",
+		Remediation: "Move delivery content to plugins/<tool> and keep only plugin.json, skills/<tool>, bin/setup, and VERSION.",
 	},
 	{
 		ID: "makefile-gofiles", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityWarning,

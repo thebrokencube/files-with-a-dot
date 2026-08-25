@@ -124,7 +124,7 @@ func TestBridgeLint_GoWorkSync(t *testing.T) {
 func TestBridgeLint_SymlinkEntries(t *testing.T) {
 	t.Run("has skill entry", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("cmd/test/skill ~/.config/skills/test\n")
+		data.SymlinkMap = []byte("plugins/test/skills/test:$HOME/.claude/skills/test\n")
 		results := filterCheck(BridgeLint(data), "symlink-entries")
 		if len(results) > 0 {
 			t.Errorf("expected no symlink-entries errors, got %v", results)
@@ -133,7 +133,7 @@ func TestBridgeLint_SymlinkEntries(t *testing.T) {
 
 	t.Run("missing skill", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("cmd/other/skill ~/.config/skills/other\n")
+		data.SymlinkMap = []byte("plugins/other/skills/other:$HOME/.claude/skills/other\n")
 		results := filterCheck(BridgeLint(data), "symlink-entries")
 		assertCheckPresent(t, results, "symlink-entries")
 	})
@@ -145,6 +145,18 @@ func TestBridgeLint_SymlinkEntries(t *testing.T) {
 		if len(results) > 0 {
 			t.Errorf("expected no errors when symlink_map.txt missing, got %v", results)
 		}
+	})
+
+	t.Run("rejects source suffix", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.SymlinkMap = []byte("plugins/test/skills/test-evil:$HOME/.claude/skills/test\n")
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
+	})
+
+	t.Run("rejects wrong destination", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.SymlinkMap = []byte("plugins/test/skills/test:$HOME/.claude/skills/wrong\n")
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
 	})
 }
 
@@ -260,6 +272,27 @@ func TestBridgeLint_NoRawJSON(t *testing.T) {
 	})
 }
 
+func TestBridgeLint_BundleBoundary(t *testing.T) {
+	t.Run("closed bundle", func(t *testing.T) {
+		results := filterCheck(BridgeLint(bridgeToolData("test")), "bundle-boundary")
+		if len(results) != 0 {
+			t.Fatalf("expected closed bundle to pass, got %v", results)
+		}
+	})
+
+	t.Run("source leak", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.BundleFiles = append(data.BundleFiles, "main.go")
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "bundle-boundary"), "bundle-boundary")
+	})
+
+	t.Run("legacy plugin path", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.LegacyPluginPath = true
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "bundle-boundary"), "bundle-boundary")
+	})
+}
+
 func TestBridgeLint_RunHasJSON(t *testing.T) {
 	t.Run("run function with json flag", func(t *testing.T) {
 		data := bridgeToolData("test")
@@ -293,6 +326,7 @@ func bridgeToolData(name string) *ToolData {
 		GoFiles: []GoFileData{
 			dendrikGoFile("main.go"),
 		},
+		BundleFiles: []string{".claude-plugin/plugin.json", "bin/setup", "VERSION", "skills/" + name + "/SKILL.md"},
 	}
 }
 

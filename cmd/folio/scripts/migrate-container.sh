@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # migrate-container.sh — one-time migration of a single-home ~/.folio into the
-# multi-store CONTAINER model (see cmd/folio/skill/references/container-migration.md).
+# multi-store CONTAINER model (see plugins/folio/skills/folio/references/container-migration.md).
 #
 # Demotes the live colocated git+jj home to a store nested under a plain umbrella
 # directory. The store name derives from the origin repo name (--store overrides):

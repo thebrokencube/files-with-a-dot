@@ -18,8 +18,8 @@ go test ./...
 
 ## Binary Distribution
 
-Built binary at `cmd/jf/jf`, symlinked to `~/.local/bin/jf` via `symlink_map.txt`.
-After code changes: rebuild the binary and commit it.
+Release binaries install to `~/.local/bin/jf` through `dot sync` or `plugins/jf/bin/setup`.
+After code changes: run `make check && make build`; the in-tree binary is transient and not committed.
 
 ## Code Conventions
 

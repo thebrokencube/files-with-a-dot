@@ -65,9 +65,10 @@ cmd/folio/
 ├── helpers.go         # Shared utilities
 ├── internal/          # Internal packages (folio, home, jira)
 ├── scripts/           # Build/test scripts
-├── skill/             # Claude Code skill (SKILL.md + references)
 ├── Makefile           # build, test, check targets
 └── testdata/          # Test fixtures
+
+plugins/folio/skills/folio/  # Canonical Agent Skill and references
 ```
 
 Project data lives in `~/.folio/`:

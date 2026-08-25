@@ -18,6 +18,15 @@ func TestValidateLayer1_ValidSkill(t *testing.T) {
 	}
 }
 
+func TestValidatePortableRejectsHarnessFields(t *testing.T) {
+	dir := t.TempDir()
+	content := "---\nname: test\ndescription: Use when testing\nuser_invocable: true\n---\n# Test\n"
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	assertHasCheck(t, ValidatePortable(dir, "test"), "portable-skill-fields", SeverityError)
+}
+
 func TestValidateLayer1_NoSkillFile(t *testing.T) {
 	dir := t.TempDir()
 	results := ValidateLayer1(dir, "missing")
