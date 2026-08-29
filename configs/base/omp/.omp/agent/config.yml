@@ -2,4 +2,9 @@ display:
   showTokenUsage: true
   cacheMissMarker: true
 
+# Dotfiles installs shared skills under ~/.claude/skills; OMP leaves foreign user-level
+# providers off by default, so opt into Claude-format discovery for those skills.
+enabledProviders:
+  - claude
+
 # Near-empty on purpose: omp's cost mechanisms are already on by default, so only settings that ship OFF belong here.
