@@ -102,20 +102,6 @@ require('lazy').setup({
       require('neodev').setup()
       require('mason').setup()
 
-      -- =================================================================
-      -- LSP Server Management Strategy:
-      --
-      -- 1. MASON (ensure_installed): Standalone + runtime-agnostic servers
-      --    - Install globally, work across all projects
-      --    - Examples: lua_ls, ts_ls, pyright
-      --
-      -- 2. PROJECT-LOCAL (vim.lsp.config): Project-sensitive servers
-      --    - Run via bundler/venv, use project's runtime version
-      --    - Examples: ruby_lsp (via bundle exec)
-      --
-      -- 3. CLEANUP: Run :MasonCleanup to remove servers not in the list
-      -- =================================================================
-
       -- Mason packages to keep (use Mason package names, not lspconfig names)
       local mason_ensure = {
         'lua-language-server',
@@ -158,18 +144,6 @@ require('lazy').setup({
           vim.notify('Nothing to clean up')
         end
       end, { desc = 'Remove Mason packages not in ensure list' })
-
-      -- Project-sensitive servers: NOT managed by Mason
-      -- These run via bundler/venv to use project-specific versions
-      -- Uses native vim.lsp.config (Neovim 0.11+) to avoid lspconfig deprecation
-
-      -- Ruby: uses project's ruby-lsp gem via bundle exec
-      -- Add `gem 'ruby-lsp'` to your Gemfile's :development group
-      vim.lsp.config('ruby_lsp', {
-        cmd = { 'bundle', 'exec', 'ruby-lsp' },
-        root_markers = { 'Gemfile', '.git' },
-      })
-      vim.lsp.enable('ruby_lsp')
 
       -- LSP keymaps
       vim.api.nvim_create_autocmd('LspAttach', {
