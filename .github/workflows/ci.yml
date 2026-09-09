@@ -66,8 +66,10 @@ jobs:
         run: |
           npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
           claude --version | grep -q "^${CLAUDE_CODE_VERSION}"
-      - name: install distribution validation dependencies
-        run: sudo apt-get update && sudo apt-get install -y shellcheck jq
+      - name: verify distribution validation dependencies
+        run: |
+          command -v jq
+          command -v shellcheck
       - name: Claude distribution matches authored sources
         env:
           CLAUDE_CODE_VERSION: 2.1.241
