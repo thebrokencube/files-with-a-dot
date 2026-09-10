@@ -76,6 +76,15 @@ while IFS=: read -r source dest; do
     fi
 done < "$SYMLINK_MAP"
 
+POLICY_FILE="$DOTFILES_DIR/agents/AGENTS.md"
+if [[ ! -f "$POLICY_FILE" ]]; then
+    echo -e "  ${RED}MISSING:${NC} agents/AGENTS.md"
+    ERRORS=$((ERRORS + 1))
+elif [[ $(wc -c < "$POLICY_FILE") -gt 2048 ]]; then
+    echo -e "  ${RED}OVERSIZED:${NC} agents/AGENTS.md exceeds 2,048 bytes"
+    ERRORS=$((ERRORS + 1))
+fi
+
 if [[ $ERRORS -eq 0 ]]; then
     echo -e "  ${GREEN}All skills valid${NC}"
 else

@@ -53,7 +53,7 @@ configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
 configs/base/claude/.claude/rules/writing-structure.md:$HOME/.claude/rules/writing-structure.md
 skills/dotfiles:$HOME/.claude/skills/dotfiles
 skills/nvim:$HOME/.claude/skills/nvim
-configs/base/claude/.claude/skills/commit:$HOME/.claude/skills/commit
+skills/commit:$HOME/.claude/skills/commit
 plugins/folio/skills/folio:$HOME/.claude/skills/folio
 plugins/jf/skills/jf:$HOME/.claude/skills/jf
 plugins/dendrik/skills/dendrik:$HOME/.claude/skills/dendrik

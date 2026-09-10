@@ -4,9 +4,7 @@ Read by Agent 1 (Design). Self-contained for design sessions.
 
 ## `{writing_mechanics}`
 
-Several prompt templates below end with a `## Writing` section holding this placeholder. Replace it with
-the bullets under **Mechanics** in `~/.claude/rules/writing-structure.md`, quoted verbatim. Do not
-paraphrase. Do not copy them into this file, because a second copy drifts.
+Several prompt templates below end with a `## Writing` section holding this placeholder. Load the Dendrik skill and replace it with the Mechanics section from its writing guidance. Do not paraphrase or copy those mechanics into this file; a second copy drifts.
 
 Only the templates whose output survives as prose carry it: Propose and Converge write files a human
 later reads. Devil's Advocate and Blast Radius return findings the lead re-states, so their prose never

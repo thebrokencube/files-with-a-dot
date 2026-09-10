@@ -15,9 +15,9 @@ Lifecycle toolkit for knowledge work. Local source files compose into external t
 `folio` needs its binary installed. Run this plugin's `bin/setup` once to install it (and again after a
 plugin update). It is idempotent — safe to re-run, and a no-op when the pinned version is already installed.
 
-**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Claude workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
+**Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Agent workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
 
-**Phase markers**: Mark each phase transition with a **single line** — no rationale, no restating the goal. Example: `Phase 2: propose (pragmatic + thorough)`. That is enough to show which phase you're in and let the user course-correct. This is an instance of `~/.claude/rules/writing-structure.md`, not an exception to it: do not narrate what you're about to do or why.
+**Phase markers**: Mark each phase transition with a **single line** — no rationale or restatement of the goal. Example: `Phase 2: propose (pragmatic + thorough)`.
 
 ## Quick Orientation
 
@@ -224,13 +224,19 @@ Some commands have corresponding skill workflows that add creative/judgmental wo
 
 If any CLI command fails, run `folio setup --check` first.
 
+## Isolation and Cleanup
+
+Use a work area for code and a temporary workspace for a Folio store; never create either beside or inside its source checkout. Fetch before branching. Do not enter another workspace or rewrite its working-copy change. Remove a work-area or workspace registration through the owning CLI instead of deleting its directory.
+
+The dotfiles repository is the exception: create its temporary jj workspace under `/tmp/fwad-<topic>`, work there, push its bookmark from that workspace, and create a PR from the colocated checkout.
+
+For a repository or workspace you do not own, use `jj -R <repo-path>` with `--ignore-working-copy`; do not enter it. In your own work area, run commands from the target repository. Never use command substitution, backticks, `git -C`, `--git-dir`, or `--work-tree`.
+
 ## Terminology Note
 
 **"workspace"** in folio CLI always means a **jj workspace** of a KB store — a session-isolated checkout under `/tmp/folio-ws-<id>`. It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
 
 **"work area"** is the code-side counterpart: an isolated checkout of a `code` store, at `~/.folio/.worktrees/<store>/<slug>`. Created with `folio fleet workarea open`, not `folio home workspace create`.
-
-Where each root goes and why neither may sit beside its repo: `~/.claude/rules/isolated-checkouts.md`.
 
 ## Session Lifecycle
 

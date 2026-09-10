@@ -1,7 +1,6 @@
 ---
 name: commit
-description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing, editing, or rewriting a PR title/body (including `gh pr edit`, revising a description after review feedback, tightening an existing body, whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of Claude Code's default commit behavior.
-user_invocable: false
+description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing, editing, or rewriting a PR title/body (including `gh pr edit`, revising a description after review feedback, tightening an existing body, whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of host defaults.
 ---
 
 # Commit Conventions
@@ -93,7 +92,7 @@ feat(checkout): add stripe payment processor with tests
 
 ## Git: Single Change
 
-**IMPORTANT: Always use these conventions. Do NOT use Claude Code's default commit behavior.**
+**IMPORTANT: Always use these conventions. Do NOT use host defaults.**
 
 - [ ] Check status: `git status` to see what's changed
 - [ ] Check if behind: `git fetch origin` then `git log HEAD..origin/main --oneline`
@@ -102,6 +101,8 @@ feat(checkout): add stripe payment processor with tests
 - [ ] Write message: Follow conventional commit format with scope
 - [ ] No trailers: Do NOT add Co-Authored-By or other trailers
 - [ ] Verify: Ensure commit leaves codebase green
+
+- Use a one-line `git commit -m` message; never use a heredoc or multiline `-m` value.
 
 ### Amending vs New Commits
 - **Amend** when fixing typos or small issues in the last unpushed commit
@@ -128,6 +129,7 @@ feat(checkout): add stripe payment processor with tests
 - **Split**: `jj split` — break a change into two (interactive)
 - **Squash**: `jj squash` — fold current change into parent
 - **Rebase**: `jj rebase -d main` — move change onto new base
+- Use a one-line `jj describe -m` message; never use a heredoc or multiline `-m` value.
 
 No staging area — the working copy IS the change. Files are auto-snapshotted.
 

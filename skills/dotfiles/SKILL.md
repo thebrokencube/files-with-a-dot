@@ -107,6 +107,7 @@ Managed files drift when external tools modify the destination file after compil
   Both have been pushed back on.
 - **Private-only files** (no base half) belong in `~/.dotfiles.private` plus its own `symlink_map.txt`
   (e.g. `jf.yml:$HOME/.jf.yml`) — not as a base+overlay managed merge.
+- Invoke installed command-line tools by their command name, not an absolute path.
 
 ### Releasing a CLI tool
 
@@ -138,24 +139,19 @@ change ships through `dot sync` and needs no release.
 3. If manual action needed, add to `check_setup_status()`
 4. If walkthrough needed, add step to `run_interactive_setup()`
 
-### Adding/Modifying Skills
+### Adding or Modifying Skills
 
-**Location**: `configs/base/claude/.claude/skills/<name>/SKILL.md`
+**Location**: `skills/<name>/SKILL.md` for shared skills, or `plugins/<tool>/skills/<tool>/SKILL.md` for tool bundles.
 
 **Required frontmatter:**
 ```yaml
 ---
 name: skill-name
-description: When to use this skill (for Claude's context)
+description: When to use this skill
 ---
 ```
 
-**Optional frontmatter:**
-- `user_invocable: true` - User-invocable slash command
-- `user_invocable: false` - Claude-only (background knowledge)
-- `allowed-tools: Read, Grep` - Restrict tools
-
-**Keep skills focused**: One topic per skill, detailed docs in supporting files.
+Use only standard Agent Skills fields. Keep skills focused; put detailed procedures in references.
 
 ### Build Artifacts
 

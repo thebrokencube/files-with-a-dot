@@ -140,3 +140,6 @@ Maximum 5 findings (excluding strengths). If everything passes, say so — don't
 | `references/cli-conventions.md` | Conventions lens — CLI details |
 | `references/distribution-conventions.md` | Conventions lens — cross-harness plugin/marketplace distribution |
 | `references/contract-checks.md` | Conventions lens — all check IDs |
+| `references/code-comments.md` | Review or write a code comment |
+| `references/verification.md` | Plan or assess verification and delegated review |
+| `references/writing-guidance.md` | Write human-facing artifacts or subagent prompts |
