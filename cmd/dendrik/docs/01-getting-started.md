@@ -31,8 +31,8 @@ Sample output:
 ```
   E [go-mod-linked] go.work does not link this tool (go.work)
     Add `./cmd/jf` to the `use` block in go.work.
-  W [claude-md-exists] CLAUDE.md not found (CLAUDE.md)
-    Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.
+  W [agents-md-exists] AGENTS.md not found (AGENTS.md)
+    Create AGENTS.md with the tool's build, test, distribution, and code conventions.
 
 jf: 1 error(s), 1 warning(s)
 ```

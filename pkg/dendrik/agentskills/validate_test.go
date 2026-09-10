@@ -19,12 +19,27 @@ func TestValidateLayer1_ValidSkill(t *testing.T) {
 }
 
 func TestValidatePortableRejectsHarnessFields(t *testing.T) {
+	for _, field := range []string{"user_invocable: true", "argument-hint: <value>"} {
+		t.Run(field, func(t *testing.T) {
+			dir := t.TempDir()
+			content := "---\nname: test\ndescription: Use when testing\n" + field + "\n---\n# Test\n"
+			if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			assertHasCheck(t, ValidatePortable(dir, "test"), "portable-skill-fields", SeverityError)
+		})
+	}
+}
+
+func TestValidatePortableAcceptsStandardFields(t *testing.T) {
 	dir := t.TempDir()
-	content := "---\nname: test\ndescription: Use when testing\nuser_invocable: true\n---\n# Test\n"
+	content := "---\nname: test\ndescription: Use when testing\nlicense: MIT\ncompatibility: Go 1.24\nmetadata:\n  owner: tooling\nallowed-tools: Read, Grep\n---\n# Test\n"
 	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	assertHasCheck(t, ValidatePortable(dir, "test"), "portable-skill-fields", SeverityError)
+	if results := filterByCheck(ValidatePortable(dir, "test"), "portable-skill-fields"); len(results) != 0 {
+		t.Errorf("expected standard fields to be portable, got %v", results)
+	}
 }
 
 func TestValidateLayer1_NoSkillFile(t *testing.T) {

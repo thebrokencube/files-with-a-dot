@@ -15,33 +15,6 @@ func TestSkillLint_NoSkillMD(t *testing.T) {
 	}
 }
 
-func TestSkillLint_ArgumentHint(t *testing.T) {
-	t.Run("invocable without hint", func(t *testing.T) {
-		data := skillToolData("test")
-		data.SkillMD = []byte("---\nname: test\ndescription: \"Use when testing things\"\nuser_invocable: true\n---\n# Test\n")
-		results := filterCheck(SkillLint(data), "argument-hint")
-		assertCheckPresent(t, results, "argument-hint")
-	})
-
-	t.Run("invocable with hint", func(t *testing.T) {
-		data := skillToolData("test")
-		data.SkillMD = []byte("---\nname: test\ndescription: \"Use when testing things\"\nuser_invocable: true\nargument-hint: \"<cmd> [flags]\"\n---\n# Test\n")
-		results := filterCheck(SkillLint(data), "argument-hint")
-		if len(results) > 0 {
-			t.Errorf("expected no argument-hint errors, got %v", results)
-		}
-	})
-
-	t.Run("not invocable", func(t *testing.T) {
-		data := skillToolData("test")
-		data.SkillMD = []byte("---\nname: test\ndescription: \"Use when testing things\"\nuser_invocable: false\n---\n# Test\n")
-		results := filterCheck(SkillLint(data), "argument-hint")
-		if len(results) > 0 {
-			t.Errorf("expected no argument-hint errors when not invocable, got %v", results)
-		}
-	})
-}
-
 func TestSkillLint_ArrowRefs(t *testing.T) {
 	t.Run("valid arrow ref", func(t *testing.T) {
 		data := skillToolData("test")

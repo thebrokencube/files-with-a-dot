@@ -55,8 +55,8 @@ secondary concern. **Fail:** multiple distinct jobs; fails the 8-word test.
 ## 4. Completeness
 
 **Check:** All referenced files exist (arrow refs, markdown links, script paths)? Required
-frontmatter present (`name`, `description`)? If `user_invocable: true`, is `argument-hint`
-present? Any dead references? For CLI-backed skills: does it mention how to invoke the CLI?
+frontmatter present (`name`, `description`)? Any dead references? For CLI-backed skills: does it
+mention how to invoke the CLI?
 
 **Pass:** all links resolve, frontmatter complete, no dead references. **Warn:** minor gap (a
 referenced file not yet created). **Fail:** broken links, missing required frontmatter — the

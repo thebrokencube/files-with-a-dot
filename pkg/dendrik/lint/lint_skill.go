@@ -49,32 +49,12 @@ func SkillLint(data *ToolData) []Result {
 	}
 
 	// Layer 2 checks (dendrik-specific)
-	results = append(results, checkArgumentHint(fm)...)
 	results = append(results, checkArrowRefs(data)...)
 	results = append(results, checkActivationGuidance(fm)...)
 	results = append(results, checkActivationMetadata(fm)...)
 	results = append(results, checkWorkSpecificContent(data)...)
 
 	return results
-}
-
-func checkArgumentHint(fm *agentskills.SkillFrontmatter) []Result {
-	// Check if user_invocable is truthy
-	invocable := false
-	switch v := fm.UserInvocable.(type) {
-	case bool:
-		invocable = v
-	case string:
-		invocable = strings.EqualFold(v, "true")
-	}
-
-	if invocable && fm.ArgumentHint == "" {
-		return []Result{lintResult("argument-hint", conventions.SeverityError,
-			"user_invocable is true but argument-hint is missing",
-			"skill/SKILL.md", 0,
-			"Add `argument-hint:` field to SKILL.md frontmatter (e.g., `argument-hint: \"<command> [flags]\"`).")}
-	}
-	return nil
 }
 
 func checkArrowRefs(data *ToolData) []Result {

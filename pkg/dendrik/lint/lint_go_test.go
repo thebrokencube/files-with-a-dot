@@ -290,6 +290,27 @@ func TestGoLint_READMESections(t *testing.T) {
 	})
 }
 
+func TestGoLint_AgentsMDExists(t *testing.T) {
+	t.Run("present", func(t *testing.T) {
+		data := minimalToolData("test")
+		data.HasAGENTSMD = true
+		if results := filterCheck(GoLint(data), "agents-md-exists"); len(results) != 0 {
+			t.Errorf("expected no agents-md-exists warning, got %v", results)
+		}
+	})
+
+	t.Run("missing", func(t *testing.T) {
+		data := minimalToolData("test")
+		results := GoLint(data)
+		assertCheckPresent(t, results, "agents-md-exists")
+		for _, result := range results {
+			if result.CheckID == "claude-md-exists" {
+				t.Errorf("obsolete claude-md-exists check present in %v", results)
+			}
+		}
+	})
+}
+
 // --- helpers ---
 
 func minimalToolData(name string) *ToolData {

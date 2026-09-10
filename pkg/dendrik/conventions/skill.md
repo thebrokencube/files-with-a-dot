@@ -7,12 +7,7 @@ Conventions codified from the jf and folio skill implementations. This is the
 source of truth for the skill conventions enforced by the `dendrik lint` contract
 (see `contract.go`) and `dendrik new` (Track 5).
 
-**Agent Skills standard alignment**: dendrik's skill validation is grounded
-in the Agent Skills standard (agentskills.io). Layer 1 checks (`skill-exists`
-through `skill-size`) validate any SKILL.md against the standard. Layer 2
-checks (`argument-hint` through `activation-metadata`) add dendrik-specific
-conventions. The `pkg/dendrik/agentskills/` package implements Layer 1 as a
-standalone validator.
+**Agent Skills standard alignment**: dendrik's Layer 1 validator accepts standard, legacy, and extension frontmatter so existing skills remain parseable. `ValidatePortable` adds the portable-field boundary. Dendrik-specific checks are `arrow-refs`, `activation-guidance`, `activation-metadata`, and `work-specific-content`.
 
 ---
 
@@ -29,28 +24,15 @@ description: "Verb-rich description with trigger phrases for discovery"
 
 Required fields: `name`, `description`.
 
-Optional fields:
-- `user_invocable: true` — skill can be invoked with `/toolname`
-- `argument-hint: "[command] [args]"` — required if `user_invocable: true`
-- `version` — skill version string
-- `compatibility` — compatibility constraints
-- `metadata` — arbitrary key-value metadata object
-- `trigger` — string or string array; custom routing condition for when to activate
-- `skip_when` — string or string array; custom routing condition for when NOT to activate
-- `related` — string or string array; cross-references to related skills
+Portable optional fields: `license`, `allowed-tools`, `compatibility`, and `metadata`.
 
-The `name` field must be present even for plugin-distributed skills (confirmed
-in dendrik architecture hardening — contradicts the original replicant doc
-which proposed removing it).
+Layer 1 also parses legacy and Dendrik extension fields for compatibility and diagnostics. Portable validation rejects those fields.
 
-Conditional activation fields (`trigger`, `skip_when`, `related`) are optional.
-If present, they must be non-empty strings or string arrays (check ID:
-`activation-metadata`). These fields are not in the core Agent Skills spec but
-are supported by the dendrik validator as extension fields.
+Conditional activation fields (`trigger`, `skip_when`, `related`) are legacy Dendrik extensions. When present, they must be non-empty strings or string arrays (check ID: `activation-metadata`).
 
 ### Description guidelines
 
-The description is how Claude Code discovers skills. Include:
+The description drives skill discovery. Include:
 
 - **Action verbs** that match user intent (managing, creating, editing, pushing)
 - **Tool/file names** the skill operates on (Jira, folio.yml, tickets)
@@ -93,9 +75,9 @@ plugins/{cli}/skills/{cli}/
   tooling.yml                 # Optional external-system routing
 ```
 
-The same authored tree is symlinked for local Claude discovery and shipped inside the closed native
+The same authored tree is symlinked for local host discovery and shipped inside the closed native
 bundle. Implementation source remains under `cmd/{cli}` and is never published as plugin content.
-How the bundle is generated, validated, and admitted for a native harness is defined in
+How the bundle is generated, validated, and admitted for a native host is defined in
 `distribution.md`.
 
 ### Standalone skill (no CLI)

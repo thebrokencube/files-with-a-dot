@@ -44,8 +44,8 @@ type ToolData struct {
 	HasREADME   bool         // README.md exists
 	READMEBytes []byte       // README.md content
 
-	// Docs layer
-	HasCLAUDEMD bool     // CLAUDE.md exists
+	// Instruction layer
+	HasAGENTSMD bool     // AGENTS.md exists
 	DocsFiles   []string // filenames in docs/ (e.g., "01-getting-started.md")
 
 	// Skill layer
