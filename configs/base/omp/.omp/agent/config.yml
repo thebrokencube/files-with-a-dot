@@ -2,14 +2,8 @@ display:
   showTokenUsage: true
   cacheMissMarker: true
 
-# Dotfiles installs shared skills under ~/.claude/skills; OMP leaves foreign user-level
-# providers off by default, so opt into Claude-format discovery for those skills.
+# Preserve active Claude Code MCP imports until native MCP is installed.
 enabledProviders:
   - claude
-
-# Claude Code marketplace plugins are managed and invoked by Claude Code. OMP-owned
-# capabilities must use OMP's native roots or marketplace.
-disabledProviders:
-  - claude-plugins
 
 # Near-empty on purpose: omp's cost mechanisms are already on by default, so only settings that ship OFF belong here.
