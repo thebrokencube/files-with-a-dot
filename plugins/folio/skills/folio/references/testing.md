@@ -33,7 +33,7 @@ FOLIO_HOME=/tmp/folio-test folio home init
 Verify:
 - [ ] `/tmp/folio-test/{active,archive}` directories created
 - [ ] `/tmp/folio-test/.git` exists (git repo initialized)
-- [ ] `CLAUDE.md`, `README.md`, `.gitignore` present
+- [ ] `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` present
 
 ```bash
 FOLIO_HOME=/tmp/folio-test folio init --name "test-project"

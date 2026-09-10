@@ -2,12 +2,27 @@ package home
 
 // Templates for folio home init scaffolding.
 
+const TemplateAgents = `# Folio Home
+
+Use Folio's lifecycle and source-declaration conventions. Keep project knowledge versioned in this home.
+`
+
+const LegacyTemplateClaude = `# Folio Home
+`
+
 const TemplateClaude = `# Folio Home
+
+@AGENTS.md
+`
+
+const LegacyTemplateReadme = `# Folio Home
+
+See [CLAUDE.md](./CLAUDE.md) for details.
 `
 
 const TemplateReadme = `# Folio Home
 
-See [CLAUDE.md](./CLAUDE.md) for details.
+See [AGENTS.md](./AGENTS.md) for guidance.
 `
 
 const TemplateGitignore = `.obsidian/

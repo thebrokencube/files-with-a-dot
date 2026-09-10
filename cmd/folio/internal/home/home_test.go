@@ -39,10 +39,22 @@ func TestInit_CreatesStructure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, name := range []string{"active", "archive", "CLAUDE.md", "README.md"} {
+	for _, name := range []string{"active", "archive", "AGENTS.md", "CLAUDE.md", "README.md"} {
 		p := filepath.Join(dir, name)
 		if _, err := os.Stat(p); os.IsNotExist(err) {
 			t.Errorf("missing: %s", name)
+		}
+	}
+	for name, want := range map[string]string{
+		"CLAUDE.md": "@AGENTS.md\n",
+		"README.md": "See [AGENTS.md](./AGENTS.md) for guidance.\n",
+	} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != "# Folio Home\n\n"+want {
+			t.Errorf("unexpected %s: %q", name, data)
 		}
 	}
 }
@@ -70,16 +82,52 @@ func TestInit_Idempotent(t *testing.T) {
 
 	Init(dir)
 
-	// Write custom CLAUDE.md
-	custom := filepath.Join(dir, "CLAUDE.md")
-	os.WriteFile(custom, []byte("custom content"), 0644)
+	for _, name := range []string{"AGENTS.md", "CLAUDE.md", "README.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(name+" custom"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"AGENTS.md", "CLAUDE.md", "README.md"} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != name+" custom" {
+			t.Errorf("Init overwrote existing %s", name)
+		}
+	}
+}
 
-	// Init again should not overwrite
-	Init(dir)
-
-	data, _ := os.ReadFile(custom)
-	if string(data) != "custom content" {
-		t.Error("Init overwrote existing CLAUDE.md")
+func TestInit_MigratesLegacyScaffolds(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "folio-home")
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{
+		"CLAUDE.md": LegacyTemplateClaude,
+		"README.md": LegacyTemplateReadme,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"CLAUDE.md": TemplateClaude,
+		"README.md": TemplateReadme,
+	} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != want {
+			t.Errorf("unexpected %s: %q", name, data)
+		}
 	}
 }
 
