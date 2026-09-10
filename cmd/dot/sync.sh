@@ -251,16 +251,10 @@ analyze_state() {
             done < "$private_map"
         fi
 
-        # Private skills
-        if [[ -d "$PRIVATE_DIR/skills" ]]; then
-            for skill in "$PRIVATE_DIR/skills"/*/; do
-                [[ -d "$skill" ]] || continue
-                local skill_name
-                skill_name=$(basename "$skill")
-                [[ "$skill_name" == ".gitkeep" ]] && continue
-                local dest="$HOME/.claude/skills/$skill_name"
-                check_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR" || true
-            done
+        plan_private_skill_map_migration
+        register_private_skill_map_actions
+        if [[ "$LINKS_ONLY" == false ]] && private_overlay_migration_pending; then
+            ACTIONS+=("Migrate private overlay legacy state")
         fi
     fi
 
@@ -558,7 +552,7 @@ if [[ "$DRY_RUN" == true ]]; then
     exit 0
 fi
 
-if ! confirm ${FORCE:+-f} "Proceed with sync?"; then
+if ! confirm_with_force "$FORCE" "Proceed with sync?"; then
     echo "Aborted."
     exit 2
 fi
@@ -594,13 +588,15 @@ create_dotfiles_symlink
 # Use symlink path for subsequent symlinks (more portable)
 [[ "$DOTFILES_DIR" != "$HOME/.dotfiles" && -L "$HOME/.dotfiles" ]] && DOTFILES_DIR="$HOME/.dotfiles"
 
-# Migrate: remove legacy profile system (profiles removed in v0.7.0)
+# Migrate legacy private state only after the accepted full-sync gate.
 [[ -f "$DOTFILES_DIR/.profile" ]] && rm -f "$DOTFILES_DIR/.profile"
 migrate_private_overlay
+plan_private_skill_map_migration
+migrate_private_skill_map
 
 # Migrate from ~/.claude directory symlink to granular linking
 if has_private_overlay; then
-    check_private_destination_collisions "$SYMLINK_MAP" "$PRIVATE_DIR"
+    check_private_destination_collisions
 fi
 
 if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
@@ -634,23 +630,7 @@ echo ""
 echo "Installing CLI tools..."
 install_tools
 
-if has_private_overlay; then
-    echo ""
-    echo "Applying private overlay..."
-    apply_private_symlinks "$(get_private_symlink_map)" "$PRIVATE_DIR"
 
-    # Private skills
-    if [[ -d "$PRIVATE_DIR/skills" ]]; then
-        for skill in "$PRIVATE_DIR/skills"/*/; do
-            [[ -d "$skill" ]] || continue
-            skill_name=$(basename "$skill")
-            [[ "$skill_name" == ".gitkeep" ]] && continue
-            dest="$HOME/.claude/skills/$skill_name"
-            mkdir -p "$(dirname "$dest")"
-            create_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR"
-        done
-    fi
-fi
 echo ""
 
 # Integrate shell configs
@@ -669,16 +649,16 @@ if [[ "$IS_FIRST_TIME" == true ]] && ! has_private_overlay; then
     echo "API keys, shell customizations) in a separate directory that can"
     echo "optionally be backed up to a private git remote."
     echo ""
-    if confirm ${FORCE:+-f} "Initialize private overlay at $PRIVATE_DIR?"; then
+    if confirm_with_force "$FORCE" "Initialize private overlay at $PRIVATE_DIR?"; then
         init_private_overlay
+        plan_private_skill_map_migration
+        migrate_private_skill_map
+        check_private_destination_collisions
         echo ""
-        echo "Applying private symlinks..."
-        private_sync
+        private_sync --confirmed
     fi
 elif has_private_overlay; then
-    # Existing overlay: re-apply symlinks (may have new entries)
-    echo "Applying private symlinks..."
-    private_sync
+    private_sync --confirmed
 fi
 
 # Auto-resolve disk-ahead drift for plugin manifests (Claude self-updates these)

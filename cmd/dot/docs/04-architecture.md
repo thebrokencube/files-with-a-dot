@@ -90,7 +90,7 @@ Set automatically by:
 
 Auto-appends `[Y/n]` or `[y/N]` based on default. Scripts use:
 ```bash
-confirm ${FORCE:+-f} "Continue?" "no"
+confirm_with_force "$FORCE" "Continue?" "no"
 ```
 
 ### Target Topology

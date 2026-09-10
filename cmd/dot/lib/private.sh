@@ -11,6 +11,15 @@
 
 PRIVATE_DIR="$HOME/.dotfiles.private"
 
+PRIVATE_SKILL_ROOTS=(
+    '$HOME/.claude/skills'
+    '$HOME/.omp/agent/skills'
+    '$HOME/.codex/skills'
+)
+PRIVATE_SKILL_MAP_PLAN=()
+PRIVATE_SKILL_MAP_PLANNED=false
+PRIVATE_SKILL_MIGRATION_SKILL_COUNT=0
+
 # Check if private overlay exists
 has_private_overlay() {
     [[ -d "$PRIVATE_DIR" ]]
@@ -121,12 +130,71 @@ apply_private_symlinks() {
     done < "$symlink_map"
 }
 
+private_skill_map_has_entry() {
+    local private_map="$1" entry="$2"
+    [[ -f "$private_map" ]] && grep -Fqx -- "$entry" "$private_map"
+}
+
+plan_private_skill_map_migration() {
+    PRIVATE_SKILL_MAP_PLAN=()
+    PRIVATE_SKILL_MAP_PLANNED=true
+    PRIVATE_SKILL_MIGRATION_SKILL_COUNT=0
+    has_private_overlay || return 0
+
+    local private_map skill skill_name root entry missing
+    private_map="$(get_private_symlink_map)"
+    [[ -d "$PRIVATE_DIR/skills" ]] || return 0
+    for skill in "$PRIVATE_DIR"/skills/*/; do
+        [[ -d "$skill" ]] || continue
+        skill_name=$(basename "$skill")
+        [[ "$skill_name" == ".gitkeep" ]] && continue
+        missing=false
+        for root in "${PRIVATE_SKILL_ROOTS[@]}"; do
+            entry="skills/$skill_name:$root/$skill_name"
+            if ! private_skill_map_has_entry "$private_map" "$entry"; then
+                PRIVATE_SKILL_MAP_PLAN+=("$entry")
+                missing=true
+            fi
+        done
+        [[ "$missing" == true ]] && PRIVATE_SKILL_MIGRATION_SKILL_COUNT=$((PRIVATE_SKILL_MIGRATION_SKILL_COUNT + 1))
+    done
+    return 0
+}
+
+register_private_skill_map_actions() {
+    local index
+    for ((index = 0; index < PRIVATE_SKILL_MIGRATION_SKILL_COUNT; index++)); do
+        ACTIONS+=("Add private skill map rows to declared agent roots")
+    done
+}
+
+private_overlay_migration_pending() {
+    has_private_overlay || return 1
+    [[ -d "$PRIVATE_DIR/work" || -d "$PRIVATE_DIR/personal" || -d "$DOTFILES_DIR/local" || -f "$DOTFILES_DIR/.profile" ]]
+}
+
+migrate_private_skill_map() {
+    [[ "$PRIVATE_SKILL_MAP_PLANNED" == true ]] || {
+        echo "ERROR: private skill map migration was not planned" >&2
+        return 1
+    }
+    [[ ${#PRIVATE_SKILL_MAP_PLAN[@]} -gt 0 ]] || return 0
+
+    local private_map entry
+    private_map="$(get_private_symlink_map)"
+    mkdir -p "$PRIVATE_DIR"
+    touch "$private_map"
+    for entry in "${PRIVATE_SKILL_MAP_PLAN[@]}"; do
+        private_skill_map_has_entry "$private_map" "$entry" || printf '%s\n' "$entry" >> "$private_map"
+    done
+}
+
 # Reject public/private destination collisions before either map mutates the machine.
 # Errors identify only the public destination; private source names remain undisclosed.
 check_private_destination_collisions() {
-    local public_map="$1" private_root="$2"
+    local public_map="${1:-$DOTFILES_DIR/symlink_map.txt}" private_root="${2:-$PRIVATE_DIR}"
     [[ -d "$private_root" ]] || return 0
-    local private_map="$private_root/symlink_map.txt" line dest skill private_dest
+    local private_map="$private_root/symlink_map.txt" line dest private_dest
     local private_dests=()
     if [[ -f "$private_map" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
@@ -134,12 +202,8 @@ check_private_destination_collisions() {
             private_dests+=("$(get_dest "$line")")
         done < "$private_map"
     fi
-    if [[ -d "$private_root/skills" ]]; then
-        for skill in "$private_root"/skills/*/; do
-            [[ -d "$skill" ]] || continue
-            private_dests+=("$HOME/.claude/skills/$(basename "$skill")")
-        done
-    fi
+    [[ ${#private_dests[@]} -gt 0 ]] || return 0
+
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
         dest=$(get_dest "$line")
@@ -167,7 +231,7 @@ migrate_private_overlay() {
         echo "Migrating private overlay from legacy profile structure..."
         did_migrate=true
 
-        local profile pdir has_entries skill skill_name archive other_profile
+        local profile pdir has_entries skill skill_name archive other_profile migrated_skills=0
         for profile in work personal; do
             pdir="$PRIVATE_DIR/$profile"
             [[ -d "$pdir/skills" ]] || continue
@@ -176,13 +240,13 @@ migrate_private_overlay() {
                 skill_name=$(basename "$skill")
                 [[ "$skill_name" == ".gitkeep" ]] && continue
                 if [[ -e "$PRIVATE_DIR/skills/$skill_name" ]]; then
-                    echo "ERROR: legacy $profile skill conflicts with existing private skill: $skill_name" >&2
+                    echo "ERROR: legacy private skill conflicts with existing private skill" >&2
                     return 1
                 fi
                 other_profile=personal
                 [[ "$profile" == personal ]] && other_profile=work
                 if [[ -d "$PRIVATE_DIR/$other_profile/skills/$skill_name" ]]; then
-                    echo "ERROR: legacy profiles contain conflicting skill: $skill_name" >&2
+                    echo "ERROR: legacy profiles contain conflicting private skills" >&2
                     return 1
                 fi
             done
@@ -217,7 +281,7 @@ migrate_private_overlay() {
                     skill_name=$(basename "$skill")
                     [[ "$skill_name" == ".gitkeep" ]] && continue
                     mv "$skill" "$PRIVATE_DIR/skills/$skill_name"
-                    echo "  Moved skill: $skill_name"
+                    migrated_skills=$((migrated_skills + 1))
                 done
             fi
 
@@ -225,6 +289,7 @@ migrate_private_overlay() {
             mv "$pdir" "$archive"
             echo "  Archived legacy $profile profile at $(basename "$archive")"
         done
+        [[ "$migrated_skills" -gt 0 ]] && echo "  Moved $migrated_skills private skill(s)"
         [[ -d "$PRIVATE_DIR/shared" ]] && rmdir "$PRIVATE_DIR/shared" 2>/dev/null || true
     fi
 
@@ -481,34 +546,48 @@ private_push() {
     git_push_with_preview "$PRIVATE_DIR" "private" "${1:-}"
 }
 
+apply_private_map() {
+    local private_map
+    private_map="$(get_private_symlink_map)"
+    section "Applying private symlinks..."
+    apply_private_symlinks "$private_map" "$PRIVATE_DIR"
+    ok "Private symlinks applied."
+}
+
 # Re-apply private symlinks.
-# Requires: lib/paths.sh and lib/backup.sh to be sourced (for create_private_symlink).
+# Requires: lib/paths.sh, lib/backup.sh, and lib/prompt.sh.
 private_sync() {
+    local force=false confirmed=false arg
+    for arg in "$@"; do
+        case "$arg" in
+            --force) force=true ;;
+            --confirmed) confirmed=true ;;
+            *)
+                err "Unknown private sync option: $arg"
+                return 2
+                ;;
+        esac
+    done
+
     if ! has_private_overlay; then
         err "No private overlay found. Run: dot private init"
         return 1
     fi
 
-    section "Applying private symlinks..."
-
-    local private_map
-    private_map="$(get_private_symlink_map)"
-    apply_private_symlinks "$private_map" "$PRIVATE_DIR"
-
-    # Private skills
-    if [[ -d "$PRIVATE_DIR/skills" ]]; then
-        for skill in "$PRIVATE_DIR/skills"/*/; do
-            [[ -d "$skill" ]] || continue
-            local skill_name
-            skill_name=$(basename "$skill")
-            [[ "$skill_name" == ".gitkeep" ]] && continue
-            local dest="$HOME/.claude/skills/$skill_name"
-            mkdir -p "$(dirname "$dest")"
-            create_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR"
-        done
+    if [[ "$confirmed" == false ]]; then
+        plan_private_skill_map_migration
+        if [[ "$PRIVATE_SKILL_MIGRATION_SKILL_COUNT" -gt 0 ]]; then
+            info "Private skill map migration planned for $PRIVATE_SKILL_MIGRATION_SKILL_COUNT skill(s)"
+        fi
+        if ! confirm_with_force "$force" "Apply private symlinks?" "no"; then
+            info "Private sync skipped."
+            return 0
+        fi
+        migrate_private_skill_map
+        check_private_destination_collisions
     fi
 
-    ok "Private symlinks applied."
+    apply_private_map
 }
 
 # ── Managed files ─────────────────────────────────────────────────────────────

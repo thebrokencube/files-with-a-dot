@@ -204,7 +204,15 @@ case "$COMMAND" in
         case "$subcmd" in
             status)  private_status ;;
             init)    init_private_overlay "$@" ;;
-            sync)    private_sync ;;
+            sync)
+                for arg in "$@"; do
+                    if [[ "$arg" == "--confirmed" ]]; then
+                        echo -e "${RED}Error:${NC} --confirmed is internal to dot sync"
+                        exit 1
+                    fi
+                done
+                private_sync "$@"
+                ;;
             pull)    private_pull ;;
             push)    private_push "$@" ;;
             edit)    "${EDITOR:-nvim}" "$HOME/.dotfiles.private" ;;

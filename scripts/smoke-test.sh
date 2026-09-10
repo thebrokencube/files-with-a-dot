@@ -81,6 +81,7 @@ COLLISION_HOME="$TMP/collision-home"
 PUBLIC_MAP="$TMP/public-map.txt"
 PRIVATE_ROOT="$COLLISION_HOME/.dotfiles.private"
 mkdir -p "$PRIVATE_ROOT/skills/folio"
+printf 'skills/folio:$HOME/.claude/skills/folio\n' > "$PRIVATE_ROOT/symlink_map.txt"
 printf 'plugins/folio/skills/folio:$HOME/.claude/skills/folio\n' > "$PUBLIC_MAP"
 collision_out="$(HOME="$COLLISION_HOME" bash -c '
   set -e
