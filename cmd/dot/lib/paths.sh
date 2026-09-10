@@ -46,6 +46,8 @@ resolve_path() {
     local path="$1"
     realpath "$path" 2>/dev/null || echo ""
 }
+RETIRED_LINK_SOURCE_DIR="$DOTFILES_DIR"
+
 
 RETIRED_LINK_PAIRS=(
     "$HOME/.claude/CLAUDE.md|configs/base/claude/.claude/CLAUDE.md"
@@ -67,7 +69,7 @@ retired_link_matches() {
     raw_target=$(readlink "$destination") || return 1
 
     resolved_root=$(resolve_path "$DOTFILES_DIR")
-    for root in "$DOTFILES_DIR" "$resolved_root" "$HOME/.dotfiles"; do
+    for root in "$RETIRED_LINK_SOURCE_DIR" "$DOTFILES_DIR" "$resolved_root" "$HOME/.dotfiles"; do
         [[ -n "$root" && "$raw_target" == "$root/$source" ]] && return 0
     done
     return 1

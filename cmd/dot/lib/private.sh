@@ -192,14 +192,19 @@ migrate_private_skill_map() {
 # Reject public/private destination collisions before either map mutates the machine.
 # Errors identify only the public destination; private source names remain undisclosed.
 check_private_destination_collisions() {
-    local public_map="${1:-$DOTFILES_DIR/symlink_map.txt}" private_root="${2:-$PRIVATE_DIR}"
+    local public_map="${1:-$DOTFILES_DIR/symlink_map.txt}" private_root="${2:-$PRIVATE_DIR}" agent_skills_only="${3:-false}"
     [[ -d "$private_root" ]] || return 0
-    local private_map="$private_root/symlink_map.txt" line dest private_dest
+    local private_map="$private_root/symlink_map.txt" line source dest private_dest
     local private_dests=()
     if [[ -f "$private_map" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            private_dests+=("$(get_dest "$line")")
+            source=$(get_source "$line")
+            dest=$(get_dest "$line")
+            if [[ "$agent_skills_only" == true ]] && ! is_private_agent_skill_entry "$source" "$dest"; then
+                continue
+            fi
+            private_dests+=("$dest")
         done < "$private_map"
     fi
     [[ ${#private_dests[@]} -gt 0 ]] || return 0
@@ -586,6 +591,8 @@ private_sync() {
         migrate_private_skill_map
         check_private_destination_collisions
     fi
+    init_backup
+
 
     apply_private_map
 }

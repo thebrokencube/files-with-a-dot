@@ -197,7 +197,6 @@ case "$COMMAND" in
         # shellcheck source=lib/private.sh
         source "$DOT_DIR/lib/private.sh"
 
-        init_backup
 
         subcmd="${1:-status}"
         shift 2>/dev/null || true
