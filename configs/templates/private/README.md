@@ -8,7 +8,7 @@ This is your private dotfiles overlay. It layers on top of your public dotfiles.
 ~/.dotfiles.private/
 ├── symlink_map.txt     # Private symlinks
 ├── Brewfile            # Private Homebrew packages
-├── skills/             # Private Claude Code skills
+├── skills/             # Private agent skills
 │   └── my-skill/
 │       └── SKILL.md
 └── ...                 # Any other private configs
@@ -29,9 +29,17 @@ Configs are applied in this order (later overrides earlier):
 
 ## Adding Skills
 
-Put Claude skills in `skills/`:
+Put private agent skills in `skills/`:
 ```
 skills/my-tool/SKILL.md
 ```
 
-They'll be symlinked to `~/.claude/skills/` on sync.
+Add these explicit rows to `symlink_map.txt` for each skill:
+
+```text
+skills/my-tool:$HOME/.claude/skills/my-tool
+skills/my-tool:$HOME/.omp/agent/skills/my-tool
+skills/my-tool:$HOME/.codex/skills/my-tool
+```
+
+They declare candidate map roots; they do not claim host support.

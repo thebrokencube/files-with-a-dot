@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --fix          Auto-fix issues where possible"
             echo "  --check NAME   Run specific check only"
             echo ""
-            echo "Available checks: tools, brew, local, nvim, claude, signing, managed, setup"
+            echo "Available checks: tools, brew, local, nvim, claude, agent-roots, signing, managed, setup"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -306,6 +306,44 @@ check_claude() {
     fi
 }
 
+check_agent_roots() {
+    echo "Declared candidate agent roots:"
+
+    local map_file="$DOTFILES_DIR/symlink_map.txt" root line source dest source_path declared
+    local roots=("$HOME/.claude" "$HOME/.omp/agent" "$HOME/.codex")
+    if [[ ! -f "$map_file" ]]; then
+        err "symlink_map.txt not found"
+        return
+    fi
+
+    for root in "${roots[@]}"; do
+        declared=0
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            source="${line%%:*}"
+            dest="${line#*:}"
+            dest="${dest/\$HOME/$HOME}"
+            case "$source" in
+                agents/AGENTS.md|skills/*|plugins/*/skills/*) ;;
+                *) continue ;;
+            esac
+            [[ "$dest" == "$root/"* ]] || continue
+            source_path="$DOTFILES_DIR/$source"
+            if [[ -L "$dest" && -e "$dest" ]] && [[ "$(realpath "$dest")" == "$(realpath "$source_path")" ]]; then
+                declared=$((declared + 1))
+            else
+                err "${dest#"$HOME"/} is not linked to its declared map source"
+            fi
+        done < "$map_file"
+
+        if [[ "$declared" -eq 0 ]]; then
+            err "${root#"$HOME"/} has no declared map links"
+        else
+            ok "${root#"$HOME"/}: $declared declared map link(s)"
+        fi
+    done
+}
+
 check_signing() {
     echo "Commit signing:"
 
@@ -442,6 +480,7 @@ if [[ -n "$SPECIFIC_CHECK" ]]; then
         local) check_local ;;
         nvim) check_nvim ;;
         claude) check_claude ;;
+        agent-roots) check_agent_roots ;;
         signing) check_signing ;;
         managed) check_managed ;;
         setup) check_setup_status >/dev/null ;;
@@ -459,6 +498,8 @@ else
     check_nvim
     echo ""
     check_claude
+    echo ""
+    check_agent_roots
     echo ""
     check_signing
     echo ""

@@ -142,6 +142,13 @@ done
 ! grep -Fq 'Migrate private overlay legacy state' <<<"$link_out" || fail "links-only planned legacy private migration"
 ok "links-only applies public and declared private skill links without full-sync work"
 
+agent_roots_out="$(HOME="$LINK_HOME" DOTFILES_DIR="$ROOT" "$ROOT/cmd/dot/dot" health --check agent-roots)"
+grep -Fq 'Declared candidate agent roots:' <<<"$agent_roots_out" || fail "agent-roots health check is not visible"
+for root in '.claude' '.omp/agent' '.codex'; do
+  grep -Fq "$root: 7 declared map link(s)" <<<"$agent_roots_out" || fail "agent-roots health check missed $root"
+done
+ok "agent-roots health check reports declared map topology"
+
 MAPLESS_HOME="$TMP/mapless-home"
 MAPLESS_PRIVATE="$MAPLESS_HOME/.dotfiles.private"
 mkdir -p "$MAPLESS_PRIVATE/skills/private-source-token"
