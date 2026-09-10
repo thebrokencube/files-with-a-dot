@@ -170,9 +170,9 @@ go.work `use` entries match `cmd/*/` directories with go.mod (symmetric differen
 
 ### symlink-entries (Error)
 
-`symlink_map.txt` has an entry for the canonical bundle skill. Binaries install from releases.
+`symlink_map.txt` has declared-root entries for the canonical bundle skill. Binaries install from releases.
 
-**Fix**: Add `plugins/<tool>/skills/<tool>:$HOME/.claude/skills/<tool>`.
+**Fix**: Add the Claude, OMP, and Codex skill projections for `plugins/<tool>/skills/<tool>`.
 
 ### bundle-boundary (Error)
 

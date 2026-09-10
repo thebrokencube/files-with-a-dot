@@ -1,6 +1,7 @@
 package lint
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
@@ -122,20 +123,50 @@ func TestBridgeLint_GoWorkSync(t *testing.T) {
 }
 
 func TestBridgeLint_SymlinkEntries(t *testing.T) {
-	t.Run("has skill entry", func(t *testing.T) {
+	const source = "plugins/test/skills/test"
+	entries := []string{
+		source + ":$HOME/.claude/skills/test",
+		source + ":$HOME/.omp/agent/skills/test",
+		source + ":$HOME/.codex/skills/test",
+	}
+
+	t.Run("has all declared roots", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("plugins/test/skills/test:$HOME/.claude/skills/test\n")
+		data.SymlinkMap = []byte(strings.Join(entries, "\n") + "\n")
 		results := filterCheck(BridgeLint(data), "symlink-entries")
 		if len(results) > 0 {
 			t.Errorf("expected no symlink-entries errors, got %v", results)
 		}
 	})
 
-	t.Run("missing skill", func(t *testing.T) {
+	for missing, index := range map[string]int{"claude": 0, "omp": 1, "codex": 2} {
+		t.Run("missing "+missing+" root", func(t *testing.T) {
+			data := bridgeToolData("test")
+			mapEntries := append([]string(nil), entries[:index]...)
+			mapEntries = append(mapEntries, entries[index+1:]...)
+			data.SymlinkMap = []byte(strings.Join(mapEntries, "\n") + "\n")
+			assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
+		})
+	}
+
+	t.Run("wrong source", func(t *testing.T) {
 		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("plugins/other/skills/other:$HOME/.claude/skills/other\n")
-		results := filterCheck(BridgeLint(data), "symlink-entries")
-		assertCheckPresent(t, results, "symlink-entries")
+		data.SymlinkMap = []byte(strings.Join([]string{
+			entries[0],
+			"plugins/test/skills/other:$HOME/.omp/agent/skills/test",
+			entries[2],
+		}, "\n") + "\n")
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
+	})
+
+	t.Run("wrong basename", func(t *testing.T) {
+		data := bridgeToolData("test")
+		data.SymlinkMap = []byte(strings.Join([]string{
+			entries[0],
+			source + ":$HOME/.omp/agent/skills/wrong",
+			entries[2],
+		}, "\n") + "\n")
+		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
 	})
 
 	t.Run("no symlink map", func(t *testing.T) {
@@ -145,18 +176,6 @@ func TestBridgeLint_SymlinkEntries(t *testing.T) {
 		if len(results) > 0 {
 			t.Errorf("expected no errors when symlink_map.txt missing, got %v", results)
 		}
-	})
-
-	t.Run("rejects source suffix", func(t *testing.T) {
-		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("plugins/test/skills/test-evil:$HOME/.claude/skills/test\n")
-		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
-	})
-
-	t.Run("rejects wrong destination", func(t *testing.T) {
-		data := bridgeToolData("test")
-		data.SymlinkMap = []byte("plugins/test/skills/test:$HOME/.claude/skills/wrong\n")
-		assertCheckPresent(t, filterCheck(BridgeLint(data), "symlink-entries"), "symlink-entries")
 	})
 }
 

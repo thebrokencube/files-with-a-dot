@@ -234,6 +234,8 @@ analyze_state() {
         done < "$SYMLINK_MAP"
     fi
 
+    plan_retired_link_cleanup
+
     # Check private symlinks
     if has_private_overlay; then
         [[ "${DEBUG:-}" == "1" ]] && echo "  Checking private symlinks..."
@@ -614,6 +616,7 @@ fi
 # Apply symlinks
 echo "Creating symlinks..."
 apply_symlinks "$SYMLINK_MAP"
+cleanup_retired_links
 
 # --links-only stops here: only symlinks are (re)created. The remaining phases
 # (CLI tools, brew, local configs, managed files, mise, Claude Code, starship)

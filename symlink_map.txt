@@ -34,29 +34,34 @@ configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTer
 # from GitHub Releases by `dot sync` (see cmd/dot/lib/tools.sh + pkg/dendrik/conventions/release.md)
 cmd/dot/dot:$HOME/.local/bin/dot
 
-# Claude Code (granular linking to allow private skills and rules)
-configs/base/claude/.claude/CLAUDE.md:$HOME/.claude/CLAUDE.md
+# Claude-native presentation
 configs/base/claude/.claude/starship.toml:$HOME/.claude/starship.toml
 configs/base/claude/.claude/output-styles/Concise.md:$HOME/.claude/output-styles/Concise.md
-# Same file, second destination on purpose: an output style is invisible to subagents and
-# swappable with /output-style, while a rule reaches both. Do not de-duplicate these two lines.
-configs/base/claude/.claude/output-styles/Concise.md:$HOME/.claude/rules/concision.md
-# Not under rules/ — Claude Code auto-loads every rules/*.md, and a runbook should cost
-# nothing until the rule that names it sends you here.
-configs/base/claude/.claude/references/isolated-checkouts-runbook.md:$HOME/.claude/references/isolated-checkouts-runbook.md
-configs/base/claude/.claude/rules/code-comments.md:$HOME/.claude/rules/code-comments.md
-configs/base/claude/.claude/rules/dotfiles-awareness.md:$HOME/.claude/rules/dotfiles-awareness.md
-configs/base/claude/.claude/rules/isolated-checkouts.md:$HOME/.claude/rules/isolated-checkouts.md
-configs/base/claude/.claude/rules/no-memory-files.md:$HOME/.claude/rules/no-memory-files.md
-configs/base/claude/.claude/rules/working-discipline.md:$HOME/.claude/rules/working-discipline.md
-configs/base/claude/.claude/rules/workflow.md:$HOME/.claude/rules/workflow.md
-configs/base/claude/.claude/rules/writing-structure.md:$HOME/.claude/rules/writing-structure.md
+
+# Portable personal policy
+agents/AGENTS.md:$HOME/.claude/rules/personal-core.md
+agents/AGENTS.md:$HOME/.omp/agent/RULES.md
+agents/AGENTS.md:$HOME/.codex/AGENTS.md
+
+# Shared skills
 skills/dotfiles:$HOME/.claude/skills/dotfiles
+skills/dotfiles:$HOME/.omp/agent/skills/dotfiles
+skills/dotfiles:$HOME/.codex/skills/dotfiles
 skills/nvim:$HOME/.claude/skills/nvim
+skills/nvim:$HOME/.omp/agent/skills/nvim
+skills/nvim:$HOME/.codex/skills/nvim
 skills/commit:$HOME/.claude/skills/commit
+skills/commit:$HOME/.omp/agent/skills/commit
+skills/commit:$HOME/.codex/skills/commit
 plugins/folio/skills/folio:$HOME/.claude/skills/folio
+plugins/folio/skills/folio:$HOME/.omp/agent/skills/folio
+plugins/folio/skills/folio:$HOME/.codex/skills/folio
 plugins/jf/skills/jf:$HOME/.claude/skills/jf
+plugins/jf/skills/jf:$HOME/.omp/agent/skills/jf
+plugins/jf/skills/jf:$HOME/.codex/skills/jf
 plugins/dendrik/skills/dendrik:$HOME/.claude/skills/dendrik
+plugins/dendrik/skills/dendrik:$HOME/.omp/agent/skills/dendrik
+plugins/dendrik/skills/dendrik:$HOME/.codex/skills/dendrik
 
 # Jujutsu VCS — managed file (base + private overlay merged via managed_map.txt)
 

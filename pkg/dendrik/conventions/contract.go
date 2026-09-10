@@ -214,9 +214,9 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "symlink-entries", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "symlink_map.txt has an entry for the canonical bundle skill",
+		Summary:     "symlink_map.txt has declared-root entries for the canonical bundle skill",
 		Rationale:   "The canonical skill lives in the closed publishable bundle and is symlinked by `dot sync` for local discovery. Binaries install from releases.",
-		Remediation: "Add `plugins/<tool>/skills/<tool>:$HOME/.claude/skills/<tool>` to symlink_map.txt.",
+		Remediation: "Add the Claude, OMP, and Codex skill projections for `plugins/<tool>/skills/<tool>` to symlink_map.txt.",
 	},
 	{
 		ID: "bundle-boundary", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
