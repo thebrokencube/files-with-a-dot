@@ -9,9 +9,9 @@ Gathering brings sources into the folio. Two shapes: **snapshot** (capture new k
 ```
 folio gather <url>                              # CLI: scaffold source entry in folio.yml
 folio gather <url> --materialize --type <type>  # CLI: scaffold + create typed reference file
-folio gather <url> --read                       # Requires Claude skill (prints message and exits)
-/folio gather <topic>                           # Skill: snapshot — research, synthesize, materialize
-/folio gather <existing-file-path>              # Skill: re-seed — update existing research file
+folio gather <url> --read                       # Requires the folio Agent Skill (prints message and exits)
+folio gather <topic>                            # Skill: snapshot — research, synthesize, materialize
+folio gather <existing-file-path>               # Skill: re-seed — update existing research file
 ```
 
 ## CLI: URL Scaffold
@@ -31,7 +31,7 @@ Options:
 - `--type <type>`: reference type (spike, survey, design, ...) — **required with `--materialize`**
 - `--name <name>`: specify reference file name (default: derived from URL)
 - `--materialize`: create a typed reference file and add `path:` + `derived_from:` entry
-- `--read`: print "requires /folio gather (Claude skill)" and exit — clear seam for skill layer
+- `--read`: print that the folio Agent Skill is required and exit — clear seam for the skill layer
 
 ## Skill: Gather Phases
 

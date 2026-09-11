@@ -69,7 +69,7 @@ func GoLint(data *ToolData) []Result {
 		results = append(results, checkREADMEDocLinks(data)...)
 	}
 
-	results = append(results, checkCLAUDEMDExists(data)...)
+	results = append(results, checkAGENTSMDExists(data)...)
 	results = append(results, checkDocsNaming(data)...)
 	results = append(results, checkDocsGettingStarted(data)...)
 
@@ -346,14 +346,14 @@ func checkREADMESections(data *ToolData) []Result {
 	return results
 }
 
-func checkCLAUDEMDExists(data *ToolData) []Result {
-	if data.HasCLAUDEMD {
+func checkAGENTSMDExists(data *ToolData) []Result {
+	if data.HasAGENTSMD {
 		return nil
 	}
-	return []Result{lintResult("claude-md-exists", conventions.SeverityWarning,
-		"CLAUDE.md not found",
-		"CLAUDE.md", 0,
-		"Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.")}
+	return []Result{lintResult("agents-md-exists", conventions.SeverityWarning,
+		"AGENTS.md not found",
+		"AGENTS.md", 0,
+		"Create AGENTS.md with the tool's build, test, distribution, and code conventions.")}
 }
 
 func checkDocsNaming(data *ToolData) []Result {

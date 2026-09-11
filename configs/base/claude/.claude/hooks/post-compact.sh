@@ -1,19 +1,7 @@
 #!/bin/bash
-# PostCompact hook: restore orientation after context compaction.
-# Outputs key session state so the model can re-orient.
-
-INPUT=$(cat /dev/stdin)
+# PostCompact can notify the terminal but cannot add model context.
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 
-jq -n \
-  --arg branch "$BRANCH" \
-  --arg dirty "$DIRTY" \
-  '{
-    hookSpecificOutput: {
-      hookEventName: "PostCompact",
-      suppressOutput: false,
-      output: ("Context was compacted. Session state:\n- Branch: " + $branch + "\n- Dirty files: " + $dirty + "\n- Re-read CLAUDE.md, ~/.claude/rules/, and any active skill references for current task context.")
-    }
-  }'
+printf 'Context was compacted. Session state:\n- Branch: %s\n- Dirty files: %s\n- Re-read CLAUDE.md, ~/.claude/rules/, and any active skill references for current task context.\n' "$BRANCH" "$DIRTY" >&2

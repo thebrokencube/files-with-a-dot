@@ -9,6 +9,21 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik/conventions"
 )
 
+var agentSkillRoots = []string{
+	"$HOME/.claude/skills/",
+	"$HOME/.omp/agent/skills/",
+	"$HOME/.codex/skills/",
+}
+
+func agentSkillSymlinkEntries(toolName string) []string {
+	source := "plugins/" + toolName + "/skills/" + toolName
+	entries := make([]string, len(agentSkillRoots))
+	for i, root := range agentSkillRoots {
+		entries[i] = source + ":" + root + toolName
+	}
+	return entries
+}
+
 var goWorkUsePattern = regexp.MustCompile(`\./cmd/([a-zA-Z0-9_-]+)`)
 
 //dendrik:block core-shell
@@ -170,23 +185,30 @@ func checkSymlinkEntries(data *ToolData) []Result {
 	if data.SymlinkMap == nil {
 		return nil // Opt-in: only runs when symlink_map.txt exists
 	}
-	expectedSource := "plugins/" + data.ToolName + "/skills/" + data.ToolName
-	expectedDest := "$HOME/.claude/skills/" + data.ToolName
-	found := false
+	expectedEntries := agentSkillSymlinkEntries(data.ToolName)
+	found := make(map[string]bool, len(expectedEntries))
 	for _, line := range strings.Split(string(data.SymlinkMap), "\n") {
-		parts := strings.SplitN(strings.TrimSpace(line), ":", 2)
-		if len(parts) == 2 && parts[0] == expectedSource && parts[1] == expectedDest {
-			found = true
-			break
+		line = strings.TrimSpace(line)
+		for _, expected := range expectedEntries {
+			if line == expected {
+				found[expected] = true
+			}
 		}
 	}
-	if !found {
-		return []Result{lintResult("symlink-entries", conventions.SeverityError,
-			"symlink_map.txt missing exact skill entry for "+expectedSource,
-			"symlink_map.txt", 0,
-			"Add `"+expectedSource+":"+expectedDest+"`.")}
+
+	var missing []string
+	for _, expected := range expectedEntries {
+		if !found[expected] {
+			missing = append(missing, expected)
+		}
 	}
-	return nil
+	if len(missing) == 0 {
+		return nil
+	}
+	return []Result{lintResult("symlink-entries", conventions.SeverityError,
+		"symlink_map.txt missing exact skill entries for "+strings.Join(missing, ", "),
+		"symlink_map.txt", 0,
+		"Add `"+strings.Join(missing, "`, `")+"`.")}
 }
 func checkBundleBoundary(data *ToolData) []Result {
 	var results []Result

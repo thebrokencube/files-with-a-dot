@@ -62,9 +62,9 @@ func GatherToolData(toolDir string) (*ToolData, error) {
 		data.READMEBytes = content
 	}
 
-	// CLAUDE.md
-	if _, err := os.Stat(filepath.Join(toolDir, "CLAUDE.md")); err == nil {
-		data.HasCLAUDEMD = true
+	// AGENTS.md
+	if _, err := os.Stat(filepath.Join(toolDir, "AGENTS.md")); err == nil {
+		data.HasAGENTSMD = true
 	}
 
 	// docs/ directory

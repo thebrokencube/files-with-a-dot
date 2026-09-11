@@ -137,7 +137,7 @@ if [[ "$IS_AGGRESSIVE" == false ]]; then
     echo "(Packages shown above are managed by other tools)"
 fi
 
-if ! confirm ${FORCE:+-f} "Run cleanup?" "no"; then
+if ! confirm_with_force "$FORCE" "Run cleanup?" "no"; then
     echo ""
     echo "Run later with: dot clean"
     exit 0

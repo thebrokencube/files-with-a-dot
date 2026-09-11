@@ -62,23 +62,44 @@ func TestApplyFixes_SymlinkEntries(t *testing.T) {
 	if len(fixed) != 1 {
 		t.Fatalf("expected symlink-entries fixed, got %v", fixed)
 	}
-	got, _ := os.ReadFile(filepath.Join(root, "symlink_map.txt"))
-	want := "configs/base/x:$HOME/.x\nplugins/newtool/skills/newtool:$HOME/.claude/skills/newtool\n"
+	got, err := os.ReadFile(filepath.Join(root, "symlink_map.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "configs/base/x:$HOME/.x\n" +
+		"plugins/newtool/skills/newtool:$HOME/.claude/skills/newtool\n" +
+		"plugins/newtool/skills/newtool:$HOME/.omp/agent/skills/newtool\n" +
+		"plugins/newtool/skills/newtool:$HOME/.codex/skills/newtool\n"
 	if string(got) != want {
 		t.Errorf("symlink_map after fix:\n%q\nwant:\n%q", got, want)
+	}
+
+	data.SymlinkMap = got
+	fixed, err = ApplyFixes(data, results)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixed) != 0 {
+		t.Errorf("expected no fixes on rerun, got %v", fixed)
+	}
+	rerun, err := os.ReadFile(filepath.Join(root, "symlink_map.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(rerun) != string(got) {
+		t.Errorf("symlink_map changed on rerun:\n%q\nwant:\n%q", rerun, got)
 	}
 }
 
 func TestApplyFixes_Idempotent(t *testing.T) {
-	root := writeSyntheticRoot(t, "go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n", "plugins/jf/skills/jf:$HOME/.claude/skills/jf\n")
+	root := writeSyntheticRoot(t, "go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n", "plugins/jf/skills/jf:$HOME/.claude/skills/jf\nplugins/jf/skills/jf:$HOME/.omp/agent/skills/jf\nplugins/jf/skills/jf:$HOME/.codex/skills/jf\n")
 	data := &ToolData{
 		RepoRoot:   root,
 		ToolName:   "jf",
 		GoWork:     []byte("go 1.25.0\n\nuse (\n\t./cmd/jf\n)\n"),
 		CmdDirs:    []string{"jf"},
-		SymlinkMap: []byte("plugins/jf/skills/jf:$HOME/.claude/skills/jf\n"),
+		SymlinkMap: []byte("plugins/jf/skills/jf:$HOME/.claude/skills/jf\nplugins/jf/skills/jf:$HOME/.omp/agent/skills/jf\nplugins/jf/skills/jf:$HOME/.codex/skills/jf\n"),
 	}
-	// Already correct: nothing should be reported fixed.
 	fixed, err := ApplyFixes(data, []Result{{CheckID: "go-work-sync"}, {CheckID: "symlink-entries"}})
 	if err != nil {
 		t.Fatal(err)

@@ -6,7 +6,7 @@ dendrik is the shared foundation the dotfiles CLI tools (folio, jf, dot) are bui
 
 dendrik enforces structural conventions across CLI tools in the dotfiles repo. It validates checks across three layers (Go, Skill, Bridge) so that tools stay consistent as they evolve independently.
 
-dendrik is a linter for tool structure, not code style. It checks that your tool has the right files, follows naming conventions, wires up the shared library correctly, and provides skill documentation discoverable by Claude Code (the AI coding agent).
+dendrik is a linter for tool structure, not code style. It checks that your tool has the right files, follows naming conventions, wires up the shared library correctly, and provides portable skill documentation discoverable by admitted hosts.
 
 ## Installing
 
@@ -31,8 +31,8 @@ Sample output:
 ```
   E [go-mod-linked] go.work does not link this tool (go.work)
     Add `./cmd/jf` to the `use` block in go.work.
-  W [claude-md-exists] CLAUDE.md not found (CLAUDE.md)
-    Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.
+  W [agents-md-exists] AGENTS.md not found (AGENTS.md)
+    Create AGENTS.md with the tool's build, test, distribution, and code conventions.
 
 jf: 1 error(s), 1 warning(s)
 ```

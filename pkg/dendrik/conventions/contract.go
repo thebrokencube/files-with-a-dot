@@ -89,10 +89,10 @@ var Contract = []ContractEntry{
 		Remediation: "Add missing ## sections to README.md: ## Install, ## Quick Start, ## Commands, ## Code Structure.",
 	},
 	{
-		ID: "claude-md-exists", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityWarning,
-		Summary:     "CLAUDE.md exists in tool directory",
-		Rationale:   "CLAUDE.md provides build, test, and code convention context for developers modifying the tool. Claude Code auto-loads it when working in the directory.",
-		Remediation: "Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.",
+		ID: "agents-md-exists", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityWarning,
+		Summary:     "AGENTS.md exists in tool directory",
+		Rationale:   "AGENTS.md is the portable instruction surface for developers and agents modifying the tool.",
+		Remediation: "Create AGENTS.md with the tool's build, test, distribution, and code conventions.",
 	},
 	{
 		ID: "docs-naming", Layer: LayerGo, Scope: ScopeDendrik, Severity: SeverityError,
@@ -134,9 +134,15 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "skill-extra-fields", Layer: LayerSkill, Scope: ScopeUniversal, Severity: SeverityWarning,
-		Summary:     "No unexpected frontmatter fields outside the Agent Skills spec",
-		Rationale:   "Extension fields outside the spec may cause issues with strict validators. Warning severity because real-world skills commonly use extension fields.",
-		Remediation: "Remove or document unexpected frontmatter fields. Known spec fields: name, description, version, compatibility, metadata, user_invocable, argument-hint.",
+		Summary:     "No unknown frontmatter fields",
+		Rationale:   "Layer 1 accepts portable fields, legacy host fields, and Dendrik extensions so it can diagnose existing skills without losing parse compatibility.",
+		Remediation: "Remove unrecognized fields. For portable skills, use only name, description, license, allowed-tools, compatibility, and metadata.",
+	},
+	{
+		ID: "portable-skill-fields", Layer: LayerSkill, Scope: ScopeUniversal, Severity: SeverityError,
+		Summary:     "Portable skills use only standard portable frontmatter fields",
+		Rationale:   "Host-specific and Dendrik extension fields prevent a skill from working consistently across agent hosts.",
+		Remediation: "Remove host-specific and extension fields; use only name, description, license, allowed-tools, compatibility, and metadata.",
 	},
 	{
 		ID: "skill-links", Layer: LayerSkill, Scope: ScopeUniversal, Severity: SeverityError,
@@ -155,12 +161,6 @@ var Contract = []ContractEntry{
 		Summary:     "SKILL.md body does not exceed 500 lines (token estimate warning at ~5000 tokens)",
 		Rationale:   "Oversized skill files consume excessive context window. The 500-line limit keeps skills focused; token estimate provides additional guidance.",
 		Remediation: "Move detailed content to reference files in references/ and link from SKILL.md body.",
-	},
-	{
-		ID: "argument-hint", Layer: LayerSkill, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "If user_invocable: true, then argument-hint is present",
-		Rationale:   "User-invocable skills need argument hints so users know what parameters to provide.",
-		Remediation: "Add `argument-hint:` field to SKILL.md frontmatter (e.g., `argument-hint: \"<command> [flags]\"`).",
 	},
 	{
 		ID: "arrow-refs", Layer: LayerSkill, Scope: ScopeDendrik, Severity: SeverityError,
@@ -214,9 +214,9 @@ var Contract = []ContractEntry{
 	},
 	{
 		ID: "symlink-entries", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,
-		Summary:     "symlink_map.txt has an entry for the canonical bundle skill",
+		Summary:     "symlink_map.txt has declared-root entries for the canonical bundle skill",
 		Rationale:   "The canonical skill lives in the closed publishable bundle and is symlinked by `dot sync` for local discovery. Binaries install from releases.",
-		Remediation: "Add `plugins/<tool>/skills/<tool>:$HOME/.claude/skills/<tool>` to symlink_map.txt.",
+		Remediation: "Add the Claude, OMP, and Codex skill projections for `plugins/<tool>/skills/<tool>` to symlink_map.txt.",
 	},
 	{
 		ID: "bundle-boundary", Layer: LayerBridge, Scope: ScopeDendrik, Severity: SeverityError,

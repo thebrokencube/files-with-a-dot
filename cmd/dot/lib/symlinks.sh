@@ -87,6 +87,32 @@ apply_symlinks() {
     done < "$symlink_map"
 }
 
+is_private_agent_skill_entry() {
+    local source="$1" destination="$2" skill_name root
+    [[ "$source" == skills/* ]] || return 1
+    skill_name="${source#skills/}"
+    [[ -n "$skill_name" && "$skill_name" != */* ]] || return 1
+    for root in "${PRIVATE_SKILL_ROOTS[@]}"; do
+        root="${root/\$HOME/$HOME}"
+        [[ "$destination" == "$root/$skill_name" ]] && return 0
+    done
+    return 1
+}
+
+apply_private_agent_skill_symlinks() {
+    local symlink_map="$1" base_dir="${2:-$PRIVATE_DIR}" line source destination
+    [[ -f "$symlink_map" ]] || return 0
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        source=$(get_source "$line")
+        destination=$(get_dest "$line")
+        if is_private_agent_skill_entry "$source" "$destination"; then
+            create_private_symlink "$source" "$destination" "$base_dir"
+        fi
+    done < "$symlink_map"
+}
+
 # Create ~/.dotfiles symlink if needed
 create_dotfiles_symlink() {
     if [[ "$DOTFILES_DIR" == "$HOME/.dotfiles" ]]; then

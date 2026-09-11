@@ -100,8 +100,9 @@ See the [build & release convention](../../pkg/dendrik/conventions/release.md).
 - [Reference](docs/03-reference.md) -- command reference, frontmatter, lint rules, safety, troubleshooting
 - [Architecture](docs/04-architecture.md) -- module structure, data models, pipeline, command routing
 
-## Claude Code Integration
+## Agent Skill integration
 
-jf includes a bundled Agent Skill:
+jf includes a bundled portable Agent Skill:
 
-- [`plugins/jf/skills/jf/SKILL.md`](../../plugins/jf/skills/jf/SKILL.md) — agent-facing workflows and references
+- [`plugins/jf/skills/jf/SKILL.md`](../../plugins/jf/skills/jf/SKILL.md) — agent-facing workflows
+  and references, projected to admitted direct roots and packaged in the Claude bundle.

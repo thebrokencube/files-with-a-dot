@@ -36,8 +36,8 @@ word carries no fact and replacing it just relocates the problem.
 
 ## Modal swaps
 
-Distinct from the table above, because these change meaning rather than register. From the modal ladder
-in `~/.claude/rules/writing-structure.md`.
+Distinct from the table above, because these change meaning rather than register. See
+[writing guidance](writing-guidance.md).
 
 | Instead of | Write |
 |---|---|

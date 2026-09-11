@@ -45,8 +45,8 @@ func Dir() (string, error) {
 	return filepath.Join(home, defaultHome), nil
 }
 
-// Init scaffolds the FOLIO_HOME directory structure. Idempotent — only creates
-// directories and files that don't already exist.
+// Init scaffolds the FOLIO_HOME directory structure. It creates missing files,
+// migrates known legacy scaffolds, and preserves other existing content.
 //
 // Umbrella guard: a dir containing stores.yml is a multi-store umbrella — a
 // plain directory that physically contains independent store repos, NOT a folio
@@ -68,20 +68,21 @@ func Init(dir string) error {
 		}
 	}
 
-	// Create CLAUDE.md if missing
-	claudePath := filepath.Join(dir, "CLAUDE.md")
-	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
-		if err := os.WriteFile(claudePath, []byte(TemplateClaude), 0644); err != nil {
-			return fmt.Errorf("write CLAUDE.md: %w", err)
+	agentsPath := filepath.Join(dir, "AGENTS.md")
+	if _, err := os.Stat(agentsPath); os.IsNotExist(err) {
+		if err := os.WriteFile(agentsPath, []byte(TemplateAgents), 0644); err != nil {
+			return fmt.Errorf("write AGENTS.md: %w", err)
 		}
 	}
 
-	// Create README.md if missing
+	claudePath := filepath.Join(dir, "CLAUDE.md")
+	if err := writeTemplateIfMissingOrLegacy(claudePath, LegacyTemplateClaude, TemplateClaude); err != nil {
+		return fmt.Errorf("write CLAUDE.md: %w", err)
+	}
+
 	readmePath := filepath.Join(dir, "README.md")
-	if _, err := os.Stat(readmePath); os.IsNotExist(err) {
-		if err := os.WriteFile(readmePath, []byte(TemplateReadme), 0644); err != nil {
-			return fmt.Errorf("write README.md: %w", err)
-		}
+	if err := writeTemplateIfMissingOrLegacy(readmePath, LegacyTemplateReadme, TemplateReadme); err != nil {
+		return fmt.Errorf("write README.md: %w", err)
 	}
 
 	// Create .gitignore if missing
@@ -113,6 +114,17 @@ func Init(dir string) error {
 	}
 
 	return nil
+}
+
+func writeTemplateIfMissingOrLegacy(path, legacy, template string) error {
+	content, err := os.ReadFile(path)
+	if err == nil && string(content) != legacy {
+		return nil
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.WriteFile(path, []byte(template), 0644)
 }
 
 // Validate checks the structural integrity of a FOLIO_HOME directory.

@@ -234,6 +234,8 @@ analyze_state() {
         done < "$SYMLINK_MAP"
     fi
 
+    plan_retired_link_cleanup
+
     # Check private symlinks
     if has_private_overlay; then
         [[ "${DEBUG:-}" == "1" ]] && echo "  Checking private symlinks..."
@@ -249,16 +251,10 @@ analyze_state() {
             done < "$private_map"
         fi
 
-        # Private skills
-        if [[ -d "$PRIVATE_DIR/skills" ]]; then
-            for skill in "$PRIVATE_DIR/skills"/*/; do
-                [[ -d "$skill" ]] || continue
-                local skill_name
-                skill_name=$(basename "$skill")
-                [[ "$skill_name" == ".gitkeep" ]] && continue
-                local dest="$HOME/.claude/skills/$skill_name"
-                check_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR" || true
-            done
+        plan_private_skill_map_migration
+        register_private_skill_map_actions
+        if private_overlay_migration_pending; then
+            ACTIONS+=("Migrate private overlay legacy state")
         fi
     fi
 
@@ -275,6 +271,58 @@ analyze_state() {
     [[ -f "$BACKUP_MANIFEST" ]] && ACTIONS+=("Sync backups (update if files changed)")
 
     # Ensure function always returns success
+    return 0
+}
+
+analyze_links_state() {
+    cd "$DOTFILES_DIR" || {
+        echo "Error: Cannot access dotfiles directory: $DOTFILES_DIR"
+        exit 1
+    }
+
+    if [[ "$DOTFILES_DIR" == "$DOTFILES_LINK" ]]; then
+        DONE_INFRA+=("~/.dotfiles (repo location)")
+    elif [[ -L "$DOTFILES_LINK" ]]; then
+        if is_ours "$DOTFILES_LINK"; then
+            DONE_INFRA+=("~/.dotfiles symlink")
+        else
+            FRICTIONS+=("~/.dotfiles is a symlink to $(readlink "$DOTFILES_LINK"), not this repo")
+        fi
+    elif [[ -e "$DOTFILES_LINK" ]]; then
+        FRICTIONS+=("~/.dotfiles exists but is not a symlink")
+    else
+        ACTIONS+=("Create ~/.dotfiles symlink")
+    fi
+
+    if [[ ! -f "$SYMLINK_MAP" ]]; then
+        FRICTIONS+=("symlink_map.txt not found")
+        return 0
+    fi
+
+    local line source dest private_map
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        source=$(get_source "$line")
+        dest=$(get_dest "$line")
+        check_symlink "$source" "$dest" || true
+    done < "$SYMLINK_MAP"
+    plan_retired_link_cleanup
+
+    if has_private_overlay; then
+        private_map="$(get_private_symlink_map)"
+        if [[ -f "$private_map" ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                source=$(get_source "$line")
+                dest=$(get_dest "$line")
+                if is_private_agent_skill_entry "$source" "$dest"; then
+                    check_private_symlink "$source" "$dest" "$PRIVATE_DIR" || true
+                fi
+            done < "$private_map"
+        fi
+        plan_private_skill_map_migration
+        register_private_skill_map_actions
+    fi
     return 0
 }
 
@@ -529,8 +577,11 @@ echo ""
 echo "Detecting current state..."
 echo ""
 
-# Analyze state
-analyze_state "$IS_FIRST_TIME"
+if [[ "$LINKS_ONLY" == true ]]; then
+    analyze_links_state
+else
+    analyze_state "$IS_FIRST_TIME"
+fi
 
 # Report
 report_state
@@ -556,7 +607,7 @@ if [[ "$DRY_RUN" == true ]]; then
     exit 0
 fi
 
-if ! confirm ${FORCE:+-f} "Proceed with sync?"; then
+if ! confirm_with_force "$FORCE" "Proceed with sync?"; then
     echo "Aborted."
     exit 2
 fi
@@ -567,6 +618,36 @@ echo "============================================"
 echo "  Executing Sync"
 echo "============================================"
 echo ""
+if [[ "$LINKS_ONLY" == true ]]; then
+    init_backup
+    create_dotfiles_symlink
+    [[ "$DOTFILES_DIR" != "$HOME/.dotfiles" && -L "$HOME/.dotfiles" ]] && DOTFILES_DIR="$HOME/.dotfiles"
+    if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
+        target=$(readlink "$HOME/.claude")
+        if [[ "$target" == *"shared/claude/.claude"* || "$target" == *"configs/base/claude/.claude"* || "$target" == *".dotfiles"*"/.claude"* ]]; then
+            echo "Migrating ~/.claude from directory link to granular links..."
+            rm "$HOME/.claude"
+            mkdir -p "$HOME/.claude/skills"
+            echo ""
+        fi
+    fi
+    if has_private_overlay; then
+        migrate_private_skill_map
+        check_private_destination_collisions "" "" true
+    fi
+    echo "Creating symlinks..."
+    apply_symlinks "$SYMLINK_MAP"
+    if has_private_overlay; then
+        apply_private_agent_skill_symlinks "$(get_private_symlink_map)" "$PRIVATE_DIR"
+    fi
+    cleanup_retired_links
+    echo ""
+    echo "============================================"
+    echo -e "  ${GREEN}Symlinks synced (--links-only)${NC}"
+    echo "============================================"
+    exit 0
+fi
+
 
 # First-time setup
 if [[ "$IS_FIRST_TIME" == true ]]; then
@@ -592,13 +673,15 @@ create_dotfiles_symlink
 # Use symlink path for subsequent symlinks (more portable)
 [[ "$DOTFILES_DIR" != "$HOME/.dotfiles" && -L "$HOME/.dotfiles" ]] && DOTFILES_DIR="$HOME/.dotfiles"
 
-# Migrate: remove legacy profile system (profiles removed in v0.7.0)
+# Migrate legacy private state only after the accepted full-sync gate.
 [[ -f "$DOTFILES_DIR/.profile" ]] && rm -f "$DOTFILES_DIR/.profile"
 migrate_private_overlay
+plan_private_skill_map_migration
+migrate_private_skill_map
 
 # Migrate from ~/.claude directory symlink to granular linking
 if has_private_overlay; then
-    check_private_destination_collisions "$SYMLINK_MAP" "$PRIVATE_DIR"
+    check_private_destination_collisions
 fi
 
 if [[ -L "$HOME/.claude" && -d "$HOME/.claude" ]]; then
@@ -614,40 +697,15 @@ fi
 # Apply symlinks
 echo "Creating symlinks..."
 apply_symlinks "$SYMLINK_MAP"
+cleanup_retired_links
 
-# --links-only stops here: only symlinks are (re)created. The remaining phases
-# (CLI tools, brew, local configs, managed files, mise, Claude Code, starship)
-# are intentionally skipped.
-if [[ "$LINKS_ONLY" == true ]]; then
-    echo ""
-    echo "============================================"
-    echo -e "  ${GREEN}Symlinks synced (--links-only)${NC}"
-    echo "============================================"
-    exit 0
-fi
 
 # Install dendrik-built CLI tools from GitHub Releases (replaces the old committed-binary symlinks)
 echo ""
 echo "Installing CLI tools..."
 install_tools
 
-if has_private_overlay; then
-    echo ""
-    echo "Applying private overlay..."
-    apply_private_symlinks "$(get_private_symlink_map)" "$PRIVATE_DIR"
 
-    # Private skills
-    if [[ -d "$PRIVATE_DIR/skills" ]]; then
-        for skill in "$PRIVATE_DIR/skills"/*/; do
-            [[ -d "$skill" ]] || continue
-            skill_name=$(basename "$skill")
-            [[ "$skill_name" == ".gitkeep" ]] && continue
-            dest="$HOME/.claude/skills/$skill_name"
-            mkdir -p "$(dirname "$dest")"
-            create_private_symlink "skills/$skill_name" "$dest" "$PRIVATE_DIR"
-        done
-    fi
-fi
 echo ""
 
 # Integrate shell configs
@@ -655,6 +713,10 @@ integrate_shell_configs
 
 # Install/update brew packages
 install_brew_packages "$IS_FIRST_TIME"
+if has_private_overlay; then
+    private_sync --confirmed
+fi
+
 
 # Setup local configs
 setup_local_configs "$IS_FIRST_TIME"
@@ -666,16 +728,14 @@ if [[ "$IS_FIRST_TIME" == true ]] && ! has_private_overlay; then
     echo "API keys, shell customizations) in a separate directory that can"
     echo "optionally be backed up to a private git remote."
     echo ""
-    if confirm ${FORCE:+-f} "Initialize private overlay at $PRIVATE_DIR?"; then
+    if confirm_with_force "$FORCE" "Initialize private overlay at $PRIVATE_DIR?"; then
         init_private_overlay
+        plan_private_skill_map_migration
+        migrate_private_skill_map
+        check_private_destination_collisions
         echo ""
-        echo "Applying private symlinks..."
-        private_sync
+        private_sync --confirmed
     fi
-elif has_private_overlay; then
-    # Existing overlay: re-apply symlinks (may have new entries)
-    echo "Applying private symlinks..."
-    private_sync
 fi
 
 # Auto-resolve disk-ahead drift for plugin manifests (Claude self-updates these)

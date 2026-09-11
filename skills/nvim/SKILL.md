@@ -8,7 +8,7 @@ description: "Neovim configuration help - plugins, LSP setup, troubleshooting.
 # Neovim Configuration
 
 ## Config Location
-`~/.config/nvim/init.lua` (symlinked from `~/.dotfiles/configs/base/nvim/.config/nvim/`)
+The canonical configuration source is `configs/base/nvim/.config/nvim/`; `dot sync` projects it to the host configuration path.
 
 ## Stack
 - **Base**: kickstart.nvim

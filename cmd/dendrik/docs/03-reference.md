@@ -84,7 +84,7 @@ Why this contract and not a much smaller or much larger one?
 The contract is the minimum set of conventions that keep independently-developed tools composable:
 
 - **Go layer** ensures shared build infrastructure works: every tool builds the same way, has the same entry point pattern, and provides standard documentation.
-- **Skill layer** ensures agent discoverability: every tool can be found, invoked, and understood by Claude Code through well-formed SKILL.md files.
+- **Skill layer** ensures agent discoverability: every tool can be found, invoked, and understood through well-formed SKILL.md files in admitted hosts.
 - **Bridge layer** ensures platform integration: every tool uses the shared library correctly, produces structured output, and registers itself in the dotfiles ecosystem.
 
 Tools are free to diverge on everything else -- command structure, internal architecture, feature scope. The contract covers only what matters for interoperability.

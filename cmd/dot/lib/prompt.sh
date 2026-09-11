@@ -20,7 +20,7 @@ _is_interactive() {
 # confirm [-f] PROMPT [DEFAULT]
 #
 # Ask user for yes/no confirmation.
-#   -f          Always return 0 (yes) — used with ${FORCE:+-f}
+#   -f          Always return 0 (yes) — pass only when force is true
 #   PROMPT      Question text (auto-appends [Y/n] or [y/N])
 #   DEFAULT     "yes" or "no" (default: "yes")
 #
@@ -74,6 +74,17 @@ confirm() {
         [nN]|[nN][oO]) return 1 ;;
         *) [[ "$default" == "yes" ]] && return 0 || return 1 ;;
     esac
+}
+
+# confirm_with_force FORCE PROMPT [DEFAULT]
+confirm_with_force() {
+    local force="$1"
+    shift
+    if [[ "$force" == true ]]; then
+        confirm -f "$@"
+    else
+        confirm "$@"
+    fi
 }
 
 # choose PROMPT OPT1 OPT2 ... [DEFAULT_INDEX]

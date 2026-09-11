@@ -50,13 +50,16 @@ This allows linking to any location — useful for apps like iTerm2 that store c
 ~/.dotfiles.private/
 ├── symlink_map.txt     # Private symlinks
 ├── Brewfile            # Private Homebrew packages
-├── skills/             # Private Claude Code skills
+├── skills/             # Private agent skills
 ├── gitconfig.local     # Git name/email → ~/.gitconfig.local
 ├── env.local           # API keys, secrets → ~/.env.local
 └── shell.local         # Private aliases/functions → ~/.shell.local
 ```
 
 Initialized on first sync. Manage with `dot private` (init, status, sync, push, edit). Push to a private remote to sync across machines.
+
+Private skills use explicit `symlink_map.txt` rows for the admitted Claude, default OMP, and Codex
+user roots. The same map shape does not admit named OMP profiles or manage Codex configuration.
 
 ## Repository Structure
 

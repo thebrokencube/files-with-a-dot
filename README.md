@@ -31,22 +31,25 @@ After first sync:
 3. Run `dot health` to verify everything
 4. (Optional) Select iTerm2 "Dotfiles Default" profile for icons
 
-## Plugin marketplace
+## Native delivery
 
-This repo is the Claude Code plugin marketplace for its CLI tools (`folio`, `jf`, `dendrik`).
-Portable skill content is kept harness-neutral; other native adapters are evidence-gated and not emitted.
+This repo ships portable Agent Skills through admitted direct roots for Claude Code, default OMP,
+and Codex. The Claude Code marketplace remains a separate native delivery surface for CLI tools
+(`folio`, `jf`, `dendrik`):
 
 ```
 /plugin marketplace add thebrokencube/files-with-a-dot
 /plugin install folio@files-with-a-dot   # or jf, dendrik
 ```
 
-After installing a plugin, run its bundled, self-locating `bin/setup` once (idempotent; safe to
-re-run). The skill's Setup section carries the same instruction; no repository path is needed.
-The binary lands in `~/.local/bin/`, so ensure that's on your `PATH`. Bundled setup supports the
-prebuilt macOS/Linux arm64/amd64 release assets; other platforms require a manual build/install.
-See [AGENTS.md](AGENTS.md) for the full model (`plugins.json` is canonical; only the proven
-Claude catalog is generated).
+After installing a Claude plugin, run its bundled, self-locating `bin/setup` once (idempotent;
+safe to re-run). On supported macOS/Linux arm64/amd64 releases it installs the binary in
+`~/.local/bin`; other platforms require a manual build or install. Other hosts have no installer
+here.
+The canonical skills and policy are mapped once under `~/.claude`, default `~/.omp/agent`, and
+`~/.codex`. OMP MCP configuration is private-overlay state at `~/.omp/agent/mcp.json`, with no
+public names or values. Codex configuration remains app-owned and unmanaged. See
+[AGENTS.md](AGENTS.md) for the admitted behavior and boundaries.
 
 ## Contributing
 
@@ -95,18 +98,19 @@ Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 - **Ghostty** as primary terminal (Inconsolata Nerd Font)
 - **iTerm2** as fallback (with Nerd Font profile for icons)
 
-### Claude Code Skills
+### Agent Skills
 
-Available globally (in any project) via [Claude Code](https://docs.anthropic.com/en/docs/claude-code):
+The same canonical skill sources are available through the admitted Claude Code, default OMP, and
+Codex user roots. Invoke them using the syntax your host exposes:
 
 | Skill | Purpose |
-|-------|---------|
-| `/folio` | Knowledge work lifecycle - plan, compose, gather, lint, publish |
-| `/jf` | Jira Forest - push/pull/sync markdown to Jira tickets |
-| `/dotfiles` | Manage dotfiles - install, update, health, setup |
-| `/nvim` | Neovim help - plugins, config, troubleshooting |
-| `/commit` | Git commit conventions and versioning |
-| `/dendrik` | Validate tool conventions and contract compliance |
+|---|---|
+| `folio` | Knowledge-work lifecycle: plan, compose, gather, lint, publish |
+| `jf` | Jira Forest ticket lifecycle and conventions |
+| `dotfiles` | Dotfiles installation, updates, health, and repair |
+| `nvim` | Neovim setup and troubleshooting |
+| `commit` | Git and Jujutsu commit conventions |
+| `dendrik` | Tool-convention validation and document review |
 
 ## Tools
 

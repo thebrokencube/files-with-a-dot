@@ -62,9 +62,9 @@ For each track step after the spike, execute:
    in order: build, then test, then lint. If ANY command fails, STOP and fix. Do NOT proceed
    to step 5 until all validation commands pass.
    **Skill file drift check**: If this step changed CLI behavior, command names, schema fields,
-   or flag semantics, grep the skill files (`~/.claude/skills/`) for stale references before
-   proceeding. Skill docs that reference old field names or removed commands cause downstream
-   confusion — fix them in the same commit or as a follow-up commit in the same track.
+   or flag semantics, search canonical skill trees for stale references before proceeding. Skill
+   docs that reference old field names or removed commands cause downstream confusion — fix them
+   in the same commit or as a follow-up commit in the same track.
 5. **Review — hard gate.** Launch 1 review agent (subagent_type: general-purpose,
    model: "opus") covering accuracy, scope, and code quality. If the review returns issues,
    fix them and re-dispatch the review agent. Loop until zero issues. Cap at 5 iterations —

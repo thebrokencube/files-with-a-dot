@@ -37,8 +37,8 @@ type SkillFrontmatter struct {
 	Related  any `yaml:"related"`
 }
 
-// KnownFields is the allowlist of frontmatter field names recognized by the Agent Skills spec
-// plus dendrik extensions. Used by skill-extra-fields to detect unexpected fields.
+// KnownFields is the allowlist of frontmatter field names accepted by Layer 1,
+// including legacy host fields and dendrik extensions.
 var KnownFields = map[string]bool{
 	"name":           true,
 	"description":    true,

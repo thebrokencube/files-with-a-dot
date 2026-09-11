@@ -1,20 +1,29 @@
 # files-with-a-dot
 
-This repo is a dotfiles manager and the Claude Code plugin marketplace for the Go CLI tools
-`folio`, `jf`, and `dendrik`. Portable Agent Skills and this `AGENTS.md` form the harness-agnostic
-kernel; native harness distribution is supported only after validation and behavioral proof.
+This repo is a dotfiles manager. Portable Agent Skills and this `AGENTS.md` form the
+harness-agnostic kernel; each native adapter is retained only after its actual discovery and
+behavioral contract is observed.
 
-## Plugin marketplace
+## Native delivery and admitted roots
 
-The repo currently distributes its CLI tools through one proven adapter: Claude Code.
-
-- **`plugins.json` is the canonical hand-edited inventory.** Each `path` names a closed
-  `plugins/<tool>` publishable bundle, never the `cmd/<tool>` implementation tree.
-- **`.claude-plugin/marketplace.json` is generated.** Run `scripts/marketplace-generate`; never edit
-  the catalog or bundle `VERSION` mirrors by hand. Cursor/Codex artifacts do not exist until native
-  contracts and isolated discovery/invocation proof are implemented.
-- **Each plugin bundle** contains `.claude-plugin/plugin.json`, `skills/<tool>`, `bin/setup`, and
-  generated `VERSION` only. Go source, tests, build files, runtime state, and private material stay out.
+- **Claude Code marketplace:** `plugins.json` is the canonical hand-edited inventory. Each `path`
+  names a closed `plugins/<tool>` publishable bundle, never the `cmd/<tool>` implementation tree.
+  `.claude-plugin/marketplace.json` and bundle `VERSION` mirrors are generated with
+  `scripts/marketplace-generate`; Claude's installer, status line, Concise output style, and
+  PostCompact terminal notice are Claude-native.
+- **Direct user roots:** the map projects canonical policy and shared skills once to Claude
+  (`~/.claude`), default OMP (`~/.omp/agent`), and Codex (`~/.codex`). Claude main and subagent
+  skill discovery, thin tool-local `CLAUDE.md` pointers, Concise, and the repaired PostCompact
+  hook are admitted. OMP native skills, `RULES.md`, terminal Ask, compaction policy retention, and
+  an isolated marketplace fallback are admitted. Codex admits its user root beside `.system`,
+  managed `OnRequest` approval behavior, and restart preservation.
+- **Configuration boundaries:** OMP MCP definitions are a private-overlay migration at
+  `~/.omp/agent/mcp.json`; public sources never carry their names or values. Codex configuration
+  remains app-owned and unmanaged. Named OMP profiles and unproved adapters are not supported by
+  these docs.
+- **Claude bundles:** each bundle contains `.claude-plugin/plugin.json`, `skills/<tool>`,
+  `bin/setup`, and generated `VERSION` only. Go source, tests, build files, runtime state, and
+  private material stay out.
 - **Versions are independent:** `cmd/<tool>/VERSION` owns the binary; the bundle mirrors it;
   `plugins/<tool>/.claude-plugin/plugin.json.version` owns Claude plugin updates. A binary bump
   requires a plugin bump, while a skill-only plugin bump is valid.

@@ -85,24 +85,33 @@ func fixGoWorkEntries(data *ToolData) (bool, error) {
 	return true, os.WriteFile(filepath.Join(data.RepoRoot, "go.work"), []byte(newContent), 0o644)
 }
 
-// fixSymlinkEntries appends the missing skill symlink line for this tool to
-// symlink_map.txt. Idempotent.
+// fixSymlinkEntries appends the missing declared skill projections for this tool
+// to symlink_map.txt. Idempotent.
 func fixSymlinkEntries(data *ToolData) (bool, error) {
 	if data.SymlinkMap == nil {
 		return false, nil
-	}
-	skillPath := "plugins/" + data.ToolName + "/skills/" + data.ToolName
-	destPath := "$HOME/.claude/skills/" + data.ToolName
-	for _, line := range strings.Split(string(data.SymlinkMap), "\n") {
-		parts := strings.SplitN(strings.TrimSpace(line), ":", 2)
-		if len(parts) == 2 && parts[0] == skillPath && parts[1] == destPath {
-			return false, nil
-		}
 	}
 	content := string(data.SymlinkMap)
 	if !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
-	content += skillPath + ":" + destPath + "\n"
+
+	did := false
+	for _, expected := range agentSkillSymlinkEntries(data.ToolName) {
+		found := false
+		for _, line := range strings.Split(string(data.SymlinkMap), "\n") {
+			if strings.TrimSpace(line) == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			content += expected + "\n"
+			did = true
+		}
+	}
+	if !did {
+		return false, nil
+	}
 	return true, os.WriteFile(filepath.Join(data.RepoRoot, "symlink_map.txt"), []byte(content), 0o644)
 }

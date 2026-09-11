@@ -33,7 +33,7 @@ Workflow for creating new epics/projects, reparenting tickets, and reorganizing 
 3. Spot-check in Jira: verify parent, type, description for 2-3 tickets
 4. `folio home push` — commit frontmatter updates (TBD → real keys, file renames)
 
-**Watch out:** Some projects require custom fields for certain issue types (e.g. RETIRE Epics need `customfield_16528` "Is this capitalizable"). Check `~/.jf.yml` project config before creating. If creation fails with a required field error, add the field to `~/.jf.yml` and retry.
+**Watch out:** Some projects require custom fields for certain issue types. Check `~/.jf.yml` project config before creating. If creation fails with a required field error, add the field to `~/.jf.yml` and retry.
 
 ### Phase C — Reparent existing tickets
 

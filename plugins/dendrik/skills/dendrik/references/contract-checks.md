@@ -46,11 +46,11 @@ README.md contains `## Install`, `## Quick Start`, `## Commands`, `## Code Struc
 
 **Fix**: Add the missing `##` sections. These are checked via exact string match.
 
-### claude-md-exists (Warning)
+### agents-md-exists (Warning)
 
-CLAUDE.md exists in the tool directory.
+AGENTS.md exists in the tool directory.
 
-**Fix**: Create CLAUDE.md with standardized skeleton: Build, Test, Binary Distribution, Code Conventions, Deep Context.
+**Fix**: Create `AGENTS.md` with the tool's build, test, distribution, and code conventions.
 
 ### docs-naming (Error)
 
@@ -92,9 +92,15 @@ Valid YAML frontmatter with `name` (1-64 chars, lowercase+hyphens) and `descript
 
 ### skill-extra-fields (Warning)
 
-No unexpected frontmatter fields outside the Agent Skills spec.
+No unknown frontmatter fields. Layer 1 accepts portable fields, legacy host fields, and Dendrik extensions so it can diagnose existing skills without losing parse compatibility.
 
-Known spec fields: `name`, `description`, `version`, `compatibility`, `metadata`, `user_invocable`, `argument-hint`.
+**Fix**: Remove unrecognized fields. For portable skills, use only `name`, `description`, `license`, `allowed-tools`, `compatibility`, and `metadata`.
+
+### portable-skill-fields (Error)
+
+Portable skills use only `name`, `description`, `license`, `allowed-tools`, `compatibility`, and `metadata`.
+
+**Fix**: Remove host-specific and extension fields.
 
 ### skill-links (Error)
 
@@ -111,12 +117,6 @@ Reference files in `references/` follow kebab-case naming (lowercase, hyphens be
 SKILL.md body does not exceed 500 lines. Token estimate warning at ~5000 tokens.
 
 **Fix**: Move detailed content to reference files and link with arrow syntax.
-
-### argument-hint (Error)
-
-If `user_invocable: true`, then `argument-hint` is present.
-
-**Fix**: Add `argument-hint: "<command> [flags]"` to frontmatter.
 
 ### arrow-refs (Error)
 
@@ -170,9 +170,9 @@ go.work `use` entries match `cmd/*/` directories with go.mod (symmetric differen
 
 ### symlink-entries (Error)
 
-`symlink_map.txt` has an entry for the canonical bundle skill. Binaries install from releases.
+`symlink_map.txt` has declared-root entries for the canonical bundle skill. Binaries install from releases.
 
-**Fix**: Add `plugins/<tool>/skills/<tool>:$HOME/.claude/skills/<tool>`.
+**Fix**: Add the Claude, OMP, and Codex skill projections for `plugins/<tool>/skills/<tool>`.
 
 ### bundle-boundary (Error)
 

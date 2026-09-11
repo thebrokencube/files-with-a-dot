@@ -43,6 +43,13 @@ Scripts use two path variables after the move:
 Core commands (`cmd/dot/*.sh`): `DOT_DIR="$SCRIPT_DIR"`, `DOTFILES_DIR` two levels up.
 Scripts (`cmd/dot/scripts/*.sh`): `DOT_DIR` one level up from `SCRIPT_DIR`, `DOTFILES_DIR` three levels up.
 
+### Admitted agent roots
+
+`symlink_map.txt` projects public policy and skills once to Claude `~/.claude`, default OMP
+`~/.omp/agent`, and Codex `~/.codex`; observed admission covers those direct roots, not named OMP
+profiles. Private skills use matching explicit rows. OMP MCP definitions are a private mapping at
+`~/.omp/agent/mcp.json`, while Codex configuration remains app-owned and unmanaged.
+
 ### lib/ Responsibilities
 
 | Library | Purpose | Key Functions |
@@ -90,7 +97,7 @@ Set automatically by:
 
 Auto-appends `[Y/n]` or `[y/N]` based on default. Scripts use:
 ```bash
-confirm ${FORCE:+-f} "Continue?" "no"
+confirm_with_force "$FORCE" "Continue?" "no"
 ```
 
 ### Target Topology

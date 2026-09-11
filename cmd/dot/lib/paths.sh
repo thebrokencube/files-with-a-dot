@@ -46,3 +46,56 @@ resolve_path() {
     local path="$1"
     realpath "$path" 2>/dev/null || echo ""
 }
+RETIRED_LINK_SOURCE_DIR="$DOTFILES_DIR"
+
+
+RETIRED_LINK_PAIRS=(
+    "$HOME/.claude/CLAUDE.md|configs/base/claude/.claude/CLAUDE.md"
+    "$HOME/.claude/rules/code-comments.md|configs/base/claude/.claude/rules/code-comments.md"
+    "$HOME/.claude/rules/dotfiles-awareness.md|configs/base/claude/.claude/rules/dotfiles-awareness.md"
+    "$HOME/.claude/rules/isolated-checkouts.md|configs/base/claude/.claude/rules/isolated-checkouts.md"
+    "$HOME/.claude/rules/no-memory-files.md|configs/base/claude/.claude/rules/no-memory-files.md"
+    "$HOME/.claude/rules/working-discipline.md|configs/base/claude/.claude/rules/working-discipline.md"
+    "$HOME/.claude/rules/workflow.md|configs/base/claude/.claude/rules/workflow.md"
+    "$HOME/.claude/rules/writing-structure.md|configs/base/claude/.claude/rules/writing-structure.md"
+    "$HOME/.claude/rules/concision.md|configs/base/claude/.claude/output-styles/Concise.md"
+    "$HOME/.claude/references/isolated-checkouts-runbook.md|configs/base/claude/.claude/references/isolated-checkouts-runbook.md"
+)
+RETIRED_LINK_CLEANUP_PLAN=()
+
+retired_link_matches() {
+    local destination="$1" source="$2" raw_target root resolved_root
+    [[ -L "$destination" ]] || return 1
+    raw_target=$(readlink "$destination") || return 1
+
+    resolved_root=$(resolve_path "$DOTFILES_DIR")
+    for root in "$RETIRED_LINK_SOURCE_DIR" "$DOTFILES_DIR" "$resolved_root" "$HOME/.dotfiles"; do
+        [[ -n "$root" && "$raw_target" == "$root/$source" ]] && return 0
+    done
+    return 1
+}
+
+plan_retired_link_cleanup() {
+    RETIRED_LINK_CLEANUP_PLAN=()
+    local pair destination source
+    for pair in "${RETIRED_LINK_PAIRS[@]}"; do
+        destination="${pair%%|*}"
+        source="${pair#*|}"
+        if retired_link_matches "$destination" "$source"; then
+            RETIRED_LINK_CLEANUP_PLAN+=("$pair")
+            ACTIONS+=("Remove retired link ${destination#"$HOME"/}")
+        fi
+    done
+}
+
+cleanup_retired_links() {
+    local pair destination source
+    for pair in "${RETIRED_LINK_CLEANUP_PLAN[@]}"; do
+        destination="${pair%%|*}"
+        source="${pair#*|}"
+        if retired_link_matches "$destination" "$source"; then
+            /bin/rm -f "$destination"
+            echo "  Removed retired link ${destination#"$HOME"/}"
+        fi
+    done
+}
