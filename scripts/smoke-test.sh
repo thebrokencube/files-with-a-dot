@@ -9,6 +9,7 @@ ok() { echo "  ok: $*"; }
 
 command -v jq >/dev/null || fail "jq is required"
 command -v shellcheck >/dev/null || fail "shellcheck is required"
+command -v python3 >/dev/null || fail "python3 is required"
 PLUGINS=()
 while IFS= read -r plugin; do
   PLUGINS+=("$plugin")
@@ -197,21 +198,64 @@ exec "$SYNC_REPO/cmd/dot/sync.sh" "${args[@]}"
 SCRIPT
 chmod +x "$REJECT_RUNNER"
 run_interactive_sync() {
-  local prompt="$1" answer="$2" spawn
-  if [[ "$(uname -s)" == Darwin ]]; then
-    spawn="script -q /dev/null $REJECT_RUNNER"
-  else
-    spawn="script -q -c $REJECT_RUNNER /dev/null"
-  fi
-  REJECT_SPAWN="$spawn" EXPECT_PROMPT="$prompt" EXPECT_ANSWER="$answer" expect <<'EXPECT'
-set timeout 20
-eval spawn $env(REJECT_SPAWN)
-expect $env(EXPECT_PROMPT)
-send -- "$env(EXPECT_ANSWER)\r"
-expect eof
-catch wait result
-exit [lindex $result 3]
-EXPECT
+  local prompt="$1" answer="$2"
+  REJECT_RUNNER="$REJECT_RUNNER" EXPECT_PROMPT="$prompt" EXPECT_ANSWER="$answer" python3 - <<'PY'
+import errno
+import os
+import pty
+import select
+import sys
+import time
+
+runner = os.environ["REJECT_RUNNER"]
+prompt = os.environ["EXPECT_PROMPT"].encode()
+answer = os.environ["EXPECT_ANSWER"].encode() + b"\r"
+pid, fd = pty.fork()
+
+if pid == 0:
+    os.execv(runner, [runner])
+
+deadline = time.monotonic() + 20
+transcript = bytearray()
+answered = False
+
+while True:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        os.kill(pid, 9)
+        os.waitpid(pid, 0)
+        sys.exit(1)
+
+    readable, _, _ = select.select([fd], [], [], remaining)
+    if not readable:
+        continue
+
+    try:
+        chunk = os.read(fd, 1024)
+    except OSError as error:
+        if error.errno == errno.EIO:
+            break
+        raise
+
+    if not chunk:
+        break
+
+    sys.stdout.buffer.write(chunk)
+    sys.stdout.buffer.flush()
+    transcript.extend(chunk)
+    if not answered and prompt in transcript:
+        os.write(fd, answer)
+        answered = True
+
+_, status = os.waitpid(pid, 0)
+if not answered:
+    sys.exit(1)
+if os.WIFEXITED(status):
+    sys.exit(os.WEXITSTATUS(status))
+if os.WIFSIGNALED(status):
+    sys.exit(128 + os.WTERMSIG(status))
+sys.exit(1)
+PY
 }
 
 run_rejected_sync() {
