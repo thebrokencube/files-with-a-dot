@@ -1,6 +1,6 @@
 # folio.yml Schema Reference
 
-Shared across workflows. Contains YAML structure reference for Claude. Go code owns validation logic.
+Shared across workflows. Contains the YAML structure reference for the Agent Skill. Go code owns validation logic.
 
 ## folio.yml Schema
 

@@ -120,7 +120,7 @@ folio status
 folio home push
 ```
 
-For planning and composition workflows, use `/folio plan` and `/folio compose` in Claude Code. See [02-workflows.md](02-workflows.md) for details.
+For planning and composition workflows, invoke the `folio` Agent Skill in an admitted host. See [02-workflows.md](02-workflows.md) for details.
 
 ## Key Concepts
 

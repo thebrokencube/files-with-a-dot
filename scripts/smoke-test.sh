@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# smoke-test.sh — deterministic acceptance test for the proven Claude distribution.
+# smoke-test.sh — deterministic acceptance test for Claude marketplace distribution and direct-root map safety.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -98,8 +98,10 @@ See the [build & release convention](../../pkg/dendrik/conventions/release.md).
 - [Starting a new tool](docs/02-new-tool.md) — the copy-an-exemplar + `lint --fix` recipe
 - [Reference](docs/03-reference.md) — full check catalog, severity model, output formats, flags
 
-## Claude Code Integration
+## Agent Skill integration
 
-dendrik includes a bundled Agent Skill:
+dendrik includes a bundled portable Agent Skill:
 
-- [`plugins/dendrik/skills/dendrik/SKILL.md`](../../plugins/dendrik/skills/dendrik/SKILL.md) — agent-facing workflow and references
+- [`plugins/dendrik/skills/dendrik/SKILL.md`](../../plugins/dendrik/skills/dendrik/SKILL.md) —
+  agent-facing workflow and references, projected to admitted direct roots and packaged in the
+  Claude bundle.

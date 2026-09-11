@@ -6,10 +6,13 @@ installation and discovery surface.
 
 ## Support boundary
 
-Claude Code is the sole proven marketplace adapter in files-with-a-dot. Cursor, Codex, and other
-harnesses are unsupported until current primary documentation defines their native discovery,
-manifest/catalog, packaging, install/update, and invocation behavior and an isolated dogfood proof
-passes. Unsupported targets emit no catalog, placeholder, user mapping, or compatibility artifact.
+Claude Code is the proven marketplace adapter: it alone has a catalog, bundle, and installer.
+Claude, default OMP, and Codex have separately admitted direct user roots for canonical policy and
+Agent Skills. OMP additionally admits native terminal Ask, policy retention across terminal
+compaction, and an isolated marketplace fallback; it has no generated marketplace catalog here.
+Codex user skills are a sibling of app-owned `.system`, and its configuration is unmanaged.
+Named OMP profiles, generic `~/.agents` roots, copied Codex catalogs, and unproved adapters emit
+nothing.
 
 ## Portable kernel
 
@@ -56,9 +59,10 @@ Support requires:
 
 ## Instructions and private overlays
 
-Portable repository rules live in `AGENTS.md`; `CLAUDE.md` and Claude user settings are thin native
-adapters. Private overlay files remain local `dot sync` inputs and never feed the public registry,
-bundles, generated artifacts, or fixtures. Public/private destination collisions fail before any
+Portable repository rules live in `AGENTS.md`; `CLAUDE.md` is a thin Claude-native adapter. Private
+overlay files remain local `dot sync` inputs and never feed the public registry, bundles, generated
+artifacts, or fixtures. Private OMP MCP configuration is mapped to the native user root without
+publishing definition values or server names. Public/private destination collisions fail before any
 symlink mutation without disclosing private source names or values.
 
 ## Adapter admission

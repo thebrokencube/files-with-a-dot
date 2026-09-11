@@ -58,7 +58,8 @@ This allows linking to any location — useful for apps like iTerm2 that store c
 
 Initialized on first sync. Manage with `dot private` (init, status, sync, push, edit). Push to a private remote to sync across machines.
 
-Private skills use explicit `symlink_map.txt` rows for the declared candidate roots: `~/.claude/skills/`, `~/.omp/agent/skills/`, and `~/.codex/skills/`. Those roots describe map topology, not a host-support claim.
+Private skills use explicit `symlink_map.txt` rows for the admitted Claude, default OMP, and Codex
+user roots. The same map shape does not admit named OMP profiles or manage Codex configuration.
 
 ## Repository Structure
 

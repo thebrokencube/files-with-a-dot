@@ -35,7 +35,7 @@ folio observe 'gap(docs): no getting-started guide'
 Two shapes of research:
 
 - **Snapshot** (new topic): `folio gather <url>` scaffolds a source entry. Add `--materialize` to download content and create a local reference file. Use `--type research` to specify the reference type.
-- **Re-seed** (update existing): `/folio gather <topic>` in Claude Code does full agent-driven research -- surveys the landscape, synthesizes findings, and updates existing references.
+- **Re-seed** (update existing): the `folio gather <topic>` Agent Skill workflow does full agent-driven research — surveys the landscape, synthesizes findings, and updates existing references.
 
 **Vault vs project-scoped**: landscape scans and tool surveys that apply across projects go in the vault (`~/.folio/vault/research/`). Project-specific investigations stay as spikes within the project.
 
@@ -52,7 +52,7 @@ The planning pipeline:
 3. **Work plan** -- break into tracks with dependencies
 4. **Execute** track by track with review gates
 
-`/folio plan` in Claude Code runs this full pipeline. The diverge-converge model generates multiple independent proposals from different perspectives (e.g., pragmatic vs thorough), then synthesizes them into one approach.
+The `folio plan` Agent Skill runs this full pipeline. The diverge-converge model generates multiple independent proposals from different perspectives (e.g., pragmatic vs thorough), then synthesizes them into one approach.
 
 **Lightweight mode**: 5 or fewer files with clear scope get a combined design+brief instead of the full pipeline.
 
@@ -70,7 +70,7 @@ Three target shapes:
 
 DAG ordering matters: compose upstream targets first. `folio dag` shows the dependency chain.
 
-Use `/folio compose` in Claude Code to run composition. The skill reads the `how` field, gathers declared sources, and produces the output.
+Use the `folio compose` Agent Skill to run composition. The skill reads the `how` field, gathers declared sources, and produces the output.
 
 ## Publishing to External Systems
 
@@ -78,7 +78,7 @@ Publish sends composed output to Jira, Google Docs, Slack, or Confluence.
 
 Push methods vary by target:
 - **Jira**: always through `jf` (the Jira forest CLI -- never direct API calls)
-- **Google Docs**: via gdrive tools in Claude Code
+- **Google Docs**: via the host's configured gdrive tools
 - **Manual**: copy output to clipboard with `pbcopy < output-file`
 
 There is a mandatory review gate before every external push. Post-push, `folio touch` clears staleness so `folio status` reflects the current state.

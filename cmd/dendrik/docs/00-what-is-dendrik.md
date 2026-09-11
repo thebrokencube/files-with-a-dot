@@ -21,9 +21,9 @@ dendrik's conventions are not denormalized across prose; each lives in one sourc
 | Source | Owns |
 |---|---|
 | `pkg/dendrik/conventions/cli.md` | CLI conventions — exit codes, flags, output modes, command structure |
-| `pkg/dendrik/conventions/skill.md` | Skill conventions — SKILL.md structure, frontmatter, progressive disclosure |
+| `pkg/dendrik/conventions/skill.md` | Skill conventions — portable SKILL.md structure, frontmatter, progressive disclosure |
 | `pkg/dendrik/conventions/release.md` | Build & release — version source (VERSION), `dendrik build`, tag scheme, immutability |
-| `pkg/dendrik/conventions/distribution.md` | Portable kernel + native adapter proof — closed bundles, Claude-only current support, evidence-gated admission |
+| `pkg/dendrik/conventions/distribution.md` | Portable kernel + admitted direct roots and Claude marketplace delivery |
 | `pkg/dendrik/conventions/contract.go` | The enforced contract — the canonical `Contract` slice every `dendrik lint` check derives from |
 | `plugins/dendrik/skills/dendrik/references/review-*.md` | The review framework — shared dimensions plus the per-type leaves |
 | `plugins/dendrik/skills/dendrik/references/contract-checks.md` | The one enumeration of the contract's checks (derived from `contract.go`) |

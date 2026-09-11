@@ -31,7 +31,7 @@ description: "Manage and develop dotfiles — installation, updates, adding conf
 
 **Private overlay** (`~/.dotfiles.private/`):
 - Separate git repo for machine-specific private configs
-- `symlink_map.txt`, `Brewfile`, `skills/` — private symlinks, packages, Claude skills
+- `symlink_map.txt`, `Brewfile`, `skills/` — private symlinks, packages, Agent Skills
 - `dot private init` to create, `dot private sync` to re-apply
 
 **Managed files** (`managed_map.txt`):

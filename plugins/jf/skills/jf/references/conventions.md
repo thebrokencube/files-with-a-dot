@@ -46,11 +46,11 @@ When creating PRs for work tracked in Jira, prefix the title with the ticket key
 The ticket key goes at the **beginning**, not the end. The rest follows conventional commit format (same as ticket naming). Examples:
 
 ```
-[RETIRE-3108] feat(plans): add plan category system
-[BEN-1234] fix(enrollment): handle missing SSN gracefully
+[PROJ-123] feat(plans): add plan category system
+[PROJ-456] fix(enrollment): handle missing data gracefully
 ```
 
-If the branch name contains a ticket key (e.g., `RETIRE-3108-plan-categories`), extract it from there. If no ticket is associated, omit the prefix — don't invent one.
+If the branch name contains a ticket key (e.g., `PROJ-123-plan-categories`), extract it from there. If no ticket is associated, omit the prefix — don't invent one.
 
 ## Description Structure
 
@@ -117,9 +117,9 @@ Default expectation for how folio layers map to Jira hierarchy:
 
 | Folio layer | Jira level | Example |
 |---|---|---|
-| Project group (`ret/`) | Project Name (level 2) | RETIRE-9338 "AI Docs" |
-| Project (`ret/radrs`) | Epic (level 1) | RETIRE-9336 "[AID/RADR] Backlog" |
-| Work track | Task/Story/Spike (level 0) | RETIRE-9341 "spike(plans): template modes" |
+| Project group (`group/`) | Project Name (level 2) | PROJ-100 "Product area" |
+| Project (`group/project`) | Epic (level 1) | PROJ-101 "Backlog" |
+| Work track | Task/Story/Spike (level 0) | PROJ-102 "spike(plans): template modes" |
 | Observation | Candidate for ticket creation | `folio observe` → `jf create-missing` |
 
 This isn't 1:1 — a folio can have multiple epics (e.g. ret/docs has both a backlog epic and a legacy cleanup epic). But the mapping provides a default: when you create a new folio project, it probably needs an epic; when a project group emerges, it probably needs a Project Name.
