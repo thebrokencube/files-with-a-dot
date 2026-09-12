@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -20,7 +19,7 @@ func runStores(args []string) int {
 		return runStoresList(args[1:])
 	case "--help", "-h", "help":
 		printStoresUsage()
-		return 0
+		return dendrik.ExitOK
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown stores command: %s\n", args[0])
 		printStoresUsage()
@@ -62,22 +61,22 @@ func runStoresList(args []string) int {
 			s := reg.Stores[name]
 			out = append(out, storeJSON{Name: s.Name, Path: s.Path, Kind: s.Kind})
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		_ = enc.Encode(out)
-		return 0
+		if err := dendrik.WriteResult(os.Stdout, out); err != nil {
+			return dendrik.ExitExternalErr
+		}
+		return dendrik.ExitOK
 	}
 
 	if len(reg.Order) == 0 {
 		fmt.Println("No stores registered (single-home). `vault:` resolves intrinsically to <home>/vault.")
 		fmt.Println("Add stores by creating ~/.folio/stores.yml.")
-		return 0
+		return dendrik.ExitOK
 	}
 	for _, name := range reg.Order {
 		s := reg.Stores[name]
 		fmt.Printf("%-12s %-9s %s\n", s.Name, s.Kind, s.Path)
 	}
-	return 0
+	return dendrik.ExitOK
 }
 
 func printStoresUsage() {
