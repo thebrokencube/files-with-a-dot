@@ -17,20 +17,32 @@ conventional-commit header (the design phase mints that later from this phrase).
 
 ## The one rule: lead with the strongest visual, cut paragraphs
 A sketch is a *picture of the data model and its flow*, not an essay about it. Before writing a
-sentence, ask what diagram it would be instead. The mechanical form that enforces this: **each
-`<h2>` section is one visual plus at most a one-line caption; the only multi-line prose on the whole
-page is the single `.one` one-liner.** First drafts fail by being wordy — and the fix is never a
-shorter paragraph, it's a diagram where the paragraph was.
+sentence, ask what diagram it would be instead. The default data-model and narrative-of-models
+forms use **one visual plus at most a one-line caption for each `<h2>` section; the only multi-line
+prose on the whole page is the single `.one` block.** A named decision-surface variant for
+architecture/reframe work uses seven named `<h2>` sections and keeps that same rule with two named
+exceptions: its Commit spine caption is the single multiline `.one` block, and one explicitly named
+Open questions slot may contain short bullets and one caption without a visual.
+First drafts fail by being wordy — and the fix is never a shorter paragraph, it's
+a diagram where the paragraph was.
 
-## Two archetypes (pick the lede)
+## Two archetypes and a named variant (pick the lede)
 The two exemplar sketches — **per-repo-warden-capabilities** and **github-anchored-review-dashboards**
 (each at a project's `work/active/<date>-<topic>/reference/sketch/index.html`) — are the bar. They
-show the two shapes a sketch takes; pick by what the idea is:
+show the shapes a sketch takes; pick by what the idea is:
 - **Data model** (default, for a schema / record change) — ER entity boxes + relationships as the
   lede, a concrete record, and a data-flow SVG. **Bias hard toward this style.**
 - **Narrative of models** (for a reframe or architecture shift) — 2-4 numbered `<h2>` sections, each
   one SVG, sequencing today → the idea → what it unlocks → the invariant. No ER boxes; the payoff is
-  the sequence, anchored by an invariant callout.
+  the sequence, anchored by an invariant callout. Choose it when that sequence is the decision to
+  communicate.
+- **Decision surface** (named architecture/reframe variant, not a third archetype) — use it instead
+  of the narrative when the round must land a decision and commit shape rather than a today → idea →
+  unlock sequence. It has seven named `<h2>` sections: **Outcome**, **Target shape**, **Open forks**,
+  **Proof**, **Commit spine** (including predicted intent slices), **Handoff boundary**, and one named
+  **Open questions** slot. Use HTML/CSS cards or tables alongside SVG when they make the decision
+  legible; the named Open questions slot may contain short bullets and one caption without a visual.
+  Every other section keeps one visual plus one caption.
 
 ## The vocabulary
 Reach for these first. Everything data-shaped is monospace; everything else is a one-line caption.
@@ -44,15 +56,15 @@ reuse them so every sketch reads as one system.
 | **Concrete example** | one real record as a syntax-colored `<pre>` (key=accent, string=green, number=amber, comment=muted) — optionally beside a small reference table with an italic `future`/drop-in row for extensibility — or one CLI call + its output | data-model / record-shaped sketches |
 | **Open-forks cards** (`.fork`) | compact cards, one per unresolved decision; each states the options with the picked one marked `▸` (`.pick`) | the reaction surface — where the user's call lands |
 | **Invariant callout** (`.inv`) | one centered, accent-bordered line stating a law the design must hold (counts match, never-drop) | when the idea hinges on a constraint |
+| **Decision-surface cards and tables** (`.fork`, `table`) | compact visual cards or tables for forks, proof, target shape, or handoff when they make a decision legible; valid alongside inline SVG | decision-surface variant only |
 | **Monospace** | field names, types, slugs, paths, values — anything data-shaped | pervasive |
 
-Cards and tables are the fallback only for content with genuinely no 2D structure — never the
-opening move.
+Cards and tables are a fallback only for content with genuinely no 2D structure, except that the named decision-surface variant may use them when they make a decision legible; neither case changes the visual-plus-caption rule.
 
 ## Layout catalog (fill the seed's slots)
 Each slot is a **visual** wherever the content admits one; prose drops to a one-line caption beneath
 it. For a **data-model** sketch:
-- **One-liner** — the whole idea in one sentence (the `.one` callout).
+- **One-liner** — the whole idea in one sentence (the `.one` callout; a page-level lede, not an `<h2>` visual slot).
 - **Data model** — ER entity boxes + relationship lines (the lede).
 - **One row / call, concretely** — the concrete example.
 - **Data flow** — the data-flow SVG.
@@ -61,6 +73,14 @@ it. For a **data-model** sketch:
 For a **narrative-of-models** sketch the slots become the sequence: the one-liner, then 2-4 numbered
 `<h2>` model sections (each one SVG + caption), an invariant callout, and a closing "Decide" block
 of open-forks cards.
+
+For a **decision-surface** sketch the named sections are: **Outcome**, **Target shape**, **Open
+forks**, **Proof**, **Commit spine**, **Handoff boundary**, and one named **Open questions** slot.
+The other five sections each contain one visual plus one caption; **Commit spine** contains one visual
+whose caption is the page's single multiline `.one` block naming the predicted intent slices. The
+variant uses that `.one` block instead of adding a separate one-liner. Open questions contains short
+bullets plus one caption and no visual. The invariant callout remains available when one law carries
+the design.
 
 ## Build conventions (visual-first, self-contained)
 - **Single self-contained HTML file. Inline all CSS / JS / SVG. NO external deps / CDNs.**
@@ -124,8 +144,11 @@ Four dimensions — return concrete defects (what's wrong + the fix):
    - **Out-of-viewBox / hidden** — coords outside the `viewBox`, or an opaque rect fully covering an
      earlier element (later paint wins). Fine legibility/overflow can't be judged statically — leave
      it to the human render gate.
-2. **Prose bloat.** Flag any `<h2>` section with no visual, and any caption longer than one sentence
-   (the mechanical rule above makes this countable, not a judgment call).
+2. **Prose bloat.** Flag any `<h2>` section with no visual, except the one explicitly named
+   **Open questions** section; the Commit spine's single caption is the page's multiline `.one` block
+   naming the predicted intent slices — do not flag it as an over-long caption or expect a separate
+   one-line caption there. Flag any other caption longer than one sentence and any other visual-less
+   section. The mechanical rule still rejects a general prose escape hatch.
 3. **Missing data-model / relationships.** For a data-model sketch: are the entities, their
    `new|existing|code-registry` tags, and the relationship lines actually *drawn* — not just
    described in prose?
