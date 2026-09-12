@@ -48,6 +48,15 @@ Phase 1.5 (idea/arch sketch) runs inside the Design agent — lead-driven, befor
 
 **Hard rule: execution REQUIRES a committed plan artifact.** No mode skips this. In full mode it's a committed `README.md` work plan (Design → Brief → Execute). In lightweight (N==1) mode it's the frozen idea/arch sketch + a committed `track-1.md`. If you'd start execution with neither committed, STOP.
 
+### Dispatching a committed brief
+
+After the work plan is committed, `/folio dispatch` renders the transient provider-neutral
+projection for an explicitly selected track and named receiver. It reads only the committed README,
+applies the pre-dispatch gate, and does not add a fourth pipeline phase or replace bare `/folio`
+resume.
+
+-> Read references/plan-brief.md for projection fields and refusal rules.
+
 ## Iteration Across Sessions
 
 Planning is often iterative — a single session rarely produces a fully hardened design. The Design phase (Agent 1) can loop across multiple sessions:
