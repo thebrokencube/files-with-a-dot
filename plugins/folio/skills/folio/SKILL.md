@@ -137,6 +137,12 @@ Custom lenses can be specified naturally in the topic text; defaults to pragmati
 
 -> Read references/plan.md for full workflow (includes agent prompt templates).
 
+### /folio dispatch
+
+Dispatch a selected track to a named receiver by reading only its committed work-plan README and rendering the transient, provider-neutral dispatch projection. The committed work-plan README is the only semantic handoff input; enforce the pre-dispatch gate, show visible refusal when a required condition is unresolved, and do not read the design, sketch, spike, transcript, prompt file, or implicit parent context. Never replace bare `/folio` resume.
+
+-> Read references/plan-brief.md for the full dispatch projection and pre-dispatch gate.
+
 ### /folio compose [target]
 
 Compose sources into targets in DAG order. Composition is creative assembly — sources are working memory; targets are communication condensed for their audience.
@@ -330,6 +336,7 @@ That loop is an internal fix-loop, not a user gate; the Hard gate is the human s
 | plan | Hard | Phase 4b pre-commit | Review design doc before commit |
 | plan | Hard | Phase 6 Test Strategy | Test strategy section, user approval required |
 | plan | Hard | Phase 6 pre-commit | Already defined in plan.md |
+| dispatch | Hard | Before any provider invocation | Selected target, landed brief, required context, named receiver, or visible refusal |
 | lint | Hard | Before Phase 3 execution | Cleanup plan summary, action count by effort level |
 | lint | Hard | Before cross-project mutation | Proposed command, target project |
 | lint | Soft | At 20 observations | Finding count, confirmation to continue |
@@ -387,7 +394,7 @@ is how provenance chains break.
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
   - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, visual vocabulary, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
-  - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief
+  - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief, and derive the transient dispatch projection
   - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
