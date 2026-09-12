@@ -1,14 +1,16 @@
 # Plan Workflow — Brief Phase (Phases 5-6)
 
-Read by Agent 2 (Brief). Self-contained for brief sessions.
+Read by Agent 2 (Brief). Also read by `/folio dispatch`: the transient dispatch projection and
+pre-dispatch gate live at the end of the Execution Setup section. A dispatch reader uses only the
+committed work-plan README, not the design doc.
 
 ## Phase 5: Decompose
 
-Reads the committed design doc — no prior conversation context.
+For Phase 5, read the committed design doc — no prior conversation context.
 
 Analyze the design doc and break it into implementation tracks:
 
-1. **Read the design doc.** This is the only input — do not rely on conversation history.
+1. **Read the design doc.** For Phase 5, this is the only input — do not rely on conversation history.
 2. **Identify tracks.** Each track is an independently executable stream of work. Tracks
    should be scoped so an execution agent can pick up any single track without needing
    context from other tracks.
@@ -71,7 +73,7 @@ to make judgment calls when implementation deviates from the plan. This replaces
 the design doc."
 
 Include:
-- **What this work is** (2-3 sentences): the problem, the goal, what repo(s) are involved
+- **What this work is** (2-3 sentences): the problem, the bounded task sentence and goal, what repo(s) are involved
 - **Non-negotiable decisions** (bulleted): constraints from the design doc's Non-Negotiable
   Constraints and Chosen Approach sections. Frame as: "Do X" / "Do NOT do Y" / "X stays
   because Y."
@@ -79,6 +81,9 @@ Include:
 
 Target: 10-20 lines. Dense, not conversational. Every line should change how the agent
 behaves — if a line doesn't affect execution decisions, cut it.
+For a transient dispatch projection, `outcome` is the goal clause of **What this work is**, the
+bounded `task` is its bounded task sentence, accepted decisions are the **Non-negotiable decisions**
+verbatim, and scope boundary is the **Scope boundary** bullets. The projector may not broaden that task.
 
 #### Interface Spec section (required)
 
@@ -89,6 +94,16 @@ Include:
 - **File change manifest**: path, action (create/modify/delete), what changes
 - **Cross-boundary type definitions** (code blocks): from design doc's Component Contracts
 - **Validation commands** (pass criteria): build, test, lint (exact commands with working directory)
+For dispatch, this section also supplies the file manifest and registered source locator/role table.
+Read each locator at projection time from canonical `folio.yml`; do not copy manifest identity or
+freshness metadata into the brief. The committed README is the required semantic subject. The design
+doc and sketch are optional parent-session comparison references, not fresh-consumer inputs.
+
+| Registered reference | Locator from canonical `folio.yml` | Role | Fresh-consumer input |
+|---|---|---|---|
+| committed README | registered project-relative README path | required semantic subject | yes |
+| design doc | registered project-relative design path | optional parent-session comparison | no |
+| sketch | registered project-relative sketch path | optional parent-session comparison | no |
 
 #### Track Decomposition section (required)
 
@@ -112,6 +127,20 @@ For each track, specify:
 **Specification depth must be approximately uniform across tracks.** If Track 1 has function
 signatures and test tables, Track 4 cannot be a one-liner. Thin tracks signal the brief
 author didn't think them through — flesh them out or merge them into an adjacent track.
+For a transient dispatch projection, this section supplies predicted slices, dependencies, and the
+explicitly selected track. `next_artifact.job` is the first output of the first unfinished future
+track after the explicit current-track request; the request names the current selected work. Resolve
+that future track at capture, record the job in the view, and never make the receiver recompute it.
+In the local dogfood fixture, the explicit request is `track=T2` (Track 2); the view records Track
+3's `plan-brief.md` change as `next_artifact.job`.
+
+A predicted slice is one track-level unit; each `after` value is an explicitly declared predecessor
+slice label, never a manifest source path. Use `after` only for those labels in this view; it is not
+folio.yml's validated `depends_on` source-path key. For multi-repository briefs, produce one view per
+explicitly selected track/repository. An unselected target is unresolved and refuses dispatch; never
+invent a target, task, next-artifact job, approval, or provider field. Preserve
+`repository: <one repo mapping from Execution Setup, or unresolved>`. An unresolved repository is
+emitted as the refusal record and is never dispatched.
 
 #### Test Strategy section (required — hard gate)
 
@@ -132,6 +161,9 @@ Include:
 Target: 10-20 lines. Every line should map to something an execution agent verifies.
 Vague entries like "add appropriate tests" fail the gate — specify what tests, for what
 behavior, using what approach.
+For dispatch, this section supplies acceptance criteria, evidence references, test infrastructure, and
+the not-tested boundary. Evidence references are the exact commands listed under **Acceptance
+criteria** and their observed output or status; a transport receipt is not test proof.
 
 **Gate behavior**: After writing this section, present it to the user and wait for explicit
 approval. If the user requests changes, revise and re-present. Do not proceed to Execution
@@ -158,6 +190,61 @@ Include:
   on completion, `folio home push` checkpoints at milestones. Do not instruct agents to add
   "completion" observations — observations are open items, not a changelog. Execution agents
   should maintain folio state as they go — not as a final cleanup step.
+For a dispatch projection, this section supplies the selected repository/track target, skill
+invocations, commit/push workflow, escalation triggers, and Folio integration.
+
+**Transient dispatch projection (guidance, not a storage schema).** Assemble the view from the five
+sections above; do not add a schema key or serializer. Include `repository`, the explicitly selected
+`track`, `outcome`, bounded `task`, accepted decisions, scope boundary, interface manifest and
+registered locator/role table, predicted slices with `after` labels, `next_artifact.job`, `derived_from`,
+test strategy, selected skills, workflow, escalation, Folio integration, and a `dispatch_key`.
+
+For store-local evidence other than the brief locator, use the live jj change ID. The `dispatch_key`
+always uses the brief's landed (`::main`) change ID. For external sources, use the canonical `id` or
+`url`; include `derived_from.cached` only when that source is registered. Unavailable identity or
+freshness is reported, not a refusal, when the source is readable. A registered stale fact or missing
+or unreadable required context refuses dispatch; missing or unreadable optional context is reported
+as unavailable.
+
+The `brief locator` is the project-relative README path in its canonical `folio.yml` source entry,
+not an absolute path or store identifier. Define `dispatch_key` as
+`<registered README path>@<latest landed change ID>`. For example, the local dogfood key is
+`work/active/2026-09-12-sketch-stage-rethink/README.md@wnzvmyqnvyzyqvzlyouznnmrvtzvprxn`.
+
+`<isolated-workspace>` is the `FOLIO_HOME` root returned by `folio home workspace list` or created by
+`folio home workspace create`; its root contains `active/`, and it is the cwd for the following
+read-only lookup. First confirm the registered path exists at `main`:
+
+```bash
+jj file list -r main -- active/tooling/folio/work/active/2026-09-12-sketch-stage-rethink/README.md
+```
+
+Then resolve the latest landed change ID:
+
+```bash
+jj log --no-graph -r '::main & files("active/tooling/folio/work/active/2026-09-12-sketch-stage-rethink/README.md")' -n 1 -T 'change_id ++ "\n"'
+```
+
+For another brief, replace the `<project-path>` and `<date>-<topic>` segments while retaining the
+`active/<project-path>/work/active/<date>-<topic>/` shape (`tooling/folio` and
+`2026-09-12-sketch-stage-rethink` here); nothing else varies. Empty log output means not landed only
+after the registered path check succeeds; a path mismatch is a stop condition, not evidence of
+non-landing.
+“Landed” means the brief was committed through `folio home push` onto `main`; unrelated store-head
+movement does not invalidate the key.
+
+**Pre-dispatch gate.** Before any provider invocation, walk through these gates: accepted Folio
+planning gates; a landed, committed brief; an explicit selected target; resolvable required context;
+no unresolved authority-affecting choice; and a named receiver. If `repository` is unresolved, emit the view as a
+refusal record and never dispatch it. The receiver gets only the derived projection plus explicitly
+named references and the selected target — never the conversation transcript or implicit parent
+context. A receipt or transport success is not completion; terminal evidence must be explicit and
+remains provider-owned. Capability negotiation, refusal vocabulary, lifecycle, workspace,
+authentication, retries, callbacks, and terminal artifacts remain provider-owned.
+
+Changed brief content or changed declared source freshness invalidates the view and requires the
+planning gates to be revisited. Unrelated store-head movement does not. Missing freshness or identity
+remains nonblocking when the source itself is readable.
 
 **Handoff Prompts** are no longer a mandatory section. They are templatable from the
 Execution Setup conventions. Include them only when the execution session needs context
