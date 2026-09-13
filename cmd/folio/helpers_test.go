@@ -380,6 +380,9 @@ func TestWorkspaceCreateFromCodeStoreCWDUsesDefaultFolioStore(t *testing.T) {
 }
 
 func TestResolveContextSecondaryWorkspaceDiscoversUmbrella(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not on PATH")
+	}
 	umbrella := t.TempDir()
 	storeRoot := filepath.Join(umbrella, "folio")
 	project := filepath.Join(storeRoot, "active", "project", "folio.yml")
