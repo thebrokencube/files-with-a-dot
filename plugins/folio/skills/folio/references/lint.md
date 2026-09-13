@@ -7,11 +7,11 @@ Periodic knowledge integrity pass across folio projects. Two-layer scan (CLI det
 ## Preflight
 
 1. Check for `folio-hygiene` project: `folio home list`
-2. If not found, bootstrap:
+2. If not found, bootstrap under the selected Folio content work root:
    ```
-   cd ~/.folio/active
+   cd <work-root>/active
    mkdir folio-hygiene
-   cd ~/.folio/active/folio-hygiene
+   cd <work-root>/active/folio-hygiene
    folio init --name "Folio Hygiene"
    ```
 3. Record the folio-hygiene folio.yml path for use throughout.
@@ -40,9 +40,16 @@ folio observe list --json --folio <path>
 folio observe lint --folio <path>
 ```
 
-`folio health` emits human-readable text only (no JSON mode). Parse it as advisory signal.
+`folio health` emits human-readable text only (no JSON mode). Parse it as advisory
+signal. Treat `stale` and `missing` local outputs as blocking freshness work; treat
+`unknown` as an explicit evidence gap, not a failure. Forest freshness remains
+delegated to `jf` and is not added to the Folio stale queue.
+Final targets are terminal only for dependency propagation: a clean final target may be
+omitted from the stale queue, but a stale or missing local output remains blocking.
 
-Present results as a compact summary — project name, health grade, finding count per category.
+
+Present results as a compact summary — project name, health grade, finding count per
+category, and freshness counts.
 
 ### LLM layer (user-selected, up to 3 projects)
 

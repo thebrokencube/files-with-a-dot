@@ -1,13 +1,12 @@
 # Integration Testing
 
-Shell-based integration tests for folio CLI behavior. Use `FOLIO_HOME` to isolate
-test state from your real `~/.folio` — no backup/restore needed.
+Shell-based integration tests for folio CLI behavior. Use a temporary `FOLIO_HOME` content root to isolate
+test state from the real store. For container-mode tests, use a separate temporary
+`FOLIO_UMBRELLA` containing `stores.yml`; never treat the umbrella as the test content root.
 
 ## Setup
 
-All commands respect the `FOLIO_HOME` environment variable. Use it as an inline
-prefix per command to isolate test state from `~/.folio` without touching the shell
-environment (important if `FOLIO_HOME` is set in your shell config):
+Legacy isolated test:
 
 ```bash
 FOLIO_HOME=/tmp/folio-test folio home init
@@ -16,8 +15,22 @@ FOLIO_HOME=/tmp/folio-test folio home push -m "feat(test-project): init project"
 rm -rf /tmp/folio-test
 ```
 
-Do not use `export FOLIO_HOME=...` across separate commands — shell state does not
-persist between invocations if `FOLIO_HOME` is already set in your shell config.
+Container-mode test:
+
+```bash
+FOLIO_UMBRELLA=/tmp/folio-control FOLIO_HOME=/tmp/folio-test folio home list
+```
+
+Use inline prefixes per command. Do not export either variable across separate
+commands — shell state may already contain a user's control or content root.
+
+## Freshness fixtures
+
+Digest snapshot primitives belong in isolated `t.TempDir()` or `/tmp` fixtures. Test
+unstamped outputs as `unknown`, changed inputs as `stale`, and missing outputs as
+`missing`. Exercise `folio touch` to record a digest without changing output bytes or
+modification times, and exercise `--final` only with a direct external output plus a
+local review copy.
 
 ## Test: home init + project init + push
 

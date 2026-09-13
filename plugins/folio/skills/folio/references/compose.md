@@ -40,7 +40,8 @@ Forest targets are jf-managed Jira hierarchies. Each node composes independently
    a. Read the node's markdown file
    b. Apply the node's `how_overrides` entry (fall back to `how_default` if none)
    c. Use `jf push <KEY> <FILE>` to compile and push (see references/publish.md)
-4. Touch the target's local `path:` output to update mtime (if one exists)
+4. Ask `jf` to report forest freshness; Folio keeps forest targets delegated and
+   reports them as `unknown` rather than adding them to the Folio stale queue.
 
 ## Batch Target Composition
 
@@ -50,15 +51,21 @@ Multiple items sharing one `how` directive. Each item has its own source and out
 2. For each stale/missing item:
    a. Read item's `source` file
    b. Apply target-level `how`
-   c. Push via tooling.yml. Output: `{external: batch.system, id: item.output.id, field: item.output.field || batch.field}`
-3. Touch the target's local `path:` output (if one exists)
+3. Push via tooling.yml. Output: `{external: batch.system, id: item.output.id, field: item.output.field || batch.field}`
+4. Verify each external result. When a batch item has a local output, record its
+   per-item digest through the supported snapshot workflow; do not infer freshness
+   from local output metadata.
 
 ## Iteration
 
 Composition is rarely one-shot. The compose-review-re-compose loop handles two distinct iteration types:
 
-- **New source** (changes the DAG): gather additional source material, then re-compose. Staleness tracking handles this automatically — new/updated sources make targets stale.
-- **Reframe** (same DAG, different lens): update the target's `how` field, then re-compose with `--force`. `how` isn't tracked for staleness, so reframes require an explicit force flag.
+- **New source** (changes the DAG): gather additional source material, then re-compose.
+  A complete recorded digest can identify changed inputs; an unstamped target remains
+  `unknown` until `folio touch <target>` records composition state.
+- **Reframe** (same DAG, different lens): update the target's `how` field, then
+  re-compose with `--force`. Input digests do not cover `how`, so reframes require an
+  explicit force flag.
 
 After composing, review the output — run `folio validate` and `folio status` to check for issues. If the output needs work, determine which type of iteration applies and loop back.
 

@@ -120,6 +120,11 @@ func defaultWorkspaceRoot(dir string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// DefaultWorkspaceRoot returns the jj repository root for a workspace.
+func DefaultWorkspaceRoot(dir string) (string, error) {
+	return defaultWorkspaceRoot(dir)
+}
+
 // jjPush describes @, sets bookmark, pushes, and creates fresh @.
 func jjPush(home, message string) error {
 	// Check if @ is empty

@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 )
 
 // Store kinds. Behavior (writability, scan, discovery) is derived from kind,
@@ -22,7 +20,7 @@ const (
 )
 
 const (
-	LocationContained  = "contained"  // under ~/.folio; folio may create/reconstruct it
+	LocationContained  = "contained"  // under the umbrella; folio may create/reconstruct it
 	LocationReferenced = "referenced" // lives in place; folio reads it, never rewrites its history
 )
 
@@ -31,17 +29,16 @@ const maxSchema = 3
 
 const storesFile = "stores.yml"
 
-// vaultName is the reserved store name for the home's intrinsic shared-reference
-// subdir (<home>/vault). It is NOT a registry store — it has no folio.yml and no
-// active/archive lifecycle — so it is resolved intrinsically by ResolvePath and
-// never listed as a peer store. A user may still register a real store named
-// "vault" to override the intrinsic path.
+// vaultName is the reserved prefix for a selected store's intrinsic shared
+// reference subdir (<work-root>/vault). It is not a registry store — it has no
+// folio.yml and no active/archive lifecycle — so ResolvePath handles it
+// intrinsically. A user may register a real store named "vault" to override it.
 const vaultName = "vault"
 
-// Store is one entry in the global store registry (~/.folio/stores.yml).
+// Store is one entry in the registry owned by the control root.
 type Store struct {
 	Name          string // map key, filled on load
-	Path          string // ~/ expanded to absolute
+	Path          string // expanded and canonical absolute path
 	Kind          string // KindFolio | KindExternal | KindCode | KindDot
 	Location      string // LocationContained (default) | LocationReferenced
 	DefaultBranch string // branch a code push must refuse; "" → "main"
@@ -53,13 +50,16 @@ func (s Store) IsExternal() bool { return s.Kind == KindExternal }
 // IsReferenced reports whether the store lives in place (folio never rewrites its history).
 func (s Store) IsReferenced() bool { return s.Location == LocationReferenced }
 
-// Registry indexes every folio + external KB the user works across. It is
-// global: loaded once from the home dir and consulted by all resolution and
-// discovery, so a given <store>: prefix means the same thing everywhere.
+// Registry indexes every Folio + external KB the user works across. It is
+// loaded from the selected control root and consulted by all context and
+// discovery paths, so a given <store>: prefix means the same thing everywhere.
 type Registry struct {
 	Stores  map[string]Store // lookup by name
-	Order   []string         // declaration order = precedence (home/self implicitly first)
+	Order   []string         // declaration order = precedence
 	Default string           // top-level `default:` store name; "" if unset/implicit
+
+	// umbrella is the canonical directory that owns stores.yml.
+	umbrella string
 
 	// implicit is true ONLY for the file-absent sentinel produced by
 	// defaultRegistry. It is the single source of truth for back-compat: an
@@ -67,6 +67,106 @@ type Registry struct {
 	// callers MUST read this flag (via isImplicitDefault) rather than inferring
 	// "implicit" from empty contents.
 	implicit bool
+}
+
+// IsImplicit reports whether the registry came from an absent stores.yml.
+func (r *Registry) IsImplicit() bool {
+	return r.isImplicitDefault()
+}
+
+// LoadRegistryFrom loads stores.yml from a specific control root. An absent file
+// returns the implicit registry used by legacy isolated homes.
+func LoadRegistryFrom(homeDir string) (*Registry, error) {
+	umbrella, err := canonicalPath(homeDir)
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(umbrella, storesFile)
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return defaultRegistry(umbrella), nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+	return parseRegistryAt(data, umbrella)
+}
+
+func defaultRegistry(homeDir string) *Registry {
+	return &Registry{
+		Stores:   map[string]Store{},
+		Order:    nil,
+		umbrella: homeDir,
+		implicit: true,
+	}
+}
+
+func parseRegistry(data []byte) (*Registry, error) {
+	return parseRegistryAt(data, "")
+}
+
+func parseRegistryAt(data []byte, umbrella string) (*Registry, error) {
+	var doc struct {
+		Schema  int       `yaml:"schema"`
+		Default string    `yaml:"default"`
+		Stores  yaml.Node `yaml:"stores"`
+	}
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	if err := dec.Decode(&doc); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", storesFile, err)
+	}
+	if doc.Schema > maxSchema {
+		return nil, fmt.Errorf("%s: unsupported schema version %d (max %d)", storesFile, doc.Schema, maxSchema)
+	}
+
+	reg := &Registry{Stores: map[string]Store{}, Default: doc.Default, umbrella: umbrella}
+	content := doc.Stores.Content
+	for i := 0; i+1 < len(content); i += 2 {
+		name := content[i].Value
+		var rs rawStore
+		if err := content[i+1].Decode(&rs); err != nil {
+			return nil, fmt.Errorf("store %q: %w", name, err)
+		}
+		kind := rs.Kind
+		if kind == "" {
+			kind = KindExternal
+		}
+		switch kind {
+		case KindFolio, KindExternal, KindCode, KindDot:
+		default:
+			return nil, fmt.Errorf("store %q: invalid kind %q (want %s|%s|%s|%s)", name, kind, KindFolio, KindExternal, KindCode, KindDot)
+		}
+		loc := rs.Location
+		if loc == "" {
+			loc = LocationContained
+		}
+		if loc != LocationContained && loc != LocationReferenced {
+			return nil, fmt.Errorf("store %q: invalid location %q (want %s|%s)", name, loc, LocationContained, LocationReferenced)
+		}
+		branch := rs.DefaultBranch
+		if branch == "" {
+			branch = "main"
+		}
+		if rs.Path == "" {
+			return nil, fmt.Errorf("store %q: missing path", name)
+		}
+		if _, dup := reg.Stores[name]; dup {
+			return nil, fmt.Errorf("store %q: declared more than once", name)
+		}
+		storePath := expandUser(rs.Path)
+		if umbrella != "" && !filepath.IsAbs(storePath) {
+			storePath = filepath.Join(umbrella, storePath)
+		}
+		canonicalStorePath, err := canonicalPath(storePath)
+		if err != nil {
+			return nil, fmt.Errorf("store %q path: %w", name, err)
+		}
+		storePath = canonicalStorePath
+		reg.Stores[name] = Store{Name: name, Path: storePath, Kind: kind, Location: loc, DefaultBranch: branch}
+		reg.Order = append(reg.Order, name)
+	}
+	return reg, nil
 }
 
 // isImplicitDefault reports whether this registry is the file-absent sentinel
@@ -114,45 +214,6 @@ func (r *Registry) AllStores() []Store {
 	return out
 }
 
-// LoadRegistry loads ~/.folio/stores.yml. An absent file yields the implicit
-// default registry {vault: {<home>/vault, folio}}, reproducing today's
-// single-home behavior byte-for-byte.
-func LoadRegistry() (*Registry, error) {
-	homeDir, err := home.Dir()
-	if err != nil {
-		return nil, err
-	}
-	return LoadRegistryFrom(homeDir)
-}
-
-// LoadRegistryFrom loads the registry from a specific home directory. Exposed
-// for testing with an isolated FOLIO_HOME.
-func LoadRegistryFrom(homeDir string) (*Registry, error) {
-	path := filepath.Join(homeDir, storesFile)
-	data, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return defaultRegistry(homeDir), nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", path, err)
-	}
-	return parseRegistry(data)
-}
-
-// defaultRegistry is the implicit registry used when no stores.yml exists. It is
-// EMPTY — there are no registered stores in a single-home setup. The `vault:`
-// prefix is not a store; it is resolved intrinsically to <home>/vault by
-// ResolvePath. (homeDir is unused now but kept for signature stability / future
-// container-mode defaults.)
-func defaultRegistry(homeDir string) *Registry {
-	_ = homeDir
-	return &Registry{
-		Stores:   map[string]Store{},
-		Order:    nil,
-		implicit: true,
-	}
-}
-
 type rawStore struct {
 	Path          string `yaml:"path"`
 	Kind          string `yaml:"kind"`
@@ -160,78 +221,24 @@ type rawStore struct {
 	DefaultBranch string `yaml:"default_branch"`
 }
 
-// parseRegistry decodes stores.yml. The stores mapping is decoded via a
-// yaml.Node so declaration order (and thus precedence) is preserved — plain
-// map decoding loses it.
-func parseRegistry(data []byte) (*Registry, error) {
-	var doc struct {
-		Schema  int       `yaml:"schema"`
-		Default string    `yaml:"default"`
-		Stores  yaml.Node `yaml:"stores"`
+// ActiveStore resolves the content-plane store every `home` subcommand acts on
+// (via the command-level context resolver). ok=false means callers should use
+// the legacy isolated content root.
+func ActiveStore(reg *Registry) (Store, bool, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = ""
 	}
-	dec := yaml.NewDecoder(bytes.NewReader(data))
-	dec.KnownFields(true)
-	if err := dec.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", storesFile, err)
-	}
-	if doc.Schema > maxSchema {
-		return nil, fmt.Errorf("%s: unsupported schema version %d (max %d)", storesFile, doc.Schema, maxSchema)
-	}
-
-	reg := &Registry{Stores: map[string]Store{}, Default: doc.Default}
-	content := doc.Stores.Content // mapping node: [key, val, key, val, ...]
-	for i := 0; i+1 < len(content); i += 2 {
-		name := content[i].Value
-		var rs rawStore
-		if err := content[i+1].Decode(&rs); err != nil {
-			return nil, fmt.Errorf("store %q: %w", name, err)
-		}
-		kind := rs.Kind
-		if kind == "" {
-			kind = KindExternal // safe default: read-only until told otherwise (never assume the writable folio push)
-		}
-		switch kind {
-		case KindFolio, KindExternal, KindCode, KindDot:
-		default:
-			return nil, fmt.Errorf("store %q: invalid kind %q (want %s|%s|%s|%s)", name, kind, KindFolio, KindExternal, KindCode, KindDot)
-		}
-		loc := rs.Location
-		if loc == "" {
-			loc = LocationContained
-		}
-		if loc != LocationContained && loc != LocationReferenced {
-			return nil, fmt.Errorf("store %q: invalid location %q (want %s|%s)", name, loc, LocationContained, LocationReferenced)
-		}
-		branch := rs.DefaultBranch
-		if branch == "" {
-			branch = "main"
-		}
-		if rs.Path == "" {
-			return nil, fmt.Errorf("store %q: missing path", name)
-		}
-		if _, dup := reg.Stores[name]; dup {
-			return nil, fmt.Errorf("store %q: declared more than once", name)
-		}
-		reg.Stores[name] = Store{Name: name, Path: expandUser(rs.Path), Kind: kind, Location: loc, DefaultBranch: branch}
-		reg.Order = append(reg.Order, name)
-	}
-	return reg, nil
+	return ActiveStoreAt(reg, cwd)
 }
 
-// ActiveStore resolves the content-plane store every `home` subcommand acts on
-// (via resolveHomeOrFail). ok=false means "fall back to legacy single-home
-// (home.Dir())". Resolution order:
-//
-//  0. implicit registry (no stores.yml) → ok=false immediately (back-compat)
-//  1. cwd inside a registered store wins — walk up, prefix-match store roots.
-//     [user-pinned: cwd always overrides the default]
-//  2. else the `default:` store (error if it names an unregistered store)
-//  3. else ok=false
-func ActiveStore(reg *Registry) (Store, bool, error) {
+// ActiveStoreAt resolves a registered store using an explicit working
+// directory, avoiding ambient process state for context-sensitive callers.
+func ActiveStoreAt(reg *Registry, cwd string) (Store, bool, error) {
 	if reg.isImplicitDefault() {
 		return Store{}, false, nil
 	}
-	if cwd, err := os.Getwd(); err == nil {
+	if cwd != "" {
 		if s, ok := storeContaining(cwd, reg); ok {
 			return s, true, nil
 		}
@@ -246,26 +253,26 @@ func ActiveStore(reg *Registry) (Store, bool, error) {
 	return Store{}, false, nil
 }
 
-// storeContaining returns the registered store whose root contains dir (dir is
-// the root itself or nested under it). Used both by ActiveStore (cwd → store)
-// and by vault: resolution (project dir → store root). The longest matching
-// root wins, so a store nested inside another beats the outer one. An implicit
-// or empty registry contains nothing.
 func storeContaining(dir string, reg *Registry) (Store, bool) {
-	if reg == nil {
+	if reg == nil || dir == "" {
 		return Store{}, false
 	}
-	abs, err := filepath.Abs(dir)
+	canonicalDir, err := canonicalPath(dir)
 	if err != nil {
-		abs = filepath.Clean(dir)
+		return Store{}, false
 	}
 	var best Store
 	bestLen := -1
 	for _, name := range reg.Order {
-		root := filepath.Clean(reg.Stores[name].Path)
-		if abs == root || strings.HasPrefix(abs, root+string(filepath.Separator)) {
+		store := reg.Stores[name]
+		root, err := canonicalPath(store.Path)
+		if err != nil {
+			continue
+		}
+		if canonicalDir == root || strings.HasPrefix(canonicalDir, root+string(filepath.Separator)) {
 			if len(root) > bestLen {
-				best = reg.Stores[name]
+				store.Path = root
+				best = store
 				bestLen = len(root)
 			}
 		}

@@ -18,12 +18,11 @@ func runFleetStatus(dirtyOnly, jsonMode, noColor bool) int {
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
 
-	reg, err := config.LoadRegistry()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return dendrik.ExitUserError
+	ctx, code := resolveFleetContextOrFail(pal)
+	if code != dendrik.ExitOK {
+		return code
 	}
-
+	reg := ctx.Registry
 	stores := reg.AllStores()
 	statuses := make([]sync.StoreStatus, 0, len(stores))
 	for _, s := range stores {
@@ -151,29 +150,38 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-// resolveUmbrellaOrFail resolves the FOLIO_HOME umbrella the workarea
-// subcommands act on. Each workarea leaf calls this itself (help/arity already
-// resolved by the router before Run).
-func resolveUmbrellaOrFail(pal dendrik.Palette) (string, int) {
-	umbrella, err := home.Dir()
+// resolveFleetContextOrFail resolves the control and registry roots used by
+// fleet and workarea commands.
+func resolveFleetContextOrFail(pal dendrik.Palette) (config.Context, int) {
+	ctx, err := resolveContext("", contextFleet)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", dendrik.ExitUserError
+		return config.Context{}, dendrik.ExitUserError
 	}
-	return umbrella, dendrik.ExitOK
+	return ctx, dendrik.ExitOK
 }
 
+func resolveUmbrellaOrFail(pal dendrik.Palette) (string, int) {
+	ctx, code := resolveFleetContextOrFail(pal)
+	if code != dendrik.ExitOK {
+		return "", code
+	}
+	if ctx.Umbrella != "" {
+		return ctx.Umbrella, dendrik.ExitOK
+	}
+	return ctx.WorkRoot, dendrik.ExitOK
+}
 func runWorkareaOpen(base, storeName, branch string) int {
 	pal := dendrik.NewPalette(true)
-	umbrella, code := resolveUmbrellaOrFail(pal)
+	ctx, code := resolveFleetContextOrFail(pal)
 	if code != dendrik.ExitOK {
 		return code
 	}
-	reg, err := config.LoadRegistry()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return dendrik.ExitUserError
+	umbrella := ctx.Umbrella
+	if umbrella == "" {
+		umbrella = ctx.WorkRoot
 	}
+	reg := ctx.Registry
 	store, ok := reg.Lookup(storeName)
 	if !ok {
 		fmt.Fprintln(os.Stderr, pal.Errf("store %q is not registered in stores.yml", storeName))
@@ -195,9 +203,13 @@ func runWorkareaOpen(base, storeName, branch string) int {
 
 func runWorkareaList() int {
 	pal := dendrik.NewPalette(true)
-	umbrella, code := resolveUmbrellaOrFail(pal)
+	ctx, code := resolveFleetContextOrFail(pal)
 	if code != dendrik.ExitOK {
 		return code
+	}
+	umbrella := ctx.Umbrella
+	if umbrella == "" {
+		umbrella = ctx.WorkRoot
 	}
 	rows, orphans, err := fleet.Reconcile(umbrella)
 	if err != nil {
@@ -207,12 +219,9 @@ func runWorkareaList() int {
 
 	// The ledger and .worktrees only describe areas folio placed. Ask each
 	// store's VCS for its own list too, so an area made by hand beside a repo is
-	// surfaced rather than silently accumulating. A missing registry is not
-	// fatal — the ledger view still prints.
+	// surfaced rather than silently accumulating.
 	var unledgered []fleet.Unledgered
-	if reg, rerr := config.LoadRegistry(); rerr == nil {
-		unledgered = fleet.ScanVCS(umbrella, reg.AllStores())
-	}
+	unledgered = fleet.ScanVCS(umbrella, ctx.Registry.AllStores())
 
 	if len(rows) == 0 && len(orphans) == 0 && len(unledgered) == 0 {
 		fmt.Println("No work areas.")
@@ -255,7 +264,7 @@ func printUnledgered(areas []fleet.Unledgered, pal dendrik.Palette) {
 		}
 		fmt.Printf("  %-8s  %-10s  %-*s  %-12s  %s\n", a.State, note, storeW, a.Store, a.Tier, where)
 	}
-	fmt.Printf("\n%s\n", pal.Dim+"  stray    → move to ~/.folio/.worktrees via `folio fleet workarea open <store> <branch>`, or remove by hand"+pal.Reset)
+	fmt.Printf("\n%s\n", pal.Dim+"  stray    → move to <umbrella>/.worktrees via `folio fleet workarea open <store> <branch>`, or remove by hand"+pal.Reset)
 	fmt.Printf("%s\n", pal.Dim+"  dangling → deregister: `jj workspace forget <name>` (jj) / `git worktree prune` (git)"+pal.Reset)
 }
 

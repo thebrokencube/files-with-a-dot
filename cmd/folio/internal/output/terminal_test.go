@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -130,5 +131,69 @@ func TestPrintStatusTerminalColor(t *testing.T) {
 	// Check ANSI codes are present when color=true
 	if !strings.Contains(out, "\033[") {
 		t.Error("expected ANSI color codes when color=true")
+	}
+}
+
+func TestPrintStatusTerminalShowsFinalAndCause(t *testing.T) {
+	ps := &status.ProjectStatus{
+		Project: "Terminal Project",
+		Targets: map[string]status.TargetStatus{
+			"final-target": {
+				Final: true,
+				Outputs: []status.OutputStatus{
+					{Type: "local", Path: "compiled/final.md", Status: "unknown", Cause: "freshness delegated to jf"},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	PrintStatusTerminal(&buf, ps, nil, false)
+	out := buf.String()
+	if !strings.Contains(out, "final (terminal target)") {
+		t.Errorf("expected terminal marker, got:\n%s", out)
+	}
+	if !strings.Contains(out, "cause: freshness delegated to jf") {
+		t.Errorf("expected delegated cause, got:\n%s", out)
+	}
+}
+
+func TestStatusJSONCarriesTargetFinalNotFifthOutputStatus(t *testing.T) {
+	ps := &status.ProjectStatus{
+		Project: "JSON Project",
+		Targets: map[string]status.TargetStatus{
+			"publish": {
+				Final: true,
+				Outputs: []status.OutputStatus{
+					{Type: "local", Path: "compiled/review.md", Status: "clean"},
+					{Type: "external", System: "jira", ID: "PROJ-1", Status: "unknown"},
+				},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	PrintStatusJSON(&buf, ps)
+	var envelope struct {
+		Data struct {
+			Targets map[string]struct {
+				Final   bool             `json:"final"`
+				Outputs []map[string]any `json:"outputs"`
+			} `json:"targets"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	target := envelope.Data.Targets["publish"]
+	if !target.Final {
+		t.Fatal("target final flag missing from JSON")
+	}
+	if len(target.Outputs) != 2 {
+		t.Fatalf("output count = %d, want two", len(target.Outputs))
+	}
+	for _, output := range target.Outputs {
+		if _, ok := output["final"]; ok {
+			t.Fatal("final flag incorrectly serialized on output")
+		}
 	}
 }

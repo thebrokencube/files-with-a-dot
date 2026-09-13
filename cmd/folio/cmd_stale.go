@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/graph"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/maputil"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
@@ -15,9 +15,12 @@ import (
 func runStale(folioPath string, jsonMode, noColor bool) int {
 	pal := dendrik.NewPalette(true)
 
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
 		if jsonMode {
@@ -38,58 +41,38 @@ func runStale(folioPath string, jsonMode, noColor bool) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(folioPath)
-	ps, causedBy := status.DeriveWithDAG(f, folioDir)
-
-	// Build enriched entries for stale/missing/unknown targets
 	var entries []output.StaleEntry
+	ps, causedBy, causedStatus := status.DeriveWithDAGWithContext(f, ctx)
+	blocking := false
 	for _, tid := range maputil.SortedKeys(ps.Targets) {
 		ts := ps.Targets[tid]
-		worst := "clean"
-		for _, out := range ts.Outputs {
-			if status.StatusRank(out.Status) > status.StatusRank(worst) {
-				worst = out.Status
-			}
+		target := f.Targets[tid]
+		worst, hasLocal := targetOutputStatus(ts)
+		if target.Forest != nil || (ts.Final && hasLocal && worst == "clean") {
+			continue
+		}
+		if !hasLocal {
+			worst = "unknown"
 		}
 		if worst == "clean" {
 			continue
 		}
-
-		target := f.Targets[tid]
-		entry := output.StaleEntry{
-			ID:     tid,
-			Status: worst,
+		if worst == "stale" || worst == "missing" {
+			blocking = true
 		}
 
-		// Collect output labels
-		for _, o := range target.Outputs {
-			entry.Outputs = append(entry.Outputs, output.OutputLabel(o))
+		entry := output.StaleEntry{ID: tid, Status: worst}
+		for _, item := range target.Outputs {
+			entry.Outputs = append(entry.Outputs, output.OutputLabel(item))
 		}
-
-		// Determine cause
 		if cause, ok := causedBy[tid]; ok {
-			entry.Cause = fmt.Sprintf("blocked by stale target %s", cause)
+			entry.Cause = fmt.Sprintf("blocked by %s target %s", causedStatus[tid], cause)
 		} else {
-			// Direct cause: check local outputs against sources
-			var sourcePaths []string
-			for _, s := range target.Sources {
-				if s.Path != "" {
-					sourcePaths = append(sourcePaths, s.Path)
-				}
-			}
-			for _, out := range target.Outputs {
-				if out.Path != "" {
-					if c := status.DeriveLocalCause(folioDir, out.Path, sourcePaths); c != "" {
-						entry.Cause = c
-						break
-					}
-				} else if out.External != "" {
-					entry.Cause = "external output status unknown"
-					break
-				}
-			}
+			entry.Cause = directTargetCause(ts, target)
 		}
-
+		if entry.Cause == "" {
+			entry.Cause = "composition not recorded"
+		}
 		if entry.Outputs == nil {
 			entry.Outputs = []string{}
 		}
@@ -97,7 +80,7 @@ func runStale(folioPath string, jsonMode, noColor bool) int {
 	}
 
 	code := dendrik.ExitOK
-	if len(entries) > 0 {
+	if blocking {
 		code = dendrik.ExitUserError
 	}
 
@@ -113,4 +96,38 @@ func runStale(folioPath string, jsonMode, noColor bool) int {
 	}
 
 	return code
+}
+
+func targetOutputStatus(target status.TargetStatus) (string, bool) {
+	worst := "clean"
+	hasLocal := false
+	for _, item := range target.Outputs {
+		if item.Type != "local" {
+			continue
+		}
+		hasLocal = true
+		if graph.StatusRank(item.Status) > graph.StatusRank(worst) {
+			worst = item.Status
+		}
+	}
+	return worst, hasLocal
+}
+
+func directTargetCause(target status.TargetStatus, cfg config.Target) string {
+	for _, item := range target.Outputs {
+		if item.Type == "local" && item.Cause != "" {
+			return item.Cause
+		}
+	}
+	for _, source := range cfg.Sources {
+		if source.External != "" {
+			return "external source freshness unverified"
+		}
+	}
+	for _, item := range target.Outputs {
+		if item.Type == "external" {
+			return "external output status unknown"
+		}
+	}
+	return ""
 }

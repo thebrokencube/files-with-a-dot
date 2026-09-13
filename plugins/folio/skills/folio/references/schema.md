@@ -4,37 +4,38 @@ Shared across workflows. Contains the YAML structure reference for the Agent Ski
 
 ## folio.yml Schema
 
-All paths relative to the directory containing folio.yml, unless prefixed with a registered `<store>:` name.
+All unprefixed paths are relative to the directory containing folio.yml. A registered `<store>:` prefix resolves from that store's canonical root.
 
-The `vault:` prefix resolves to the **active store's** `vault/` — a shared knowledge layer outside any project, folio-local to that store (in single-home mode, `~/.folio/vault/`). Use for cross-cutting references that multiple projects source from. `vault` is **not** a registered store; it is intrinsic to whichever folio store contains the current project (see **stores.yml** below). A registered `<store>:` name is referenced the same way.
+The `vault:` prefix resolves to the owning Folio store's `vault/` when a project context is present, then to the selected content work root for store-only operations. A literal registered store named `vault` takes precedence. In legacy isolated-home mode it resolves below the isolated `FOLIO_HOME` root. The vault has no folio.yml.
 
 ## stores.yml — the store registry (multi-store container)
 
-`~/.folio` is a plain **umbrella directory** (NOT a repo) that physically **contains** each store as an independent git repo nested as a sibling, dir-named by its remote repo name. A `~/.folio/stores.yml` registers every store plus the **default**.
+`FOLIO_UMBRELLA` is the plain **control-plane directory** that owns `stores.yml`; it is not a content store. Each registry entry names an independent store repository. `FOLIO_HOME` is the selected content work root for a command and may be a session workspace.
 
 ```yaml
-schema: 2                              # container model: default + nested stores
-default: <work-store>           # acted on when invoked from the umbrella with no --folio
+schema: 2                              # Container registry schema
+default: <work-store>                  # Default Folio store outside a store cwd
 stores:
-  <work-store>: { path: ~/.folio/<work-store>, kind: folio,    remote: git@github.com:<org>/<work-folio>.git }
-  folio-vault:         { path: ~/.folio/folio-vault,         kind: folio,    remote: git@github.com:thebrokencube/folio-vault.git }
-  adr:                 { path: ~/.folio/adr,                 kind: external, remote: <adr-remote> }
+  <work-store>: { path: ~/.folio/<work-store>, kind: folio, remote: git@github.com:<org>/<work-folio>.git }
+  folio-vault:         { path: ~/.folio/folio-vault, kind: folio, remote: git@github.com:thebrokencube/folio-vault.git }
+  adr:                 { path: ~/.folio/adr, kind: external, remote: <adr-remote> }
 ```
 
-- **`default:`** — the store folio acts on when invoked from the umbrella with no `--folio` and no `folio.yml` in cwd. **cwd inside a registered store always overrides the default.**
-- **`kind: folio`** — a full folio home: listed, structure-aware in `find`, writable (`--folio <store>:<project>`), validated. `folio home push/pull <store>` sync it to its own remote.
-- **`kind: external`** — a non-folio KB you read from (ADRs, RADRs, wikis, docs): content-grep in `find`, **read-only**, never scanned for folio structure; a missing target **warns**, never errors. **External stores are pullable (`folio home pull <store>`) but NEVER pushed** — contributions go through that repo's own PR flow.
-- **`remote:`** — informational (the store's own repo handles its remote); records where each store clones from for the migration runbook.
+- **`default:`** — the Folio store selected outside registered store roots when no explicit `FOLIO_HOME` is supplied. A cwd inside a registered Folio store overrides it.
+- **`kind: folio`** — a full Folio content store: listed, structure-aware in `find`, writable, and syncable through `folio home push/pull`.
+- **`kind: external`** — a non-Folio KB used by `find`; it is read-only to Folio and pullable through `folio home pull`.
+- **`kind: code`** — a code repository used by fleet/workarea operations; it is never a Folio project root.
+- **`kind: dot`** — the dotfiles repository; it is managed by `dot`, not Folio project commands.
+- **`remote:`** — informational; the store's own VCS handles synchronization.
 
-**`vault` is folio-LOCAL, never a registered store.** A folio store MAY have its own `vault/` subdir; `vault:` resolves relative to the **active store's** `vault/` (e.g. from inside `<work-store>`, `vault:` → `~/.folio/<work-store>/vault`). There is no global vault and no `vault` registry entry.
+`stores.yml` is private and per-machine. Keep it in the private dotfiles overlay and expose it at `<umbrella>/stores.yml`.
 
-**`stores.yml` is private + per-machine**, never in the public dotfiles: each machine's private repo holds its own full registry at `~/.dotfiles.private/folio-stores.yml`, symlinked to `~/.folio/stores.yml` via the private `symlink_map.txt` (the same mechanism as `jf.yml` → `~/.jf.yml`). `dot sync` (or `dot pull`) creates the symlink. There is no shared base — registries are fully independent across machines.
+**Absent `stores.yml`** means legacy isolated-home mode. `FOLIO_HOME` is then the content root and no registry fan-out is required.
 
-**Absent `stores.yml` ⇒ implicit empty registry** — legacy single-home behavior, byte-for-byte unchanged. This is the transitional bridge for an un-migrated machine; see `references/container-migration.md` to migrate.
+**`<store>:` references** use `<store>:<path-within-store>`. A registered prefix resolves against its canonical root; an unknown store-shaped prefix fails loudly. A path that merely contains a colon (for example `a/b:c.md`) remains a normal path.
 
-**`<store>:` references**: `<store>:<path-within-store>`. A registered prefix resolves against that store's root; an unknown store-shaped prefix (`bogus:foo.md`) fails loud; a path that merely contains a colon (`a/b:c.md`) resolves normally. List the registry with `folio stores list [--json]`.
+**Write routing**: `--folio <store>:<project>` targets a project in a Folio store matched in `active/` or `archive/`. External, code, and dot stores are not Folio project write targets.
 
-**Write-routing**: `--folio <store>:<project>` targets a project in any folio store (matched in its `active/` or `archive/`). External stores are not write targets.
 
 ```yaml
 schema: 1                              # Required. 1 or 2.
@@ -73,10 +74,13 @@ targets:
     sources:
       - path: relative/file.md
     outputs:
-      - path: compiled/output.md       # Local (mtime-tracked)
+      - path: compiled/output.md       # Local authored output; digest freshness when recorded
       - external: jira                 # External (resolved via tooling.yml)
         id: "PROJ-456"
         field: description             # Sub-resource within external system
+    composed_at: "2026-09-12T10:00:00Z"
+    inputs_sha256: "<64 lowercase hex characters>"
+    final: false                        # Terminal local review target
 
     # Batch variant (mutually exclusive with tree)
     batch:
@@ -86,6 +90,7 @@ targets:
         - id: "item-name"
           source: compiled/tab.md
           output: { id: "google-doc-id", field: "Tab Name" }
+          inputs_sha256: "<64 lowercase hex characters>"
 
     # Forest variant (mutually exclusive with batch) — jf-managed Jira hierarchy
     forest:
@@ -104,6 +109,14 @@ observations: []                       # All captured items — replaces former 
 ```
 
 The `§` separator means: read file before `§`, locate section after `§`. Some cross-references may be descriptive — do best-effort comparison.
+
+## Composition Snapshots
+
+`folio touch <target>` records `composed_at` and the SHA-256 digest of declared local inputs
+without rewriting output files. The two fields are an all-or-nothing pair. `--final` is
+reserved for a non-batch, non-forest target with at least one direct external output and an
+existing local review copy. Final targets stop inbound Folio propagation, while local stale or
+missing output state remains observable.
 
 ## Schema 2 Changes
 

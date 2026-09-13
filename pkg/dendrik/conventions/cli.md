@@ -104,8 +104,9 @@ Convention: prefix matches the CLI name in uppercase. Currently:
 | jf | `JF_` | Planned, not yet wired |
 | folio | `FOLIO_` | Planned, not yet wired |
 
-`FOLIO_HOME` is a standalone env var (not a flag fallback) used to locate
-the folio home directory.
+`FOLIO_UMBRELLA` is the control-root env var for registry discovery. `FOLIO_HOME`
+is the standalone env var for the selected Folio content work root; neither is a
+flag fallback.
 
 ---
 

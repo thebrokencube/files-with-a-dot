@@ -4,7 +4,7 @@ GO        := go
 VERSION   := $(shell cat VERSION 2>/dev/null || echo dev)
 LDFLAGS   := -buildid= -X main.version=$(VERSION)
 
-.PHONY: build test lint fmt vet check install clean
+.PHONY: build test lint fmt vet check test-migration install clean
 
 build: $(BINARY)            ## Compile binary
 
@@ -23,7 +23,10 @@ vet:                         ## Static analysis
 fmt:                         ## Format all Go source
 	gofmt -w .
 
-check: fmt vet test          ## Full pre-commit check: format, vet, test
+check: fmt vet test test-migration   ## Full pre-commit check: format, vet, test, migration
+
+test-migration:             ## Verify container migration root handoff
+	bash scripts/migrate-container_test.sh
 
 install: build               ## Build (symlink_map.txt handles ~/.local/bin)
 

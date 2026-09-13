@@ -6,12 +6,17 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func TestRewritePaths(t *testing.T) {
 	t.Run("basic replacement", func(t *testing.T) {
 		raw := []byte("path: work/active/2026-01-01-track/README.md\n")
-		got, count := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		got, count, err := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		if err != nil {
+			t.Fatal(err)
+		}
 		if count != 1 {
 			t.Errorf("count = %d, want 1", count)
 		}
@@ -23,7 +28,10 @@ func TestRewritePaths(t *testing.T) {
 
 	t.Run("no matches", func(t *testing.T) {
 		raw := []byte("path: work/active/other-track/README.md\n")
-		got, count := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		got, count, err := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		if err != nil {
+			t.Fatal(err)
+		}
 		if count != 0 {
 			t.Errorf("count = %d, want 0", count)
 		}
@@ -34,7 +42,10 @@ func TestRewritePaths(t *testing.T) {
 
 	t.Run("multiple occurrences", func(t *testing.T) {
 		raw := []byte("- path: work/active/2026-01-01-track/src.md\n- path: work/active/2026-01-01-track/out.md\n")
-		got, count := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		got, count, err := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		if err != nil {
+			t.Fatal(err)
+		}
 		if count != 2 {
 			t.Errorf("count = %d, want 2", count)
 		}
@@ -45,13 +56,26 @@ func TestRewritePaths(t *testing.T) {
 
 	t.Run("anchor paths preserved", func(t *testing.T) {
 		raw := []byte("source_of_truth: work/active/2026-01-01-track/doc.md§heading\n")
-		got, count := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		got, count, err := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		if err != nil {
+			t.Fatal(err)
+		}
 		if count != 1 {
 			t.Errorf("count = %d, want 1", count)
 		}
 		want := "source_of_truth: work/archive/2026-01-01-track/doc.md§heading\n"
 		if string(got) != want {
 			t.Errorf("got %q, want %q", string(got), want)
+		}
+	})
+	t.Run("ambiguous token refuses replacement", func(t *testing.T) {
+		raw := []byte("note: work/active/2026-01-01-track-backup/file.md\n")
+		got, count, err := rewritePaths(raw, "work/active/2026-01-01-track", "work/archive/2026-01-01-track")
+		if err == nil {
+			t.Fatal("expected ambiguous token error")
+		}
+		if got != nil || count != 0 {
+			t.Fatalf("rewrite result = %q, %d; want no result", got, count)
 		}
 	})
 }
@@ -225,12 +249,14 @@ func TestRunArchive(t *testing.T) {
 		// will change the path to archive — but we'll make a second source that
 		// breaks validation (missing path field entirely is caught by parse)
 		yml := filepath.Join(dir, "folio.yml")
-		os.WriteFile(yml, []byte(`schema: 1
+		manifestBefore := []byte(`schema: 1
 project: "Test"
 sources:
   - path: work/active/2026-01-01-bad-track/README.md
   - path: work/active/2026-01-01-bad-track/missing.md
-`), 0644)
+  - path: work/archive/2026-01-01-bad-track/README.md
+`)
+		os.WriteFile(yml, manifestBefore, 0644)
 
 		code := buildRoot().Execute([]string{"archive", "--folio", yml, "--no-push", "2026-01-01-bad-track"})
 		if code != 1 {
@@ -244,8 +270,82 @@ sources:
 
 		// folio.yml should be unchanged
 		data, _ := os.ReadFile(yml)
-		if strings.Contains(string(data), "work/archive/") {
-			t.Error("folio.yml should be unchanged after rollback")
+		if string(data) != string(manifestBefore) {
+			t.Errorf("folio.yml changed after rollback:\n%s", data)
 		}
 	})
+}
+func TestArchiveCommandRefusesDependentBeforeMove(t *testing.T) {
+	store := t.TempDir()
+	t.Setenv("FOLIO_HOME", store)
+	t.Setenv("FOLIO_UMBRELLA", "")
+	t.Chdir(store)
+
+	target := filepath.Join(store, "active", "target")
+	writeArchiveManifest(t, target, `schema: 1
+project: target
+sources:
+  - path: work/active/track/README.md
+`)
+	writeArchiveFile(t, filepath.Join(target, "work", "active", "track", "README.md"), "track")
+
+	dependent := filepath.Join(store, "active", "dependent")
+	writeArchiveManifest(t, dependent, `schema: 1
+project: dependent
+sources:
+  - path: ../target/work/active/track/README.md
+`)
+	before, err := os.ReadFile(filepath.Join(target, "folio.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if code := buildRoot().Execute([]string{"archive", "--folio", filepath.Join(target, "folio.yml"), "--no-push", "track"}); code == dendrik.ExitOK {
+		t.Fatal("archive succeeded despite a dependent project reference")
+	}
+	if _, err := os.Stat(filepath.Join(target, "work", "active", "track")); err != nil {
+		t.Fatalf("track moved despite preflight refusal: %v", err)
+	}
+	after, err := os.ReadFile(filepath.Join(target, "folio.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("target manifest changed during preflight refusal")
+	}
+}
+
+func TestArchiveRefusesUnfulfillableScopedPush(t *testing.T) {
+	store := t.TempDir()
+	t.Setenv("FOLIO_HOME", store)
+	t.Setenv("FOLIO_UMBRELLA", "")
+	t.Chdir(store)
+
+	target := filepath.Join(store, "folio.yml")
+	writeArchiveManifest(t, store, `schema: 1
+project: target
+`)
+	writeArchiveFile(t, filepath.Join(store, "work", "active", "track", "README.md"), "track")
+
+	if code := buildRoot().Execute([]string{"archive", "--folio", target, "track"}); code == dendrik.ExitOK {
+		t.Fatal("archive succeeded without a jj work root for its promised push")
+	}
+	if _, err := os.Stat(filepath.Join(store, "work", "active", "track")); err != nil {
+		t.Fatalf("track moved before scoped push refusal: %v", err)
+	}
+}
+
+func writeArchiveManifest(t *testing.T, projectDir, content string) {
+	t.Helper()
+	writeArchiveFile(t, filepath.Join(projectDir, "folio.yml"), content)
+}
+
+func writeArchiveFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 }

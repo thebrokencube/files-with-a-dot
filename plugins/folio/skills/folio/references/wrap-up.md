@@ -9,8 +9,9 @@ End-of-session workflow. Invoked via explicit `/folio wrap-up` subcommand only.
 Each step is **safe to abandon** — stopping mid-flow never leaves broken state (archiving without successor tracks, or a handoff without archive, are both fine — do them next session). Safety is not optionality, though: wrap-up's one required output is the retro (step 2) — always captured, never asked.
 
 1. **Scan** — identify projects touched this session.
-   Primary: check mtime on work track directories for recent changes (same mechanism as Stale Detection in `references/lifecycle.md`, inverted — look for dirs modified today or within the last few hours).
-   Fallback: ask the user which projects were touched.
+   Use current-session evidence from the conversation, changed artifacts, and explicit
+   project selection. If that evidence cannot establish the list, ask the user which
+   projects were touched; never infer it from directory metadata.
 
 2. **Retro — always captured, never ask.** Invoking `/folio wrap-up` *is* the decision to retro.
    Never ask whether it's warranted; always capture something. Match the artifact to the session's
@@ -39,6 +40,12 @@ Each step is **safe to abandon** — stopping mid-flow never leaves broken state
    Archive all? (yes/no)
    ```
    One confirmation for the entire batch. On yes, run `folio archive` per track.
+### Archive safety
+
+
+Before moving a project or work track, Folio resolves structured references from sibling projects in the selected store. A reference that resolves inside the moved root refuses before any rename, manifest write, sync, or push. Folio does not rewrite dependent manifests automatically. Update the dependent project manually, validate it, and retry.
+
+If post-move validation fails, Folio restores the original directory location, manifest bytes, and created parent directories. Treat a rollback warning as a failed operation requiring manual inspection.
 
 4. **Successor tracks** — for archived tracks where work continues, offer to scaffold a successor:
    "Continue [track-name] next session? I'll scaffold the next track."
@@ -70,6 +77,9 @@ If the current session has an active plan-design session (design doc exists but 
 
 **Multi-project sessions**: Steps 1 and 3 operate across all touched projects. The archive gate (step 3) batches all eligible tracks into a single confirmation — not per-project.
 
-**Session-touch detection**: mtime-based detection works regardless of VCS (git or jj). The 14-day stale threshold from lifecycle.md is for flagging old tracks; session-touch detection looks for *recent* changes (today/hours). These are the same mechanism with different thresholds.
+**Session-touch detection**: current-session evidence is authoritative. Use selected
+projects, artifacts changed during the session, and the conversation's action list.
+When those sources disagree or are insufficient, ask the user which projects were
+touched before applying the archive gate; do not use directory metadata as a proxy.
 
 **Partial completion**: Each step is designed to be safe if the session ends mid-flow. No step creates state that requires a subsequent step to clean up.

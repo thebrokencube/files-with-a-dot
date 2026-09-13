@@ -14,9 +14,12 @@ import (
 )
 
 func runHealth(folioPath string, noColor bool) int {
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
@@ -27,42 +30,46 @@ func runHealth(folioPath string, noColor bool) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(folioPath)
-	report := health.Analyze(f, folioDir)
+	report := health.AnalyzeWithContext(f, ctx)
 	printHealthReport(report, color)
 
 	return dendrik.ExitOK // always exit 0 (advisory)
 }
-
 func runHomeHealth(noColor bool) int {
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
-	homeDir, code := resolveHomeOrFail()
-	if code != dendrik.ExitOK {
-		return code
+	ctx, err := resolveContext("", contextStoreSync)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
 	}
+	homeDir := ctx.WorkRoot
 
 	entries, err := list.Scan(homeDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("scanning %s: %s", homeDir, err))
 		return dendrik.ExitUserError
 	}
 
 	active := filterEntries(entries, "active")
 	if len(active) == 0 {
-		fmt.Println("No active folios found.")
+		fmt.Println("No active projects.")
 		return dendrik.ExitOK
 	}
 
 	for i, entry := range active {
-		folioYml := filepath.Join(homeDir, entry.Section, entry.Path, "folio.yml")
-		f, err := config.Load(folioYml)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "  Skipping %s: %s\n", entry.Path, err)
+		folioYml := filepath.Join(homeDir, "active", entry.Path, "folio.yml")
+		f, loadErr := config.Load(folioYml)
+		if loadErr != nil {
+			fmt.Fprintf(os.Stderr, "%s%s: %s%s\n", pal.Red, entry.Path, loadErr, pal.Reset)
 			continue
 		}
-		folioDir := filepath.Dir(folioYml)
-		report := health.Analyze(f, folioDir)
+		projectCtx, contextErr := ctx.ForProject(folioYml)
+		if contextErr != nil {
+			fmt.Fprintf(os.Stderr, "%s%s: %s%s\n", pal.Red, entry.Path, contextErr, pal.Reset)
+			continue
+		}
+		report := health.AnalyzeWithContext(f, projectCtx)
 		printHealthReport(report, color)
 		if i < len(active)-1 {
 			fmt.Println()

@@ -35,9 +35,8 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 
-# Folio home (knowledge work projects)
-export FOLIO_HOME="$HOME/.folio"
-
+# Folio control plane (registry discovery; content roots are selected per command)
+export FOLIO_UMBRELLA="$HOME/.folio"
 # ============================================================================
 # Aliases
 # ============================================================================

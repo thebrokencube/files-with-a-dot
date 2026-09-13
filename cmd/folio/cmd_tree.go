@@ -152,12 +152,14 @@ func cmdGather() dendrik.Command {
 
 func cmdTouch() dendrik.Command {
 	var folioPath *string
+	var final *bool
 	return dendrik.Command{
-		Name: "touch", Short: "Mark a target as current", Args: dendrik.ArgsExactly(1),
+		Name: "touch", Short: "Record a target composition snapshot", Args: dendrik.ArgsExactly(1),
 		Flags: func(fs *dendrik.FlagSet) {
 			folioPath = fs.String('f', "folio", "./folio.yml", "Path or shortname (e.g., ben/my-project)")
+			final = fs.BoolLong("final", "Mark a valid direct external target as terminal")
 		},
-		Run: func(_ *dendrik.FlagSet, pos []string) int { return runTouch(*folioPath, pos[0]) },
+		Run: func(_ *dendrik.FlagSet, pos []string) int { return runTouch(*folioPath, pos[0], *final) },
 	}
 }
 
@@ -222,7 +224,7 @@ func cmdStores() dendrik.Command {
 
 func cmdHome() dendrik.Command {
 	return dendrik.Command{
-		Name: "home", Short: "FOLIO_HOME commands (list, push, pull, archive, activate, health)",
+		Name: "home", Short: "Folio content-store commands (list, push, pull, archive, activate, health)",
 		Sub: []dendrik.Command{
 			cmdHomeInit(),
 			cmdHomeValidate(),
@@ -240,17 +242,22 @@ func cmdHome() dendrik.Command {
 
 func cmdHomeInit() dendrik.Command {
 	return dendrik.Command{
-		Name: "init", Short: "Scaffold FOLIO_HOME directory", Args: dendrik.ArgsNone,
+		Name: "init", Short: "Scaffold a Folio content work root", Args: dendrik.ArgsNone,
 		Run: func(_ *dendrik.FlagSet, _ []string) int { return runHomeInit() },
 	}
 }
 
 func cmdHomeValidate() dendrik.Command {
-	var noColor *bool
+	var active, noColor *bool
 	return dendrik.Command{
-		Name: "validate", Short: "Structural checks (folio.yml in leaves, date prefixes)", Args: dendrik.ArgsNone,
-		Flags: func(fs *dendrik.FlagSet) { noColor = fs.BoolLong("no-color", "Disable colored output") },
-		Run:   func(_ *dendrik.FlagSet, _ []string) int { return runHomeValidate(*noColor) },
+		Name: "validate", Short: "Structural checks for Folio content stores", Args: dendrik.ArgsNone,
+		Flags: func(fs *dendrik.FlagSet) {
+			active = fs.BoolLong("active", "Validate every registered Folio store's active projects")
+			noColor = fs.BoolLong("no-color", "Disable colored output")
+		},
+		Run: func(_ *dendrik.FlagSet, _ []string) int {
+			return runHomeValidate(*active, *noColor)
+		},
 	}
 }
 
@@ -312,7 +319,7 @@ func cmdHomeHealth() dendrik.Command {
 func cmdHomeStats() dendrik.Command {
 	var noColor *bool
 	return dendrik.Command{
-		Name: "stats", Short: "Commit statistics for the home repository", Args: dendrik.ArgsNone,
+		Name: "stats", Short: "Commit statistics for the selected Folio store", Args: dendrik.ArgsNone,
 		Flags: func(fs *dendrik.FlagSet) { noColor = fs.BoolLong("no-color", "Disable colored output") },
 		Run:   func(_ *dendrik.FlagSet, _ []string) int { return runHomeStats(*noColor) },
 	}
@@ -326,7 +333,7 @@ func cmdHomeWorkspace() dendrik.Command {
 				Run: func(_ *dendrik.FlagSet, _ []string) int { return runWorkspaceCreate() }},
 			{Name: "list", Short: "List all jj workspaces", Args: dendrik.ArgsNone,
 				Run: func(_ *dendrik.FlagSet, _ []string) int { return runWorkspaceList() }},
-			{Name: "cleanup", Short: "Remove a workspace (path arg, or FOLIO_HOME if it is a workspace)", Args: dendrik.ArgsBetween(0, 1),
+			{Name: "cleanup", Short: "Remove a workspace (path arg, or FOLIO_HOME if it names a workspace)", Args: dendrik.ArgsBetween(0, 1),
 				Run: func(_ *dendrik.FlagSet, pos []string) int { return runWorkspaceCleanup(pos) }},
 		},
 	}

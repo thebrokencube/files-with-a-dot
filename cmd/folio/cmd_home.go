@@ -17,68 +17,30 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/move"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/sync"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
-// resolveSyncTarget resolves the repo root every `home` subcommand acts on,
-// plus the resolved store (for the external-push guard). home.Dir() is the
-// umbrella (registry plane); the registry then redirects to a store's root:
-//   - an explicit <store> positional wins (per-store sync);
-//   - else the active store (cwd-in-store or default:);
-//   - else, when ActiveStore reports ok=false (no stores.yml / implicit), the
-//     umbrella IS the single-home folio and is returned byte-for-byte.
-//
-// The returned store is the zero value on the legacy path (Kind=="" so
-// IsExternal() is false), so callers' external-push guard is a no-op there. This
-// also guarantees home.Validate (run by callers on the returned dir) never
-// targets a bare umbrella — it always sees a real folio store.
+// resolveSyncTarget resolves the content root every `home` subcommand acts on.
+// The context resolver owns umbrella discovery and store selection.
 func resolveSyncTarget(storeName string) (string, config.Store, int) {
 	pal := dendrik.NewPalette(true)
-	umbrella, err := home.Dir()
+	ctx, err := resolveContext(storeName, contextStoreSync)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return "", config.Store{}, dendrik.ExitUserError
 	}
-	reg, err := config.LoadRegistryFrom(umbrella)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", config.Store{}, dendrik.ExitUserError
+	if ctx.Store.Name != "" {
+		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, ctx.Store.Name, ctx.WorkRoot, pal.Reset)
 	}
-
-	// Explicit <store> positional wins.
-	if storeName != "" {
-		store, ok := reg.Lookup(storeName)
-		if !ok {
-			fmt.Fprintln(os.Stderr, pal.Errf("store %q is not registered in stores.yml", storeName))
-			return "", config.Store{}, dendrik.ExitUserError
-		}
-		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, store.Path, pal.Reset)
-		return store.Path, store, dendrik.ExitOK
+	if home.IsSessionWorkspace(ctx.WorkRoot) {
+		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, ctx.WorkRoot, pal.Reset)
 	}
-
-	// Else the active store, else legacy single-home (umbrella).
-	store, ok, err := config.ActiveStore(reg)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return "", config.Store{}, dendrik.ExitUserError
-	}
-	dir := umbrella
-	if ok {
-		dir = store.Path
-		fmt.Fprintf(os.Stderr, "%sfolio store: %s (%s)%s\n", pal.Dim, store.Name, dir, pal.Reset)
-	}
-	if home.IsSessionWorkspace(dir) {
-		fmt.Fprintf(os.Stderr, "%sfolio workspace: %s%s\n", pal.Dim, dir, pal.Reset)
-	}
-	return dir, store, dendrik.ExitOK
+	return ctx.WorkRoot, ctx.Store, dendrik.ExitOK
 }
 
-// resolveHomeOrFail is the storeless wrapper used by every subcommand that acts
-// on the active store implicitly (no <store> positional).
 func resolveHomeOrFail() (string, int) {
 	dir, _, code := resolveSyncTarget("")
 	return dir, code
@@ -100,9 +62,12 @@ func runHomeInit() int {
 	return dendrik.ExitOK
 }
 
-func runHomeValidate(noColor bool) int {
+func runHomeValidate(active, noColor bool) int {
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
+	if active {
+		return runHomeValidateActive(pal, color)
+	}
 	dir, code := resolveHomeOrFail()
 	if code != dendrik.ExitOK {
 		return code
@@ -128,6 +93,107 @@ func runHomeValidate(noColor bool) int {
 		fmt.Fprintf(os.Stderr, "  - %s\n", e)
 	}
 	return dendrik.ExitExternalErr
+}
+
+func runHomeValidateActive(pal dendrik.Palette, color bool) int {
+	ctx, err := resolveContext("", contextFleet)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	stores := ctx.Registry.FolioStores()
+	if len(stores) == 0 {
+		store := config.Store{Name: "legacy", Path: ctx.WorkRoot, Kind: config.KindFolio}
+		stores = []config.Store{store}
+	}
+
+	var errs, warnings []string
+	for _, store := range stores {
+		info, statErr := os.Stat(store.Path)
+		if os.IsNotExist(statErr) {
+			warnings = append(warnings, fmt.Sprintf("%s: store path is absent: %s", store.Name, store.Path))
+			continue
+		}
+		if statErr != nil {
+			errs = append(errs, fmt.Sprintf("%s: cannot inspect store path %s: %s", store.Name, store.Path, statErr))
+			continue
+		}
+		if !info.IsDir() {
+			errs = append(errs, fmt.Sprintf("%s: store path is not a directory: %s", store.Name, store.Path))
+			continue
+		}
+
+		structureErrs, structureWarnings := home.ValidateRegisteredStore(store.Path)
+		for _, validationErr := range structureErrs {
+			errs = append(errs, fmt.Sprintf("%s: %s", store.Name, validationErr))
+		}
+		for _, warning := range structureWarnings {
+			warnings = append(warnings, fmt.Sprintf("%s: %s", store.Name, warning))
+		}
+
+		entries, scanErr := list.Scan(store.Path)
+		if scanErr != nil {
+			errs = append(errs, fmt.Sprintf("%s: scan: %s", store.Name, scanErr))
+			continue
+		}
+		for _, entry := range entries {
+			if entry.Section != "active" {
+				continue
+			}
+			if entry.Error != "" {
+				errs = append(errs, fmt.Sprintf("%s/%s: %s", store.Name, entry.Path, entry.Error))
+				continue
+			}
+			ymlPath := filepath.Join(store.Path, entry.Section, entry.Path, "folio.yml")
+			f, loadErr := config.Load(ymlPath)
+			if loadErr != nil {
+				errs = append(errs, fmt.Sprintf("%s/%s: %s", store.Name, entry.Path, loadErr))
+				continue
+			}
+			projectCtx := config.Context{
+				Umbrella:  ctx.Umbrella,
+				Registry:  ctx.Registry,
+				Store:     store,
+				WorkRoot:  store.Path,
+				FolioPath: ymlPath,
+			}
+			result := validate.Validate(f, projectCtx, validate.ReadOnly)
+			for _, validationErr := range result.Errors {
+				errs = append(errs, fmt.Sprintf("%s/%s: %s", store.Name, entry.Path, validationErr))
+			}
+			for _, warning := range result.Warnings {
+				warnings = append(warnings, fmt.Sprintf("%s/%s: %s", store.Name, entry.Path, warning))
+			}
+		}
+	}
+
+	if len(warnings) > 0 {
+		if color {
+			fmt.Fprintf(os.Stderr, "%sWarnings:%s\n", pal.Yellow, pal.Reset)
+		} else {
+			fmt.Fprintln(os.Stderr, "Warnings:")
+		}
+		for _, warning := range warnings {
+			fmt.Fprintf(os.Stderr, "  - %s\n", warning)
+		}
+	}
+	if len(errs) > 0 {
+		if color {
+			fmt.Fprintf(os.Stderr, "%sErrors:%s\n", pal.Red, pal.Reset)
+		} else {
+			fmt.Fprintln(os.Stderr, "Errors:")
+		}
+		for _, validationErr := range errs {
+			fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+		}
+		return dendrik.ExitExternalErr
+	}
+	if color {
+		fmt.Println(pal.Successf("Active Folio stores are valid"))
+	} else {
+		fmt.Println("Active Folio stores are valid")
+	}
+	return dendrik.ExitOK
 }
 
 func runHomeList(jsonMode, noColor bool) int {
@@ -385,9 +451,32 @@ func runHomeArchive(relPath string) int {
 	if code != dendrik.ExitOK {
 		return code
 	}
-
-	if err := move.Archive(dir, relPath); err != nil {
+	activeDir := filepath.Join(dir, "active", relPath)
+	ctx, err := resolveContext(filepath.Join(activeDir, "folio.yml"), contextMutation)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	f, err := config.Load(ctx.FolioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if err := move.Preflight(ctx, activeDir); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("archive refused: %s", err))
+		return dendrik.ExitUserError
+	}
+	before := validate.Validate(f, ctx, validate.Mutation)
+	result, err := move.Archive(dir, relPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if err := validateMovedProject(ctx, result, before); err != nil {
+		if rollbackErr := move.Rollback(result); rollbackErr != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("archive rollback failed: %s", rollbackErr))
+		}
+		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — archive rolled back: %s", err))
 		return dendrik.ExitUserError
 	}
 
@@ -401,14 +490,59 @@ func runHomeActivate(relPath string) int {
 	if code != dendrik.ExitOK {
 		return code
 	}
-
-	if err := move.Activate(dir, relPath); err != nil {
+	archiveDir := filepath.Join(dir, "archive", relPath)
+	ctx, err := resolveContext(filepath.Join(archiveDir, "folio.yml"), contextMutation)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	f, err := config.Load(ctx.FolioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if err := move.Preflight(ctx, archiveDir); err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("activate refused: %s", err))
+		return dendrik.ExitUserError
+	}
+	before := validate.Validate(f, ctx, validate.Mutation)
+	result, err := move.Activate(dir, relPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	if err := validateMovedProject(ctx, result, before); err != nil {
+		if rollbackErr := move.Rollback(result); rollbackErr != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("activate rollback failed: %s", rollbackErr))
+		}
+		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — activation rolled back: %s", err))
 		return dendrik.ExitUserError
 	}
 
 	fmt.Println(pal.Successf("Activated archive/%s", relPath))
 	return dendrik.ExitOK
+}
+
+func validateMovedProject(ctx config.Context, result move.MoveResult, before *validate.Result) error {
+	destinationManifest := filepath.Join(result.Destination, "folio.yml")
+	f, err := config.Load(destinationManifest)
+	if err != nil {
+		return err
+	}
+	destinationCtx, err := ctx.ForProject(destinationManifest)
+	if err != nil {
+		return err
+	}
+	after := validate.Validate(f, destinationCtx, validate.Mutation)
+	aliases := map[string]string{
+		result.Source:               result.Destination,
+		filepath.Dir(result.Source): filepath.Dir(result.Destination),
+	}
+	delta := validate.Delta(before, after, aliases)
+	if !delta.Valid {
+		return fmt.Errorf("%s", strings.Join(delta.Errors, "; "))
+	}
+	return nil
 }
 
 var statDatePrefixRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-`)
@@ -590,9 +724,35 @@ func runHomeStats(noColor bool) int {
 // and enforces the jj requirement. Under the command tree each workspace leaf
 // calls this itself (help/arity already resolved by the router before Run).
 func resolveWorkspaceHome(pal dendrik.Palette) (string, int) {
-	dir, code := resolveHomeOrFail()
-	if code != dendrik.ExitOK {
-		return "", code
+	roots, err := discoverContextRoots()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return "", dendrik.ExitUserError
+	}
+
+	dir := roots.explicitWorkRoot
+	if dir == "" {
+		cwd := mustGetwd()
+		if store, ok := config.StoreContaining(cwd, roots.registry); ok && store.Kind == config.KindFolio {
+			dir = store.Path
+		} else if base, store, ok := workspaceStoreBase(cwd, roots.registry); ok && store.Kind == config.KindFolio {
+			dir = base
+		} else if roots.registry != nil && roots.registry.Default != "" {
+			if store, ok := roots.registry.Lookup(roots.registry.Default); ok && store.Kind == config.KindFolio {
+				dir = store.Path
+			}
+		}
+	}
+	if dir == "" {
+		dir = roots.workRoot
+	}
+	if dir == "" {
+		fmt.Fprintln(os.Stderr, pal.Errf("no Folio work root selected"))
+		return "", dendrik.ExitUserError
+	}
+	if store := storeForWorkRoot(dir, roots.registry); store.Name != "" && store.Kind != config.KindFolio {
+		fmt.Fprintln(os.Stderr, pal.Errf("workspace requires a Folio store; %q is %s", store.Name, store.Kind))
+		return "", dendrik.ExitUserError
 	}
 	if !repo.IsJJ(dir) {
 		fmt.Fprintln(os.Stderr, pal.Errf("workspace requires jj — no .jj directory in %s", dir))
@@ -647,18 +807,28 @@ func runWorkspaceCleanup(positional []string) int {
 		return code
 	}
 
-	// Determine workspace path: from args, or from FOLIO_HOME if it's a workspace
+	// Determine workspace path: from args, or from an explicit FOLIO_HOME
+	// content-root override when it names a session workspace.
 	var wsDir string
 	if len(positional) > 0 {
 		wsDir = positional[0]
 	} else {
-		// Use current FOLIO_HOME if it looks like a workspace
-		folio := os.Getenv("FOLIO_HOME")
-		if folio == "" || !home.IsSessionWorkspace(folio) {
+		folio, set, err := home.WorkRootOverride()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+			return dendrik.ExitUserError
+		}
+		if !set || !home.IsSessionWorkspace(folio) {
 			fmt.Fprintln(os.Stderr, pal.Errf("specify workspace path or set FOLIO_HOME to a workspace"))
 			return dendrik.ExitUserError
 		}
 		wsDir = folio
+	}
+	var err error
+	wsDir, err = config.CanonicalPath(wsDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("canonicalizing workspace path: %s", err))
+		return dendrik.ExitUserError
 	}
 
 	wsName := filepath.Base(wsDir)
@@ -717,23 +887,23 @@ func validateActiveProjects(homeDir string) []string {
 	return errs
 }
 
-// validateProject validates a single folio: its folio.yml structure and its
-// observations. Returns human-readable errors (empty on success).
 func validateProject(homeDir string, e list.Entry) []string {
-	var errs []string
+	if e.Error != "" {
+		return []string{fmt.Sprintf("%s: %s", e.Path, e.Error)}
+	}
 	ymlPath := filepath.Join(homeDir, e.Section, e.Path, "folio.yml")
 	f, err := config.Load(ymlPath)
 	if err != nil {
 		return []string{fmt.Sprintf("%s: %s", e.Path, err)}
 	}
-	folioDir := filepath.Dir(ymlPath)
-	result := validate.Validate(f, folioDir)
-	for _, ve := range result.Errors {
-		errs = append(errs, fmt.Sprintf("%s: %s", e.Path, ve))
+	ctx, err := resolveContext(ymlPath, contextMutation)
+	if err != nil {
+		return []string{fmt.Sprintf("%s: %s", e.Path, err)}
 	}
-	issues := observe.Lint(folioDir, f.Observations)
-	for _, issue := range issues {
-		errs = append(errs, fmt.Sprintf("%s: observation #%d: %s", e.Path, issue.Index, issue.Reason))
+	result := validate.Validate(f, ctx, validate.Mutation)
+	var errs []string
+	for _, validationErr := range result.Errors {
+		errs = append(errs, fmt.Sprintf("%s: %s", e.Path, validationErr))
 	}
 	return errs
 }

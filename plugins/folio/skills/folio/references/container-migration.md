@@ -1,33 +1,39 @@
 # Container Migration Runbook
 
-One-time migration of a single-home `~/.folio` into the **multi-store container**
-model. This is the **mandatory** path forward — single-home is a transitional
-bridge slated for removal. Packaged as a runbook (not a `folio migrate` command)
+One-time migration of a single-content-root `~/.folio` into the **multi-store
+container** model. Set `FOLIO_UMBRELLA` to the control root before running the
+script; `FOLIO_HOME` must be unset or point only to a content work root, never
+the registry directory. The default control root remains `~/.folio` when no
+override is supplied.
+
+This is the **mandatory** path forward — single-home is a transitional bridge
+slated for removal. Packaged as a runbook (not a `folio migrate` command)
 because it is one-time and destructive.
 
 ```
-BEFORE: ~/.folio                     (colocated git+jj repo, single-home)
+BEFORE: <umbrella>                     (colocated git+jj repo, single-home)
 
-AFTER:  ~/.folio/                     (plain umbrella DIRECTORY — not a repo)
-        ├── <work-store>/      (fresh colocated clone = the work store, default)
+AFTER:  <umbrella>/                   (plain control directory — not a repo)
+        ├── <work-store>/             (fresh colocated clone = the work store, default)
         ├── folio-vault/              (personal vault store — optional, additive)
         ├── adr/ radr/ ...            (external KB clones — optional, read-only)
         └── stores.yml                (registry; dotfile-managed)
 ```
 
 **Why clone-beside, not move:** jj workspaces store **absolute** back-pointers to
-the repo root. Moving the root (`mv ~/.folio ~/.folio/<work-store>`)
-corrupts all ~25 workspaces. A fresh `git clone` from origin is complete once all
+the repo root. Moving the root (`mv <umbrella> <umbrella>/<work-store>`)
+corrupts all workspaces. A fresh `git clone` from origin is complete once all
 work is pushed; a `cp -a` backup + two-`mv` swap keep every step reversible.
 
 ## Prerequisite — binary-first ordering (NON-NEGOTIABLE)
 
-`folio >= 0.0.4` (the v2 binary that understands `stores.yml`) **must already be
-on PATH before any `stores.yml` exists**. An older binary treats the umbrella as
-the home and silently stops creating workspaces.
+`folio >= 0.0.12` (the binary that understands the explicit control/content
+root split) **must already be on PATH before any `stores.yml` exists**. An older
+binary treats the umbrella as the content root and can silently select the wrong
+workspace.
 
 ```bash
-folio --version          # must be >= 0.0.4
+folio --version          # must be >= 0.0.12
 # if not: bump cmd/folio/VERSION, dispatch release.yml -f tool=folio, then 'dot pull'
 ```
 
@@ -44,15 +50,15 @@ bash cmd/folio/scripts/migrate-container.sh --execute   # real: backup → clone
 
 What `--execute` does, in order:
 
-1. **Preconditions** — version ≥ 0.0.4, `~/.folio` is colocated git+jj, no existing `stores.yml`.
+1. **Preconditions** — version ≥ 0.0.12, `<umbrella>` is colocated git+jj, and no existing `stores.yml`.
 2. **Push gate** — abort unless `main == main@origin` and there are no unpushed non-empty changes (a fresh clone would lose them).
-3. **Backup** — `cp -a ~/.folio ~/.folio.backup-<stamp>`.
-4. **Forget workspaces** — `jj workspace forget` every workspace (incl. this session's).
-5. **Clone-beside** — clone origin into `~/.folio.new-<stamp>/<work-store>`, then `jj git init --colocate`.
+3. **Backup** — `cp -a <umbrella> <umbrella>.backup-<stamp>`.
+4. **Forget workspaces** — `jj workspace forget` every workspace (including this session's).
+5. **Clone-beside** — clone origin into `<umbrella>.new-<stamp>/<work-store>`, then `jj git init --colocate`.
 6. **Verification gate** — abort *before* the swap unless the clone is colocated and its active-project count matches the backup.
-7. **Swap** — two `mv`s: `~/.folio` → `~/.folio.old-<stamp>`, staging → `~/.folio`.
+7. **Swap** — two `mv`s: `<umbrella>` → `<umbrella>.old-<stamp>`, staging → `<umbrella>`.
 8. **Bootstrap `stores.yml`** — minimal registry so folio works immediately.
-9. **Smoke test** — `folio home list` from the umbrella.
+9. **Smoke test** — `env -u FOLIO_HOME FOLIO_UMBRELLA=<umbrella> folio home list`.
 
 If the push gate fails: `folio home push` from each workspace that has unpushed
 work, then retry. The backup also captures anything uncommitted as a safety net.

@@ -20,12 +20,14 @@ Run once before any moves.
 
 ### 1. Ratchet Baseline
 
-Count lifecycle artifacts to establish the starting point:
+Count lifecycle artifacts below the selected Folio content work root. Use the
+literal root returned by `folio home list` or workspace creation; `FOLIO_HOME`
+is only the per-command content-root override:
 
 ```bash
-find $FOLIO_HOME/active/<project>/reference/spike \
-     $FOLIO_HOME/active/<project>/reference/design \
-     $FOLIO_HOME/active/<project>/reference/retro \
+find <work-root>/active/<project>/reference/spike \
+     <work-root>/active/<project>/reference/design \
+     <work-root>/active/<project>/reference/retro \
      -name '*.md' -type f 2>/dev/null | wc -l
 ```
 

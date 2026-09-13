@@ -30,9 +30,12 @@ type dagEdge struct {
 func runDag(folioPath string, jsonMode, noColor bool) int {
 	pal := dendrik.NewPalette(true)
 
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	if _, err := os.Stat(folioPath); os.IsNotExist(err) {
 		if jsonMode {

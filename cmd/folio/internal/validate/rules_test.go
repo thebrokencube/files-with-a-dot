@@ -9,12 +9,25 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
 
+func validateForTest(f *config.Folio, dir string) *Result {
+	ctx := config.Context{
+		FolioPath: filepath.Join(dir, "folio.yml"),
+		WorkRoot:  dir,
+	}
+	if umbrella := os.Getenv("FOLIO_HOME"); umbrella != "" {
+		if registry, err := config.LoadRegistryFrom(umbrella); err == nil {
+			ctx.Registry = registry
+		}
+	}
+	return Validate(f, ctx, Mutation)
+}
+
 func TestValidateMinimal(t *testing.T) {
 	f := &config.Folio{
 		Schema:  1,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
 	}
@@ -25,7 +38,7 @@ func TestValidateBadSchema(t *testing.T) {
 		Schema:  99,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for schema 99")
 	}
@@ -39,7 +52,7 @@ func TestValidateSchema2Valid(t *testing.T) {
 		Schema:  2,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid for schema 2, got errors: %v", r.Errors)
 	}
@@ -49,7 +62,7 @@ func TestValidateMissingProject(t *testing.T) {
 	f := &config.Folio{
 		Schema: 1,
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for missing project")
 	}
@@ -64,7 +77,7 @@ func TestValidateDeprecatedContextSources(t *testing.T) {
 		Project:        "Test",
 		ContextSources: "something",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
@@ -82,7 +95,7 @@ func TestValidateSourceFileNotFound(t *testing.T) {
 			{Path: "nonexistent.md"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for missing source file")
 	}
@@ -102,7 +115,7 @@ func TestValidateSourceFileExists(t *testing.T) {
 			{Path: "README.md"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
 	}
@@ -116,7 +129,7 @@ func TestValidateExternalSourceMissingID(t *testing.T) {
 			{External: "jira"},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for external source missing id")
 	}
@@ -136,7 +149,7 @@ func TestValidateDerivedSourceMissingExternal(t *testing.T) {
 			{Path: "cached.md", DerivedFrom: []config.DerivedFrom{{}}},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for derived_from missing external")
 	}
@@ -158,7 +171,7 @@ func TestValidateMissingHowWarnsNotErrors(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid (warning only for missing how), got errors: %v", r.Errors)
 	}
@@ -181,7 +194,7 @@ func TestValidateTargetDeprecatedInstructions(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
@@ -205,7 +218,7 @@ func TestValidateTargetBothHowAndInstructions(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for both how and instructions")
 	}
@@ -229,7 +242,7 @@ func TestValidateTargetDeprecatedTransform(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
@@ -251,7 +264,7 @@ func TestValidatePrecompileRule(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for precompile violation")
 	}
@@ -276,7 +289,7 @@ func TestValidateExternalOutputMissingID(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for external output missing id")
 	}
@@ -303,7 +316,7 @@ func TestValidateOutputCollision(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for output collision")
 	}
@@ -325,7 +338,7 @@ func TestValidateDependsOnValid(t *testing.T) {
 			{Path: "design.md", DependsOn: []string{"spike.md"}},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
 	}
@@ -339,7 +352,7 @@ func TestValidateDependsOnExternalGuard(t *testing.T) {
 			{External: "jira", ID: "PROJ-1", DependsOn: []string{"spike.md"}},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for external source with depends_on")
 	}
@@ -359,7 +372,7 @@ func TestValidateDependsOnUnresolved(t *testing.T) {
 			{Path: "design.md", DependsOn: []string{"nonexistent.md"}},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for unresolved depends_on")
 	}
@@ -381,7 +394,7 @@ func TestValidateDependsOnCycle(t *testing.T) {
 			{Path: "b.md", DependsOn: []string{"a.md"}},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for source dependency cycle")
 	}
@@ -411,7 +424,7 @@ func TestValidateBatchItemMissingID(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for batch item missing id")
 	}
@@ -442,7 +455,7 @@ func TestValidateBatchItemResolvedOutput(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid batch target with defaults, got errors: %v", r.Errors)
 	}
@@ -469,7 +482,7 @@ func TestValidateBatchItemNoSystemAnywhere(t *testing.T) {
 			},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for batch item with no system anywhere")
 	}
@@ -486,7 +499,7 @@ func TestValidateEmptySource(t *testing.T) {
 			{}, // neither path nor external
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for empty source")
 	}
@@ -506,7 +519,7 @@ func TestValidateAmbiguousSource(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Test"), 0644)
 
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	// Should still be valid (warning only)
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
@@ -524,7 +537,7 @@ func TestValidateRepositoryValid(t *testing.T) {
 			"dotfiles": "https://github.com/org/repo/blob/main/{path}",
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
 	}
@@ -541,7 +554,7 @@ func TestValidateRepositoryEmptyURL(t *testing.T) {
 			"dotfiles": "",
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for empty URL")
 	}
@@ -558,7 +571,7 @@ func TestValidateRepositoryMissingPlaceholder(t *testing.T) {
 			"dotfiles": "https://github.com/org/repo",
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
@@ -575,7 +588,7 @@ func TestValidateCrossRefValid(t *testing.T) {
 			{Fact: "Some fact", SourceOfTruth: "path/to/source.md"},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
 	}
@@ -589,7 +602,7 @@ func TestValidateCrossRefMissingFact(t *testing.T) {
 			{Fact: "", SourceOfTruth: "path/to/source.md"},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for missing fact")
 	}
@@ -606,7 +619,7 @@ func TestValidateCrossRefMissingSourceOfTruth(t *testing.T) {
 			{Fact: "Some fact", SourceOfTruth: ""},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for missing source_of_truth")
 	}
@@ -624,7 +637,7 @@ func TestValidateCrossRefDuplicateFact(t *testing.T) {
 			{Fact: "Same fact", SourceOfTruth: "path/b.md"},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid (warning only), got errors: %v", r.Errors)
 	}
@@ -640,7 +653,7 @@ func TestValidateMinimalWithEmptyCollections(t *testing.T) {
 		Repositories:    map[string]string{},
 		CrossReferences: []config.CrossReference{},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid for empty collections, got errors: %v", r.Errors)
 	}
@@ -651,7 +664,7 @@ func TestValidateSchema3Valid(t *testing.T) {
 		Schema:  3,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if !r.Valid {
 		t.Errorf("expected valid for schema 3, got errors: %v", r.Errors)
 	}
@@ -662,7 +675,7 @@ func TestValidateSchema4Rejected(t *testing.T) {
 		Schema:  4,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for schema 4")
 	}
@@ -676,7 +689,7 @@ func TestValidateSchema0Rejected(t *testing.T) {
 		Schema:  0,
 		Project: "Test",
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	if r.Valid {
 		t.Error("expected invalid for schema 0")
 	}
@@ -696,7 +709,7 @@ func TestValidateTypeStatusDesignActive(t *testing.T) {
 			{Path: "design.md", Type: "design", Status: "active"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for design+active, got errors: %v", r.Errors)
 	}
@@ -713,7 +726,7 @@ func TestValidateTypeStatusPlanDone(t *testing.T) {
 			{Path: "plan.md", Type: "plan", Status: "done"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for plan+done, got errors: %v", r.Errors)
 	}
@@ -730,7 +743,7 @@ func TestValidateTypeStatusTrackActive(t *testing.T) {
 			{Path: "track.md", Type: "track", Status: "active"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for track+active, got errors: %v", r.Errors)
 	}
@@ -747,7 +760,7 @@ func TestValidateInvalidType(t *testing.T) {
 			{Path: "foo.md", Type: "foo"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for type 'foo'")
 	}
@@ -767,7 +780,7 @@ func TestValidateInvalidStatus(t *testing.T) {
 			{Path: "design.md", Type: "design", Status: "pending"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for status 'pending'")
 	}
@@ -787,7 +800,7 @@ func TestValidateStatusOnSpike(t *testing.T) {
 			{Path: "spike.md", Type: "spike", Status: "active"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for status on spike")
 	}
@@ -807,7 +820,7 @@ func TestValidateStatusOnRetro(t *testing.T) {
 			{Path: "retro.md", Type: "retro", Status: "done"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for status on retro")
 	}
@@ -827,7 +840,7 @@ func TestValidateStatusWithoutType(t *testing.T) {
 			{Path: "doc.md", Status: "active"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid for status without type")
 	}
@@ -847,7 +860,7 @@ func TestValidateTypeWithoutStatus(t *testing.T) {
 			{Path: "spike.md", Type: "spike"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for type without status, got errors: %v", r.Errors)
 	}
@@ -864,7 +877,7 @@ func TestValidateOmittedTypeAndStatus(t *testing.T) {
 			{Path: "readme.md"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for omitted type and status, got errors: %v", r.Errors)
 	}
@@ -881,7 +894,7 @@ func TestValidateSchema2WithTypeField(t *testing.T) {
 			{Path: "design.md", Type: "design"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if !r.Valid {
 		t.Errorf("expected valid for schema 2 with type field, got errors: %v", r.Errors)
 	}
@@ -895,7 +908,7 @@ func TestValidateTypeOnExternalSource(t *testing.T) {
 			{External: "github", ID: "repo-1", Type: "design"},
 		},
 	}
-	r := Validate(f, t.TempDir())
+	r := validateForTest(f, t.TempDir())
 	// Type on external sources is silently ignored (no path to validate against)
 	// Should not produce type/status errors — only the normal external source validation
 	if containsError(r, "invalid type") {
@@ -914,7 +927,7 @@ func TestValidateMultipleErrorsSameSource(t *testing.T) {
 			{Path: "bad.md", Type: "foo", Status: "pending"},
 		},
 	}
-	r := Validate(f, dir)
+	r := validateForTest(f, dir)
 	if r.Valid {
 		t.Error("expected invalid")
 	}
@@ -922,6 +935,179 @@ func TestValidateMultipleErrorsSameSource(t *testing.T) {
 	statusErr := containsError(r, "invalid status")
 	if !typeErr || !statusErr {
 		t.Errorf("expected both type and status errors, got: %v", r.Errors)
+	}
+}
+
+func TestValidateDuplicateProjectSourcePath(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "source.md"), []byte("source"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Duplicate",
+		Sources: []config.Source{
+			{Path: "source.md"},
+			{Path: "source.md"},
+		},
+	}
+	result := validateForTest(f, dir)
+	if result.Valid {
+		t.Fatal("duplicate project source path must invalidate the manifest")
+	}
+	if !containsError(result, "duplicate path: source.md") {
+		t.Fatalf("errors = %v, want duplicate source path", result.Errors)
+	}
+}
+
+func TestValidateObservationWarningsRemainValid(t *testing.T) {
+	f := &config.Folio{
+		Schema:       1,
+		Project:      "Observation warnings",
+		Observations: []string{"idea(cli): see #1"},
+	}
+	result := Validate(f, config.Context{FolioPath: filepath.Join(t.TempDir(), "folio.yml")}, ReadOnly)
+	if !result.Valid {
+		t.Fatalf("warning-only observation lint must remain valid: %v", result.Errors)
+	}
+	if len(result.Warnings) != 1 || result.Findings[0].Severity != FindingWarning {
+		t.Fatalf("warnings = %v findings = %+v", result.Warnings, result.Findings)
+	}
+}
+
+func TestDeltaDemotesOnlySurvivingBaselineErrors(t *testing.T) {
+	before := &Result{Findings: []Finding{
+		{Code: "source", Subject: "work/active/topic/source.md", Severity: FindingError, Message: "old source"},
+	}}
+	after := &Result{Findings: []Finding{
+		{Code: "source", Subject: "work/archive/topic/source.md", Severity: FindingError, Message: "moved source"},
+		{Code: "target", Subject: "target-a", Severity: FindingError, Message: "new target"},
+		{Code: "observation", Subject: "obs", Severity: FindingWarning, Message: "advice"},
+	}}
+	result := Delta(before, after, map[string]string{
+		"work/active/topic": "work/archive/topic",
+	})
+	if result.Valid {
+		t.Fatal("new blocking finding must keep delta invalid")
+	}
+	if len(result.Errors) != 1 || result.Errors[0] != "new target" {
+		t.Fatalf("errors = %v, want only new target error", result.Errors)
+	}
+	if len(result.Warnings) != 2 {
+		t.Fatalf("warnings = %v, want surviving baseline and advisory warning", result.Warnings)
+	}
+}
+
+func TestDeltaUsesFindingOccurrenceCounts(t *testing.T) {
+	before := &Result{Findings: []Finding{
+		{Code: "source", Subject: "same", Severity: FindingError, Message: "baseline"},
+	}}
+	after := &Result{Findings: []Finding{
+		{Code: "source", Subject: "same", Severity: FindingError, Message: "first"},
+		{Code: "source", Subject: "same", Severity: FindingError, Message: "second"},
+	}}
+	result := Delta(before, after, nil)
+	if result.Valid || len(result.Warnings) != 1 || len(result.Errors) != 1 {
+		t.Fatalf("delta = %+v, want one demoted and one blocking occurrence", result)
+	}
+}
+func TestValidateSnapshotFieldsMustAppearAsPair(t *testing.T) {
+	ctx := config.Context{FolioPath: filepath.Join(t.TempDir(), "folio.yml")}
+	digest := strings.Repeat("a", 64)
+	tests := []struct {
+		name         string
+		composedAt   string
+		inputsSHA256 string
+		valid        bool
+	}{
+		{name: "absent", valid: true},
+		{name: "complete", composedAt: "2026-09-12T10:00:00Z", inputsSHA256: digest, valid: true},
+		{name: "composed_at only", composedAt: "2026-09-12T10:00:00Z"},
+		{name: "digest only", inputsSHA256: digest},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Validate(&config.Folio{
+				Schema:  3,
+				Project: "Freshness",
+				Targets: map[string]config.Target{
+					"snapshot": {
+						How:          "compose",
+						ComposedAt:   tt.composedAt,
+						InputsSHA256: tt.inputsSHA256,
+					},
+				},
+			}, ctx, Mutation)
+			if result.Valid != tt.valid {
+				t.Fatalf("valid = %v, want %v; errors = %v", result.Valid, tt.valid, result.Errors)
+			}
+			if !tt.valid && !containsError(result, "must appear as a pair") {
+				t.Fatalf("errors = %v, want pair error", result.Errors)
+			}
+		})
+	}
+}
+
+func TestValidateFinalRequiresNonBatchNonForestReviewCopyAndExternalOutput(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "compiled"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "forest"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "compiled", "review.md"), []byte("review"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	digest := strings.Repeat("a", 64)
+	base := config.Target{
+		How:          "compose",
+		ComposedAt:   "2026-09-12T10:00:00Z",
+		InputsSHA256: digest,
+		Final:        true,
+		Outputs: []config.Output{
+			{Path: "compiled/review.md"},
+			{External: "jira", ID: "PROJ-1", Field: "description"},
+		},
+	}
+	tests := []struct {
+		name   string
+		target config.Target
+		valid  bool
+	}{
+		{name: "valid", target: base, valid: true},
+		{name: "local only", target: func() config.Target {
+			target := base
+			target.Outputs = []config.Output{{Path: "compiled/review.md"}}
+			return target
+		}()},
+		{name: "external only", target: func() config.Target {
+			target := base
+			target.Outputs = []config.Output{{External: "jira", ID: "PROJ-1"}}
+			return target
+		}()},
+		{name: "batch", target: func() config.Target {
+			target := base
+			target.Batch = &config.Batch{System: "jira"}
+			return target
+		}()},
+		{name: "forest", target: func() config.Target {
+			target := base
+			target.Forest = &config.Forest{Root: "forest"}
+			return target
+		}()},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Validate(&config.Folio{
+				Schema:  3,
+				Project: "Final",
+				Targets: map[string]config.Target{"target": tt.target},
+			}, config.Context{FolioPath: filepath.Join(root, "folio.yml"), WorkRoot: root}, Mutation)
+			if result.Valid != tt.valid {
+				t.Fatalf("valid = %v, want %v; errors = %v", result.Valid, tt.valid, result.Errors)
+			}
+		})
 	}
 }
 

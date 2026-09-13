@@ -35,7 +35,7 @@ func TestResolvePathIntrinsicVault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("intrinsic vault: %v", err)
 	}
-	if want := filepath.Join(homeDir, "vault", "research/x.md"); got != want {
+	if want := canonicalForTest(t, filepath.Join(homeDir, "vault", "research/x.md")); got != want {
 		t.Errorf("vault resolve = %q, want %q", got, want)
 	}
 

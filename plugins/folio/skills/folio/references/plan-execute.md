@@ -116,7 +116,7 @@ Report in two sections:
 Keep your review under 40 lines. Only flag real issues.
 ```
 
-**Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml observations, adding reference files for significant decisions, and keeping cross-references current throughout implementation. All `~/.folio` commits must use `folio home push` (see SKILL.md § Git Operations).
+**Folio integration**: If a relevant folio project exists, record design decisions, progress, and rationale in the folio project as work progresses — not as a final cleanup step. This means updating folio.yml observations, adding reference files for significant decisions, and keeping cross-references current throughout implementation. Changes to the selected Folio content store must use `folio home push`; `FOLIO_UMBRELLA` identifies the control root and `FOLIO_HOME` identifies the content work root (see SKILL.md § Git Operations).
 
 ### Layered Escalation
 

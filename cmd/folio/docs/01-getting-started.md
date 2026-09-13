@@ -4,7 +4,8 @@
 
 Folio is a CLI and skill toolkit that manages knowledge work projects -- plans, references, and compiled outputs -- with a YAML manifest (`folio.yml`) at the center. Sources (markdown files, Jira tickets, Google Docs) compose into targets (tech specs, ticket descriptions, published documents) through a declared pipeline.
 
-Folio is not a note-taking app or task tracker. It's a compilation system: local markdown sources feed into external targets, and status is derived from file modification times rather than a database.
+Folio is not a note-taking app or task tracker. It's a compilation system: local markdown sources feed into external targets, and status uses recorded input digests when available. An existing output without a complete snapshot is `unknown`, not falsely clean and not a failure.
+After reviewing a composition, run `folio touch <target>` to record the input digest without rewriting the output. Add `--final` only when the target has a direct external output and an existing local review copy; final targets remain visible when their local output is stale or missing.
 
 ## The Lifecycle Model
 
@@ -33,10 +34,13 @@ A concrete example: you notice that symlink handling is fragile (observation). Y
 
 ## Project Anatomy
 
-A folio project is a directory with a `folio.yml` manifest:
+A folio project is a directory with a `folio.yml` manifest. The project lives
+under the selected Folio content work root. In container mode,
+`FOLIO_UMBRELLA` points at the control directory containing `stores.yml`;
+`FOLIO_HOME` may override the content work root for a command or session.
 
 ```
-~/.folio/active/my-project/
+<work-root>/active/my-project/
 ├── folio.yml              # The manifest -- everything starts here
 ├── reference/
 │   ├── research/          # Landscape scans, tool surveys
@@ -78,26 +82,29 @@ targets:
         id: "1TaUG..."
         field: body
 ```
-
-Sources feed into targets. Targets can depend on other targets via `blocked_by`, forming a DAG (directed acyclic graph). `folio dag` visualizes this dependency chain.
-
 ## Two-Tier Residency: Projects and Vault
 
-Projects live under `~/.folio/active/<name>/` with their own `folio.yml`.
-
-The vault (`~/.folio/vault/`) is a shared knowledge layer with no `folio.yml` -- its directory structure is its index:
+Projects live under `<work-root>/active/<name>/` with their own `folio.yml`.
+The selected store's vault (`<work-root>/vault/`) is a shared knowledge layer
+with no `folio.yml` — its directory structure is its index:
 
 ```
-~/.folio/vault/
+<work-root>/vault/
 ├── research/    # Tool surveys, ecosystem landscapes
 ├── domain/      # Business/technical domain knowledge
 ├── guide/       # Reusable procedures
 └── insight/     # Patterns extracted from experience
 ```
 
-Projects reference vault files with the `vault:` prefix in source paths (e.g., `vault:research/comparable-dvc.md`), which resolves to `~/.folio/vault/`.
+Projects reference vault files with the `vault:` prefix in source paths (for
+example `vault:research/comparable-dvc.md`), which resolves from the owning
+project store or selected content work root. A registered store literally
+named `vault` takes precedence.
 
-**When to promote to vault**: a reference proves useful across multiple projects. A tool survey used by 3 different projects belongs in the vault. A project-specific investigation stays as a spike.
+**When to promote to vault**: a reference proves useful across multiple
+projects. A tool survey used by 3 different projects belongs in the vault. A
+project-specific investigation stays as a spike.
+
 
 ## Quick Start
 
@@ -116,7 +123,7 @@ folio new spike my-topic
 # Check project state
 folio status
 
-# Push to ~/.folio home
+# Push the selected Folio content store
 folio home push
 ```
 
@@ -134,7 +141,7 @@ For planning and composition workflows, invoke the `folio` Agent Skill in an adm
 | retro | Retrospective -- what worked, what didn't |
 | target | A declared output destination (file, Jira, Google Doc) |
 | source | Input material declared in folio.yml |
-| vault | Shared cross-project knowledge layer at `~/.folio/vault/` |
+| vault | Shared cross-project knowledge layer at `<work-root>/vault/` |
 | compose | Turn local sources into communication artifacts |
 | publish | Push composed output to an external system |
 | DAG | Directed acyclic graph of target dependencies |

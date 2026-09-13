@@ -18,7 +18,7 @@ sources:
   # Local file
   - path: reference/research/landscape.md
 
-  # Vault reference (resolves to ~/.folio/vault/)
+  # Vault reference (resolves from the owning store or selected content root)
   - path: vault:research/comparable-dvc.md
 
   # External system
@@ -116,26 +116,33 @@ Schema 2 replaced `pending` and `tasks` sections with `observations`. Design doc
 | Command | Usage | Description |
 |---------|-------|-------------|
 | `folio init` | `folio init --name "Name"` | Initialize new project with folio.yml |
-| `folio status` | `folio status [--json] [--folio PATH]` | Show project status (sources, targets, staleness) |
+| `folio status` | `folio status [--json] [--folio PATH]` | Show target freshness and lifecycle state |
 | `folio validate` | `folio validate [--folio PATH]` | Validate folio.yml structure |
 | `folio health` | `folio health [--folio PATH]` | Project health report |
-| `folio stale` | `folio stale` | Find stale projects needing attention |
+| `folio stale` | `folio stale [--folio PATH]` | Find stale or missing local outputs; explain unknown targets without failing |
 | `folio new` | `folio new <type> <topic> [--folio PATH]` | Scaffold a typed artifact |
-| `folio observe` | `folio observe '<type>(scope): desc'` | Add an observation |
-| `folio observe list` | `folio observe list [--json]` | List all observations |
-| `folio observe resolve` | `folio observe resolve <#N\|substring>` | Resolve an observation |
+| `folio observe` | `folio observe '<type>(scope): desc' [--folio PATH]` | Add an observation |
+| `folio observe list` | `folio observe list [--json] [--folio PATH]` | List all observations |
+| `folio observe resolve` | `folio observe resolve <#N\|substring> [--folio PATH]` | Resolve an observation |
 | `folio observe types` | `folio observe types` | Show valid observation types |
-| `folio observe lint` | `folio observe lint` | Validate observation format |
-| `folio gather` | `folio gather <url> [--materialize --type T]` | Scaffold source entry from URL |
-| `folio dag` | `folio dag [--branches]` | Show project dependency DAG |
-| `folio touch` | `folio touch [--folio PATH]` | Clear staleness after manual publish |
-| `folio archive` | `folio archive [--dry-run]` | Move project to archive |
-| `folio home list` | `folio home list` | List home-synced projects |
-| `folio home push` | `folio home push` | Commit and push to ~/.folio remote |
-| `folio home pull` | `folio home pull` | Pull from ~/.folio remote |
+| `folio observe lint` | `folio observe lint [--folio PATH]` | Validate observation format |
+| `folio gather` | `folio gather <url> [--materialize --type T] [--folio PATH]` | Scaffold source entry from URL |
+| `folio dag` | `folio dag [--branches] [--folio PATH]` | Show project DAG |
+| `folio touch` | `folio touch [--final] [--folio PATH] TARGET` | Record input digests without rewriting outputs; `--final` marks a reviewed terminal target |
+| `folio archive` | `folio archive [--dry-run] [--folio PATH]` | Move a work track to archive after dependent preflight |
+| `folio home archive` | `folio home archive <path>` | Move an active project to archive with dependent preflight |
+| `folio home activate` | `folio home activate <path>` | Restore an archived project after dependent preflight |
+| `folio home push` | `folio home push [<store>]` | Commit and push the selected Folio store |
+| `folio home pull` | `folio home pull [<store>]` | Pull the selected Folio store |
 | `folio setup` | `folio setup [--check]` | Setup or diagnose environment |
 
 **Flag ordering**: flags must come before positional arguments (enforced by the CLI parser).
+## Archive and activation safety
+
+Project and work-track archive operations resolve structured path references from sibling projects in the selected Folio store before moving anything. If a sibling reference resolves inside the candidate root, the command refuses before rename, manifest write, sync, or push. Folio does not rewrite dependent manifests automatically; update the dependent project manually, validate it, and retry.
+
+
+After a permitted move, Folio validates the projected manifest. A validation failure rolls the directory back to its original location, preserves manifest bytes, and removes only parent directories created by the attempted move. A rollback warning means the operation failed and the affected paths require manual inspection.
 
 ## Observation Format
 
@@ -165,19 +172,31 @@ Scope is freeform but common values include: `cli`, `skill`, `agent`, `docs`, `h
 
 ## Status Derivation
 
-Folio determines status from file modification times -- no database.
+Folio derives local output freshness from recorded input digests when a complete
+composition snapshot exists.
 
-- A target is **stale** when any source file's mtime is newer than the output file's mtime
-- `folio touch` updates output mtimes to clear staleness after manual publish
-- `folio status --json` returns structured output with per-target staleness
+- `clean`: every declared local input matches the recorded digest
+- `stale`: local input content changed after composition
+- `missing`: a required local output is absent
+- `unknown`: no complete snapshot exists, input freshness is delegated to an external
+  system, or the target is a forest managed by `jf`
+
+External outputs retain `status: "unknown"` without a cause and do not affect a target's
+local aggregation. Unknown is advisory: `folio stale` exits zero for unknown-only
+results, while stale or missing local outputs return a nonzero exit.
+
+`folio touch TARGET` records the complete input digest and composition timestamp without
+rewriting declared outputs. The fields are written as a pair. `folio touch --final TARGET`
+requires a direct external output and an existing local review copy, and rejects batch and
+forest targets. A final target does not receive propagated upstream status, but its own
+stale or missing local outputs remain in `folio stale`.
 
 ## Troubleshooting
 
-`folio setup --check` diagnoses the environment (binary location, home directory, git state).
+`folio setup --check` diagnoses the environment (binary location, selected control/content roots, and VCS state).
 
 Common issues:
 
 - **Missing folio.yml**: run `folio init` or use `--folio PATH` to point to an existing one
 - **Invalid schema**: check `folio validate` output for field-level errors
 - **Push blocked**: `folio home push` runs lint on all active projects -- fix the reported project's issues first
-- **Archive dry-run mutates state**: known bug in `folio archive --dry-run` -- avoid until fixed

@@ -47,7 +47,8 @@ func TestStoresListJSONUsesResultEnvelope(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &envelope); err != nil {
 		t.Fatalf("JSON output is not a result envelope: %v\n%s", err, output.String())
 	}
-	if len(envelope.Data) != 1 || envelope.Data[0].Name != "work" || envelope.Data[0].Path != storePath || envelope.Data[0].Kind != "folio" {
+	wantPath := canonicalMainTest(t, storePath)
+	if len(envelope.Data) != 1 || envelope.Data[0].Name != "work" || envelope.Data[0].Path != wantPath || envelope.Data[0].Kind != "folio" {
 		t.Fatalf("data = %#v, want the registered work store", envelope.Data)
 	}
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 )
 
 const vaultPrefix = "vault:"
@@ -39,16 +37,17 @@ func ResolvePath(folioDir, path string, reg *Registry) (string, error) {
 
 	// 2. Intrinsic vault: folio-LOCAL, never a registered store. It resolves to
 	//    the <vault> subdir of the active folio store — the store whose root
-	//    contains folioDir. In container mode that is e.g.
-	//    ~/.folio/thebrokencube-folio/vault, not the umbrella's. With an
+	//    contains folioDir. In container mode this is the owning store's
+	//    <work-root>/vault, not the control root's vault. With an
 	//    implicit/empty registry (no stores.yml) there is no containing store, so
-	//    fall back to <home>/vault — today's single-home behavior, byte-for-byte.
+	//    fall back to the selected isolated content root's vault — today's
+	//    single-home behavior, byte-for-byte.
 	if prefix == vaultName {
 		if store, ok := storeContaining(folioDir, reg); ok {
 			return filepath.Join(store.Path, "vault", remainder), nil
 		}
-		if folioHome, err := home.Dir(); err == nil {
-			return filepath.Join(folioHome, "vault", remainder), nil
+		if reg != nil && reg.umbrella != "" {
+			return filepath.Join(reg.umbrella, "vault", remainder), nil
 		}
 		return filepath.Join(folioDir, path), nil
 	}

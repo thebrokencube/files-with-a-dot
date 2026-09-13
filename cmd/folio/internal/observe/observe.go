@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
 
@@ -47,6 +49,47 @@ func ParseObservation(item string) (typ, scope, desc string, err error) {
 	scope = item[parenOpen+1 : parenClose]
 	desc = item[parenClose+3:] // skip "): "
 	return
+}
+
+type Severity uint8
+
+const (
+	SeverityError Severity = iota
+	SeverityWarning
+)
+
+// LintIssue describes a single observation finding.
+type LintIssue struct {
+	Code     string
+	Subject  string
+	Severity Severity
+	Index    int
+	Item     string
+	Reason   string
+}
+
+// DuplicateCandidate identifies an existing observation that exactly matches
+// the normalized new item.
+type DuplicateCandidate struct {
+	Index int
+	Item  string
+}
+
+// Normalize collapses whitespace without changing case or punctuation.
+func Normalize(item string) string {
+	return strings.Join(strings.Fields(item), " ")
+}
+
+// DuplicateCandidates returns exact normalized matches in existing-list order.
+func DuplicateCandidates(item string, existing []string) []DuplicateCandidate {
+	normalized := Normalize(item)
+	var candidates []DuplicateCandidate
+	for i, current := range existing {
+		if Normalize(current) == normalized {
+			candidates = append(candidates, DuplicateCandidate{Index: i + 1, Item: current})
+		}
+	}
+	return candidates
 }
 
 // Append adds an item to the observations: list in a folio.yml file.
@@ -109,130 +152,199 @@ func Append(path string, item string) error {
 	return os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
 }
 
-// Remove deletes observations from a folio.yml file by index (#N) or substring match.
-// Returns the list of removed item texts. Errors on ambiguity or not-found.
-func Remove(path string, matches []string) ([]string, error) {
+// Resolve plans observation removals without touching the manifest.
+// Returned indices are zero-based and preserve selector order.
+func Resolve(items, matches []string) (remaining []string, removed []int, err error) {
+	selected := make(map[int]bool)
+	for _, match := range matches {
+		if strings.HasPrefix(match, "#") {
+			var n int
+			if _, scanErr := fmt.Sscanf(match, "#%d", &n); scanErr != nil || n < 1 || n > len(items) {
+				return nil, nil, fmt.Errorf("invalid index %q (have %d observations)", match, len(items))
+			}
+			index := n - 1
+			if !selected[index] {
+				selected[index] = true
+				removed = append(removed, index)
+			}
+			continue
+		}
+
+		var candidates []int
+		for index, item := range items {
+			if strings.Contains(item, match) {
+				candidates = append(candidates, index)
+			}
+		}
+		if len(candidates) == 0 {
+			return nil, nil, fmt.Errorf("no match for %q", match)
+		}
+		if len(candidates) > 1 {
+			labels := make([]string, len(candidates))
+			for i, index := range candidates {
+				labels[i] = fmt.Sprintf("  #%d: %s", index+1, items[index])
+			}
+			return nil, nil, fmt.Errorf("ambiguous match %q — matches %d items:\n%s", match, len(candidates), strings.Join(labels, "\n"))
+		}
+		index := candidates[0]
+		if !selected[index] {
+			selected[index] = true
+			removed = append(removed, index)
+		}
+	}
+
+	remaining = make([]string, 0, len(items)-len(removed))
+	for index, item := range items {
+		if !selected[index] {
+			remaining = append(remaining, item)
+		}
+	}
+	return remaining, removed, nil
+}
+
+// RemoveIndices deletes only the selected observation scalar lines after
+// proving that the file still contains the expected decoded item list.
+func RemoveIndices(path string, items []string, removed []int) ([]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
 	}
-
 	lines := strings.Split(string(data), "\n")
-
-	// Collect observation line indices and their unquoted text
-	type obsLine struct {
-		lineIdx int
-		text    string
+	observations, err := scanObservationScalars(lines)
+	if err != nil {
+		return nil, err
 	}
-	var obs []obsLine
-	inObs := false
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "observations:" || trimmed == "observations: []" {
-			inObs = true
+	if len(observations) != len(items) {
+		return nil, fmt.Errorf("observation list changed: file has %d items, expected %d", len(observations), len(items))
+	}
+	for index, item := range items {
+		if observations[index].text != item {
+			return nil, fmt.Errorf("observation #%d changed before removal", index+1)
+		}
+	}
+
+	toRemove := make(map[int]bool, len(removed))
+	var removedItems []string
+	for _, index := range removed {
+		if index < 0 || index >= len(observations) {
+			return nil, fmt.Errorf("invalid observation index %d (have %d observations)", index, len(observations))
+		}
+		if toRemove[index] {
 			continue
 		}
-		if inObs {
-			if strings.HasPrefix(line, "  - ") {
-				// Extract unquoted text
-				raw := strings.TrimPrefix(line, "  - ")
-				text := strings.Trim(raw, "\"")
-				obs = append(obs, obsLine{i, text})
-			} else if strings.HasPrefix(line, "  #") || trimmed == "" {
-				continue
-			} else {
-				break
-			}
-		}
+		toRemove[index] = true
+		removedItems = append(removedItems, items[index])
 	}
 
-	// Resolve each match to observation indices
-	toRemove := map[int]bool{}
-	var removed []string
-	for _, m := range matches {
-		if strings.HasPrefix(m, "#") {
-			// Index-based: #N (1-indexed)
-			var n int
-			if _, err := fmt.Sscanf(m, "#%d", &n); err != nil || n < 1 || n > len(obs) {
-				return nil, fmt.Errorf("invalid index %q (have %d observations)", m, len(obs))
-			}
-			idx := n - 1
-			toRemove[idx] = true
-			removed = append(removed, obs[idx].text)
-		} else {
-			// Substring match
-			var candidates []int
-			for j, o := range obs {
-				if strings.Contains(o.text, m) {
-					candidates = append(candidates, j)
-				}
-			}
-			if len(candidates) == 0 {
-				return nil, fmt.Errorf("no match for %q", m)
-			}
-			if len(candidates) > 1 {
-				lines := make([]string, len(candidates))
-				for k, c := range candidates {
-					lines[k] = fmt.Sprintf("  #%d: %s", c+1, obs[c].text)
-				}
-				return nil, fmt.Errorf("ambiguous match %q — matches %d items:\n%s", m, len(candidates), strings.Join(lines, "\n"))
-			}
-			toRemove[candidates[0]] = true
-			removed = append(removed, obs[candidates[0]].text)
-		}
+	deleteLines := make(map[int]bool, len(toRemove))
+	for index := range toRemove {
+		deleteLines[observations[index].line] = true
 	}
-
-	// Collect line indices to delete
-	deleteLines := map[int]bool{}
-	for idx := range toRemove {
-		deleteLines[obs[idx].lineIdx] = true
-	}
-
-	// Rebuild file without deleted lines
-	var result []string
-	for i, line := range lines {
-		if !deleteLines[i] {
+	result := make([]string, 0, len(lines)-len(deleteLines))
+	for index, line := range lines {
+		if !deleteLines[index] {
 			result = append(result, line)
 		}
 	}
-
-	return removed, os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644)
+	if err := os.WriteFile(path, []byte(strings.Join(result, "\n")), 0644); err != nil {
+		return nil, fmt.Errorf("writing %s: %w", path, err)
+	}
+	return removedItems, nil
 }
 
-// LintIssue describes a single lint finding for an observation.
-type LintIssue struct {
-	Index  int
-	Item   string
-	Reason string
+type observationScalar struct {
+	line int
+	text string
+}
+
+func scanObservationScalars(lines []string) ([]observationScalar, error) {
+	var observations []observationScalar
+	inObservations := false
+	for index, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "observations:" || trimmed == "observations: []" {
+			inObservations = true
+			continue
+		}
+		if !inObservations {
+			continue
+		}
+		if strings.HasPrefix(line, "  - ") {
+			raw := strings.TrimPrefix(line, "  - ")
+			var decoded string
+			if err := yaml.Unmarshal([]byte(raw), &decoded); err != nil {
+				return nil, fmt.Errorf("observation #%d is not a supported scalar: %w", len(observations)+1, err)
+			}
+			observations = append(observations, observationScalar{line: index, text: decoded})
+			continue
+		}
+		if strings.HasPrefix(line, "  #") || trimmed == "" {
+			continue
+		}
+		break
+	}
+	return observations, nil
 }
 
 var (
-	parenPathRe = regexp.MustCompile(`\(([^)]+)\)`)
-	seePathRe   = regexp.MustCompile(`(?:See|see) ([^\s,]+)`)
+	parenPathRe     = regexp.MustCompile(`\(([^)]+)\)`)
+	seePathRe       = regexp.MustCompile(`(?i)\bsee\s+([^\s,]+)`)
+	positionalRefRe = regexp.MustCompile(`(?i)\b(obs|observation|refines|confirms|per|see)\s+#([0-9]+)\b`)
 	// A trailing line or line-range reference: "foo.rb:7", "Show.tsx:12-20".
 	lineRefSuffixRe = regexp.MustCompile(`:\d+(?:-\d+)?$`)
 )
 
-// Lint checks observations for format errors and broken inline path references.
-func Lint(folioDir string, items []string) []LintIssue {
+// Lint checks observations for format errors, path references, and unstable
+// positional references using the caller-resolved context.
+func Lint(items []string, ctx config.Context) []LintIssue {
 	var issues []LintIssue
-	reg, _ := config.LoadRegistry()
 	for i, item := range items {
 		if err := Validate(item); err != nil {
-			issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: "malformed format"})
+			issues = append(issues, LintIssue{
+				Code:     "observation.format",
+				Subject:  Normalize(item),
+				Severity: SeverityError,
+				Index:    i + 1,
+				Item:     item,
+				Reason:   "malformed format",
+			})
 			continue
 		}
 
-		// Extract and check inline path references
-		paths := extractPaths(item)
-		for _, p := range paths {
-			full, err := config.ResolvePath(folioDir, p, reg)
+		for _, match := range positionalRefRe.FindAllStringSubmatch(item, -1) {
+			phrase := strings.ToLower(strings.TrimSpace(match[0]))
+			issues = append(issues, LintIssue{
+				Code:     "observation.positional-reference",
+				Subject:  Normalize(item),
+				Severity: SeverityWarning,
+				Index:    i + 1,
+				Item:     item,
+				Reason:   fmt.Sprintf("positional observation reference %s can drift; quote the observation description instead", phrase),
+			})
+		}
+
+		for _, path := range extractPaths(item) {
+			full, err := ctx.ResolvePath(path)
 			if err != nil {
-				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("%s", err)})
+				issues = append(issues, LintIssue{
+					Code:     "observation.path",
+					Subject:  path,
+					Severity: SeverityError,
+					Index:    i + 1,
+					Item:     item,
+					Reason:   err.Error(),
+				})
 				continue
 			}
-			if _, err := os.Stat(full); os.IsNotExist(err) {
-				issues = append(issues, LintIssue{Index: i + 1, Item: item, Reason: fmt.Sprintf("broken path: %s", p)})
+			if _, statErr := os.Stat(full); os.IsNotExist(statErr) {
+				issues = append(issues, LintIssue{
+					Code:     "observation.path",
+					Subject:  full,
+					Severity: SeverityError,
+					Index:    i + 1,
+					Item:     item,
+					Reason:   fmt.Sprintf("broken path: %s", path),
+				})
 			}
 		}
 	}
@@ -259,24 +371,18 @@ func extractPaths(item string) []string {
 		// path half is what gets resolved — otherwise "app/models/foo.rb:7" is looked up verbatim
 		// and reported broken, and a bare "Show.tsx:393" reads as an unknown "<store>:<path>".
 		candidate = lineRefSuffixRe.ReplaceAllString(candidate, "")
-		if candidate == "" {
-			return
-		}
-		// Path-likeness: require a separator '/' or a store prefix ':'. A bare
-		// dotted word ("dotfiles-awareness.md", "e.g.", a date) is prose, not a
-		// project-relative ref — flagging it as a broken path is a false positive.
-		if !strings.Contains(candidate, "/") && !strings.Contains(candidate, ":") {
-			return
-		}
-		// A "::" is a language namespace (e.g. Ruby "Foo::Bar"), never a
-		// "<store>:<path>" ref — treating it as one flags an unknown store prefix.
+		// Path-likeness: a separator, an explicit path indicator, or a
+		// recognized Folio content root makes a candidate intentional.
 		if strings.Contains(candidate, "::") {
 			return
 		}
-		// A slashed candidate is only a path when it has real path shape — a file
-		// extension, a trailing slash, or a leading ./ ../ ~ / — otherwise a bare
-		// word run like "active/completed/failed/skipped" is prose, not a ref.
-		if strings.Contains(candidate, "/") && !hasPathShape(candidate) {
+		if strings.Contains(candidate, ":") {
+			separator := strings.IndexByte(candidate, ':')
+			if separator == 0 || separator == len(candidate)-1 ||
+				!pathLooksIntentional(candidate[separator+1:]) {
+				return
+			}
+		} else if !strings.Contains(candidate, "/") || !pathLooksIntentional(candidate) {
 			return
 		}
 		if !seen[candidate] {
@@ -298,10 +404,8 @@ func extractPaths(item string) []string {
 	return paths
 }
 
-// hasPathShape reports whether a slashed candidate looks like a real path
-// reference rather than a prose word run. True when it carries a file extension
-// on its last segment, ends in a slash (a directory ref), or starts with an
-// explicit path indicator (./ ../ ~ /).
+// hasPathShape reports whether a candidate carries an explicit path marker or
+// a file extension on its final segment.
 func hasPathShape(s string) bool {
 	if strings.HasPrefix(s, "/") || strings.HasPrefix(s, "./") ||
 		strings.HasPrefix(s, "../") || strings.HasPrefix(s, "~") {
@@ -312,4 +416,16 @@ func hasPathShape(s string) bool {
 	}
 	last := s[strings.LastIndex(s, "/")+1:]
 	return strings.Contains(last, ".") && !strings.HasSuffix(last, ".")
+}
+
+func pathLooksIntentional(s string) bool {
+	if hasPathShape(s) {
+		return true
+	}
+	for _, root := range []string{"work/", "reference/", "output/", "compiled/"} {
+		if strings.HasPrefix(s, root) {
+			return true
+		}
+	}
+	return false
 }
