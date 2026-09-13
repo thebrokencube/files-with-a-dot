@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -19,14 +19,17 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 	pal := dendrik.NewPalette(true)
 	topic := strings.ReplaceAll(topicRaw, " ", "-")
 
-	// Handle vault: prefix — scaffold directly in vault directory (no folio.yml needed)
+	// Vault artifacts are store-only and do not require a project manifest.
 	if strings.HasPrefix(artifactType, "vault:") {
 		return runNewVault(artifactType, topic, dryRun)
 	}
 
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextMutation)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	if artifactType == "round" {
 		return runNewRound(topic, folioPath, dryRun)
@@ -106,12 +109,19 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 		return dendrik.ExitOK
 	}
 
-	// Validate folio.yml parses before modifying
-	if _, err := config.Load(folioPath); err != nil {
+	rawBefore, err := os.ReadFile(folioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("reading folio.yml: %s", err))
+		return dendrik.ExitUserError
+	}
+	beforeFolio, err := config.Parse(rawBefore)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
+	before := validate.Validate(beforeFolio, ctx, validate.Mutation)
 
+	createdDirs := missingParentDirs(filepath.Dir(absPath), folioDir)
 	// Create parent directories
 	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("creating directory: %s", err))
@@ -131,7 +141,24 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 	// Register in folio.yml
 	if !noRegister {
 		if err := appendNewSource(folioPath, relPath); err != nil {
+			rollbackNewRegistration(folioPath, rawBefore, absPath, createdDirs)
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+			return dendrik.ExitUserError
+		}
+		projected, loadErr := config.Load(folioPath)
+		if loadErr != nil {
+			rollbackNewRegistration(folioPath, rawBefore, absPath, createdDirs)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created: %s", loadErr))
+			return dendrik.ExitUserError
+		}
+		after := validate.Validate(projected, ctx, validate.Mutation)
+		delta := validate.Delta(before, after, nil)
+		if !delta.Valid {
+			rollbackNewRegistration(folioPath, rawBefore, absPath, createdDirs)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created:"))
+			for _, validationErr := range delta.Errors {
+				fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+			}
 			return dendrik.ExitUserError
 		}
 	}
@@ -144,6 +171,26 @@ func runNew(folioPath string, noRegister, dryRun bool, artifactType, topicRaw st
 		fmt.Printf("  Added source entry to folio.yml\n")
 	}
 	return dendrik.ExitOK
+}
+func rollbackNewRegistration(folioPath string, original []byte, artifactPath string, createdDirs []string) {
+	_ = os.WriteFile(folioPath, original, 0644)
+	_ = os.Remove(artifactPath)
+	for _, dir := range createdDirs {
+		if err := os.Remove(dir); err != nil {
+			break
+		}
+	}
+}
+
+func missingParentDirs(path, stop string) []string {
+	var dirs []string
+	for dir := path; dir != stop && dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+		if _, err := os.Stat(dir); err == nil {
+			break
+		}
+		dirs = append(dirs, dir)
+	}
+	return dirs
 }
 
 func runNewRound(topic, folioPath string, dryRun bool) int {
@@ -205,15 +252,20 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 		return dendrik.ExitUserError
 	}
 
-	folioHome, err := home.Dir()
+	workRoot, err := resolveFolioRootForInit()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("cannot determine folio home: %s", err))
+		fmt.Fprintln(os.Stderr, pal.Errf("cannot determine Folio work root: %s", err))
 		return dendrik.ExitUserError
 	}
+	ctx := config.Context{WorkRoot: workRoot}
 
 	today := time.Now().Format("2006-01-02")
 	filename := today + "-" + topic + ".md"
-	absPath := filepath.Join(folioHome, "vault", label, filename)
+	absPath, err := ctx.ResolvePath("vault:" + filepath.Join(label, filename))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("cannot resolve vault path: %s", err))
+		return dendrik.ExitUserError
+	}
 
 	if _, err := os.Stat(absPath); err == nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("file already exists: vault/%s/%s", label, filename))
@@ -231,7 +283,6 @@ func runNewVault(artifactType, topic string, dryRun bool) int {
 		return dendrik.ExitUserError
 	}
 
-	// Use the reference template for the label type
 	tmpl := taxonomy.Template(label, topic)
 	if err := os.WriteFile(absPath, []byte(tmpl), 0644); err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("writing file: %s", err))

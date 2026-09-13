@@ -10,13 +10,11 @@ Before searching, enumerate the registered stores:
 folio stores list --json   # → [{name, path, kind}, ...]
 ```
 
-`~/.folio` is the home of all folios + KBs; `stores.yml` registers others (a work folio, external ADR/RADR repos). When no `stores.yml` exists, this returns just the implicit `vault` store and `find` behaves exactly as it always has (back-compat).
-
-Search each store according to its `kind`, and **label every hit with its store name**:
+`FOLIO_UMBRELLA` is the control root that owns `stores.yml`; `FOLIO_HOME` is the selected content work root for the current invocation. When no registry exists, Folio preserves the legacy isolated-home behavior. Search each registered store according to its `kind`, and **label every hit with its store name**:
 - **`kind: folio`** — structure-aware: vault-first, then `active/` projects' `reference/` and `work/` trees (the tiers below), within that store's path.
 - **`kind: external`** — content grep over the store path (it's just markdown — ADRs, RADRs, wiki notes). No folio structure is assumed; read-only.
 
-Don't double-scan the home's own `vault/` as a peer — it's covered by the vault tier.
+Do not treat the umbrella as a content store or scan its registry file as knowledge. A `vault:` result belongs to the selected/owning Folio store. Use `folio stores list --json` for the registry inventory.
 
 ## Search Order (within each folio store)
 

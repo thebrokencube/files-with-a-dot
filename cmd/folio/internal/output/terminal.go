@@ -65,6 +65,9 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 		fmt.Fprintln(w, "Targets:")
 		for _, tid := range maputil.SortedKeys(ps.Targets) {
 			ts := ps.Targets[tid]
+			if ts.Final {
+				fmt.Fprintf(w, "  %-24s %sfinal%s (terminal target)\n", tid, p.Green, p.Reset)
+			}
 			for _, out := range ts.Outputs {
 				s := out.Status
 				c := statusColor(s, p)
@@ -75,28 +78,28 @@ func PrintStatusTerminal(w io.Writer, ps *status.ProjectStatus, causedBy map[str
 					detail = out.Path
 				}
 
-				// Annotate transitive staleness
 				annotation := ""
 				if cause, ok := causedBy[tid]; ok {
 					annotation = fmt.Sprintf(" << %s", cause)
 				}
 
 				fmt.Fprintf(w, "  %-24s %s%s%s (%s)%s\n", tid, c, s, p.Reset, detail, annotation)
+				if out.Cause != "" {
+					fmt.Fprintf(w, "    %scause:%s %s\n", p.Dim, p.Reset, out.Cause)
+				}
 			}
 
-			// Show sources
 			if len(ts.Sources) > 0 {
 				srcList := ""
-				for i, s := range ts.Sources {
+				for i, source := range ts.Sources {
 					if i > 0 {
 						srcList += ", "
 					}
-					srcList += s
+					srcList += source
 				}
 				fmt.Fprintf(w, "  %s                        sources: %s%s\n", p.Dim, srcList, p.Reset)
 			}
 
-			// Show batch items
 			if len(ts.BatchItems) > 0 {
 				for i, item := range ts.BatchItems {
 					connector := "├── "

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/output"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/status"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
@@ -15,9 +14,12 @@ import (
 )
 
 func runValidate(folioPath string, jsonMode, noColor bool) int {
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
@@ -41,8 +43,7 @@ func runValidate(folioPath string, jsonMode, noColor bool) int {
 		return dendrik.ExitExternalErr
 	}
 
-	folioDir := filepath.Dir(folioPath)
-	result := validate.Validate(f, folioDir)
+	result := validate.Validate(f, ctx, validate.ReadOnly)
 
 	if jsonMode {
 		output.PrintValidateJSON(os.Stdout, result)
@@ -57,9 +58,12 @@ func runValidate(folioPath string, jsonMode, noColor bool) int {
 }
 
 func runStatus(folioPath string, jsonMode, noColor bool) int {
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	color := dendrik.ColorEnabled(noColor)
 	pal := dendrik.NewPalette(color)
@@ -83,8 +87,7 @@ func runStatus(folioPath string, jsonMode, noColor bool) int {
 		return dendrik.ExitUserError
 	}
 
-	folioDir := filepath.Dir(folioPath)
-	ps, causedBy := status.DeriveWithDAG(f, folioDir)
+	ps, causedBy, _ := status.DeriveWithDAGWithContext(f, ctx)
 
 	if jsonMode {
 		output.PrintStatusJSON(os.Stdout, ps)
@@ -103,18 +106,21 @@ func runInit(name, pathFlag string) int {
 		return dendrik.ExitUserError
 	}
 
-	// Determine target path: prefer FOLIO_HOME/active/<slug>/ if initialized,
-	// otherwise fall back to current working directory.
+	// Prefer the selected Folio work root when it has an active/ directory;
+	// otherwise preserve the legacy current-directory fallback.
 	targetPath := "folio.yml"
-	if homeDir, err := home.Dir(); err == nil {
-		activeDir := filepath.Join(homeDir, "active")
-		if fi, err := os.Stat(activeDir); err == nil && fi.IsDir() {
-			slug := pathFlag
-			if slug == "" {
-				slug = strings.ToLower(strings.ReplaceAll(name, " ", "-"))
-			}
-			targetPath = filepath.Join(activeDir, slug, "folio.yml")
+	workRoot, err := resolveFolioRootForInit()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	activeDir := filepath.Join(workRoot, "active")
+	if fi, statErr := os.Stat(activeDir); statErr == nil && fi.IsDir() {
+		slug := pathFlag
+		if slug == "" {
+			slug = strings.ToLower(strings.ReplaceAll(name, " ", "-"))
 		}
+		targetPath = filepath.Join(activeDir, slug, "folio.yml")
 	}
 
 	if _, err := os.Stat(targetPath); err == nil {

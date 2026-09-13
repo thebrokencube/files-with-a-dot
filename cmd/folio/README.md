@@ -10,11 +10,15 @@ Symlinked via dotfiles: `cmd/folio/folio` → `~/.local/bin/folio` (see `symlink
 ## Quick Start
 
 ```bash
-folio init --name "My Project"   # create folio.yml in current directory
+folio init --name "My Project"   # create folio.yml in the selected content root
 folio status                     # show project status
 folio observe 'idea(scope): description'  # add an observation
-folio home push                  # push to ~/.folio home
+folio home push                  # push the selected Folio content store
 ```
+
+`FOLIO_UMBRELLA` selects the control root containing `stores.yml`; `FOLIO_HOME`
+selects a content work root for one command or session. Without `stores.yml`,
+`FOLIO_HOME` retains the legacy isolated-home behavior.
 Use the `folio` Agent Skill for non-trivial planning and composition in an admitted host. The
 portable workflow is the same; invocation syntax is host-native.
 
@@ -46,8 +50,8 @@ cycles.
 
 | Command | What it does |
 |---------|-------------|
-| `folio status` | Show project status (sources, targets, staleness) |
-| `folio stale` | Find stale projects needing attention |
+| `folio status` | Show project status (sources, targets, digest freshness, and unknown evidence gaps) |
+| `folio stale` | Find stale or missing local outputs; report unknown without failing |
 | `folio validate` | Validate folio.yml structure |
 | `folio init` | Initialize a new folio project |
 | `folio new <type> <topic>` | Scaffold a typed artifact |
@@ -56,6 +60,7 @@ cycles.
 | `folio home list` | List home-synced projects |
 | `folio home push` | Push project to home |
 | `folio gather <url>` | Scaffold source entry from URL |
+| `folio touch <target>` | Record input digests without rewriting outputs; `--final` marks a reviewed terminal target |
 | `folio dag` | Show project DAG |
 
 ## Code Structure
@@ -74,26 +79,35 @@ cmd/folio/
 plugins/folio/skills/folio/  # Canonical Agent Skill and references
 ```
 
-Project data lives in `~/.folio/`:
+Project data lives in the selected Folio content work root (`FOLIO_HOME` when
+explicit, otherwise the resolver's selected store):
 
 ```
-~/.folio/
+<work-root>/
 ├── active/<project>/
 │   ├── folio.yml           # Project manifest (sources, targets, DAG)
 │   ├── reference/          # Research, analysis, retrospectives
 │   ├── work/               # Implementation plans and tracks
 │   └── output/             # Composed outputs ready to share
 ├── archive/                # Completed/shelved projects
-└── vault/                  # Cross-cutting knowledge (no folio.yml)
+└── vault/                  # Cross-cutting knowledge for this store
     ├── research/           # Tool surveys, ecosystem landscapes
     ├── domain/             # Business/technical domain knowledge
     ├── guide/              # Reusable procedures
     └── insight/            # Patterns extracted from experience
 ```
 
-Projects source from the vault via `vault:` prefix paths (e.g., `vault:research/comparable-dvc.md`). Lifecycle types (spike, design, plan, retro) stay project-scoped; references promote to vault when proven cross-cutting.
+When a registry is present, its private `stores.yml` lives at
+`<umbrella>/stores.yml`; `FOLIO_UMBRELLA` names `<umbrella>`, not `<work-root>`.
+Projects source from the owning store's vault via `vault:` paths. Lifecycle
+types (spike, design, plan, retro) stay project-scoped; references promote to
+vault when proven cross-cutting.
 
-Status is derived from file modification times — no separate tracking needed.
+Status uses recorded input digests when available. An existing local output without a
+complete snapshot is reported as `unknown`, not inferred clean from filesystem metadata.
+Run `folio touch <target>` after reviewing a composition to record the snapshot. Use
+`--final` only for a non-batch, non-forest target with a direct external output and an
+existing local review copy; final targets still report local stale or missing outputs.
 
 ## Releasing
 

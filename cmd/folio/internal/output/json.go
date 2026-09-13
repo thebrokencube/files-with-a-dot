@@ -19,7 +19,7 @@ func PrintValidateJSON(w io.Writer, r *validate.Result) {
 	dendrik.WriteResult(w, r)
 }
 
-// PrintStatusJSON renders project status as JSON.
+// PrintStatusJSON renders project status, including target-level terminal flags.
 func PrintStatusJSON(w io.Writer, ps *status.ProjectStatus) {
 	// Per-target slices may still be nil (depends on target definition)
 	for tid, ts := range ps.Targets {

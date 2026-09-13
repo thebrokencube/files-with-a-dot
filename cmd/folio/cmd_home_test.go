@@ -1,11 +1,10 @@
 package main
 
 import (
+	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 // No stores.yml ⇒ implicit registry ⇒ resolveHomeOrFail returns FOLIO_HOME
@@ -19,8 +18,8 @@ func TestResolveHomeLegacyNoRegistry(t *testing.T) {
 	if code != dendrik.ExitOK {
 		t.Fatalf("code = %d, want OK", code)
 	}
-	if dir != home {
-		t.Errorf("dir = %q, want umbrella %q (legacy)", dir, home)
+	if dir != canonicalMainTest(t, home) {
+		t.Errorf("dir = %q, want home %q (legacy)", dir, home)
 	}
 }
 
@@ -39,7 +38,7 @@ func TestResolveHomeDefaultStore(t *testing.T) {
 	if code != dendrik.ExitOK {
 		t.Fatalf("code = %d, want OK", code)
 	}
-	if dir != work {
+	if dir != canonicalMainTest(t, work) {
 		t.Errorf("dir = %q, want default store %q", dir, work)
 	}
 }
@@ -66,7 +65,7 @@ func TestResolveHomeCwdOverridesDefault(t *testing.T) {
 	if code != dendrik.ExitOK {
 		t.Fatalf("code = %d, want OK", code)
 	}
-	if dir != vault {
+	if dir != canonicalMainTest(t, vault) {
 		t.Errorf("dir = %q, want cwd store %q", dir, vault)
 	}
 }
@@ -99,7 +98,7 @@ func TestResolveSyncTargetExplicitStore(t *testing.T) {
 	if code != dendrik.ExitOK {
 		t.Fatalf("code = %d, want OK", code)
 	}
-	if dir != adr || store.Name != "adr" || !store.IsExternal() {
+	if dir != canonicalMainTest(t, adr) || store.Name != "adr" || !store.IsExternal() {
 		t.Errorf("got (dir=%q store=%q external=%v), want adr/external", dir, store.Name, store.IsExternal())
 	}
 }
@@ -139,6 +138,74 @@ func TestHomePushRequiresMessage(t *testing.T) {
 
 	if code := runHomePush([]string{"work"}); code == dendrik.ExitOK {
 		t.Fatal("push without -m must fail, got OK")
+	}
+}
+func TestHomeArchiveRoundTrip(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("FOLIO_HOME", home)
+	t.Setenv("FOLIO_UMBRELLA", "")
+	t.Chdir(home)
+
+	projectDir := filepath.Join(home, "active", "team", "project")
+	writeHomeManifest(t, projectDir, `schema: 1
+project: project
+sources:
+  - path: README.md
+`)
+	if err := os.WriteFile(filepath.Join(projectDir, "README.md"), []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if code := buildRoot().Execute([]string{"home", "archive", "team/project"}); code != dendrik.ExitOK {
+		t.Fatalf("archive code = %d, want OK", code)
+	}
+	entries, err := os.ReadDir(filepath.Join(home, "archive", "team"))
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("archived entries = %d, err = %v", len(entries), err)
+	}
+	archived := entries[0].Name()
+	if code := buildRoot().Execute([]string{"home", "activate", "team/" + archived}); code != dendrik.ExitOK {
+		t.Fatalf("activate code = %d, want OK", code)
+	}
+
+	restored := filepath.Join(home, "active", "team", "project")
+	if _, err := os.Stat(filepath.Join(restored, "README.md")); err != nil {
+		t.Fatalf("restored content missing: %v", err)
+	}
+}
+
+func TestHomeArchiveRefusesDependentProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("FOLIO_HOME", home)
+	t.Setenv("FOLIO_UMBRELLA", "")
+	t.Chdir(home)
+
+	targetDir := filepath.Join(home, "active", "team", "target")
+	writeHomeManifest(t, targetDir, `schema: 1
+project: target
+`)
+	dependentDir := filepath.Join(home, "active", "team", "dependent")
+	writeHomeManifest(t, dependentDir, `schema: 1
+project: dependent
+sources:
+  - path: ../target/README.md
+`)
+
+	if code := buildRoot().Execute([]string{"home", "archive", "team/target"}); code == dendrik.ExitOK {
+		t.Fatal("archive succeeded despite a dependent project reference")
+	}
+	if _, err := os.Stat(targetDir); err != nil {
+		t.Fatalf("target moved despite refusal: %v", err)
+	}
+}
+
+func writeHomeManifest(t *testing.T, projectDir, content string) {
+	t.Helper()
+	if err := os.MkdirAll(projectDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "folio.yml"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
 	}
 }
 

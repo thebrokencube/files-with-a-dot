@@ -8,7 +8,7 @@ description: "Use when planning non-trivial tasks, composing outputs, or managin
 
 # Folio
 
-Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; status is derived from file mtimes.
+Lifecycle toolkit for knowledge work. Local source files compose into external targets (Jira descriptions, Google Docs, specs). `folio.yml` declares structure; freshness is derived from recorded input digests when available, with `unknown` reported honestly when no complete snapshot exists.
 
 ## Setup
 
@@ -16,6 +16,10 @@ Lifecycle toolkit for knowledge work. Local source files compose into external t
 plugin update). It is idempotent — safe to re-run, and a no-op when the pinned version is already installed.
 
 **Two layers**: The CLI (`folio` binary) handles deterministic operations (validate, status, init, home). Agent workflows handle creative operations (plan, compose, observe). Each workflow's full instructions live in a reference file — read only what you need.
+Freshness snapshots are recorded by `folio touch <target>` after a composition and review. The
+command stores input digests without rewriting outputs. Add `--final` only when the target has a
+direct external output and an existing local review copy; final targets are terminal for Folio
+propagation, but their local stale or missing state remains visible.
 
 **Phase markers**: Mark each phase transition with a **single line** — no rationale or restatement of the goal. Example: `Phase 2: propose (pragmatic + thorough)`.
 
@@ -29,7 +33,7 @@ Before handling any folio request, check for a folio.yml in the current director
 | folio.yml with local outputs only | Local composition targets. |
 | folio.yml with `external:` outputs | External system integration via co-located `tooling.yml`. |
 
-**Multi-store (container)**: `~/.folio` is a plain **umbrella directory** that physically contains each store as an independent git repo nested as a sibling (dir-named by its remote). A `~/.folio/stores.yml` (dotfile-managed) registers every store plus the `default:` — the store acted on from the umbrella when no `--folio` is given and cwd is outside any store (cwd-in-store always overrides). `find` fans out across all stores (`folio stores list --json`); `--folio <store>:<project>` writes into any folio store; `folio home push/pull [<store>]` sync per-store (external stores pull-only, never pushed). Absent `stores.yml`, everything behaves as a single home (transitional back-compat). See references/schema.md → **stores.yml** and references/container-migration.md to migrate.
+**Multi-store (container)**: `FOLIO_UMBRELLA` names the plain control-plane directory that owns `stores.yml`; `FOLIO_HOME` names the content work root for this invocation. The registry lists independent stores plus `default:`. A bare project lookup prefers an explicit Folio work root, then a cwd-owned Folio store, then the configured default; `folio stores list --json` fans out across registered stores, `--folio <store>:<project>` selects a Folio store, and `folio home push/pull [<store>]` syncs one store at a time. A compatibility alias accepts an umbrella-valued `FOLIO_HOME` with a warning. Absent `stores.yml`, the legacy isolated-home behavior remains.
 
 ## Lifecycle Model
 
@@ -46,7 +50,7 @@ observation -> spike -> sketch -> design -> plan[tracks] -> implementation -> re
 **References** (labels: research, insight, guide, domain, review) feed in at any stage.
 **Outputs** are composed artifacts for external systems.
 
-**Two-tier residency**: Lifecycle types always stay project-scoped. References that prove cross-cutting promote to the active store's `vault/<label>/` — a shared knowledge layer outside any project, **folio-local to that store** (never a global/registered store). Source paths use the `vault:` prefix (e.g., `vault:research/2026-03-01-comparable-dvc.md`) which resolves relative to the active store's `vault/` (in single-home mode, `~/.folio/vault/`). The vault has no folio.yml — its directory structure is its index.
+**Two-tier residency**: Lifecycle types always stay project-scoped. References that prove cross-cutting promote to the selected Folio store's `vault/<label>/` — a shared knowledge layer outside any project, folio-local to that store (never a global/registered store). Source paths use the `vault:` prefix (e.g., `vault:research/2026-03-01-comparable-dvc.md`), resolved from the owning project store or the selected content work root for store-only operations. The vault has no folio.yml — its directory structure is its index.
 
 `folio status` shows a lifecycle summary header with counts per stage.
 
@@ -66,23 +70,24 @@ observation -> spike -> sketch -> design -> plan[tracks] -> implementation -> re
 When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just freeform discussion):
 
 1. Run `folio home list` to get the project dashboard
-2. Derive recency and lifecycle stage per project using the Session Entry Display format in `references/lifecycle.md`. Present a recency-ranked list (most recently touched work track first), grouped into "Recently active" and "Also active but stale."
+2. Read `references/lifecycle.md` and present active projects in deterministic manifest declaration order. Derive lifecycle stage from authored artifact presence; do not infer recency from directory metadata.
 3. Ask: **"Which project? (number or name — or a command like `plan`, `compose`, `wrap-up`)"**
-4. When the user picks a project, use the **Path** column from `folio home list` output to resolve the folio.yml location:
-   - Active projects live at `~/.folio/active/<path>/folio.yml`
-   - Archived projects live at `~/.folio/archive/<path>/folio.yml`
-   - Run `folio status --folio ~/.folio/active/<path>/folio.yml`
+4. When the user picks a project, use the **Path** column from `folio home list` with the selected content root; do not construct paths from `~/.folio`:
+   - Pass the returned path to `--folio` when it is already a file path.
+   - For a session workspace, keep using its literal path via `FOLIO_HOME=<workspace>`.
+   - Run `folio status --folio <selected-root>/active/<path>/folio.yml` only when the selected root is known.
    - **Resume summary (always print after status).** Folio state IS the handoff — no
      handoff files exist. The next-session pickup happens by surfacing the most current
      state inline. After `folio status`, do the following and display each as a labeled
      block:
-     a. **Active work tracks**: Enumerate `work/active/*/` directories. For each:
-        - Sort by mtime, descending.
-        - Note which has a design doc at `<track>/reference/design/*.md`, which has a
-          spike, which has only observations.
-        - Print as a list under "Active work tracks" with mtime relative ages.
-     b. **Most recent design doc** (if any track has one): Take the most-recently-modified
-        design doc across all tracks. Read these sections verbatim and print under
+     a. **Active work tracks**: Enumerate `work/active/*/` directories in the order
+        established by the project's manifest source declarations; append unreferenced
+        tracks in lexical path order. For each:
+        - Derive the lifecycle stage from authored artifact presence.
+        - Print the evidence (spike, sketch, design, plan, implementation, or retro)
+          instead of a directory-metadata age label.
+     b. **Design state** (if any track has one): Read the first design doc in that
+        deterministic track order and print these sections verbatim under
         "Design state — `<relative-path>`":
         - `## Pinned Constraints`
         - `## Open Questions`
@@ -92,17 +97,16 @@ When `/folio` is called with no subcommand (ARGUMENTS is empty, missing, or just
         to reading `## Direction → ### Scope Boundary` + `## Convergence Status` and
         flag the doc as "uses older template — consider migrating."
      c. **Latest round** (if any): Highest-numbered `<track>/agent-research/NNNN-round/`
-        directory. List filenames inside it (e.g. `converged.md`, `review-*.md`, lens
-        files). If multiple tracks have rounds, show the one tied to the design doc from
-        (b), and note "other tracks also have rounds: X, Y."
-     d. **Most recent spike** (if no design doc): If (b) yielded nothing, list active
-        spikes from `work/active/*/spike/*.md` so pre-design work surfaces.
+        directory for the surfaced track. List filenames inside it (e.g.
+        `converged.md`, `review-*.md`, lens files).
+     d. **First spike** (if no design doc): If (b) yielded nothing, list the first
+        active spike from the same deterministic track order.
      e. **Open observations**: Run `folio observe list` (or read folio.yml).
      f. **Multi-track note**: If more than one work track is active, explicitly remind
-        the user: "Multiple work tracks active. Surfaced state above is from the most
-        recent one. Switch with: `/folio <project> <track-slug>` (not yet supported as
-        a flag — for now ask the user which to focus on)."
-   - Prepend a lifecycle suggestion line before all of this:
+        the user: "Multiple work tracks active. Surfaced state follows manifest
+        declaration order. Switch with: `/folio <project> <track-slug>` (not yet
+        supported as a flag — for now ask the user which to focus on)."
+     -> Read references/lifecycle.md for derivation rules, digest freshness, deterministic session entry display, artifact routing, schema migration hints, and fallback behavior.
      `Next: [lifecycle-derived action] — [brief rationale]`
    - If the user provides work items alongside the pick, route them through the artifact routing guidance in each derivation rule
 
@@ -194,7 +198,7 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 |---|---|
 | `folio new <type> <topic>` | Scaffold typed artifact (`--dry-run` to preview). Vault types: `vault:research`, `vault:domain`, `vault:guide`, `vault:insight` |
 | `folio gather <url>` | Add source entry from URL (`--materialize --type <type>` or `--name` as needed) |
-| `folio touch <target>` | Mark a target as current |
+| `folio touch <target>` | Record input-digest freshness without rewriting outputs; `--final` marks a reviewed terminal target |
 | `folio observe 'type(scope): description'` | Add observation (auto-syncs: pull + push). Types: `idea`, `gap`, `bug`, `debt`, `task`. Use `--no-sync` to skip |
 | `folio observe list` | List all observations (add `--json` for structured output) |
 | `folio observe resolve "#N" "#N2" ...` | Resolve by index (auto-syncs). **Batch multiple in one call** to avoid index shift. Use `--no-sync` to skip |
@@ -208,7 +212,7 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 |---|---|
 | `folio init --name "Name"` | Bootstrap new folio.yml (`--path` overrides the auto-derived slug) |
 | `folio setup` | Check folio dependencies (`--check` for non-interactive) |
-| `folio home <cmd>` | FOLIO_HOME operations (list, push, pull, archive, activate, health, workspace) |
+| `folio home <cmd>` | Folio content-root operations (list, push, pull, archive, activate, health, workspace) |
 | `folio home workspace list` | List jj workspaces (one per active Claude session) |
 | `folio home workspace create` | Manually create a jj workspace |
 | `folio home workspace cleanup [path]` | Remove a workspace — errors if unpushed changes exist |
@@ -218,7 +222,7 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | Command | Purpose |
 |---|---|
 | `folio fleet status [--dirty] [--json]` | Read-only branch + dirty state across every registered store, grouped by kind |
-| `folio fleet workarea open <store> <branch>` | Create an isolated checkout at `~/.folio/.worktrees/<store>/<slug>` (`-b` to fork off a base other than the store's default branch) |
+| `folio fleet workarea open <store> <branch>` | Create an isolated checkout at `<umbrella>/.worktrees/<store>/<slug>` (`-b` to fork off a base other than the store's default branch) |
 | `folio fleet workarea list` | Every work area — folio-placed, plus hand-made ones read from `jj workspace list` / `git worktree list` |
 | `folio fleet workarea reap [--force]` | Remove folio-placed areas (tier-correct; keeps dirty/unpushed) |
 
@@ -240,64 +244,43 @@ For a repository or workspace you do not own, use `jj -R <repo-path>` with `--ig
 
 ## Terminology Note
 
-**"workspace"** in folio CLI always means a **jj workspace** of a KB store — a session-isolated checkout under `/tmp/folio-ws-<id>`. It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
+**"workspace"** in folio CLI always means a **jj workspace** of a Folio store — a session-isolated checkout under `/tmp/folio-ws-<id>`. It is NOT a synonym for a folio project. To list folio projects, use `folio home list`. To list jj workspaces, use `folio home workspace list`.
 
-**"work area"** is the code-side counterpart: an isolated checkout of a `code` store, at `~/.folio/.worktrees/<store>/<slug>`. Created with `folio fleet workarea open`, not `folio home workspace create`.
+**"work area"** is the code-side counterpart: an isolated checkout of a `code` store, at `<umbrella>/.worktrees/<store>/<slug>`. Created with `folio fleet workarea open`, not `folio home workspace create`.
 
 ## Session Lifecycle
 
-Before any folio operation, ensure a jj workspace exists for this session:
+Before any folio operation, establish the content root for this session:
 
-1. If neither `~/.folio/.jj` (legacy single-home) nor `~/.folio/stores.yml`
-   (multi-store umbrella) exists: skip (git-based home, no workspace needed). In
-   container mode the jj repo lives in the **default store**, not the umbrella —
-   `folio home workspace create` resolves it via the registry, so you never need
-   to locate the store's `.jj` yourself.
-2. If you already have a workspace path from this session: skip (already initialized)
-3. Run `folio home workspace create` and capture the printed path (last line of output)
-4. **Store the path as a literal string** — do NOT rely on env vars. Each Bash call starts
-   a fresh shell, so `export FOLIO_HOME=...` does not persist between calls.
-5. If create fails: surface the error, do not proceed
+1. In legacy isolated-home mode, the configured `FOLIO_HOME` is the content root. In container mode, `FOLIO_UMBRELLA` identifies the registry and `FOLIO_HOME` may identify an existing session workspace.
+2. If you do not already have a workspace path, run `folio home workspace create` and capture the printed path. From an umbrella, this selects the configured default Folio store; a code or dotfiles cwd never becomes a Folio workspace.
+3. **Store the path as a literal string** — do not rely on an exported variable across separate tool calls.
+4. If create fails: surface the error, do not proceed.
 
-After init, use the captured workspace path in two ways:
+After creation, use the captured workspace path in two ways:
 
-- **Bash calls**: prefix every `folio` command with `FOLIO_HOME=<path>`, e.g.
-  `FOLIO_HOME=/tmp/folio-ws-123 folio status`. This sets the var for that single command.
-- **Edit/Read/Write tools**: use the literal path, e.g.
-  `/tmp/folio-ws-123/active/my-project/folio.yml`. Never use `$FOLIO_HOME` in tool
-  file_path parameters — those tools do not expand shell variables.
+- **Bash calls**: prefix each command with both roots when known, for example `FOLIO_UMBRELLA="$HOME/.folio" FOLIO_HOME=/tmp/folio-ws-123 folio status`.
+- **Edit/Read/Write tools**: use the literal path, for example `/tmp/folio-ws-123/active/my-project/folio.yml`. Never use `$FOLIO_HOME` in tool file paths — those tools do not expand shell variables.
 
 **Push and pull behavior:**
-- `folio home push` rebases @ onto `main` before setting the bookmark. Concurrent sessions
-  cannot cause bookmark divergence. On content conflict: errors with instructions to resolve.
+- `folio home push` rebases @ onto `main` before setting the bookmark. Concurrent sessions cannot cause bookmark divergence. On content conflict: errors with instructions to resolve.
 - `folio home pull` fetches + rebases if a remote exists; rebases onto local `main` if not.
 
-**Path convention:** Always use the captured workspace path (or the `--folio` flag) to
-reference folio files — never hardcode `~/.folio/`. With jj workspace isolation, `~/.folio`
-is the default workspace and may be at a different jj change than the session workspace.
+**Path convention:** Always use the captured workspace path or an explicit `--folio` path. Never hardcode `~/.folio/`; the umbrella is a control root, not a project root.
 
 **Mandatory cleanup at session end:**
 Before ending a session that used folio, run:
 ```
-FOLIO_HOME=<path> folio home workspace cleanup <path>
+FOLIO_UMBRELLA="$HOME/.folio" FOLIO_HOME=<path> folio home workspace cleanup <path>
 ```
-This errors if unpushed changes exist (run `folio home push` first), then removes the workspace.
-Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
+This errors if unpushed changes exist (run `folio home push` first), then removes the workspace. Do not skip this step — leaked workspaces are reaped after 2 days, but clean exit is preferred.
 Sessions that never invoked `/folio` have nothing to clean up.
 
-**Only clean up your own workspace.** `folio home workspace list` shows all workspaces but
-does not indicate which ones belong to active sessions. Cleaning up another session's workspace
-will break that session. Never run cleanup on a workspace you didn't create in this session.
-If the user asks about stale workspaces, list them but let the user decide which to remove.
+**Only clean up your own workspace.** `folio home workspace list` shows all workspaces but does not indicate which ones belong to active sessions. Cleaning up another session's workspace will break that session. Never run cleanup on a workspace you did not create in this session.
 
-**Workspace commands:**
-- `folio home workspace create` — create a workspace (called by skill on first `/folio` invocation)
-- `folio home workspace list` — list all workspaces (does NOT indicate ownership — treat unknown workspaces as potentially active)
-- `folio home workspace cleanup [path]` — remove a workspace (requires empty @, only use on YOUR workspace)
+### Git Operations for a Folio work root
 
-### Git Operations for ~/.folio
-
-All git operations on `~/.folio` MUST use `folio home` subcommands (`push`, `pull`, etc.) — never raw `git add`, `git commit`, or `git push`. The CLI enforces conventional commit validation and handles remote sync.
+All git or jj operations on a Folio content work root MUST use `folio home` subcommands (`push`, `pull`, etc.) — never raw `git add`, `git commit`, or `git push`. The CLI enforces conventional commit validation and handles remote sync.
 
 **Jira operations**: Use the `/jf` skill for all Jira work — push, sync, view, search, create.
 
@@ -394,11 +377,10 @@ is how provenance chains break.
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
   - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, visual vocabulary, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
-  - **references/plan-brief.md** — Plan Phases 5-6 (Brief agent): decompose tracks, write execution brief, and derive the transient dispatch projection
+- **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, digest freshness, deterministic session entry display, artifact routing, schema migration hints
   - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
 - **references/schema.md** — folio.yml schema: YAML structure reference (shared across workflows)
 - **references/progressive-disclosure.md** — Cross-cutting principle: action first, context second, history last. Applied to briefs, handoffs, compose outputs
-- **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, stale detection, session entry display, artifact routing, schema migration hints
 - **references/wrap-up.md** — Wrap-up workflow: session-end retro, archive, successor tracks, handoff doc
 - **references/testing.md** — Integration testing: FOLIO_HOME-isolated test loops, setup/teardown patterns
 - **references/burndown.md** — Burndown execution: wave-based batch work with ratchet, checkpoints, and flywheel learning

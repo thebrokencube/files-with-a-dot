@@ -4,14 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/observe"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -52,9 +51,12 @@ func runObserveAppend(args []string) int {
 		return code
 	}
 
-	if !resolveOrDie(folioPath) {
+	ctx, err := resolveContext(*folioPath, contextMutation)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	*folioPath = ctx.FolioPath
 
 	item := strings.TrimSpace(strings.Join(fs.GetArgs(), " "))
 	if item == "" {
@@ -66,22 +68,38 @@ func runObserveAppend(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	if _, err := config.Load(*folioPath); err != nil {
-		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
-		return dendrik.ExitUserError
+	syncRoot := ctx.WorkRoot
+	syncEnabled := !*noSync && syncRoot != ""
+	if !*noSync && syncRoot == "" {
+		fmt.Fprintf(os.Stderr, "%ssync disabled: no selected work root%s\n", pal.Dim, pal.Reset)
 	}
 
-	homeDir, homeErr := home.Dir()
-	sync := !*noSync && homeDir != ""
-	if !*noSync && homeDir == "" && homeErr != nil {
-		fmt.Fprintf(os.Stderr, "%ssync disabled: %s%s\n", pal.Dim, homeErr, pal.Reset)
-	}
-
-	if sync {
-		if err := repo.Pull(homeDir); err != nil {
+	if syncEnabled {
+		if err := repo.Pull(syncRoot); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
 			return dendrik.ExitUserError
 		}
+	}
+
+	f, err := config.Load(*folioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	before := validate.Validate(f, ctx, validate.Mutation)
+	for _, candidate := range observe.DuplicateCandidates(item, f.Observations) {
+		fmt.Fprintf(os.Stderr, "%sduplicate observation candidate #%d: %s%s\n", pal.Dim, candidate.Index, candidate.Item, pal.Reset)
+	}
+	projected := *f
+	projected.Observations = append(append([]string{}, f.Observations...), item)
+	after := validate.Validate(&projected, ctx, validate.Mutation)
+	delta := validate.Delta(before, after, nil)
+	if !delta.Valid {
+		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — observation not added:"))
+		for _, validationErr := range delta.Errors {
+			fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+		}
+		return dendrik.ExitUserError
 	}
 
 	if err := observe.Append(*folioPath, item); err != nil {
@@ -91,10 +109,10 @@ func runObserveAppend(args []string) int {
 
 	fmt.Println(pal.Successf("Added: %s", item))
 
-	if sync {
+	if syncEnabled {
 		typ, scope, _, _ := observe.ParseObservation(item)
 		msg := fmt.Sprintf("auto(observe): add %s(%s)", typ, scope)
-		if err := repo.Push(homeDir, msg); err != nil {
+		if err := repo.Push(syncRoot, msg); err != nil {
 			if errors.Is(err, repo.ErrNothingToCommit) {
 				return dendrik.ExitOK
 			}
@@ -128,9 +146,12 @@ func runObserveList(args []string) int {
 	pal := dendrik.NewPalette(true)
 	_ = noColor // reserved for future use
 
-	if !resolveOrDie(folioPath) {
+	ctx, err := resolveContext(*folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	*folioPath = ctx.FolioPath
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
@@ -210,9 +231,12 @@ func runObserveResolve(args []string) int {
 		return code
 	}
 
-	if !resolveOrDie(folioPath) {
+	ctx, err := resolveContext(*folioPath, contextMutation)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	*folioPath = ctx.FolioPath
 
 	matches := fs.GetArgs()
 	if len(matches) == 0 {
@@ -220,20 +244,43 @@ func runObserveResolve(args []string) int {
 		return dendrik.ExitUserError
 	}
 
-	homeDir, homeErr := home.Dir()
-	sync := !*noSync && homeDir != ""
-	if !*noSync && homeDir == "" && homeErr != nil {
-		fmt.Fprintf(os.Stderr, "%ssync disabled: %s%s\n", pal.Dim, homeErr, pal.Reset)
+	syncRoot := ctx.WorkRoot
+	syncEnabled := !*noSync && syncRoot != ""
+	if !*noSync && syncRoot == "" {
+		fmt.Fprintf(os.Stderr, "%ssync disabled: no selected work root%s\n", pal.Dim, pal.Reset)
 	}
 
-	if sync {
-		if err := repo.Pull(homeDir); err != nil {
+	if syncEnabled {
+		if err := repo.Pull(syncRoot); err != nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("sync pull: %s", err))
 			return dendrik.ExitUserError
 		}
 	}
 
-	removed, err := observe.Remove(*folioPath, matches)
+	f, err := config.Load(*folioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	before := validate.Validate(f, ctx, validate.Mutation)
+	remaining, removedIndices, err := observe.Resolve(f.Observations, matches)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+		return dendrik.ExitUserError
+	}
+	projected := *f
+	projected.Observations = remaining
+	after := validate.Validate(&projected, ctx, validate.Mutation)
+	delta := validate.Delta(before, after, nil)
+	if !delta.Valid {
+		fmt.Fprintln(os.Stderr, pal.Errf("validation failed — observations not resolved:"))
+		for _, validationErr := range delta.Errors {
+			fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+		}
+		return dendrik.ExitUserError
+	}
+
+	removed, err := observe.RemoveIndices(*folioPath, f.Observations, removedIndices)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
@@ -243,9 +290,9 @@ func runObserveResolve(args []string) int {
 		fmt.Println(pal.Successf("Resolved: %s", item))
 	}
 
-	if sync {
+	if syncEnabled {
 		msg := fmt.Sprintf("auto(observe): resolve %d observations", len(removed))
-		if err := repo.Push(homeDir, msg); err != nil {
+		if err := repo.Push(syncRoot, msg); err != nil {
 			if errors.Is(err, repo.ErrNothingToCommit) {
 				return dendrik.ExitOK
 			}
@@ -274,26 +321,36 @@ func runObserveLint(args []string) int {
 		return code
 	}
 
-	if !resolveOrDie(folioPath) {
+	ctx, err := resolveContext(*folioPath, contextReadOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	*folioPath = ctx.FolioPath
 
 	f, err := config.Load(*folioPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
-
-	folioDir := filepath.Dir(*folioPath)
-	issues := observe.Lint(folioDir, f.Observations)
+	issues := observe.Lint(f.Observations, ctx)
 
 	if len(issues) == 0 {
 		fmt.Println(pal.Successf("All observations valid"))
 		return dendrik.ExitOK
 	}
 
+	hasErrors := false
 	for _, issue := range issues {
-		fmt.Fprintf(os.Stderr, "  #%d: %s\n", issue.Index, issue.Reason)
+		severity := "warning"
+		if issue.Severity == observe.SeverityError {
+			severity = "error"
+			hasErrors = true
+		}
+		fmt.Fprintf(os.Stderr, "  %s: #%d: %s\n", severity, issue.Index, issue.Reason)
 	}
-	return dendrik.ExitUserError
+	if hasErrors {
+		return dendrik.ExitUserError
+	}
+	return dendrik.ExitOK
 }

@@ -64,9 +64,12 @@ jf create-missing              # create all TBD nodes (pre-order traversal)
 
 ## Post-Push
 
-After a successful push, run `folio touch <target>` to update the target's local output mtime.
-This clears staleness so `folio status` reflects the push. For manual pushes (Google Docs,
-clipboard), remind the user to run `folio touch` after they've pasted.
+After a successful push, verify the published artifact and report the external
+system's result. When the verified composition has a local output, run
+`folio touch <target>` to record its input digest without changing the output.
+Use `folio touch <target> --final` only for a non-batch, non-forest target with a
+direct external output and an existing local review copy. Final is provider-neutral;
+it records operator confirmation, not a provider-specific status.
 
 **Batch orchestration**: For batch targets with multiple items, iterate through
 each item in order. One review gate per item. Report progress as

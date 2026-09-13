@@ -160,7 +160,7 @@ func TestResolveVaultRelativeToActiveStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(work, "vault", "research/x.md"); got != want {
+	if want := canonicalForTest(t, filepath.Join(work, "vault", "research/x.md")); got != want {
 		t.Errorf("vault resolve = %q, want %q", got, want)
 	}
 }

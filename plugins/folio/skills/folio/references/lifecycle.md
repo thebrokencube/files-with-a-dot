@@ -23,13 +23,17 @@ Check in order. Present the first matching suggestion per active work track.
 
 Phrase suggestions conversationally based on context, not robotically from the list above.
 
-## Stale Detection
+## Freshness and Work-Track Age
 
-Flag active work tracks whose directory mtime is older than 14 days as "stale — consider resuming or archiving."
+Folio does not infer work-track age from filesystem timestamps. Target freshness is
+content-based: a complete matching composition digest is `clean`; changed inputs are
+`stale`; missing outputs are `missing`; and an existing output without a complete
+snapshot is `unknown`. Unknown is an honest signal, not a failure.
 
-To obtain mtime, run `stat -f '%m' <path>` (macOS) on the work track directory itself — one Bash call per active work track, not per source file. Compare against current epoch. If no active work tracks exist, skip stale detection entirely.
-
-14 days is a starting threshold. The suggestion says "consider" — it's guidance, not enforcement.
+Use authored artifacts and the manifest's declaration order for lifecycle guidance.
+Terminal targets marked `final: true` are omitted from the stale queue only while their
+local outputs are clean. If a final target becomes stale or missing, report it; do not
+accept a final flag as proof that the output still matches its inputs.
 
 ## Schema Migration Hint
 
@@ -37,32 +41,40 @@ If the project's `schema` is less than 3 and `reference/spike/` or `reference/re
 
 ## Session Entry Display
 
-Used by the bare `/folio` invocation to present a recency-ranked project list instead of an alphabetical dump. This replaces the default project list — it is not a second list on top.
+Used by the bare `/folio` invocation to present a deterministic active-work list
+instead of an alphabetical dump. This replaces the default project list — it is
+not a second list on top.
 
 ### Implementation
 
-1. Run `folio home list` to get active project paths
-2. For each project, find active work track directories: `find $FOLIO_HOME/active/<project-path>/work/active -maxdepth 1 -mindepth 1 -type d 2>/dev/null`
-3. Get mtime for each work track dir: `stat -f '%m' <dir>` (macOS). Use `FOLIO_HOME` when a workspace is active, else `~/.folio/active/`.
-4. Sort all work tracks across all projects by mtime descending
-5. For each entry, derive the lifecycle stage by reading the project's folio.yml and applying the Derivation Rules above
+1. Run `folio home list` to get active project paths and the selected content work root.
+2. Read each project's manifest and collect active work tracks referenced by local
+   source declarations. Preserve the manifest declaration order; append unreferenced
+   active tracks in lexical path order.
+3. Derive each track's lifecycle stage from authored artifact presence: spike, sketch,
+   design, plan, implementation, or retro. Do not infer recency from directory metadata.
+4. Show each project and its observation count; when no active track is declared,
+   show the project without inventing recency.
 
 ### Display Format
 
 ```
-Recently active:
-  1. SRM — "Legacy Launch Prep" (design, 2h ago)
-  2. Folio — "Session Handoff" (sketch, 1d ago)
-Also active but stale:
-  3. dot — 3 observations (14d+)
-Pick up where I left off — or name a project/command.
+Active work:
+  1. SRM — "Legacy Launch Prep" (design; authored design doc)
+  2. Folio — "Session Handoff" (sketch; authored sketch)
+  3. dot — 3 observations (no active track)
+Pick up a project or command.
 ```
 
 - Cap displayed entries at 5; overflow as "N more — name them to see"
-- Projects with no active work tracks: show project name + observation count only
-- Group into "Recently active" (< 14 days) and "Also active but stale" (≥ 14 days)
-- Recency labels: "today", "1d ago", "3d ago", "1w ago", "2w ago", etc.
+- Preserve manifest declaration order, with lexical order only for unreferenced tracks
+- Show authored artifact evidence instead of age labels
+- Do not group entries into recent/stale buckets
 
 ## Fallback
 
-If no `type`/`status` fields are present (schema 2 projects without migration), fall back to the existing behavior: suggest actions based on observations, staleness, and compose/publish readiness.
+If no `type`/`status` fields are present (schema 2 projects without migration), derive
+the suggestion from authored observations and available lifecycle artifacts. If the
+manifest cannot establish a touched project or track, ask the user rather than infer it
+from filesystem timestamps.
+

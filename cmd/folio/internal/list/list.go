@@ -16,6 +16,7 @@ type Entry struct {
 	Project      string // project name from folio.yml
 	Targets      int    // number of targets
 	Observations int    // number of observations
+	Error        string `json:"error,omitempty"` // manifest load or parse failure
 }
 
 // Scan walks active/ and archive/ under home, finds all folio.yml files,
@@ -38,11 +39,15 @@ func Scan(home string) ([]Entry, error) {
 			}
 
 			f, err := config.Load(path)
-			if err != nil {
-				return nil // skip unparseable files
-			}
-
 			rel, _ := filepath.Rel(sectionDir, filepath.Dir(path))
+			if err != nil {
+				entries = append(entries, Entry{
+					Section: section,
+					Path:    rel,
+					Error:   err.Error(),
+				})
+				return nil
+			}
 
 			entries = append(entries, Entry{
 				Section:      section,

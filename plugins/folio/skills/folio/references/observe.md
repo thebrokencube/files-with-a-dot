@@ -16,6 +16,14 @@ Observe and resolve auto-sync by default (pull before mutate, push after) to pre
 jj rebase conflicts from concurrent sessions. Use `--no-sync` to skip this when batching
 multiple folio mutations into a single manual commit.
 
+## Mutation Safety
+
+`folio observe` pulls the selected manifest, validates the projected observation change, and
+writes only after the projected state passes. Duplicate normalized observations are reported
+before the write. A failed append or resolve leaves the manifest unchanged; successful default
+mutations sync through the selected Folio store.
+
+
 If no text provided with the command, ask the user for the observation.
 
 ## Type Disambiguation

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
 
 func TestArchive_Basic(t *testing.T) {
@@ -13,7 +15,7 @@ func TestArchive_Basic(t *testing.T) {
 		"active/ben/project-a/folio.yml",
 	)
 
-	err := Archive(dir, "ben/project-a")
+	_, err := Archive(dir, "ben/project-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +44,7 @@ func TestArchive_NotFound(t *testing.T) {
 	dir := t.TempDir()
 	setupDirs(t, dir)
 
-	err := Archive(dir, "nonexistent")
+	_, err := Archive(dir, "nonexistent")
 	if err == nil {
 		t.Error("expected error for missing path")
 	}
@@ -55,7 +57,7 @@ func TestArchive_AlreadyExists(t *testing.T) {
 	)
 
 	// First archive
-	Archive(dir, "project")
+	_, _ = Archive(dir, "project")
 
 	// Re-create source
 	setupDirs(t, dir,
@@ -63,7 +65,7 @@ func TestArchive_AlreadyExists(t *testing.T) {
 	)
 
 	// Second archive should fail (same date)
-	err := Archive(dir, "project")
+	_, err := Archive(dir, "project")
 	if err == nil {
 		t.Error("expected error for duplicate archive")
 	}
@@ -75,7 +77,7 @@ func TestActivate_Basic(t *testing.T) {
 		"archive/ben/2026-02-20-project-a/folio.yml",
 	)
 
-	err := Activate(dir, "ben/2026-02-20-project-a")
+	_, err := Activate(dir, "ben/2026-02-20-project-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +103,7 @@ func TestActivate_NotFound(t *testing.T) {
 	dir := t.TempDir()
 	setupDirs(t, dir)
 
-	err := Activate(dir, "nonexistent")
+	_, err := Activate(dir, "nonexistent")
 	if err == nil {
 		t.Error("expected error for missing path")
 	}
@@ -114,7 +116,7 @@ func TestActivate_NoDatePrefix(t *testing.T) {
 	)
 
 	// Should still work — just moves without stripping
-	err := Activate(dir, "no-date-project")
+	_, err := Activate(dir, "no-date-project")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +152,7 @@ func TestArchiveActivateRoundTrip(t *testing.T) {
 	)
 
 	// Archive
-	if err := Archive(dir, "ben/my-project"); err != nil {
+	if _, err := Archive(dir, "ben/my-project"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +164,7 @@ func TestArchiveActivateRoundTrip(t *testing.T) {
 	archivedName := entries[0].Name()
 
 	// Activate
-	if err := Activate(dir, "ben/"+archivedName); err != nil {
+	if _, err := Activate(dir, "ben/"+archivedName); err != nil {
 		t.Fatal(err)
 	}
 
@@ -182,7 +184,7 @@ func TestArchive_PrunesEmptyAncestors(t *testing.T) {
 		"active/ret/deep/project-a/folio.yml",
 	)
 
-	err := Archive(dir, "ret/deep/project-a")
+	_, err := Archive(dir, "ret/deep/project-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +209,7 @@ func TestArchive_PreservesSiblings(t *testing.T) {
 		"active/ret/project-b/folio.yml",
 	)
 
-	err := Archive(dir, "ret/project-a")
+	_, err := Archive(dir, "ret/project-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +226,7 @@ func TestActivate_PrunesEmptyAncestors(t *testing.T) {
 		"archive/ret/deep/2026-01-01-project-a/folio.yml",
 	)
 
-	err := Activate(dir, "ret/deep/2026-01-01-project-a")
+	_, err := Activate(dir, "ret/deep/2026-01-01-project-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,5 +252,144 @@ func setupDirs(t *testing.T, dir string, files ...string) {
 		p := filepath.Join(dir, f)
 		os.MkdirAll(filepath.Dir(p), 0755)
 		os.WriteFile(p, []byte("test"), 0644)
+	}
+}
+func TestPreflightRejectsStructuredDependentReferences(t *testing.T) {
+	t.Run("relative path", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidManifest(t, filepath.Join(root, "active", "moving"), `schema: 1
+project: moving
+`)
+		writeValidManifest(t, filepath.Join(root, "active", "dependent"), `schema: 1
+project: dependent
+sources:
+  - path: ../moving/README.md
+`)
+		writeFile(t, filepath.Join(root, "active", "moving", "README.md"), "moving")
+
+		ctx := config.Context{WorkRoot: root}
+		err := Preflight(ctx, filepath.Join(root, "active", "moving"))
+		if err == nil || !strings.Contains(err.Error(), "dependent") {
+			t.Fatalf("Preflight error = %v, want dependent reference refusal", err)
+		}
+	})
+
+	t.Run("registered store path", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidManifest(t, filepath.Join(root, "active", "moving"), `schema: 1
+project: moving
+`)
+		writeValidManifest(t, filepath.Join(root, "active", "dependent"), `schema: 1
+project: dependent
+sources:
+  - path: work:active/moving/README.md
+`)
+		writeFile(t, filepath.Join(root, "active", "moving", "README.md"), "moving")
+		registry := &config.Registry{
+			Stores: map[string]config.Store{
+				"work": {Name: "work", Path: root, Kind: config.KindFolio},
+			},
+			Order: []string{"work"},
+		}
+
+		ctx := config.Context{WorkRoot: root, Registry: registry}
+		err := Preflight(ctx, filepath.Join(root, "active", "moving"))
+		if err == nil || !strings.Contains(err.Error(), "dependent") {
+			t.Fatalf("Preflight error = %v, want dependent reference refusal", err)
+		}
+	})
+}
+
+func TestPreflightIgnoresObservationProse(t *testing.T) {
+	root := t.TempDir()
+	writeValidManifest(t, filepath.Join(root, "active", "moving"), `schema: 1
+project: moving
+`)
+	writeValidManifest(t, filepath.Join(root, "active", "dependent"), `schema: 1
+project: dependent
+observations:
+  - "See ../moving/README.md for context"
+`)
+
+	if err := Preflight(config.Context{WorkRoot: root}, filepath.Join(root, "active", "moving")); err != nil {
+		t.Fatalf("Preflight returned an error for prose-only reference: %v", err)
+	}
+}
+
+func TestArchiveRollbackRestoresExactPaths(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "active", "team", "deep", "project")
+	manifest := []byte("schema: 1\nproject: project\n")
+	writeValidManifest(t, project, string(manifest))
+	writeFile(t, filepath.Join(project, "README.md"), "content")
+
+	result, err := Archive(root, "team/deep/project")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Rollback(result); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(project, "folio.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(manifest) {
+		t.Fatalf("manifest after rollback = %q, want %q", got, manifest)
+	}
+	if _, err := os.Stat(filepath.Join(project, "README.md")); err != nil {
+		t.Fatalf("project content missing after rollback: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "archive", "team")); !os.IsNotExist(err) {
+		t.Fatalf("archive parents remain after rollback: %v", err)
+	}
+}
+
+func TestActivateRollbackRestoresExactPaths(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "archive", "team", "deep", "2026-01-01-project")
+	manifest := []byte("schema: 1\nproject: project\n")
+	writeValidManifest(t, project, string(manifest))
+	writeFile(t, filepath.Join(project, "README.md"), "content")
+
+	result, err := Activate(root, "team/deep/2026-01-01-project")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Rollback(result); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(project, "folio.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(manifest) {
+		t.Fatalf("manifest after rollback = %q, want %q", got, manifest)
+	}
+	if _, err := os.Stat(filepath.Join(project, "README.md")); err != nil {
+		t.Fatalf("project content missing after rollback: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "active", "team")); !os.IsNotExist(err) {
+		t.Fatalf("active parents remain after rollback: %v", err)
+	}
+}
+
+func writeValidManifest(t *testing.T, project, content string) {
+	t.Helper()
+	if err := os.MkdirAll(project, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(project, "folio.yml"), content)
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
 	}
 }

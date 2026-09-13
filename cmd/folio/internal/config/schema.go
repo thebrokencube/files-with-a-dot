@@ -42,6 +42,9 @@ type Target struct {
 	Outputs      []Output `yaml:"outputs"`
 	Batch        *Batch   `yaml:"batch"`
 	Forest       *Forest  `yaml:"forest"`
+	ComposedAt   string   `yaml:"composed_at"`
+	InputsSHA256 string   `yaml:"inputs_sha256"`
+	Final        bool     `yaml:"final"`
 }
 
 // Output represents a target's output destination.
@@ -71,10 +74,11 @@ type Forest struct {
 
 // BatchItem represents a single item in a batch target.
 type BatchItem struct {
-	ID     string `yaml:"id"`
-	Label  string `yaml:"label"` // optional human-readable name
-	Source string `yaml:"source"`
-	Output Output `yaml:"output"`
+	ID           string `yaml:"id"`
+	Label        string `yaml:"label"` // optional human-readable name
+	Source       string `yaml:"source"`
+	Output       Output `yaml:"output"`
+	InputsSHA256 string `yaml:"inputs_sha256"`
 }
 
 // ResolveItemOutput returns the effective output for a batch item by merging

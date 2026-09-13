@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
@@ -45,7 +44,7 @@ func runStoresList(args []string) int {
 		pal = dendrik.NewPalette(false)
 	}
 
-	reg, err := config.LoadRegistry()
+	ctx, err := resolveContext("", contextFleet)
 	if err != nil {
 		if *jsonMode {
 			dendrik.WriteError(os.Stdout, fmt.Sprintf("%s", err), "")
@@ -54,6 +53,7 @@ func runStoresList(args []string) int {
 		}
 		return dendrik.ExitUserError
 	}
+	reg := ctx.Registry
 
 	if *jsonMode {
 		out := make([]storeJSON, 0, len(reg.Order))
@@ -68,8 +68,8 @@ func runStoresList(args []string) int {
 	}
 
 	if len(reg.Order) == 0 {
-		fmt.Println("No stores registered (single-home). `vault:` resolves intrinsically to <home>/vault.")
-		fmt.Println("Add stores by creating ~/.folio/stores.yml.")
+		fmt.Println("No stores registered (legacy isolated-home). `vault:` resolves under the selected FOLIO_HOME content root.")
+		fmt.Println("Add a registry at $FOLIO_UMBRELLA/stores.yml.")
 		return dendrik.ExitOK
 	}
 	for _, name := range reg.Order {
@@ -85,7 +85,7 @@ func printStoresUsage() {
 Commands:
   list       List registered stores (name, kind, path). --json for machine output.
 
-The store registry lives in ~/.folio/stores.yml. When absent, the implicit
-default is a single folio store 'vault' at <home>/vault.
+The registry lives at $FOLIO_UMBRELLA/stores.yml. Without stores.yml, the
+implicit legacy root is selected through FOLIO_HOME (or ~/.folio).
 `)
 }

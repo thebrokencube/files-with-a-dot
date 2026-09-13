@@ -10,15 +10,19 @@ import (
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/taxonomy"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/validate"
 	"github.com/thebrokencube/files-with-a-dot/pkg/dendrik"
 )
 
 func runGather(folioPath string, materialize bool, typeFlag, name string, read bool, rawURL string) int {
 	pal := dendrik.NewPalette(true)
 
-	if !resolveOrDie(&folioPath) {
+	ctx, err := resolveContext(folioPath, contextMutation)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return dendrik.ExitUserError
 	}
+	folioPath = ctx.FolioPath
 
 	if read {
 		fmt.Fprintln(os.Stderr, "The --read flag requires /folio gather (Claude skill).")
@@ -32,12 +36,17 @@ func runGather(folioPath string, materialize bool, typeFlag, name string, read b
 		fmt.Fprintln(os.Stderr, pal.Errf("invalid URL: %s", rawURL))
 		return dendrik.ExitUserError
 	}
-
-	// Validate the file parses before modifying
-	if _, err := config.Load(folioPath); err != nil {
+	rawBefore, err := os.ReadFile(folioPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, pal.Errf("reading folio.yml: %s", err))
+		return dendrik.ExitUserError
+	}
+	beforeFolio, err := config.Parse(rawBefore)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
 		return dendrik.ExitUserError
 	}
+	before := validate.Validate(beforeFolio, ctx, validate.Mutation)
 
 	// Derive name from URL if not specified
 	refName := name
@@ -46,7 +55,7 @@ func runGather(folioPath string, materialize bool, typeFlag, name string, read b
 	}
 
 	today := time.Now().Format("2006-01-02")
-	folioDir := filepath.Dir(folioPath)
+	folioDir := ctx.FolioDir()
 
 	if materialize {
 		// --type is required with --materialize
@@ -64,24 +73,43 @@ func runGather(folioPath string, materialize bool, typeFlag, name string, read b
 		// Create reference file stub in type directory
 		refRelPath := filepath.Join("reference", typeFlag, today+"-"+refName+".md")
 		refAbsPath := filepath.Join(folioDir, refRelPath)
-		if err := os.MkdirAll(filepath.Dir(refAbsPath), 0755); err != nil {
-			fmt.Fprintln(os.Stderr, pal.Errf("creating reference directory: %s", err))
-			return dendrik.ExitUserError
-		}
 		if _, err := os.Stat(refAbsPath); err == nil {
 			fmt.Fprintln(os.Stderr, pal.Errf("reference file already exists: %s", refRelPath))
+			return dendrik.ExitUserError
+		}
+		createdDirs := missingParentDirs(filepath.Dir(refAbsPath), folioDir)
+		if err := os.MkdirAll(filepath.Dir(refAbsPath), 0755); err != nil {
+			fmt.Fprintln(os.Stderr, pal.Errf("creating reference directory: %s", err))
 			return dendrik.ExitUserError
 		}
 
 		stub := fmt.Sprintf("# %s\n\nSource: %s\nCached: %s\n\n<!-- TODO: add content -->\n", refName, rawURL, today)
 		if err := os.WriteFile(refAbsPath, []byte(stub), 0644); err != nil {
+			rollbackNewRegistration(folioPath, rawBefore, refAbsPath, createdDirs)
 			fmt.Fprintln(os.Stderr, pal.Errf("writing reference file: %s", err))
 			return dendrik.ExitUserError
 		}
 
 		// Add materialized source entry (path + derived_from)
 		if err := appendMaterializedSource(folioPath, refRelPath, rawURL, today); err != nil {
+			rollbackNewRegistration(folioPath, rawBefore, refAbsPath, createdDirs)
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+			return dendrik.ExitUserError
+		}
+		projected, loadErr := config.Load(folioPath)
+		if loadErr != nil {
+			rollbackNewRegistration(folioPath, rawBefore, refAbsPath, createdDirs)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created: %s", loadErr))
+			return dendrik.ExitUserError
+		}
+		after := validate.Validate(projected, ctx, validate.Mutation)
+		delta := validate.Delta(before, after, nil)
+		if !delta.Valid {
+			rollbackNewRegistration(folioPath, rawBefore, refAbsPath, createdDirs)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created:"))
+			for _, validationErr := range delta.Errors {
+				fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+			}
 			return dendrik.ExitUserError
 		}
 
@@ -91,7 +119,24 @@ func runGather(folioPath string, materialize bool, typeFlag, name string, read b
 	} else {
 		// Add URL-only source entry (external + derived_from, no path)
 		if err := appendURLSource(folioPath, rawURL, today); err != nil {
+			rollbackNewRegistration(folioPath, rawBefore, "", nil)
 			fmt.Fprintln(os.Stderr, pal.Errf("%s", err))
+			return dendrik.ExitUserError
+		}
+		projected, loadErr := config.Load(folioPath)
+		if loadErr != nil {
+			rollbackNewRegistration(folioPath, rawBefore, "", nil)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created: %s", loadErr))
+			return dendrik.ExitUserError
+		}
+		after := validate.Validate(projected, ctx, validate.Mutation)
+		delta := validate.Delta(before, after, nil)
+		if !delta.Valid {
+			rollbackNewRegistration(folioPath, rawBefore, "", nil)
+			fmt.Fprintln(os.Stderr, pal.Errf("validation failed — artifact not created:"))
+			for _, validationErr := range delta.Errors {
+				fmt.Fprintf(os.Stderr, "  - %s\n", validationErr)
+			}
 			return dendrik.ExitUserError
 		}
 

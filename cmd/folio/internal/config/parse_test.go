@@ -277,3 +277,42 @@ observations: []
 		t.Errorf("batch.field = %q, want description", bt.Batch.Field)
 	}
 }
+
+func TestParseFreshnessFields(t *testing.T) {
+	data := []byte(`
+schema: 3
+project: "Fresh"
+targets:
+  summary:
+    how: "compose"
+    composed_at: "2026-09-12T10:00:00Z"
+    inputs_sha256: "abc123"
+    final: true
+    batch:
+      items:
+        - id: "one"
+          source: "source.md"
+          inputs_sha256: "def456"
+`)
+	f, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	target := f.Targets["summary"]
+	if target.ComposedAt != "2026-09-12T10:00:00Z" || target.InputsSHA256 != "abc123" || !target.Final {
+		t.Fatalf("target freshness fields = %+v", target)
+	}
+	if target.Batch == nil || target.Batch.Items[0].InputsSHA256 != "def456" {
+		t.Fatalf("batch freshness fields = %+v", target.Batch)
+	}
+}
+func TestParseFreshnessFieldsOmitted(t *testing.T) {
+	f, err := Parse([]byte("schema: 3\nproject: Fresh\nsources: []\ntargets:\n  summary:\n    how: compose\n    outputs: []\n"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	target := f.Targets["summary"]
+	if target.ComposedAt != "" || target.InputsSHA256 != "" || target.Final {
+		t.Fatalf("omitted target freshness fields = %+v", target)
+	}
+}

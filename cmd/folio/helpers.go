@@ -10,7 +10,7 @@ import (
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/home"
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/list"
-	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/sync"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/repo"
 )
 
 func mustGetwd() string {
@@ -19,6 +19,461 @@ func mustGetwd() string {
 		return "."
 	}
 	return wd
+}
+
+type contextMode uint8
+
+const (
+	contextReadOnly contextMode = iota
+	contextMutation
+	contextStoreSync
+	contextFleet
+)
+
+type contextRoots struct {
+	umbrella         string
+	registry         *config.Registry
+	workRoot         string
+	explicitWorkRoot string
+}
+
+// resolveContext is the sole command-level entry point for Folio root and
+// project resolution. Lower packages receive the returned context instead of
+// rediscovering environment state.
+func resolveContext(ref string, mode contextMode) (config.Context, error) {
+	roots, err := discoverContextRoots()
+	if err != nil {
+		return config.Context{}, err
+	}
+
+	if mode == contextFleet {
+		workRoot := roots.umbrella
+		if workRoot == "" {
+			workRoot = roots.workRoot
+		}
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, WorkRoot: workRoot}, nil
+	}
+
+	if mode == contextStoreSync {
+		return resolveStoreSyncContext(roots, ref)
+	}
+
+	if ref == "" {
+		return config.Context{}, fmt.Errorf("folio reference is empty")
+	}
+
+	if storeName, project, ok := splitStoreTarget(ref); ok {
+		store, found := roots.registry.Lookup(storeName)
+		if !found {
+			return config.Context{}, fmt.Errorf("unknown store %q in --folio %q (not registered in stores.yml)", storeName, ref)
+		}
+		if store.Kind != config.KindFolio {
+			return config.Context{}, fmt.Errorf("store %q is %s, not a Folio store", storeName, store.Kind)
+		}
+		ctx := config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: store.Path}
+		if err := rejectMutationMismatch(ctx, roots, mode); err != nil {
+			return config.Context{}, err
+		}
+		path, err := resolveInStore(store.Path, storeName, project)
+		if err != nil {
+			return config.Context{}, err
+		}
+		return ctx.ForProject(path)
+	}
+
+	if isFilePath(ref) {
+		return resolveExplicitProject(roots, ref, mode)
+	}
+
+	root, store, err := projectSearchRoot(roots)
+	if err != nil {
+		return config.Context{}, err
+	}
+	ctx := config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: root}
+	if err := rejectMutationMismatch(ctx, roots, mode); err != nil {
+		return config.Context{}, err
+	}
+	path, err := resolveInStore(root, store.Name, ref)
+	if err != nil {
+		if !strings.HasPrefix(err.Error(), "unknown project ") {
+			return config.Context{}, err
+		}
+		active := activeShortnamesFromRoot(root)
+		if len(active) > 0 {
+			return config.Context{}, fmt.Errorf("unknown project %q — active projects:\n  %s", ref, strings.Join(active, "\n  "))
+		}
+		return config.Context{}, fmt.Errorf("unknown project %q (no active projects)", ref)
+	}
+	return ctx.ForProject(path)
+}
+
+func discoverContextRoots() (contextRoots, error) {
+	var roots contextRoots
+	umbrellaOverride, umbrellaSet, err := home.UmbrellaOverride()
+	if err != nil {
+		return roots, err
+	}
+	workOverride, workSet, err := home.WorkRootOverride()
+	if err != nil {
+		return roots, err
+	}
+
+	cwd := mustGetwd()
+	cwd, err = config.CanonicalPath(cwd)
+	if err != nil {
+		return roots, fmt.Errorf("canonicalizing cwd: %w", err)
+	}
+
+	if umbrellaSet {
+		roots.umbrella, err = config.CanonicalPath(umbrellaOverride)
+		if err != nil {
+			return roots, fmt.Errorf("canonicalizing FOLIO_UMBRELLA: %w", err)
+		}
+	} else {
+		var candidate string
+		if workSet {
+			candidate = findUmbrella(workOverride)
+			if candidate != "" {
+				roots.umbrella = candidate
+			}
+		}
+		if roots.umbrella == "" {
+			roots.umbrella = findUmbrella(cwd)
+		}
+		if roots.umbrella == "" && repo.IsJJ(cwd) {
+			if defaultRoot, rootErr := repo.DefaultWorkspaceRoot(cwd); rootErr == nil {
+				roots.umbrella = findUmbrella(defaultRoot)
+			}
+		}
+	}
+
+	if roots.umbrella != "" {
+		roots.registry, err = config.LoadRegistryFrom(roots.umbrella)
+		if err != nil {
+			return roots, err
+		}
+	}
+
+	if workSet {
+		workRoot, pathErr := config.CanonicalPath(workOverride)
+		if pathErr != nil {
+			return roots, fmt.Errorf("canonicalizing FOLIO_HOME: %w", pathErr)
+		}
+		if roots.umbrella != "" && sameCanonicalPath(workRoot, roots.umbrella) && hasStoresFile(workRoot) {
+			fmt.Fprintln(os.Stderr, "warning: FOLIO_HOME points to the registry umbrella; use FOLIO_UMBRELLA for control and FOLIO_HOME for a content work root")
+		} else {
+			roots.explicitWorkRoot = workRoot
+			roots.workRoot = workRoot
+		}
+	}
+
+	if roots.registry == nil {
+		if roots.explicitWorkRoot != "" {
+			roots.registry, err = config.LoadRegistryFrom(roots.explicitWorkRoot)
+			if err != nil {
+				return roots, err
+			}
+			roots.workRoot = roots.explicitWorkRoot
+		} else {
+			fallback, fallbackErr := home.Dir()
+			if fallbackErr != nil {
+				return roots, fallbackErr
+			}
+			roots.workRoot, err = config.CanonicalPath(fallback)
+			if err != nil {
+				return roots, err
+			}
+			roots.registry, err = config.LoadRegistryFrom(roots.workRoot)
+			if err != nil {
+				return roots, err
+			}
+		}
+	}
+
+	if roots.registry.IsImplicit() && roots.workRoot == "" {
+		if roots.umbrella != "" {
+			roots.workRoot = roots.umbrella
+		} else {
+			roots.workRoot, err = config.CanonicalPath(cwd)
+			if err != nil {
+				return roots, err
+			}
+		}
+	}
+
+	if !roots.registry.IsImplicit() && roots.workRoot == "" {
+		if store, ok := config.StoreContaining(cwd, roots.registry); ok && store.Kind == config.KindFolio {
+			roots.workRoot = store.Path
+		} else if workspaceRoot, ok := workspaceStoreRoot(cwd, roots.registry); ok {
+			roots.workRoot = workspaceRoot
+		}
+	}
+	return roots, nil
+}
+
+func findUmbrella(start string) string {
+	if start == "" {
+		return ""
+	}
+	path, err := config.CanonicalPath(start)
+	if err != nil {
+		return ""
+	}
+	if info, statErr := os.Stat(path); statErr == nil && !info.IsDir() {
+		path = filepath.Dir(path)
+	}
+	for {
+		if hasStoresFile(path) {
+			return path
+		}
+		parent := filepath.Dir(path)
+		if parent == path {
+			return ""
+		}
+		path = parent
+	}
+}
+
+func hasStoresFile(dir string) bool {
+	info, err := os.Stat(filepath.Join(dir, "stores.yml"))
+	return err == nil && !info.IsDir()
+}
+
+func sameCanonicalPath(left, right string) bool {
+	leftPath, leftErr := config.CanonicalPath(left)
+	rightPath, rightErr := config.CanonicalPath(right)
+	return leftErr == nil && rightErr == nil && leftPath == rightPath
+}
+func canonicalOr(path string) string {
+	resolved, err := config.CanonicalPath(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	return resolved
+}
+
+func workspaceStoreRoot(dir string, reg *config.Registry) (string, bool) {
+	if !repo.IsJJ(dir) {
+		return "", false
+	}
+	defaultRoot, err := repo.DefaultWorkspaceRoot(dir)
+	if err != nil {
+		return "", false
+	}
+	_, ok := config.StoreContaining(defaultRoot, reg)
+	if !ok {
+		return "", false
+	}
+	return canonicalOr(dir), true
+}
+
+func resolveStoreSyncContext(roots contextRoots, storeName string) (config.Context, error) {
+	if storeName != "" {
+		store, ok := roots.registry.Lookup(storeName)
+		if !ok {
+			return config.Context{}, fmt.Errorf("store %q is not registered in stores.yml", storeName)
+		}
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: store.Path}, nil
+	}
+
+	if roots.explicitWorkRoot != "" {
+		store := storeForWorkRoot(roots.explicitWorkRoot, roots.registry)
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: roots.explicitWorkRoot}, nil
+	}
+
+	cwd := mustGetwd()
+	if store, ok := config.StoreContaining(cwd, roots.registry); ok {
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: store.Path}, nil
+	}
+	if store, ok := workspaceStore(cwd, roots.registry); ok {
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: canonicalOr(cwd)}, nil
+	}
+	if roots.registry != nil && roots.registry.Default != "" {
+		store, ok := roots.registry.Lookup(roots.registry.Default)
+		if !ok {
+			return config.Context{}, fmt.Errorf("default store %q is not registered in stores.yml", roots.registry.Default)
+		}
+		return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: store.Path}, nil
+	}
+	workRoot := roots.workRoot
+	if workRoot == "" {
+		workRoot = roots.umbrella
+	}
+	return config.Context{Umbrella: roots.umbrella, Registry: roots.registry, WorkRoot: workRoot}, nil
+}
+
+func storeForWorkRoot(workRoot string, reg *config.Registry) config.Store {
+	if store, ok := config.StoreContaining(workRoot, reg); ok {
+		return store
+	}
+	if store, ok := workspaceStore(workRoot, reg); ok {
+		return store
+	}
+	return config.Store{}
+}
+
+func workspaceStore(dir string, reg *config.Registry) (config.Store, bool) {
+	if !repo.IsJJ(dir) {
+		return config.Store{}, false
+	}
+	defaultRoot, err := repo.DefaultWorkspaceRoot(dir)
+	if err != nil {
+		return config.Store{}, false
+	}
+	return config.StoreContaining(defaultRoot, reg)
+}
+
+func workspaceStoreBase(dir string, reg *config.Registry) (string, config.Store, bool) {
+	if !repo.IsJJ(dir) {
+		return "", config.Store{}, false
+	}
+	defaultRoot, err := repo.DefaultWorkspaceRoot(dir)
+	if err != nil {
+		return "", config.Store{}, false
+	}
+	store, ok := config.StoreContaining(defaultRoot, reg)
+	if !ok {
+		return "", config.Store{}, false
+	}
+	return canonicalOr(defaultRoot), store, true
+}
+
+func projectSearchRoot(roots contextRoots) (string, config.Store, error) {
+	if roots.explicitWorkRoot != "" {
+		store := storeForWorkRoot(roots.explicitWorkRoot, roots.registry)
+		if store.Name != "" && store.Kind != config.KindFolio {
+			return "", config.Store{}, fmt.Errorf("FOLIO_HOME points to non-Folio store %q (%s); select a Folio work root or use --folio <store>:<project>", store.Name, store.Kind)
+		}
+		return roots.explicitWorkRoot, store, nil
+	}
+
+	cwd := mustGetwd()
+	if store, ok := config.StoreContaining(cwd, roots.registry); ok && store.Kind == config.KindFolio {
+		return store.Path, store, nil
+	}
+	if store, ok := workspaceStore(cwd, roots.registry); ok && store.Kind == config.KindFolio {
+		return canonicalOr(cwd), store, nil
+	}
+	if roots.registry != nil && roots.registry.Default != "" {
+		store, ok := roots.registry.Lookup(roots.registry.Default)
+		if !ok {
+			return "", config.Store{}, fmt.Errorf("default store %q is not registered in stores.yml", roots.registry.Default)
+		}
+		if store.Kind != config.KindFolio {
+			return "", config.Store{}, fmt.Errorf("default store %q is %s, not a Folio store; configure a Folio default or set FOLIO_HOME", store.Name, store.Kind)
+		}
+		return store.Path, store, nil
+	}
+	if roots.registry == nil || roots.registry.IsImplicit() {
+		if roots.workRoot != "" {
+			return roots.workRoot, config.Store{}, nil
+		}
+	}
+	return "", config.Store{}, fmt.Errorf("no Folio work root selected; set FOLIO_HOME to a Folio store or configure default: in stores.yml")
+}
+func resolveFolioRootForInit() (string, error) {
+	roots, err := discoverContextRoots()
+	if err != nil {
+		return "", err
+	}
+	if roots.explicitWorkRoot != "" {
+		if store := storeForWorkRoot(roots.explicitWorkRoot, roots.registry); store.Name != "" && store.Kind != config.KindFolio {
+			return "", fmt.Errorf("FOLIO_HOME points to non-Folio store %q (%s)", store.Name, store.Kind)
+		}
+		return roots.explicitWorkRoot, nil
+	}
+	if store, ok := config.StoreContaining(mustGetwd(), roots.registry); ok && store.Kind == config.KindFolio {
+		return store.Path, nil
+	}
+	if store, ok := workspaceStore(mustGetwd(), roots.registry); ok && store.Kind == config.KindFolio {
+		return canonicalOr(mustGetwd()), nil
+	}
+	if roots.registry != nil && roots.registry.Default != "" {
+		store, ok := roots.registry.Lookup(roots.registry.Default)
+		if !ok {
+			return "", fmt.Errorf("default store %q is not registered in stores.yml", roots.registry.Default)
+		}
+		if store.Kind != config.KindFolio {
+			return "", fmt.Errorf("default store %q is %s, not a Folio store", store.Name, store.Kind)
+		}
+		return store.Path, nil
+	}
+	if roots.workRoot != "" {
+		return roots.workRoot, nil
+	}
+	return "", fmt.Errorf("no Folio work root selected")
+}
+
+func resolveExplicitProject(roots contextRoots, ref string, mode contextMode) (config.Context, error) {
+	path, err := config.CanonicalPath(ref)
+	if err != nil {
+		return config.Context{}, err
+	}
+	store := config.Store{}
+	workRoot := roots.workRoot
+	if roots.registry != nil && !roots.registry.IsImplicit() {
+		if owning, ok := config.StoreContaining(filepath.Dir(path), roots.registry); ok {
+			store = owning
+			workRoot = owning.Path
+			if roots.explicitWorkRoot != "" && configPathWithin(owning.Path, roots.explicitWorkRoot) {
+				workRoot = roots.explicitWorkRoot
+			}
+		} else if roots.explicitWorkRoot != "" && configPathWithin(roots.explicitWorkRoot, path) {
+			store = storeForWorkRoot(roots.explicitWorkRoot, roots.registry)
+			workRoot = roots.explicitWorkRoot
+		} else {
+			workRoot = filepath.Dir(path)
+		}
+	}
+	if workRoot == "" {
+		workRoot = filepath.Dir(path)
+	}
+	ctx := config.Context{Umbrella: roots.umbrella, Registry: roots.registry, Store: store, WorkRoot: workRoot, FolioPath: path}
+	if err := rejectMutationMismatch(ctx, roots, mode); err != nil {
+		return config.Context{}, err
+	}
+	return ctx, nil
+}
+
+func configPathWithin(root, path string) bool {
+	rootPath, rootErr := config.CanonicalPath(root)
+	pathValue, pathErr := config.CanonicalPath(path)
+	if rootErr != nil || pathErr != nil {
+		return false
+	}
+	return pathValue == rootPath || strings.HasPrefix(pathValue, rootPath+string(filepath.Separator))
+}
+
+func selectedAmbientStore(roots contextRoots) config.Store {
+	if roots.explicitWorkRoot != "" {
+		if store := storeForWorkRoot(roots.explicitWorkRoot, roots.registry); store.Name != "" {
+			return store
+		}
+	}
+	if store, ok := config.StoreContaining(mustGetwd(), roots.registry); ok {
+		return store
+	}
+	if store, ok := workspaceStore(mustGetwd(), roots.registry); ok {
+		return store
+	}
+	return config.Store{}
+}
+
+func rejectMutationMismatch(ctx config.Context, roots contextRoots, mode contextMode) error {
+	if mode != contextMutation || ctx.Store.Name == "" {
+		return nil
+	}
+	ambient := selectedAmbientStore(roots)
+	if ambient.Name != "" && ambient.Name != ctx.Store.Name {
+		return fmt.Errorf("mutation target store %q conflicts with current store %q; select the target workspace explicitly", ctx.Store.Name, ambient.Name)
+	}
+	if ambient.Name == ctx.Store.Name {
+		return nil
+	}
+	if roots.explicitWorkRoot != "" && !configPathWithin(ctx.WorkRoot, roots.explicitWorkRoot) && !configPathWithin(roots.explicitWorkRoot, ctx.WorkRoot) {
+		return fmt.Errorf("mutation target work root %q conflicts with FOLIO_HOME work root %q", ctx.WorkRoot, roots.explicitWorkRoot)
+	}
+	return nil
 }
 
 // isFilePath returns true if the value should be treated as a file path (not a shortname).
@@ -33,41 +488,6 @@ func isFilePath(s string) bool {
 	return err == nil && fi.Mode().IsRegular()
 }
 
-// matchShortname finds an active entry matching the shortname.
-// Pass 1: exact match on entry.Path. Pass 2: exact match on final path component.
-func matchShortname(entries []list.Entry, shortname string) (list.Entry, error) {
-	// Pass 1: exact match on full path
-	for _, e := range entries {
-		if e.Section == "active" && e.Path == shortname {
-			return e, nil
-		}
-	}
-
-	// Pass 2: match on final path component
-	var matches []list.Entry
-	for _, e := range entries {
-		if e.Section == "active" {
-			base := filepath.Base(e.Path)
-			if base == shortname {
-				matches = append(matches, e)
-			}
-		}
-	}
-
-	switch len(matches) {
-	case 0:
-		return list.Entry{}, nil
-	case 1:
-		return matches[0], nil
-	default:
-		var paths []string
-		for _, m := range matches {
-			paths = append(paths, m.Path)
-		}
-		return list.Entry{}, fmt.Errorf("ambiguous shortname %q matches: %s", shortname, strings.Join(paths, ", "))
-	}
-}
-
 // activeShortnames returns all active entry paths, sorted alphabetically.
 func activeShortnames(entries []list.Entry) []string {
 	var paths []string
@@ -80,59 +500,21 @@ func activeShortnames(entries []list.Entry) []string {
 	return paths
 }
 
-// resolveFolioPath resolves a --folio flag value to an absolute folio.yml path.
+func activeShortnamesFromRoot(root string) []string {
+	entries, err := list.Scan(root)
+	if err != nil {
+		return nil
+	}
+	return activeShortnames(entries)
+}
+
+// resolveFolioPath resolves a --folio flag value through the command context.
 func resolveFolioPath(value string) (string, error) {
-	if isFilePath(value) {
-		return value, nil
-	}
-
-	// Registry-aware write-routing: `--folio <store>:<project>` targets a
-	// project in any registered folio store. `isFilePath` gates first, so a
-	// bare `work:proj` (no path markers) reaches here; `ben/foo` (no colon)
-	// falls through to the home-only path below, unchanged.
-	if storeName, project, ok := splitStoreTarget(value); ok {
-		reg, err := config.LoadRegistry()
-		if err != nil {
-			return "", fmt.Errorf("cannot resolve store target: %w", err)
-		}
-		store, found := reg.Lookup(storeName)
-		if !found {
-			return "", fmt.Errorf("unknown store %q in --folio %q (not registered in stores.yml)", storeName, value)
-		}
-		if !sync.CanPush(store) {
-			return "", fmt.Errorf("store %q is external (read-only) — not a write target", storeName)
-		}
-		return resolveInStore(store.Path, storeName, project)
-	}
-	// Store-shaped but malformed (e.g. `work:` with no project) — error clearly
-	// rather than falling through to a confusing home-only shortname scan.
-	if i := strings.IndexByte(value, ':'); i > 0 && !strings.ContainsAny(value[:i], "/\\. \t") {
-		return "", fmt.Errorf("invalid store target %q — use --folio <store>:<project>", value)
-	}
-
-	homeDir, err := home.Dir()
-	if err != nil {
-		return "", fmt.Errorf("cannot resolve shortname: %w", err)
-	}
-
-	entries, err := list.Scan(homeDir)
-	if err != nil {
-		return "", fmt.Errorf("scanning FOLIO_HOME: %w", err)
-	}
-
-	match, err := matchShortname(entries, value)
+	ctx, err := resolveContext(value, contextReadOnly)
 	if err != nil {
 		return "", err
 	}
-	if match.Path != "" {
-		return filepath.Join(homeDir, "active", match.Path, "folio.yml"), nil
-	}
-
-	active := activeShortnames(entries)
-	if len(active) > 0 {
-		return "", fmt.Errorf("unknown project %q — active projects:\n  %s", value, strings.Join(active, "\n  "))
-	}
-	return "", fmt.Errorf("unknown project %q (no active projects)", value)
+	return ctx.FolioPath, nil
 }
 
 // splitStoreTarget splits a `<store>:<project>` --folio value. Returns ok=false
@@ -151,30 +533,38 @@ func splitStoreTarget(value string) (store, project string, ok bool) {
 	return store, value[i+1:], true
 }
 
-// resolveInStore finds a project shortname within a folio store root, searching
-// both active/ and archive/, and returns the absolute folio.yml path joined
-// against the store root.
+// resolveInStore finds an active project shortname within a folio store root
+// and returns the absolute folio.yml path joined against that store root.
 func resolveInStore(storeRoot, storeName, project string) (string, error) {
+	canonicalRoot, err := config.CanonicalPath(storeRoot)
+	if err != nil {
+		return "", fmt.Errorf("canonicalizing store %q: %w", storeName, err)
+	}
+	storeRoot = canonicalRoot
 	entries, err := list.Scan(storeRoot)
 	if err != nil {
 		return "", fmt.Errorf("scanning store %q: %w", storeName, err)
 	}
-	// list.Scan returns entries sorted active-before-archive, so iterating in
-	// order means active wins on a same-name active/archive collision.
+	// list.Scan returns entries sorted deterministically; only active entries
+	// participate in shortname resolution.
 
-	// Pass 1: exact path match (active wins by sort order).
+	// Pass 1: exact active path match.
 	for _, e := range entries {
+		if e.Section != "active" {
+			continue
+		}
 		if e.Path == project {
 			return filepath.Join(storeRoot, e.Section, e.Path, "folio.yml"), nil
 		}
 	}
 
-	// Pass 2: final-component match. Collect to detect genuine ambiguity
-	// (different paths), while treating a same-path active/archive pair as a
-	// single project that active resolves.
+	// Pass 2: final-component match among active entries.
 	var matches []list.Entry
 	distinct := map[string]bool{}
 	for _, e := range entries {
+		if e.Section != "active" {
+			continue
+		}
 		if filepath.Base(e.Path) == project {
 			matches = append(matches, e)
 			distinct[e.Path] = true
@@ -190,18 +580,7 @@ func resolveInStore(storeRoot, storeName, project string) (string, error) {
 		}
 		return "", fmt.Errorf("ambiguous project %q in store %q matches: %s", project, storeName, strings.Join(labels, ", "))
 	default:
-		e := matches[0] // active-first by sort order
+		e := matches[0]
 		return filepath.Join(storeRoot, e.Section, e.Path, "folio.yml"), nil
 	}
-}
-
-// resolveOrDie resolves *folioPath in place. Returns false and prints error on failure.
-func resolveOrDie(folioPath *string) bool {
-	resolved, err := resolveFolioPath(*folioPath)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return false
-	}
-	*folioPath = resolved
-	return true
 }

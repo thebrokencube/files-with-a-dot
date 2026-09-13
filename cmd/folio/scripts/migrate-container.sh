@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# migrate-container.sh — one-time migration of a single-home ~/.folio into the
-# multi-store CONTAINER model (see plugins/folio/skills/folio/references/container-migration.md).
+# migrate-container.sh — one-time migration of a single-content-root ~/.folio into
+# the multi-store CONTAINER model (see plugins/folio/skills/folio/references/container-migration.md).
 #
 # Demotes the live colocated git+jj home to a store nested under a plain umbrella
 # directory. The store name derives from the origin repo name (--store overrides):
@@ -18,13 +18,16 @@
 # SAFETY: defaults to --check (dry-run, no mutations). Pass --execute to mutate.
 # Aborts on any dirty/unpushed state before the irreversible swap.
 #
-# PREREQUISITE (binary-first ordering): folio >= 0.0.4 MUST already be on PATH
-# (the v2 binary that understands stores.yml). An older binary would treat the
-# umbrella as the home and silently stop creating workspaces.
+# PREREQUISITE (binary-first ordering): folio >= 0.0.12 MUST already be on PATH
+# (the binary that understands the explicit control/content root split). An older
+# binary can treat the umbrella as the content root and select the wrong workspace.
 
 set -euo pipefail
 
-UMBRELLA="${FOLIO_HOME:-$HOME/.folio}"
+UMBRELLA="${FOLIO_UMBRELLA:-${FOLIO_HOME:-$HOME/.folio}}"
+export FOLIO_UMBRELLA="$UMBRELLA"
+unset FOLIO_HOME
+folio_cmd() { env -u FOLIO_HOME FOLIO_UMBRELLA="$UMBRELLA" folio "$@"; }
 MODE="check"
 STORE="" # store (= nested dir) name; defaults to the origin repo name (Phase 0)
 STAMP="${MIGRATE_STAMP:-}" # caller may pin a timestamp; else derived below
@@ -59,11 +62,11 @@ printf 'folio container migration — mode=%s umbrella=%s\n' "$MODE" "$UMBRELLA"
 
 # ── Phase 0: preconditions ────────────────────────────────────────────────────
 step 0 "Preconditions"
-command -v folio >/dev/null || die "folio not on PATH"
-VER="$(folio --version | awk '{print $NF}')"
+command -v folio >/dev/null || die "folio not on PATH — install/release folio v0.0.12+ first"
+VER="$(folio_cmd --version | awk '{print $NF}')"
 say "folio version: $VER"
 case "$VER" in
-  0.0.[0-3]) die "folio $VER is too old — release & 'dot sync' v0.0.4+ first (binary-first ordering)" ;;
+  0.0.[0-9]|0.0.10|0.0.11) die "folio $VER is too old — release & 'dot sync' v0.0.12+ first (binary-first ordering)" ;;
 esac
 [[ -d "$UMBRELLA/.git" && -d "$UMBRELLA/.jj" ]] || die "$UMBRELLA is not a colocated git+jj single-home repo (already migrated, or unexpected layout)"
 [[ -e "$STAGING" || -e "$OLD" ]] && die "stale $STAGING or $OLD exists — clean up a prior aborted run first"
@@ -139,11 +142,21 @@ fi
 
 # ── Phase 5: verification gate (abort BEFORE the swap) ────────────────────────
 step 5 "Verify clone (gate before swap)"
+  count_children() {
+    local dir="$1" child count=0
+    if [[ -d "$dir" ]]; then
+      for child in "$dir"/*; do
+        [[ -d "$child" ]] || continue
+        count=$((count + 1))
+      done
+    fi
+    printf '%s' "$count"
+  }
 if [[ "$MODE" == execute ]]; then
-  [[ -d "$STAGING/$STORE/.git" && -d "$STAGING/$STORE/.jj" ]] || die "clone is not colocated git+jj — aborting before swap"
-  WANT="$(ls -1 "$UMBRELLA/active" 2>/dev/null | wc -l | tr -d ' ')"
-  GOT="$(ls -1 "$STAGING/$STORE/active" 2>/dev/null | wc -l | tr -d ' ')"
+  WANT="$(count_children "$UMBRELLA/active")"
+  GOT="$(count_children "$STAGING/$STORE/active")"
   say "active project dirs: backup=$WANT clone=$GOT"
+  [[ -d "$STAGING/$STORE/.git" && -d "$STAGING/$STORE/.jj" ]] || die "clone is not colocated git+jj — aborting before swap"
   [[ "$WANT" == "$GOT" ]] || die "active project count differs (backup=$WANT clone=$GOT) — origin may be behind; aborting before swap"
 else
   say "(dry-run) would assert: clone colocated + active project count matches"
@@ -174,7 +187,7 @@ fi
 # ── Phase 8: smoke test ───────────────────────────────────────────────────────
 step 8 "Smoke test"
 if [[ "$MODE" == execute ]]; then
-  if ( cd "$UMBRELLA" && folio home list >/dev/null ); then
+  if ( cd "$UMBRELLA" && folio_cmd home list >/dev/null ); then
     say "folio home list OK (resolves default store)"
   else
     die "folio home list failed post-migration — roll back (see below)"

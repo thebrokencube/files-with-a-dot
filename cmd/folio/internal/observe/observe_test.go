@@ -5,7 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
 )
+
+func testContext(dir string) config.Context {
+	return config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+}
 
 func TestValidate(t *testing.T) {
 	valid := []string{
@@ -222,14 +228,33 @@ observations:
 	return path
 }
 
-func TestRemoveByIndex(t *testing.T) {
-	path := makeRemoveTestFile(t)
-	removed, err := Remove(path, []string{"#2"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func removeTestItems() []string {
+	return []string{
+		"bug(cli): first item",
+		"task(plan): second item",
+		"idea(cli): third item",
 	}
-	if len(removed) != 1 || removed[0] != "task(plan): second item" {
-		t.Errorf("removed = %v, want [task(plan): second item]", removed)
+}
+
+func TestResolveByIndexAndRemove(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	items := removeTestItems()
+	remaining, removed, err := Resolve(items, []string{"#2"})
+	if err != nil {
+		t.Fatalf("unexpected resolve error: %v", err)
+	}
+	if len(removed) != 1 || removed[0] != 1 {
+		t.Errorf("removed = %v, want [1]", removed)
+	}
+	if len(remaining) != 2 || remaining[0] != items[0] || remaining[1] != items[2] {
+		t.Errorf("remaining = %v, want first and third items", remaining)
+	}
+	removedItems, err := RemoveIndices(path, items, removed)
+	if err != nil {
+		t.Fatalf("unexpected remove error: %v", err)
+	}
+	if len(removedItems) != 1 || removedItems[0] != items[1] {
+		t.Errorf("removed items = %v, want [%q]", removedItems, items[1])
 	}
 	data, _ := os.ReadFile(path)
 	content := string(data)
@@ -241,21 +266,24 @@ func TestRemoveByIndex(t *testing.T) {
 	}
 }
 
-func TestRemoveBySubstring(t *testing.T) {
+func TestResolveBySubstringAndRemove(t *testing.T) {
 	path := makeRemoveTestFile(t)
-	removed, err := Remove(path, []string{"second"})
+	items := removeTestItems()
+	_, removed, err := Resolve(items, []string{"second"})
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("unexpected resolve error: %v", err)
 	}
-	if len(removed) != 1 || removed[0] != "task(plan): second item" {
-		t.Errorf("removed = %v, want [task(plan): second item]", removed)
+	removedItems, err := RemoveIndices(path, items, removed)
+	if err != nil {
+		t.Fatalf("unexpected remove error: %v", err)
+	}
+	if len(removedItems) != 1 || removedItems[0] != items[1] {
+		t.Errorf("removed items = %v, want [%q]", removedItems, items[1])
 	}
 }
 
-func TestRemoveAmbiguous(t *testing.T) {
-	path := makeRemoveTestFile(t)
-	// "cli" matches both first and third items
-	_, err := Remove(path, []string{"cli"})
+func TestResolveAmbiguous(t *testing.T) {
+	_, _, err := Resolve(removeTestItems(), []string{"cli"})
 	if err == nil {
 		t.Error("expected ambiguity error")
 	}
@@ -264,30 +292,46 @@ func TestRemoveAmbiguous(t *testing.T) {
 	}
 }
 
-func TestRemoveMultiple(t *testing.T) {
-	path := makeRemoveTestFile(t)
-	removed, err := Remove(path, []string{"#1", "#3"})
+func TestResolveMultiple(t *testing.T) {
+	items := removeTestItems()
+	remaining, removed, err := Resolve(items, []string{"#1", "#3"})
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("unexpected resolve error: %v", err)
 	}
-	if len(removed) != 2 {
-		t.Fatalf("removed %d items, want 2", len(removed))
+	if len(removed) != 2 || removed[0] != 0 || removed[1] != 2 {
+		t.Errorf("removed = %v, want [0 2]", removed)
 	}
-	data, _ := os.ReadFile(path)
-	content := string(data)
-	if !strings.Contains(content, "second item") {
-		t.Error("second item should be preserved")
-	}
-	if strings.Contains(content, "first item") || strings.Contains(content, "third item") {
-		t.Error("first and third items should be removed")
+	if len(remaining) != 1 || remaining[0] != items[1] {
+		t.Errorf("remaining = %v, want second item", remaining)
 	}
 }
 
-func TestRemoveNotFound(t *testing.T) {
-	path := makeRemoveTestFile(t)
-	_, err := Remove(path, []string{"nonexistent"})
+func TestResolveNotFound(t *testing.T) {
+	_, _, err := Resolve(removeTestItems(), []string{"nonexistent"})
 	if err == nil {
 		t.Error("expected not-found error")
+	}
+}
+
+func TestRemoveIndicesRefusesChangedManifest(t *testing.T) {
+	path := makeRemoveTestFile(t)
+	items := removeTestItems()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = []byte(strings.Replace(string(data), "second item", `second "changed" item`, 1))
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		t.Fatal(err)
+	}
+	before := string(data)
+	_, err = RemoveIndices(path, items, []int{1})
+	if err == nil {
+		t.Fatal("expected changed-manifest error")
+	}
+	after, _ := os.ReadFile(path)
+	if string(after) != before {
+		t.Fatal("changed manifest must not be written")
 	}
 }
 
@@ -297,7 +341,7 @@ func TestLintValid(t *testing.T) {
 		"bug(cli): something broken",
 		"task(plan): action item",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 0 {
 		t.Errorf("expected no issues, got %d: %v", len(issues), issues)
 	}
@@ -309,7 +353,7 @@ func TestLintMalformed(t *testing.T) {
 		"freeform text",
 		"bug(cli): valid item",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 1 {
 		t.Fatalf("expected 1 issue, got %d", len(issues))
 	}
@@ -326,7 +370,7 @@ func TestLintBrokenPath(t *testing.T) {
 	items := []string{
 		"bug(cli): broken ref (reference/missing.md)",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 1 {
 		t.Fatalf("expected 1 issue, got %d", len(issues))
 	}
@@ -340,7 +384,7 @@ func TestLintSkipsURLs(t *testing.T) {
 	items := []string{
 		"idea(cli): see docs (https://example.com/path)",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 0 {
 		t.Errorf("expected no issues for URL, got %d: %v", len(issues), issues)
 	}
@@ -353,7 +397,7 @@ func TestLintSkipsProseInParens(t *testing.T) {
 	items := []string{
 		"task(session-isolation): workspace shared jj repos (esp ~/.dotfiles); codify as a rule (dotfiles-awareness.md)",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 0 {
 		t.Errorf("expected no issues for prose parentheticals, got %d: %v", len(issues), issues)
 	}
@@ -367,7 +411,7 @@ func TestLintStripsLineReferences(t *testing.T) {
 		"bug(review): the transcript is Redis-only (activity_log.rb:7) so it expires (Show.tsx:393)",
 		"bug(ui): the empty state renders wrong (ActivityStream.tsx:18-21) and again (:87-98)",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 0 {
 		t.Errorf("expected no issues for line references, got %d: %v", len(issues), issues)
 	}
@@ -379,7 +423,7 @@ func TestLintChecksPathHalfOfALineReference(t *testing.T) {
 	items := []string{
 		"bug(cli): broken ref (reference/missing.md:12)",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 1 {
 		t.Fatalf("expected 1 issue, got %d: %v", len(issues), issues)
 	}
@@ -399,7 +443,7 @@ func TestLintSkipsProseSlashRunsAndNamespaces(t *testing.T) {
 		"idea(color): give each concept (grove/canopies/wardens/repos) one registry color",
 		"idea(jobs): Gloppy sweep (CodeReviews::CodeReviewJob) runs every 10 min",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 0 {
 		t.Errorf("expected no issues for prose slash-runs and :: namespaces, got %d: %v", len(issues), issues)
 	}
@@ -410,11 +454,83 @@ func TestLintSeePath(t *testing.T) {
 	items := []string{
 		"task(plan): needs work. See reference/design/missing.md",
 	}
-	issues := Lint(dir, items)
+	issues := Lint(items, testContext(dir))
 	if len(issues) != 1 {
 		t.Fatalf("expected 1 issue, got %d", len(issues))
 	}
 	if !strings.Contains(issues[0].Reason, "broken path") {
 		t.Errorf("reason = %q, want broken path", issues[0].Reason)
+	}
+}
+
+func TestLintPositionalReferencesAreWarnings(t *testing.T) {
+	items := []string{
+		"idea(cli): obs #1 is stale",
+		"idea(cli): observation #2 is stale",
+		"idea(cli): refines #3",
+		"idea(cli): confirms #4",
+		"idea(cli): per #5",
+		"idea(cli): see #6",
+		"idea(cli): literal #7 is not classified",
+	}
+	issues := Lint(items, testContext(t.TempDir()))
+	if len(issues) != 6 {
+		t.Fatalf("issues = %d, want six positional warnings: %v", len(issues), issues)
+	}
+	for _, issue := range issues {
+		if issue.Severity != SeverityWarning {
+			t.Errorf("issue severity = %d, want warning", issue.Severity)
+		}
+		if issue.Code != "observation.positional-reference" {
+			t.Errorf("issue code = %q, want positional-reference", issue.Code)
+		}
+	}
+}
+
+func TestLintRecognizesExtensionlessWorkReferences(t *testing.T) {
+	dir := t.TempDir()
+	workPath := filepath.Join(dir, "work", "active", "topic", "notes")
+	if err := os.MkdirAll(filepath.Dir(workPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(workPath, []byte("notes"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	items := []string{
+		"idea(cli): use (work/active/topic/notes)",
+		"idea(cli): prose (active/completed/failed/skipped)",
+	}
+	issues := Lint(items, testContext(dir))
+	if len(issues) != 0 {
+		t.Fatalf("issues = %v, want existing extensionless work path and prose to pass", issues)
+	}
+}
+
+func TestDuplicateCandidatesNormalizeWhitespaceWithoutChangingCase(t *testing.T) {
+	existing := []string{
+		"idea(cli): keep this",
+		"idea(cli): Keep this",
+	}
+	candidates := DuplicateCandidates(" idea(cli):  keep   this ", existing)
+	if len(candidates) != 1 || candidates[0].Index != 1 {
+		t.Fatalf("candidates = %+v, want only first exact normalized match", candidates)
+	}
+}
+
+func TestRemoveIndicesDecodesQuotedScalars(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "folio.yml")
+	items := []string{`idea(cli): quote "inside"`}
+	content := "schema: 2\nproject: Test\nobservations:\n  - \"idea(cli): quote \\\"inside\\\"\"\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := RemoveIndices(path, items, []int{0})
+	if err != nil {
+		t.Fatalf("unexpected remove error: %v", err)
+	}
+	after, _ := os.ReadFile(path)
+	if strings.Contains(string(after), "quote") {
+		t.Fatalf("quoted scalar was not removed:\n%s", after)
 	}
 }

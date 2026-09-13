@@ -74,7 +74,7 @@ func TestScan_Empty(t *testing.T) {
 	}
 }
 
-func TestScan_SkipsMalformedYaml(t *testing.T) {
+func TestScan_SurfacesMalformedYaml(t *testing.T) {
 	dir := setupTestHome(t, map[string]string{
 		"active/good/folio.yml": `schema: 1
 project: "Good Project"
@@ -87,11 +87,14 @@ project: "Good Project"
 		t.Fatal(err)
 	}
 
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 entry (skipping bad), got %d", len(entries))
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries (including bad), got %d", len(entries))
 	}
-	if entries[0].Project != "Good Project" {
-		t.Errorf("expected 'Good Project', got %q", entries[0].Project)
+	if entries[0].Path != "bad" || entries[0].Error == "" {
+		t.Fatalf("expected bad entry with error, got %+v", entries[0])
+	}
+	if entries[1].Project != "Good Project" {
+		t.Errorf("expected 'Good Project', got %q", entries[1].Project)
 	}
 }
 

@@ -176,8 +176,9 @@ Consolidates agent setup, build/deploy, and execution conventions into a single 
 Include:
 - **Repo mapping**: which tracks operate in which repos
 - **Skill loading**: which skills to invoke and why — `/folio status` loads folio conventions
-  (key rule: `~/.folio` commits use `folio home push`, never raw git), `/commit` loads commit
-  format with repo-specific conventions, plus additional skills as needed
+  (key rule: selected Folio content-store changes use `folio home push`, never raw git or jj;
+  `FOLIO_UMBRELLA` is control-plane context and `FOLIO_HOME` is content-root context),
+  `/commit` loads commit format with repo-specific conventions, plus additional skills as needed
 - **Commit conventions**: format, scope target (max commits — typically ~5), ordered commit
   sequence (what goes in each commit, in what order), push workflow, repo-specific patterns
 - **Validation commands** (run sequence): build, test, lint, deploy/sync steps (e.g.,
@@ -211,9 +212,10 @@ not an absolute path or store identifier. Define `dispatch_key` as
 `<registered README path>@<latest landed change ID>`. For example, the local dogfood key is
 `work/active/2026-09-12-sketch-stage-rethink/README.md@wnzvmyqnvyzyqvzlyouznnmrvtzvprxn`.
 
-`<isolated-workspace>` is the `FOLIO_HOME` root returned by `folio home workspace list` or created by
-`folio home workspace create`; its root contains `active/`, and it is the cwd for the following
-read-only lookup. First confirm the registered path exists at `main`:
+`<isolated-workspace>` is the `FOLIO_HOME` content root returned by `folio home workspace list` or
+created by `folio home workspace create`; `FOLIO_UMBRELLA` remains the control root containing
+the registry. The workspace root contains `active/`, and it is the cwd for the following read-only
+lookup. First confirm the registered path exists at `main`:
 
 ```bash
 jj file list -r main -- active/tooling/folio/work/active/2026-09-12-sketch-stage-rethink/README.md

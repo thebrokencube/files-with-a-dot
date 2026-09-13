@@ -48,8 +48,14 @@ type ObservationReport struct {
 
 var datePrefix = regexp.MustCompile(`^\d{4}-`)
 
-// Analyze performs a health analysis of a folio project.
+// Analyze performs a health analysis using a legacy local context.
 func Analyze(f *config.Folio, folioDir string) *Report {
+	return AnalyzeWithContext(f, config.Context{FolioPath: filepath.Join(folioDir, "folio.yml"), WorkRoot: folioDir})
+}
+
+// AnalyzeWithContext performs a health analysis using caller-resolved roots.
+func AnalyzeWithContext(f *config.Folio, ctx config.Context) *Report {
+	folioDir := ctx.FolioDir()
 	r := &Report{
 		Project:   f.Project,
 		Reference: make(map[string]int),
@@ -57,7 +63,7 @@ func Analyze(f *config.Folio, folioDir string) *Report {
 
 	analyzeReference(r, folioDir)
 	analyzeWork(r, folioDir)
-	analyzeObservations(r, f, folioDir)
+	analyzeObservations(r, f, ctx)
 	analyzeDesign(r, folioDir)
 	analyzeRetro(r, folioDir)
 	analyzeNaming(r, folioDir)
@@ -136,9 +142,9 @@ func analyzeWork(r *Report, folioDir string) {
 	}
 }
 
-func analyzeObservations(r *Report, f *config.Folio, folioDir string) {
+func analyzeObservations(r *Report, f *config.Folio, ctx config.Context) {
 	r.Observations.Active = len(f.Observations)
-	issues := observe.Lint(folioDir, f.Observations)
+	issues := observe.Lint(f.Observations, ctx)
 	for _, issue := range issues {
 		r.Observations.LintWarnings = append(r.Observations.LintWarnings,
 			fmt.Sprintf("#%d: %s", issue.Index, issue.Reason))

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/config"
+	"github.com/thebrokencube/files-with-a-dot/cmd/folio/internal/touch"
 )
 
 func TestDeriveLifecycleSummary(t *testing.T) {
@@ -44,105 +45,115 @@ func TestDeriveLifecycleSummary(t *testing.T) {
 	}
 }
 
-func TestDeriveLocalStatusClean(t *testing.T) {
+func TestDeriveLocalStatusUsesDigestNotMtime(t *testing.T) {
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "source.md")
-	outPath := filepath.Join(dir, "compiled", "output.md")
+	sourcePath := filepath.Join(dir, "source.md")
+	outputPath := filepath.Join(dir, "compiled", "output.md")
+	writeStatusFile(t, sourcePath, "source")
+	writeStatusFile(t, outputPath, "output")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{
+		Sources: []config.Source{{Path: "source.md"}},
+		Outputs: []config.Output{{Path: "compiled/output.md"}},
+	}
+	mtime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(sourcePath, mtime, mtime); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(outputPath, mtime, mtime); err != nil {
+		t.Fatal(err)
+	}
+	stampStatusTarget(t, ctx, target)
 
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(srcPath, []byte("source"), 0644)
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(outPath, []byte("output"), 0644)
-
-	status := DeriveLocalStatus(dir, "compiled/output.md", []string{"source.md"})
-	if status != "clean" {
-		t.Errorf("status = %q, want clean", status)
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "clean" || cause != "" {
+		t.Fatalf("status = %q cause = %q, want clean/empty", got, cause)
 	}
 }
 
-func TestDeriveLocalStatusStale(t *testing.T) {
+func TestDeriveLocalStatusStaleWhenInputChanges(t *testing.T) {
 	dir := t.TempDir()
-	outPath := filepath.Join(dir, "compiled", "output.md")
-	srcPath := filepath.Join(dir, "source.md")
+	sourcePath := filepath.Join(dir, "source.md")
+	outputPath := filepath.Join(dir, "compiled", "output.md")
+	writeStatusFile(t, sourcePath, "source")
+	writeStatusFile(t, outputPath, "output")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{
+		Sources: []config.Source{{Path: "source.md"}},
+		Outputs: []config.Output{{Path: "compiled/output.md"}},
+	}
+	stampStatusTarget(t, ctx, target)
+	writeStatusFile(t, sourcePath, "changed")
+	future := time.Now().Add(time.Hour)
+	if err := os.Chtimes(outputPath, future, future); err != nil {
+		t.Fatal(err)
+	}
 
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(outPath, []byte("output"), 0644)
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(srcPath, []byte("source newer"), 0644)
-
-	status := DeriveLocalStatus(dir, "compiled/output.md", []string{"source.md"})
-	if status != "stale" {
-		t.Errorf("status = %q, want stale", status)
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "stale" || cause != "source content changed since compose" {
+		t.Fatalf("status = %q cause = %q, want stale/content change", got, cause)
 	}
 }
 
-func TestDeriveLocalStatusMissing(t *testing.T) {
+func TestDeriveLocalStatusMissingOutput(t *testing.T) {
 	dir := t.TempDir()
-	status := DeriveLocalStatus(dir, "compiled/nonexistent.md", []string{"source.md"})
-	if status != "missing" {
-		t.Errorf("status = %q, want missing", status)
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{Outputs: []config.Output{{Path: "compiled/missing.md"}}}
+
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "missing" || cause != "output missing" {
+		t.Fatalf("status = %q cause = %q, want missing/output missing", got, cause)
 	}
 }
 
 func TestDeriveLocalStatusMissingSource(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(filepath.Join(dir, "compiled", "output.md"), []byte("output"), 0644)
+	writeStatusFile(t, filepath.Join(dir, "source.md"), "source")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "output.md"), "output")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{
+		Sources: []config.Source{{Path: "source.md"}},
+		Outputs: []config.Output{{Path: "compiled/output.md"}},
+	}
+	stampStatusTarget(t, ctx, target)
+	if err := os.Remove(filepath.Join(dir, "source.md")); err != nil {
+		t.Fatal(err)
+	}
 
-	status := DeriveLocalStatus(dir, "compiled/output.md", []string{"nonexistent.md"})
-	if status != "stale" {
-		t.Errorf("status = %q, want stale (source missing)", status)
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "stale" || cause != "source source.md missing" {
+		t.Fatalf("status = %q cause = %q, want stale/source missing", got, cause)
 	}
 }
 
-func TestDeriveLocalCauseClean(t *testing.T) {
+func TestDeriveLocalStatusUnknownWithoutSnapshot(t *testing.T) {
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "source.md")
-	outPath := filepath.Join(dir, "compiled", "output.md")
+	writeStatusFile(t, filepath.Join(dir, "source.md"), "source")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "output.md"), "output")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{
+		Sources: []config.Source{{Path: "source.md"}},
+		Outputs: []config.Output{{Path: "compiled/output.md"}},
+	}
 
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(srcPath, []byte("source"), 0644)
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(outPath, []byte("output"), 0644)
-
-	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"source.md"})
-	if cause != "" {
-		t.Errorf("cause = %q, want empty (clean)", cause)
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "unknown" || cause != "composition not recorded" {
+		t.Fatalf("status = %q cause = %q, want unknown/not recorded", got, cause)
 	}
 }
 
-func TestDeriveLocalCauseStale(t *testing.T) {
+func TestDeriveLocalStatusUnknownForExternalInput(t *testing.T) {
 	dir := t.TempDir()
-	outPath := filepath.Join(dir, "compiled", "output.md")
-	srcPath := filepath.Join(dir, "source.md")
-
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(outPath, []byte("output"), 0644)
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(srcPath, []byte("source newer"), 0644)
-
-	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"source.md"})
-	if cause != "source source.md newer than output" {
-		t.Errorf("cause = %q, want 'source source.md newer than output'", cause)
+	writeStatusFile(t, filepath.Join(dir, "compiled", "output.md"), "output")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml")}
+	target := &config.Target{
+		Sources: []config.Source{{External: "jira", ID: "ONE"}},
+		Outputs: []config.Output{{Path: "compiled/output.md"}},
 	}
-}
 
-func TestDeriveLocalCauseMissingOutput(t *testing.T) {
-	dir := t.TempDir()
-	cause := DeriveLocalCause(dir, "compiled/nonexistent.md", []string{"source.md"})
-	if cause != "output missing" {
-		t.Errorf("cause = %q, want 'output missing'", cause)
-	}
-}
-
-func TestDeriveLocalCauseMissingSource(t *testing.T) {
-	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(filepath.Join(dir, "compiled", "output.md"), []byte("output"), 0644)
-
-	cause := DeriveLocalCause(dir, "compiled/output.md", []string{"nonexistent.md"})
-	if cause != "source nonexistent.md missing" {
-		t.Errorf("cause = %q, want 'source nonexistent.md missing'", cause)
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "unknown" || cause != "external source freshness unverified" {
+		t.Fatalf("status = %q cause = %q, want unknown/external", got, cause)
 	}
 }
 
@@ -206,10 +217,8 @@ func TestClassifySourceUnknown(t *testing.T) {
 
 func TestDeriveFullProject(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Test"), 0644)
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(filepath.Join(dir, "compiled", "out.md"), []byte("compiled"), 0644)
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Test")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "out.md"), "compiled")
 
 	f := &config.Folio{
 		Schema:  1,
@@ -222,6 +231,10 @@ func TestDeriveFullProject(t *testing.T) {
 			},
 		},
 	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	target := f.Targets["summary"]
+	stampStatusTarget(t, ctx, &target)
+	f.Targets["summary"] = target
 
 	ps := Derive(f, dir)
 	if ps.Project != "Test Project" {
@@ -230,7 +243,6 @@ func TestDeriveFullProject(t *testing.T) {
 	if len(ps.Sources) != 1 {
 		t.Errorf("sources len = %d", len(ps.Sources))
 	}
-
 	ts := ps.Targets["summary"]
 	if len(ts.Outputs) != 1 {
 		t.Fatalf("outputs len = %d", len(ts.Outputs))
@@ -239,47 +251,45 @@ func TestDeriveFullProject(t *testing.T) {
 		t.Errorf("output status = %q, want clean", ts.Outputs[0].Status)
 	}
 }
-
 func TestDeriveBatchClean(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	// Write sources first
-	os.WriteFile(filepath.Join(dir, "tab1.md"), []byte("# Tab 1"), 0644)
-	os.WriteFile(filepath.Join(dir, "tab2.md"), []byte("# Tab 2"), 0644)
-	time.Sleep(50 * time.Millisecond)
-
-	// Write manifest after sources → everything should be clean
-	os.WriteFile(filepath.Join(dir, "compiled", "manifest.md"), []byte("manifest"), 0644)
+	writeStatusFile(t, filepath.Join(dir, "tab1.md"), "# Tab 1")
+	writeStatusFile(t, filepath.Join(dir, "tab2.md"), "# Tab 2")
 
 	f := &config.Folio{
 		Schema:  1,
 		Project: "Batch Clean",
 		Targets: map[string]config.Target{
 			"batch-target": {
-				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Batch: &config.Batch{
 					System: "gdocs",
 					Items: []config.BatchItem{
 						{ID: "tab-1", Source: "tab1.md", Output: config.Output{ID: "doc-tab-1"}},
 						{ID: "tab-2", Source: "tab2.md", Output: config.Output{ID: "doc-tab-2"}},
+						{ID: "manual", Output: config.Output{ID: "doc-manual"}},
 					},
 				},
 			},
 		},
 	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	target := f.Targets["batch-target"]
+	stampStatusTarget(t, ctx, &target)
+	f.Targets["batch-target"] = target
 
-	ps := Derive(f, dir)
-	ts := ps.Targets["batch-target"]
-
-	if len(ts.BatchItems) != 2 {
-		t.Fatalf("batch items len = %d, want 2", len(ts.BatchItems))
+	ts := Derive(f, dir).Targets["batch-target"]
+	if len(ts.BatchItems) != 3 {
+		t.Fatalf("batch items len = %d, want 3", len(ts.BatchItems))
 	}
 	for _, item := range ts.BatchItems {
-		if item.Status != "clean" {
-			t.Errorf("item %q status = %q, want clean", item.ID, item.Status)
+		want := "clean"
+		if item.ID == "manual" {
+			want = "unknown"
 		}
-		if item.System != "gdocs" {
+		if item.Status != want {
+			t.Errorf("item %q status = %q, want %s", item.ID, item.Status, want)
+		}
+		if item.ID != "manual" && item.System != "gdocs" {
 			t.Errorf("item %q system = %q, want gdocs", item.ID, item.System)
 		}
 	}
@@ -287,21 +297,13 @@ func TestDeriveBatchClean(t *testing.T) {
 
 func TestDeriveBatchStale(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	// Write manifest first
-	os.WriteFile(filepath.Join(dir, "compiled", "manifest.md"), []byte("manifest"), 0644)
-	time.Sleep(50 * time.Millisecond)
-
-	// Write source AFTER manifest → stale
-	os.WriteFile(filepath.Join(dir, "tab1.md"), []byte("# Updated"), 0644)
+	writeStatusFile(t, filepath.Join(dir, "tab1.md"), "# Original")
 
 	f := &config.Folio{
 		Schema:  1,
 		Project: "Batch Stale",
 		Targets: map[string]config.Target{
 			"batch-target": {
-				Outputs: []config.Output{{Path: "compiled/manifest.md"}},
 				Batch: &config.Batch{
 					System: "gdocs",
 					Items: []config.BatchItem{
@@ -311,10 +313,13 @@ func TestDeriveBatchStale(t *testing.T) {
 			},
 		},
 	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	target := f.Targets["batch-target"]
+	stampStatusTarget(t, ctx, &target)
+	f.Targets["batch-target"] = target
+	writeStatusFile(t, filepath.Join(dir, "tab1.md"), "# Updated")
 
-	ps := Derive(f, dir)
-	ts := ps.Targets["batch-target"]
-
+	ts := Derive(f, dir).Targets["batch-target"]
 	if len(ts.BatchItems) != 1 {
 		t.Fatalf("batch items len = %d, want 1", len(ts.BatchItems))
 	}
@@ -322,12 +327,9 @@ func TestDeriveBatchStale(t *testing.T) {
 		t.Errorf("item status = %q, want stale", ts.BatchItems[0].Status)
 	}
 }
-
 func TestDeriveBatchMissing(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-	os.WriteFile(filepath.Join(dir, "compiled", "manifest.md"), []byte("manifest"), 0644)
-
+	writeStatusFile(t, filepath.Join(dir, "compiled", "manifest.md"), "manifest")
 	f := &config.Folio{
 		Schema:  1,
 		Project: "Batch Missing",
@@ -344,35 +346,20 @@ func TestDeriveBatchMissing(t *testing.T) {
 		},
 	}
 
-	ps := Derive(f, dir)
-	ts := ps.Targets["batch-target"]
-
+	ts := Derive(f, dir).Targets["batch-target"]
 	if len(ts.BatchItems) != 1 {
 		t.Fatalf("batch items len = %d, want 1", len(ts.BatchItems))
 	}
-	if ts.BatchItems[0].Status != "missing" {
-		t.Errorf("item status = %q, want missing", ts.BatchItems[0].Status)
+	if ts.BatchItems[0].Status != "unknown" {
+		t.Errorf("item status = %q, want unknown without persisted digest", ts.BatchItems[0].Status)
 	}
 }
 
-func TestDeriveWithDAG(t *testing.T) {
+func TestStaleOrMissingUpstreamPropagatesStale(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "compiled"), 0755)
-
-	// Create source file
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Source"), 0644)
-	time.Sleep(50 * time.Millisecond)
-
-	// upstream output is clean (written after source)
-	os.WriteFile(filepath.Join(dir, "compiled", "summary.md"), []byte("summary"), 0644)
-	time.Sleep(50 * time.Millisecond)
-
-	// downstream output is clean (written after upstream output)
-	os.WriteFile(filepath.Join(dir, "compiled", "final.md"), []byte("final"), 0644)
-
-	// Now make upstream stale by touching source after outputs
-	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Updated source"), 0644)
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Source")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "summary.md"), "summary")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "final.md"), "final")
 
 	f := &config.Folio{
 		Schema:  1,
@@ -388,23 +375,205 @@ func TestDeriveWithDAG(t *testing.T) {
 			},
 		},
 	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	upstream := f.Targets["upstream"]
+	stampStatusTarget(t, ctx, &upstream)
+	f.Targets["upstream"] = upstream
+	downstream := f.Targets["downstream"]
+	stampStatusTarget(t, ctx, &downstream)
+	f.Targets["downstream"] = downstream
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Updated source")
 
-	ps, causedBy := DeriveWithDAG(f, dir)
-
-	// upstream should be stale (source newer than output)
+	ps, causedBy, causedStatus := DeriveWithDAG(f, dir)
 	upOut := ps.Targets["upstream"].Outputs[0]
 	if upOut.Status != "stale" {
 		t.Errorf("upstream status = %q, want stale", upOut.Status)
 	}
-
-	// downstream should be transitively stale via propagation
 	downOut := ps.Targets["downstream"].Outputs[0]
 	if downOut.Status != "stale" {
 		t.Errorf("downstream status = %q, want stale (propagated)", downOut.Status)
 	}
-
-	// causedBy should record the propagation chain
 	if cause, ok := causedBy["downstream"]; !ok || cause != "upstream" {
 		t.Errorf("causedBy[downstream] = %q, want upstream", cause)
+	}
+	if causedStatus["downstream"] != "stale" {
+		t.Errorf("causedStatus[downstream] = %q, want stale", causedStatus["downstream"])
+	}
+}
+func TestUnknownUpstreamPropagatesUnknown(t *testing.T) {
+	dir := t.TempDir()
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Source")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "summary.md"), "summary")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "final.md"), "final")
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Unknown DAG",
+		Targets: map[string]config.Target{
+			"upstream": {
+				Sources: []config.Source{{Path: "README.md"}},
+				Outputs: []config.Output{{Path: "compiled/summary.md"}},
+			},
+			"downstream": {
+				Sources: []config.Source{{Path: "compiled/summary.md"}},
+				Outputs: []config.Output{{Path: "compiled/final.md"}},
+			},
+		},
+	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	downstream := f.Targets["downstream"]
+	stampStatusTarget(t, ctx, &downstream)
+	f.Targets["downstream"] = downstream
+
+	ps, causedBy, causedStatus := DeriveWithDAG(f, dir)
+	if got := ps.Targets["downstream"].Outputs[0].Status; got != "unknown" {
+		t.Fatalf("downstream status = %q, want unknown", got)
+	}
+	if causedBy["downstream"] != "upstream" {
+		t.Fatalf("causedBy[downstream] = %q, want upstream", causedBy["downstream"])
+	}
+	if causedStatus["downstream"] != "unknown" {
+		t.Fatalf("causedStatus[downstream] = %q, want unknown", causedStatus["downstream"])
+	}
+}
+
+func TestFinalTargetEmitsStaleDownstreamWithoutReceivingPropagation(t *testing.T) {
+	dir := t.TempDir()
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Source")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "upstream.md"), "upstream")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "terminal.md"), "terminal")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "downstream.md"), "downstream")
+	f := &config.Folio{
+		Schema:  1,
+		Project: "Terminal DAG",
+		Targets: map[string]config.Target{
+			"upstream": {
+				Sources: []config.Source{{Path: "README.md"}},
+				Outputs: []config.Output{{Path: "compiled/upstream.md"}},
+			},
+			"terminal": {
+				Sources: []config.Source{{Path: "compiled/upstream.md"}},
+				Outputs: []config.Output{{Path: "compiled/terminal.md"}},
+				Final:   true,
+			},
+			"downstream": {
+				Sources: []config.Source{{Path: "compiled/terminal.md"}},
+				Outputs: []config.Output{{Path: "compiled/downstream.md"}},
+			},
+		},
+	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	for tid, target := range f.Targets {
+		stampStatusTarget(t, ctx, &target)
+		f.Targets[tid] = target
+	}
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Updated")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "upstream.md"), "upstream changed")
+
+	ps, causedBy, causedStatus := DeriveWithDAG(f, dir)
+	if got := ps.Targets["terminal"].Outputs[0].Status; got != "stale" {
+		t.Fatalf("terminal status = %q, want stale", got)
+	}
+	if _, ok := causedBy["terminal"]; ok {
+		t.Fatalf("terminal unexpectedly received propagation from %q", causedBy["terminal"])
+	}
+	if got := ps.Targets["downstream"].Outputs[0].Status; got != "stale" {
+		t.Fatalf("downstream status = %q, want stale", got)
+	}
+	if causedBy["downstream"] != "terminal" || causedStatus["downstream"] != "stale" {
+		t.Fatalf("downstream cause = %q/%q, want terminal/stale", causedBy["downstream"], causedStatus["downstream"])
+	}
+}
+
+func TestExternalOutputsDoNotAggregateOrReceivePropagation(t *testing.T) {
+	dir := t.TempDir()
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Source")
+	writeStatusFile(t, filepath.Join(dir, "stable.md"), "# Stable")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "upstream.md"), "upstream")
+	writeStatusFile(t, filepath.Join(dir, "compiled", "mixed.md"), "mixed")
+	f := &config.Folio{
+		Schema:  1,
+		Project: "External Outputs",
+		Targets: map[string]config.Target{
+			"upstream": {
+				Sources: []config.Source{{Path: "README.md"}},
+				Outputs: []config.Output{{Path: "compiled/upstream.md"}},
+			},
+			"external-only": {
+				Sources: []config.Source{{Path: "compiled/upstream.md"}},
+				Outputs: []config.Output{{External: "jira", ID: "EXT-1"}},
+			},
+			"mixed": {
+				Sources: []config.Source{{Path: "stable.md"}},
+				Outputs: []config.Output{
+					{Path: "compiled/mixed.md"},
+					{External: "jira", ID: "EXT-2"},
+				},
+			},
+		},
+	}
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	mixed := f.Targets["mixed"]
+	stampStatusTarget(t, ctx, &mixed)
+	f.Targets["mixed"] = mixed
+	upstream := f.Targets["upstream"]
+	stampStatusTarget(t, ctx, &upstream)
+	f.Targets["upstream"] = upstream
+	writeStatusFile(t, filepath.Join(dir, "README.md"), "# Updated")
+
+	ps, causedBy, _ := DeriveWithDAG(f, dir)
+	externalOnly := ps.Targets["external-only"]
+	if externalOnly.Outputs[0].Status != "unknown" || externalOnly.Outputs[0].Cause != "" {
+		t.Fatalf("external-only output = %+v", externalOnly.Outputs[0])
+	}
+	if _, ok := causedBy["external-only"]; ok {
+		t.Fatal("external-only target received propagated status")
+	}
+	mixedStatus := ps.Targets["mixed"]
+	if mixedStatus.Outputs[0].Status != "clean" || mixedStatus.Outputs[1].Status != "unknown" {
+		t.Fatalf("mixed outputs = %+v", mixedStatus.Outputs)
+	}
+}
+
+func TestForestTargetIsDelegatedAndExcludedFromStaleQueue(t *testing.T) {
+	dir := t.TempDir()
+	writeStatusFile(t, filepath.Join(dir, "compiled", "forest.md"), "forest")
+	ctx := config.Context{FolioPath: filepath.Join(dir, "folio.yml"), WorkRoot: dir}
+	target := &config.Target{
+		Forest:  &config.Forest{Root: "forest"},
+		Outputs: []config.Output{{Path: "compiled/forest.md"}},
+	}
+
+	got, cause := DeriveLocalStatus(ctx, target, target.Outputs[0])
+	if got != "unknown" || cause != "freshness delegated to jf" {
+		t.Fatalf("forest status = %q cause = %q, want unknown/delegated", got, cause)
+	}
+}
+
+func stampStatusTarget(t *testing.T, ctx config.Context, target *config.Target) {
+	t.Helper()
+	state, err := touch.Snapshot(ctx, target, false, time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.ComposedAt = state.ComposedAt
+	target.InputsSHA256 = state.InputsSHA256
+	if target.Batch != nil {
+		for _, itemState := range state.Items {
+			for i := range target.Batch.Items {
+				if target.Batch.Items[i].ID == itemState.ID {
+					target.Batch.Items[i].InputsSHA256 = itemState.InputsSHA256
+				}
+			}
+		}
+	}
+}
+
+func writeStatusFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
 	}
 }

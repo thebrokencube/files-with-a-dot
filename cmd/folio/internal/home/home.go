@@ -45,6 +45,22 @@ func Dir() (string, error) {
 	return filepath.Join(home, defaultHome), nil
 }
 
+// UmbrellaOverride returns the explicit registry/control-plane root, when set.
+func UmbrellaOverride() (path string, set bool, err error) {
+	if value := os.Getenv("FOLIO_UMBRELLA"); value != "" {
+		return value, true, nil
+	}
+	return "", false, nil
+}
+
+// WorkRootOverride returns the explicit content-plane work root, when set.
+func WorkRootOverride() (path string, set bool, err error) {
+	if value := os.Getenv("FOLIO_HOME"); value != "" {
+		return value, true, nil
+	}
+	return "", false, nil
+}
+
 // Init scaffolds the FOLIO_HOME directory structure. It creates missing files,
 // migrates known legacy scaffolds, and preserves other existing content.
 //
@@ -167,6 +183,19 @@ func Validate(dir string) []string {
 	errs = append(errs, validateVault(dir)...)
 
 	return errs
+}
+
+// ValidateRegisteredStore preserves ordinary structural errors while treating
+// a missing archive directory as a migration warning for registered stores.
+func ValidateRegisteredStore(dir string) (errs, warnings []string) {
+	for _, err := range Validate(dir) {
+		if err == "missing directory: archive" {
+			warnings = append(warnings, err)
+			continue
+		}
+		errs = append(errs, err)
+	}
+	return errs, warnings
 }
 
 // validateVault checks the structural integrity of the vault/ directory.

@@ -29,7 +29,7 @@ func loadAndValidate(t *testing.T, dir string) *Result {
 	if err != nil {
 		t.Fatalf("loading folio.yml: %v", err)
 	}
-	return Validate(f, dir)
+	return validateForTest(f, dir)
 }
 
 func TestIntegrationMinimalValid(t *testing.T) {

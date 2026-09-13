@@ -37,7 +37,7 @@ Two shapes of research:
 - **Snapshot** (new topic): `folio gather <url>` scaffolds a source entry. Add `--materialize` to download content and create a local reference file. Use `--type research` to specify the reference type.
 - **Re-seed** (update existing): the `folio gather <topic>` Agent Skill workflow does full agent-driven research — surveys the landscape, synthesizes findings, and updates existing references.
 
-**Vault vs project-scoped**: landscape scans and tool surveys that apply across projects go in the vault (`~/.folio/vault/research/`). Project-specific investigations stay as spikes within the project.
+**Vault vs project-scoped**: landscape scans and tool surveys that apply across projects go in the selected Folio store's `<work-root>/vault/research/`. Project-specific investigations stay as spikes within the project.
 
 ## Planning: From Observation to Design
 
@@ -81,7 +81,11 @@ Push methods vary by target:
 - **Google Docs**: via the host's configured gdrive tools
 - **Manual**: copy output to clipboard with `pbcopy < output-file`
 
-There is a mandatory review gate before every external push. Post-push, `folio touch` clears staleness so `folio status` reflects the current state.
+There is a mandatory review gate before every external push. After publishing, verify
+the external result. If the target has a local output, run `folio touch <target>` to
+record the input digest without changing the output. Use `--final` only for a
+non-batch, non-forest target with a direct external output and an existing local review
+copy; final targets stop dependency propagation but still surface local stale or missing state.
 
 ## Observations as an Open-Items Queue
 
@@ -100,19 +104,27 @@ Valid types: `idea`, `task`, `bug`, `gap`, `debt`.
 
 Observations live in the `observations:` section of folio.yml. `folio observe lint` validates their format.
 
-## Home Sync: Managing ~/.folio
+Observation and source-registration commands validate their projected manifest changes.
+If a new observation or gathered source would introduce a blocking finding, Folio rolls
+back the manifest and any materialized artifact created by that command.
 
-All git operations on `~/.folio` go through `folio home` subcommands -- never use raw git.
+
+## Home Sync: Managing Folio Content Stores
+
+`FOLIO_UMBRELLA` names the control root containing `stores.yml`; `FOLIO_HOME`
+names the selected content work root. All git operations on a Folio content
+store go through `folio home` subcommands — never use raw git or jj:
 
 ```bash
-folio home list    # dashboard of all projects
-folio home push    # commit and push to remote
-folio home pull    # pull from remote
+folio home list    # dashboard for the selected store
+folio home push    # commit and push the selected store
+folio home pull    # pull the selected store
+folio home push <store> -m "type(scope): description"  # sync one registered store
 ```
 
-`folio home push` runs lint as a gate. If any project's folio.yml has validation errors, the push is blocked.
-
-Projects move between `active/` and `archive/` via `folio archive`. Active projects appear in `folio home list`; archived ones don't.
+`folio home push` runs lint as a gate. If any project's folio.yml has validation
+errors, the push is blocked. Projects move between `active/` and `archive/` via
+`folio archive`; active projects appear in `folio home list`, archived ones do not.
 
 ## Working with jf Forests
 

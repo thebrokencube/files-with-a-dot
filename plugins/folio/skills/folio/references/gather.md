@@ -33,6 +33,11 @@ Options:
 - `--materialize`: create a typed reference file and add `path:` + `derived_from:` entry
 - `--read`: print that the folio Agent Skill is required and exit — clear seam for the skill layer
 
+Each source registration is validated as a projected manifest change before the command
+reports success. If the new source or materialized reference would introduce a blocking
+finding, Folio restores the manifest, artifact, and newly created parent directories.
+
+
 ## Skill: Gather Phases
 
 When invoked as a skill, gather follows a phased workflow. Not every phase runs every time — Shape A (snapshot) often collapses Survey and Synthesize into one pass; Shape C (re-seed) skips Scope detection and starts from the existing file.
