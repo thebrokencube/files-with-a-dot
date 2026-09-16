@@ -9,6 +9,19 @@ Rules for managing stacks of changes using jj (Jujutsu). Covers building stacks,
 - **No current branch.** You edit a specific change, not a branch. Bookmarks must be explicitly created.
 - **Operation log.** Every jj operation is recorded and reversible via `jj op undo`.
 
+## Review-Boundary Repairs
+
+Read `history-shaping.md` for the shared repair-ownership and
+final-tree contract. Classify feedback against the current working-copy change,
+another committed or pushed change, or an independent change before selecting an
+owner operation.
+
+Use `Addressing Review Feedback` → `Edit the target change directly` for owner
+repairs. After every rewrite, apply `Restructuring an Existing Stack` →
+`Verify a restructure preserved behaviour`. If an operation targets the wrong
+change, use `Recovery` before proceeding. Keep `jj absorb` limited to lines with
+one unambiguous owner as specified under `Moving a change into the right commit`.
+
 ## Building a Stack
 
 ```bash
