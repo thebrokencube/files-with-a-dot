@@ -49,6 +49,65 @@ The pattern is always: reset to the new parent tip, then cherry-pick the child's
 
 Every commit MUST remain green after propagation. If a rebase introduces a failure in any commit, fix it and autosquash into that commit — NEVER leave a broken commit in the chain or push a fix as a separate commit.
 
+### Review-Boundary Repairs
+
+When review feedback is accepted for an existing committed or pushed unit, identify
+the logical owner and use the Fixup Targeting procedure below. Before rewriting a
+parent, record every child commit list; propagate rewritten children in parent-first
+DAG order as described above. Run the repository's checks at every retained boundary,
+not only at the final tip.
+
+For a history-only structural operation, record immutable tip SHAs before and
+after the operation, then require an unchanged tree after every step:
+
+```bash
+PRE_STEP_TIP=$(git rev-parse <tip-ref>)
+# perform the history-only structural operation
+POST_STEP_TIP=$(git rev-parse <new-tip-ref>)
+git diff --exit-code "$PRE_STEP_TIP" "$POST_STEP_TIP" --
+```
+
+For the final walkability pass, record immutable `<pre-pass-tip>` before the pass
+and compare it with the final shaped tip afterward:
+
+```bash
+PRE_PASS_TIP=$(git rev-parse <stack-tip-ref>)
+# perform the history-only walkability pass
+FINAL_TIP=$(git rev-parse <new-stack-tip-ref>)
+git diff --exit-code "$PRE_PASS_TIP" "$FINAL_TIP" --
+```
+
+A changed tree is a stop, not a repair opportunity.
+
+For a published parent/child boundary, do not move content across the boundary
+in the ordinary review loop. Treat it as a coordination stop. If the accepted
+repair's owner is the published parent, its tree changes by design; re-run the
+retained-unit checks and propagate descendants in parent-first order rather than
+asserting an unchanged parent tree.
+
+If the owner is the child or another unit and the published parent must remain
+stable, capture the remote-reviewed parent tip as an immutable SHA before
+rewriting, then require the resulting parent tree to remain unchanged:
+
+```bash
+git fetch origin <parent-branch>
+REVIEWED_PARENT_TIP=$(git rev-parse origin/<parent-branch>)
+git diff --exit-code "$REVIEWED_PARENT_TIP" <new-parent-tip> --
+```
+
+If explicit coordination authorizes moving content across the boundary, do not
+apply the unchanged-parent-tree check to that move. After propagation, verify
+that the moved symbol is absent from the donor parent's diff after the move:
+
+```bash
+test "$(git diff --unified=0 <trunk-tip> <new-donor-parent-tip> -- | grep -F -c '<moved-symbol>')" -eq 0
+```
+
+Generated commits still follow Drop-and-Rerun Pattern: omit them during
+propagation, read the `auto:` command, and regenerate. Semantic conflicts still
+stop for user confirmation; do not silently move behavior across the review
+boundary.
+
 ### Post-flight
 
 1. Verify commit count on each branch matches expectations

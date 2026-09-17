@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing, editing, or rewriting a PR title/body (including `gh pr edit`, revising a description after review feedback, tightening an existing body, whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of host defaults.
+description: Conventional commit format, message conventions, green commit rules, VCS history structuring for both git and jj (Jujutsu), and PR title/description house style. Use when creating commits, amending commits, writing commit messages, addressing review feedback, assigning repairs to existing commits, shaping history before push or PR update, describing jj changes (jj describe, jj new, jj split, jj squash), fixup commits, interactive rebase, stacked branch propagation, deciding how to decompose work into commits, or writing, editing, or rewriting a PR title/body (including `gh pr edit`, revising a description after review feedback, tightening an existing body, whether to use a repo PR template or the house style, and the stack list for stacked PRs). Applies to all repositories — always use this skill instead of host defaults.
 ---
 
 # Commit Conventions
@@ -89,6 +89,15 @@ chore(deps): add stripe gem
 refactor(payments): extract payment processor interface
 feat(checkout): add stripe payment processor with tests
 ```
+
+### History Shaping
+
+When review feedback is accepted or history needs cleanup before handoff, push, or
+PR update, classify the repair's logical owner before changing history.
+
+-> Read references/history-shaping.md for repair ownership, retained green units,
+review boundaries, walkability checks, and stop conditions. Use the Git or jj
+stacking reference for native commands, topology, and recovery.
 
 ## Git: Single Change
 
