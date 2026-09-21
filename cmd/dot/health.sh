@@ -423,18 +423,6 @@ check_setup_status() {
         fi
     fi
 
-    # Check iTerm2 profile (macOS only)
-    if [[ "$(uname)" == "Darwin" ]]; then
-        local iterm_profile="$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json"
-        if [[ -f "$iterm_profile" ]]; then
-            ok "iTerm2 profile installed"
-            # Can't detect if they're using it, so always remind
-            info "iTerm2: Make sure 'Dotfiles Default' profile is selected"
-        else
-            pending "iTerm2: Profile not linked (run sync.sh)"
-            pending_items+=("iterm")
-        fi
-    fi
 
     # Check Claude Code skills
     if [[ -d "$HOME/.claude/skills" ]] && [[ $(ls "$HOME/.claude/skills" 2>/dev/null | wc -l) -gt 0 ]]; then
