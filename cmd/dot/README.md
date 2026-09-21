@@ -30,11 +30,10 @@ Options: `--dry-run` and `--skip-brew` pass through to underlying scripts.
 ```
 configs/base/git/.gitconfig:$HOME/.gitconfig
 configs/base/nvim/.config/nvim:$HOME/.config/nvim
-configs/base/iterm2/dotfiles-profile.json:$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json
 cmd/dot/dot:$HOME/.local/bin/dot
 ```
 
-This allows linking to any location — useful for apps like iTerm2 that store configs in `~/Library`.
+This allows linking to any location while keeping application-specific paths explicit.
 
 ### Multi-Mode Support
 
@@ -87,7 +86,6 @@ files-with-a-dot/
 │   │   ├── zsh/                # Zsh config (primary shell)
 │   │   ├── git/                # Git config
 │   │   ├── shell/              # Shared shell config (.shell_common)
-│   │   ├── iterm2/             # iTerm2 profile (Nerd Font)
 │   │   └── claude/.claude/     # Claude Code config + skills
 │   ├── aggressive/             # Aggressive mode overlay (Brewfile + shell.managed)
 │   └── templates/              # Private overlay scaffold
@@ -109,7 +107,6 @@ files-with-a-dot/
 | Issue | Solution |
 |-------|----------|
 | Git operations fail | Set up GitHub SSH: `ssh -T git@github.com` or check [GitHub docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) |
-| Icons broken in iTerm2 | Select "Dotfiles Default" profile, disable "Draw Powerline Glyphs" |
 | Shell changes not applied | Run `exec $SHELL -l` or `reload` |
 | Symlink conflicts | Run `dot sync --dry-run` to see state |
 | Nvim plugins missing | Open nvim to trigger auto-install |

@@ -60,6 +60,7 @@ RETIRED_LINK_PAIRS=(
     "$HOME/.claude/rules/writing-structure.md|configs/base/claude/.claude/rules/writing-structure.md"
     "$HOME/.claude/rules/concision.md|configs/base/claude/.claude/output-styles/Concise.md"
     "$HOME/.claude/references/isolated-checkouts-runbook.md|configs/base/claude/.claude/references/isolated-checkouts-runbook.md"
+    "$HOME/Library/Application Support/iTerm2/DynamicProfiles/dotfiles-profile.json|configs/base/iterm2/dotfiles-profile.json"
 )
 RETIRED_LINK_CLEANUP_PLAN=()
 

@@ -41,7 +41,6 @@ brew "can1357/tap/omp", trusted: true
 
 # Terminal
 cask "ghostty"                  # Modern terminal emulator
-cask "iterm2"                   # Fallback terminal
 
 # Knowledge management
 cask "obsidian"                 # Vault browser for ~/.folio

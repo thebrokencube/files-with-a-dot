@@ -29,7 +29,6 @@ After first sync:
 1. Restart shell: `exec $SHELL -l` (puts `dot` on PATH)
 2. Open nvim to trigger plugin installation
 3. Run `dot health` to verify everything
-4. (Optional) Select iTerm2 "Dotfiles Default" profile for icons
 
 ## Native delivery
 
@@ -96,7 +95,6 @@ Based on [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) with:
 
 ### Terminal
 - **Ghostty** as primary terminal (Inconsolata Nerd Font)
-- **iTerm2** as fallback (with Nerd Font profile for icons)
 
 ### Agent Skills
 
