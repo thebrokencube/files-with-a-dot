@@ -135,8 +135,45 @@ Schema 2 replaced `pending` and `tasks` sections with `observations`. Design doc
 | `folio home push` | `folio home push [<store>]` | Commit and push the selected Folio store |
 | `folio home pull` | `folio home pull [<store>]` | Pull the selected Folio store |
 | `folio setup` | `folio setup [--check]` | Setup or diagnose environment |
+| `folio lease run` | `folio lease run <store> [--timeout 180s] [--dry-run] [--json]` | Launch a store's declared dev server once from its main checkout, or report the holder |
+| `folio lease status` | `folio lease status <store> [--json]` | Read-only lease state: `free`, `starting`, `running`, or `held` (`declared=false` without a `serve` block) |
+| `folio lease release` | `folio lease release <store> [--dry-run] [--json]` | From the main checkout: stop the leased server and delete the lease |
 
 **Flag ordering**: flags must come before positional arguments (enforced by the CLI parser).
+
+## Dev server lease
+
+A store in `stores.yml` may declare its main dev server. A store without `serve:` is untouched by every folio command.
+
+```yaml
+stores:
+  app:
+    path: ~/code/app
+    kind: code
+    serve:
+      url: http://localhost:3000          # printed in outcomes; optional
+      processes:                          # at least one; ports unique across all serve blocks
+        - { name: web,    port: 3000, run: "bin/server -p 3000" }
+        - { name: assets, port: 3036, run: "bin/assets" }
+      require_env: [APP_TOKEN]            # key names only; values come from the calling shell
+      alternative: "use the running server"  # refusal hint; optional
+```
+
+`folio lease run` decides from the lease file `<umbrella>/.fleet/leases/<store>.json`, the listener on each declared port (`lsof`), the caller's working directory, and the `require_env` keys. On a launch it runs each `run` string in its own subshell under one `sh`, in a new session, from the store path. It logs to `<store>.log` beside the lease and exits once every declared port is listening inside that process group, leaving the server running. The lease records key names and a SHA-256 digest of the values, never the values.
+
+Declared processes must stay in the launched process group. Do not wrap them in `setsid` or anything else that daemonizes: a declared port owned outside the group fails the launch.
+
+| Exit | Outcome |
+|---|---|
+| 0 | `started`, or `running`: already up from the main checkout with the same env — a no-op |
+| 1 | `refused`: not the main checkout (the cwd realpath must equal the store path), a missing `require_env` key, no `serve` block, or a port declared by two stores |
+| 2 | `failed`: the processes exited, `--timeout` passed, a declared port came up outside the group, or the lease was released during startup. The group gets TERM, then KILL after 10 s; the lease is removed and the log tail printed. `release` also exits 2 when the group still owns a declared port 10 s after TERM; it keeps the lease so a retry can signal again |
+| 3 | `held`: a declared port is owned outside the lease (never signalled), the server is still starting, the env differs, or the caller is not the main checkout |
+
+A lease whose process group has no live member is stale; the next `run` replaces it. Changing the holder is `folio lease release <store>` then `folio lease run <store>`, both from the main checkout. `release` signals the lease's process group only while a declared port's owner is inside it. While the group is alive but owns no declared port yet, `release` exits 3 ("starting — retry once it is ready") and leaves the lease in place, so a booting server never loses its lease. The message names a manual stop and the log path: check `pgrep -l -g <pgid>` first, because the pgid may have been reused, and `kill -TERM -<pgid>` only if those are the store's processes. A stale lease is only deleted, and nothing is signalled.
+
+`--dry-run` on `run` or `release` gathers the same facts and makes the same decision, then reports `would-start` or `would-release` with the same exit code. It takes no lock and spawns, signals, writes, and deletes nothing. `--json` prints the dendrik `data` envelope with `exit_code` set.
+
 ## Archive and activation safety
 
 Project and work-track archive operations resolve structured path references from sibling projects in the selected Folio store before moving anything. If a sibling reference resolves inside the candidate root, the command refuses before rename, manifest write, sync, or push. Folio does not rewrite dependent manifests automatically; update the dependent project manually, validate it, and retry.
