@@ -2,8 +2,8 @@
 name: folio
 description: "Use when planning non-trivial tasks, composing outputs, or managing
   knowledge work projects. Lifecycle toolkit with folio.yml-driven source-to-target
-  composition and diverge-converge planning. Trigger on: design doc, spike, retro,
-  wrap-up, observations, handoff, brief, gather, publish, burndown, work tracks."
+  composition and diverge-converge planning. Trigger on: design doc, proposal, tech spec,
+  spike, retro, wrap-up, observations, handoff, brief, gather, publish, burndown, work tracks."
 ---
 
 # Folio
@@ -149,7 +149,7 @@ Dispatch a selected track to a named receiver by reading only its committed work
 
 ### /folio compose [target]
 
-Compose sources into targets in DAG order. Composition is creative assembly — sources are working memory; targets are communication condensed for their audience.
+Compose sources into targets in DAG order. Composition is creative assembly — sources are working memory; targets are communication condensed for their audience. Proposal and tech-spec targets follow references/proposal.md by default.
 
 -> Read references/compose.md for full workflow. See references/schema.md for folio.yml structure.
 
@@ -373,7 +373,7 @@ is how provenance chains break.
 - **references/gather.md** — Gather workflow: URL scaffold, snapshot (Shape A), re-seed (Shape C), phase structure
 - **references/compose.md** — Compose workflow: steps, forest targets, batch targets, iteration loop
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
-- **references/notion-proposal-template.md** — Default Notion template: feedback table with reviewer stance/comments
+- **references/proposal.md** — Proposal format: sections, bullet rules, claim linking, diagram policy, word budget, audit, feedback table
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
   - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, visual vocabulary, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
