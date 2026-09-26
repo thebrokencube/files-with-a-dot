@@ -2,7 +2,6 @@
 
 [user]
 name = "Sapan Upadhyay"
-email = "sapan.upadhyay@gusto.com"
 
 [ui]
 editor = "nvim"
