@@ -157,7 +157,7 @@ No staging area — the working copy IS the change. Files are auto-snapshotted.
 
 ## PR Descriptions
 
-A house style for PR bodies applies to **all repos**. **If the repo has a PR template (`.github/pull_request_template.md`), ask the user whether to use the template or the house style** — don't silently pick (a settled per-repo preference in CLAUDE.md/memory overrides the ask).
+A house style for PR bodies applies to **all repos**. **If the repo has a PR template (`.github/pull_request_template.md`), ask the user whether to use the template or the house style** — don't silently pick (a settled per-repo preference in the repo's CLAUDE.md/AGENTS.md overrides the ask).
 
 **Before writing or editing a PR title or body, read references/pr-descriptions.md.** That includes a
 one-line tweak through `gh pr edit`. It carries what this file does not: title vocabulary, depth order
