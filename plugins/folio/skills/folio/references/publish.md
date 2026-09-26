@@ -105,12 +105,6 @@ Each of these has cost a fetch-fix-push cycle. Always fetch the page back and co
 - **Bold:** `**markdown**`, not `<strong>`, which renders as raw HTML.
 - **Empty cells** need `<td> </td>` with a space; `<td></td>` merges columns.
 
-### SRM tech specs and design docs
-
-Reshape to the retirement team's design-doc skeleton — Background + Related Resources, SMART Goals, Solution
-Options / Preferred Design, Rollout, Mitigation, Open Issues. Fetch the template first, and publish into a
-private page under the user's scratchpad.
-
 ## Other Publish Targets
 
 | Target type | Publish approach |

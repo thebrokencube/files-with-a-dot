@@ -148,7 +148,7 @@ Then pick one of three outcomes:
 every resolve, so an `obs #N` written today points elsewhere after the next cleanup.
 
 **Why:** lint is the workflow whose whole purpose is asking "does this already exist", and it is the one
-that skipped the read. Evidence from the 2026-08-16 groot pass:
+that skipped the read. Evidence from a 2026-08-16 lint pass:
 
 - Five findings filed into a 62-entry `tooling/folio` with no dedupe check. One was a straight
   duplicate; two were the opposite failure direction of entries already there.
