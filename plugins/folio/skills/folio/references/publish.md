@@ -77,18 +77,21 @@ each item in order. One review gate per item. Report progress as
 
 ## Notion Templates
 
-When composing a target with `external: notion`, check the target's `how` field for
-template references. The default template is defined in `references/notion-proposal-template.md`
-— it appends a Feedback table (reviewer name, stance, feedback) after the composed content.
+Proposal structure and its Feedback table are applied at compose time (`references/proposal.md`), so the
+output file already contains them. Publish pushes that file unchanged.
 
-**Opt-in**: Include "Apply the Notion proposal template" in the target's `how` field.
-**Opt-out**: Omit it, or include "No feedback table" in `how`.
+**Notion targets are write-only.** All edits happen in the local output file. Publish
+replaces the full page content. Never use `update_content` for incremental Notion edits —
+compose the final version locally, then publish once with `replace_content`.
 
-The template is applied during **compose** (it becomes part of the output file), not
-during publish. This means the local output file includes the feedback section, and
-publish pushes it to Notion as-is.
+The iterative loop stays local:
 
--> See references/notion-proposal-template.md for the full template spec.
+```
+align on changes → edit output file → review → repeat → publish once
+```
+
+Do not edit Notion directly during the review loop. The local output file is the source
+of truth; Notion is a render target.
 
 ### Notion rendering constraints
 
@@ -101,12 +104,6 @@ Each of these has cost a fetch-fix-push cycle. Always fetch the page back and co
 - **Tables:** `<tr>`/`<td>` only — a `<thead>` or `<tbody>` collapses the header into the first data row.
 - **Bold:** `**markdown**`, not `<strong>`, which renders as raw HTML.
 - **Empty cells** need `<td> </td>` with a space; `<td></td>` merges columns.
-
-### SRM tech specs and design docs
-
-Reshape to the retirement team's design-doc skeleton — Background + Related Resources, SMART Goals, Solution
-Options / Preferred Design, Rollout, Mitigation, Open Issues. Fetch the template first, and publish into a
-private page under the user's scratchpad.
 
 ## Other Publish Targets
 

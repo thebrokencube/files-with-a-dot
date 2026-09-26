@@ -60,7 +60,7 @@ not a second list on top.
 
 ```
 Active work:
-  1. SRM — "Legacy Launch Prep" (design; authored design doc)
+  1. Billing — "Invoice Queue Rollout" (design; authored design doc)
   2. Folio — "Session Handoff" (sketch; authored sketch)
   3. dot — 3 observations (no active track)
 Pick up a project or command.

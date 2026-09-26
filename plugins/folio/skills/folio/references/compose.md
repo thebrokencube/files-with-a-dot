@@ -12,7 +12,11 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
 4. For each target, in DAG order:
    a. Read source files from target's `sources`
    b. Read `how` from folio.yml
-   c. Compose per the target's `how` field. **For targets with external outputs** (Jira, Slack,
+   c. **Proposal targets**: if the target is a proposal, tech spec, RFC or decision request (its id
+      contains `proposal` or `spec`, or `how` calls it one), read `references/proposal.md` and apply it
+      by default. `how` supplies audience, stakeholders, the decision requested and any deviations; where
+      `how` names a different set of sections, `how` wins.
+   d. Compose per the target's `how` field. **For targets with external outputs** (Jira, Slack,
       Google Docs): if `how` does not specify audience or tone, read `references/alignment.md` and
       run the alignment protocol with:
       - Minimum: 3
@@ -23,9 +27,9 @@ Read by `/folio compose [target]`. Assumes you've already read SKILL.md for orie
       For multi-target DAGs: alignment fires once at the batch start (first external target
       missing audience/tone), not per-target. Local-only targets (`path:` outputs) skip
       alignment (no external audience to align on).
-   d. **Local outputs** (`path:`): write compiled file
-   e. **External outputs** (`external:`): resolve push method from tooling.yml
-5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output. When reviewing, apply adversarial check: is the composition the right framing for its audience? Could it be shorter? Does it include content that belongs in a different target? (See `references/adversarial-review.md`.)
+   e. **Local outputs** (`path:`): write compiled file
+   f. **External outputs** (`external:`): resolve push method from tooling.yml
+5. **Review gate (soft)**: Present targets composed (cap at 5), output paths, and file sizes. For proposal targets, run the `references/proposal.md` audit first and report each body's word count. "Review outputs? (y to review, n to continue)" — if yes, show first 10 lines of each output. When reviewing, apply adversarial check: is the composition the right framing for its audience? Could it be shorter? Does it include content that belongs in a different target? (See `references/adversarial-review.md`.)
 6. Run `folio status` again to report final state.
 
 **Code references**: Use `repositories` URL patterns from folio.yml for clickable links in targets that support them.

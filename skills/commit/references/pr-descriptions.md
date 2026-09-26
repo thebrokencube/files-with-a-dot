@@ -8,19 +8,24 @@ Before writing a body, check for a repo PR template (`.github/pull_request_templ
 
 - **No template** → use the house style below.
 - **Template exists** → **ask the user**: use the repo template, or the house style? Don't silently pick either.
-- **Settled per-repo preference wins over the ask.** If a project CLAUDE.md or a memory records a decision (e.g. "zenpayroll → use its `.github/pull_request_template.md`"), follow it without asking.
+- **Settled per-repo preference wins over the ask.** If the repo's own `CLAUDE.md` or `AGENTS.md` records a PR
+  body or title shape, follow it without asking.
+- **Record a settled answer where the repo keeps its guidance.** Once the user settles template-vs-house-style
+  for a repo, add one line to that repo's `CLAUDE.md` or `AGENTS.md` naming the body shape and the title format,
+  so the next PR there follows it without re-asking.
 
-## Per-repo shapes (settled — do not re-ask)
+When following a repo template or a recorded shape:
 
-| Repo | Body | Title |
-|---|---|---|
-| `guideline-app/groot` | `## What` · `## Why` · `## How` · `## Notes` · `## Screenshots / Demos` (placeholder for the user to fill). No `TL;DR`. No template file exists — read a recent non-dependabot PR to confirm, since older ones vary. | conventional commit |
-| `zenpayroll` | its `.github/pull_request_template.md`: *What is this change doing?* · *Why is this change being made?* · *How did you test this change?* with Happy/Sad-Path checkboxes · *Related documentation:* with `Ticket:` + `Tech Spec:` | conventional commit |
-| `guideline-app/app`, `guideline-app/radr` | the repo's `PULL_REQUEST_TEMPLATE.md`, with structured fields wrapped in `[[[` / `]]]` — the wrapper is required and has been missed on four PRs | `[TICKET-123] type(scope): description` — ticket key **in brackets** |
+- Keep its headings, checkboxes and required markers exactly. Some templates wrap structured fields in
+  delimiters that tooling parses; dropping them breaks the parse silently.
+- Use the repo's title convention when it has one (for example a ticket key before the conventional subject);
+  otherwise use the conventional-commit title below.
+- If a recorded shape has no template file behind it, read a recent human-authored (non-bot) PR to confirm it;
+  older PRs may vary.
 
-**Never add an `## AI-Assisted` section, to any repo, ever.** Rejected twice in groot and skipped in
-zenpayroll's template. Finding it on an older PR is not licence to include it. Where it would have gone,
-`## Screenshots / Demos` goes instead. This extends to any AI-attribution footer.
+**Never add an `## AI-Assisted` section, to any repo, ever.** Finding it on an older PR or in a template is not
+licence to include it. Where it would have gone, `## Screenshots / Demos` goes instead. This extends to any
+AI-attribution footer.
 
 ## House style
 

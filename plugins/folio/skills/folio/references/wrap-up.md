@@ -35,7 +35,7 @@ Each step is **safe to abandon** — stopping mid-flow never leaves broken state
    Present all eligible tracks as a single batch across all projects:
    ```
    Ready to archive:
-     - SRM / "Legacy Launch Prep" (retro complete)
+     - Billing / "Invoice Queue Rollout" (retro complete)
      - Folio / "CLI Cleanup" (all tracks done, no retro — skipping retro)
    Archive all? (yes/no)
    ```
