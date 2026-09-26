@@ -225,6 +225,9 @@ The `folio` binary handles all deterministic operations. Run `folio --help` for 
 | `folio fleet workarea open <store> <branch>` | Create an isolated checkout at `<umbrella>/.worktrees/<store>/<slug>` (`-b` to fork off a base other than the store's default branch) |
 | `folio fleet workarea list` | Every work area — folio-placed, plus hand-made ones read from `jj workspace list` / `git worktree list` |
 | `folio fleet workarea reap [--force]` | Remove folio-placed areas (tier-correct; keeps dirty/unpushed) |
+| `folio lease status <store> [--json]` | Read-only state of a store's declared dev server — `free`, `starting`, `running`, or `held`; `declared=false` when the store has no `serve` block |
+| `folio lease run <store> [--timeout 180s] [--json]` | Launch the declared server once from the store's main checkout, or report its holder (`--dry-run` to preview) |
+| `folio lease release <store> [--json]` | From the main checkout only: stop the leased server and delete its lease; exits 3 while it is still starting (`--dry-run` to preview) |
 
 Folio never commits or opens a PR for a code store — `folio home push <code-store>` positions the branch and hands off to `/commit`.
 
@@ -241,6 +244,10 @@ Use a work area for code and a temporary workspace for a Folio store; never crea
 The dotfiles repository is the exception: create its temporary jj workspace under `/tmp/fwad-<topic>`, work there, push its bookmark from that workspace, and create a PR from the colocated checkout.
 
 For a repository or workspace you do not own, use `jj -R <repo-path>` with `--ignore-working-copy`; do not enter it. In your own work area, run commands from the target repository. Never use command substitution, backticks, `git -C`, `--git-dir`, or `--work-tree`.
+
+## Declared dev servers
+
+Before starting or relying on a store's dev server, run `folio lease status <store> --json`. If `data.declared=false`, proceed as usual. If `data.declared=true`, launch it only with `folio lease run <store>` and act on the exit code: `0` use the server it reports, `1` fix what it names, `2` read the printed log tail, `3` another holder has it — use that server or the named alternative, and never relaunch.
 
 ## Terminology Note
 

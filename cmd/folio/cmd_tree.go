@@ -27,6 +27,7 @@ func buildRoot() dendrik.Command {
 			cmdStores(),
 			cmdHome(),
 			cmdFleet(),
+			cmdLease(),
 			cmdSetup(),
 			cmdProject(),
 		},
@@ -400,5 +401,55 @@ func cmdWorkareaReap() dendrik.Command {
 			}
 			return runWorkareaReap(*all, *force, only)
 		},
+	}
+}
+
+func cmdLease() dendrik.Command {
+	return dendrik.Command{
+		Name: "lease", Short: "Cooperative lease on a store's declared main dev server",
+		Sub: []dendrik.Command{
+			cmdLeaseRun(),
+			cmdLeaseStatus(),
+			cmdLeaseRelease(),
+		},
+	}
+}
+
+func cmdLeaseRun() dendrik.Command {
+	var jsonMode, dryRun *bool
+	var timeout *string
+	return dendrik.Command{
+		Name: "run", Short: "Launch <store>'s declared server from its main checkout, or report the holder", Args: dendrik.ArgsExactly(1),
+		Flags: func(fs *dendrik.FlagSet) {
+			jsonMode = fs.Bool('j', "json", "Machine-readable JSON output")
+			dryRun = fs.Bool('n', "dry-run", "Print what would happen, no side effects")
+			timeout = fs.StringLong("timeout", "180s", "How long to wait for every declared port to listen")
+		},
+		Run: func(_ *dendrik.FlagSet, pos []string) int {
+			return runLease("run", pos[0], *jsonMode, *dryRun, *timeout)
+		},
+	}
+}
+
+func cmdLeaseStatus() dendrik.Command {
+	var jsonMode *bool
+	return dendrik.Command{
+		Name: "status", Short: "Read-only lease state of <store>: free|starting|running|held", Args: dendrik.ArgsExactly(1),
+		Flags: func(fs *dendrik.FlagSet) {
+			jsonMode = fs.Bool('j', "json", "Machine-readable JSON output")
+		},
+		Run: func(_ *dendrik.FlagSet, pos []string) int { return runLease("status", pos[0], *jsonMode, false, "") },
+	}
+}
+
+func cmdLeaseRelease() dendrik.Command {
+	var jsonMode, dryRun *bool
+	return dendrik.Command{
+		Name: "release", Short: "Stop <store>'s leased server and delete the lease (main checkout only)", Args: dendrik.ArgsExactly(1),
+		Flags: func(fs *dendrik.FlagSet) {
+			jsonMode = fs.Bool('j', "json", "Machine-readable JSON output")
+			dryRun = fs.Bool('n', "dry-run", "Print what would happen, no side effects")
+		},
+		Run: func(_ *dendrik.FlagSet, pos []string) int { return runLease("release", pos[0], *jsonMode, *dryRun, "") },
 	}
 }

@@ -37,11 +37,12 @@ const vaultName = "vault"
 
 // Store is one entry in the registry owned by the control root.
 type Store struct {
-	Name          string // map key, filled on load
-	Path          string // expanded and canonical absolute path
-	Kind          string // KindFolio | KindExternal | KindCode | KindDot
-	Location      string // LocationContained (default) | LocationReferenced
-	DefaultBranch string // branch a code push must refuse; "" → "main"
+	Name          string    // map key, filled on load
+	Path          string    // expanded and canonical absolute path
+	Kind          string    // KindFolio | KindExternal | KindCode | KindDot
+	Location      string    // LocationContained (default) | LocationReferenced
+	DefaultBranch string    // branch a code push must refuse; "" → "main"
+	Serve         yaml.Node // raw `serve:` block, decoded only by lease commands; zero Kind = undeclared
 }
 
 // IsExternal reports whether the store is a read-only external KB.
@@ -163,7 +164,7 @@ func parseRegistryAt(data []byte, umbrella string) (*Registry, error) {
 			return nil, fmt.Errorf("store %q path: %w", name, err)
 		}
 		storePath = canonicalStorePath
-		reg.Stores[name] = Store{Name: name, Path: storePath, Kind: kind, Location: loc, DefaultBranch: branch}
+		reg.Stores[name] = Store{Name: name, Path: storePath, Kind: kind, Location: loc, DefaultBranch: branch, Serve: rs.Serve}
 		reg.Order = append(reg.Order, name)
 	}
 	return reg, nil
@@ -215,10 +216,11 @@ func (r *Registry) AllStores() []Store {
 }
 
 type rawStore struct {
-	Path          string `yaml:"path"`
-	Kind          string `yaml:"kind"`
-	Location      string `yaml:"location"`
-	DefaultBranch string `yaml:"default_branch"`
+	Path          string    `yaml:"path"`
+	Kind          string    `yaml:"kind"`
+	Location      string    `yaml:"location"`
+	DefaultBranch string    `yaml:"default_branch"`
+	Serve         yaml.Node `yaml:"serve"`
 }
 
 // ActiveStore resolves the content-plane store every `home` subcommand acts on

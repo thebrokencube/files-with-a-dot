@@ -131,6 +131,26 @@ stores:
 	}
 }
 
+func TestParseRegistryServePassthrough(t *testing.T) {
+	home := t.TempDir()
+	yaml := `schema: 3
+stores:
+  app:   { path: /code/app, kind: code, serve: { processes: not-a-list, bogus: 1 } }
+  other: { path: /code/other, kind: code }
+`
+	os.WriteFile(filepath.Join(home, "stores.yml"), []byte(yaml), 0644)
+	reg, err := LoadRegistryFrom(home)
+	if err != nil {
+		t.Fatalf("a malformed serve block must not break registry load: %v", err)
+	}
+	if app, _ := reg.Lookup("app"); app.Serve.Kind == 0 {
+		t.Error("app serve block was dropped; want the raw node passed through")
+	}
+	if other, _ := reg.Lookup("other"); other.Serve.Kind != 0 {
+		t.Errorf("other has no serve block, got node kind %v", other.Serve.Kind)
+	}
+}
+
 func TestParseRegistryRejectsFutureSchema(t *testing.T) {
 	home := t.TempDir()
 	os.WriteFile(filepath.Join(home, "stores.yml"), []byte("schema: 99\nstores: {}\n"), 0644)

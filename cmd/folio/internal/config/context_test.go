@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -144,7 +145,7 @@ func TestContextForProjectPreservesRoots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Umbrella != ctx.Umbrella || got.WorkRoot != ctx.WorkRoot || got.Store != ctx.Store || got.Registry != ctx.Registry {
+	if got.Umbrella != ctx.Umbrella || got.WorkRoot != ctx.WorkRoot || !reflect.DeepEqual(got.Store, ctx.Store) || got.Registry != ctx.Registry {
 		t.Fatalf("ForProject changed roots: got %+v from %+v", got, ctx)
 	}
 	if got.FolioPath != canonicalForTest(t, project) {
