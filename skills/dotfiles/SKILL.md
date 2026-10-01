@@ -107,6 +107,10 @@ Managed files drift when external tools modify the destination file after compil
   Both have been pushed back on.
 - **Private-only files** (no base half) belong in `~/.dotfiles.private` plus its own `symlink_map.txt`
   (e.g. `jf.yml:$HOME/.jf.yml`) — not as a base+overlay managed merge.
+- **omp replaces its registry symlinks with regular files** (`~/.omp/marketplaces.json`,
+  `~/.omp/plugins/installed_plugins.json`) when it writes them. In a git overlay,
+  `reconcile_private_plugin_drift` backfills them into the private source before re-linking; commit the
+  resulting private diff.
 - Invoke installed command-line tools by their command name, not an absolute path.
 
 ### Releasing a CLI tool

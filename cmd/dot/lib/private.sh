@@ -65,7 +65,11 @@ check_private_symlink() {
             fi
         fi
     elif [[ -e "$dest" ]]; then
-        ACTIONS+=("Link private $name (existing $dest will be backed up)")
+        if [[ -f "$dest" ]] && is_private_backfill_source "$source" && ! cmp -s "$dest" "$source_path"; then
+            ACTIONS+=("Backfill private $name from existing $dest, then link")
+        else
+            ACTIONS+=("Link private $name (existing $dest will be backed up)")
+        fi
         [[ "$NO_BACKUP" != true ]] && WILL_BACKUP+=("$dest (private $name)")
     else
         ACTIONS+=("Link private $name")
@@ -555,6 +559,7 @@ apply_private_map() {
     local private_map
     private_map="$(get_private_symlink_map)"
     section "Applying private symlinks..."
+    reconcile_private_plugin_drift "$private_map"
     apply_private_symlinks "$private_map" "$PRIVATE_DIR"
     ok "Private symlinks applied."
 }
@@ -869,6 +874,43 @@ reconcile_plugin_drift() {
         if [[ "$dest_norm" != "$overlay_norm" ]]; then
             cp "$dest" "$overlay_path"
             info "Auto-resolved plugin drift: backfilled $overlay_base to private overlay (commit with 'dot private push')"
+        fi
+    done < "$map_file"
+}
+
+# Private sources whose on-disk copy wins over the private overlay. omp writes these by atomic
+# rename, replacing the symlink with a regular file. Requires a git overlay so the overwritten
+# private content stays recoverable from HEAD. Arguments: $1 = source path relative to PRIVATE_DIR.
+is_private_backfill_source() {
+    case "$1" in
+        omp/marketplaces.json|omp/plugins/installed_plugins.json) has_private_git ;;
+        *) return 1 ;;
+    esac
+}
+
+# Auto-resolve disk-ahead drift for omp's plugin registry files, which are private symlinks.
+# Re-linking without this rolls omp back to the stale private copy. Backfills disk -> private
+# source before the re-link. Leaves the private working tree dirty (commit with 'dot private push').
+# Arguments: $1 = private symlink_map.txt path.
+reconcile_private_plugin_drift() {
+    local map_file="$1"
+    [[ ! -f "$map_file" ]] && return 0
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        local source
+        source=$(get_source "$line")
+        is_private_backfill_source "$source" || continue
+
+        local dest source_path
+        dest=$(get_dest "$line")
+        source_path="$PRIVATE_DIR/$source"
+        [[ -f "$dest" && ! -L "$dest" && -f "$source_path" ]] || continue
+
+        if ! cmp -s "$dest" "$source_path"; then
+            cp "$dest" "$source_path"
+            info "Auto-resolved plugin drift: backfilled $source to private overlay (commit with 'dot private push')"
         fi
     done < "$map_file"
 }
