@@ -2,6 +2,7 @@ package fleet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -83,7 +84,7 @@ func Open(umbrella string, store config.Store, branch, base, session string) (Wo
 			return WorkArea{}, err
 		}
 	case TierJJ:
-		if err := jjWorkspaceAdd(root, dir, "fleet-"+Slug(branch)); err != nil {
+		if err := jjWorkspaceAdd(root, dir, "fleet-"+Slug(branch), base); err != nil {
 			return WorkArea{}, err
 		}
 	}
@@ -448,8 +449,10 @@ func gitWorktreeAdd(root, dir, branch, base string) error {
 	return err
 }
 
-func jjWorkspaceAdd(root, dir, name string) error {
-	_, err := run(root, "jj", "--no-pager", "workspace", "add", "--name", name, dir)
+// Without -r, jj parents the new workspace on the invoking workspace's @, so an area would silently
+// stack on whatever the main checkout happens to be editing rather than on base.
+func jjWorkspaceAdd(root, dir, name, base string) error {
+	_, err := run(root, "jj", "--no-pager", "workspace", "add", "--name", name, "-r", base, dir)
 	return err
 }
 
@@ -474,5 +477,11 @@ func run(dir, name string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
 	out, err := cmd.Output()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if stderr := strings.TrimSpace(string(exitErr.Stderr)); stderr != "" {
+			err = fmt.Errorf("%s %s: %w\n%s", name, strings.Join(args, " "), err, stderr)
+		}
+	}
 	return string(out), err
 }
