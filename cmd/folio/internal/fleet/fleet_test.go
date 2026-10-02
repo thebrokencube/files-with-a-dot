@@ -256,6 +256,73 @@ func TestScanVCSSurfacesHandMadeJJWorkspace(t *testing.T) {
 	}
 }
 
+func jjOut(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("jj", append([]string{"--no-pager"}, args...)...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("jj %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// The main checkout is usually mid-change on some other branch. A work area must
+// start from the store's base, not stack on whatever that checkout is editing.
+func TestOpenJJWorkspaceStartsFromBase(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not on PATH")
+	}
+	umbrella := t.TempDir()
+	repo := t.TempDir()
+	runOK(t, repo, "jj", "git", "init", "--colocate")
+	if err := os.WriteFile(filepath.Join(repo, "f.txt"), []byte("base"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runOK(t, repo, "jj", "--no-pager", "describe", "-m", "base")
+	runOK(t, repo, "jj", "--no-pager", "bookmark", "create", "main", "-r", "@")
+	runOK(t, repo, "jj", "--no-pager", "new")
+	if err := os.WriteFile(filepath.Join(repo, "g.txt"), []byte("elsewhere"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runOK(t, repo, "jj", "--no-pager", "describe", "-m", "elsewhere")
+	runOK(t, repo, "jj", "--no-pager", "new")
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	wa, err := Open(umbrella, store, "feature", "", "")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+
+	got := jjOut(t, wa.Dir, "log", "-r", "@-", "--no-graph", "-T", "description.first_line()")
+	if got != "base" {
+		t.Errorf("work area parent = %q, want the base commit %q", got, "base")
+	}
+}
+
+// A failed jj call must say why. Reporting only the exit status left a stale
+// working copy in the main checkout indistinguishable from any other failure.
+func TestOpenJJWorkspaceReportsJJError(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not on PATH")
+	}
+	umbrella := t.TempDir()
+	repo := t.TempDir()
+	runOK(t, repo, "jj", "git", "init", "--colocate")
+	runOK(t, repo, "jj", "--no-pager", "bookmark", "create", "main", "-r", "@")
+	taken := filepath.Join(t.TempDir(), "taken")
+	runOK(t, repo, "jj", "--no-pager", "workspace", "add", "--name", "fleet-feature", taken)
+	store := config.Store{Name: "code1", Kind: config.KindCode, Path: repo, DefaultBranch: "main"}
+
+	_, err := Open(umbrella, store, "feature", "", "")
+	if err == nil {
+		t.Fatal("Open succeeded over an existing workspace name")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error = %q, want jj's own message", err)
+	}
+}
+
 func anyContains(xs []string, sub string) bool {
 	for _, x := range xs {
 		if strings.Contains(x, sub) {
