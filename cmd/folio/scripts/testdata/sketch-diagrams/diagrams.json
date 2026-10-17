@@ -1,0 +1,330 @@
+{
+  "diagrams": {
+    "pipeline": {
+      "type": "flow",
+      "label": "Order pipeline with a retry loop",
+      "nodes": [
+        {
+          "id": "intake",
+          "title": "Intake",
+          "sub": "receive order",
+          "tone": "a"
+        },
+        {
+          "id": "validate",
+          "title": "Validate",
+          "sub": "schema + stock",
+          "tone": "b"
+        },
+        {
+          "id": "charge",
+          "title": "Charge",
+          "sub": "payment step",
+          "tone": "c",
+          "strong": true
+        },
+        {
+          "id": "ship",
+          "title": "Ship",
+          "tone": "c"
+        },
+        {
+          "id": "retry",
+          "title": "Retry queue",
+          "sub": "backoff",
+          "tone": "d"
+        },
+        {
+          "id": "batch",
+          "title": "Nightly batch",
+          "tone": "b",
+          "lines": [
+            "unit-01 reindex",
+            "unit-02 compact",
+            "unit-03 export"
+          ]
+        },
+        {
+          "id": "audit",
+          "title": "Audit log",
+          "sub": "later",
+          "future": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "intake",
+          "to": "validate"
+        },
+        {
+          "from": "validate",
+          "to": "charge",
+          "label": "ok"
+        },
+        {
+          "from": "charge",
+          "to": "ship"
+        },
+        {
+          "from": "charge",
+          "to": "retry",
+          "label": "declined",
+          "tone": "e"
+        },
+        {
+          "from": "retry",
+          "to": "validate",
+          "style": "dashed",
+          "label": "re-check",
+          "tone": "d"
+        },
+        {
+          "from": "ship",
+          "to": "batch"
+        },
+        {
+          "from": "batch",
+          "to": "audit"
+        }
+      ]
+    },
+    "model": {
+      "type": "er",
+      "label": "Library data model",
+      "layout": {
+        "elk.direction": "RIGHT"
+      },
+      "nodes": [
+        {
+          "id": "author",
+          "title": "author",
+          "tag": "existing",
+          "partition": 0,
+          "rows": [
+            [
+              "id",
+              "bigint",
+              "pk"
+            ],
+            [
+              "name",
+              "text"
+            ]
+          ]
+        },
+        {
+          "id": "book",
+          "title": "book",
+          "tag": "changed",
+          "partition": 1,
+          "rows": [
+            [
+              "id",
+              "bigint",
+              "pk"
+            ],
+            [
+              "author_id",
+              "bigint"
+            ],
+            [
+              "isbn",
+              "text",
+              "new"
+            ],
+            [
+              "blurb",
+              "text",
+              "del"
+            ]
+          ]
+        },
+        {
+          "id": "loan",
+          "title": "loan",
+          "tag": "new",
+          "partition": 2,
+          "rows": [
+            [
+              "id",
+              "bigint",
+              "pk"
+            ],
+            [
+              "book_id",
+              "bigint"
+            ],
+            [
+              "member_id",
+              "bigint"
+            ],
+            [
+              "due_on",
+              "date"
+            ]
+          ]
+        },
+        {
+          "id": "member",
+          "title": "member",
+          "tag": "existing",
+          "partition": 1,
+          "rows": [
+            [
+              "id",
+              "bigint",
+              "pk"
+            ],
+            [
+              "email",
+              "text"
+            ]
+          ]
+        },
+        {
+          "id": "genre",
+          "title": "GENRES",
+          "tag": "code-registry",
+          "partition": 0,
+          "rows": [
+            [
+              "fiction"
+            ],
+            [
+              "reference"
+            ]
+          ]
+        },
+        {
+          "id": "review",
+          "title": "review",
+          "tag": "future",
+          "partition": 2,
+          "rows": [
+            [
+              "id",
+              "bigint",
+              "pk"
+            ],
+            [
+              "book_id",
+              "bigint"
+            ],
+            [
+              "stars",
+              "int"
+            ]
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "author",
+          "to": "book",
+          "tail": "1",
+          "head": "0..*"
+        },
+        {
+          "from": "book",
+          "to": "loan",
+          "tail": "1",
+          "head": "0..*",
+          "tone": "a"
+        },
+        {
+          "from": "member",
+          "to": "loan",
+          "tail": "1",
+          "head": "0..*",
+          "tone": "a"
+        },
+        {
+          "from": "genre",
+          "to": "book",
+          "style": "dotted",
+          "label": "tags"
+        },
+        {
+          "from": "book",
+          "to": "review",
+          "tail": "1",
+          "head": "0..*"
+        }
+      ]
+    },
+    "lanes": {
+      "type": "flow",
+      "label": "Request handling across two lanes",
+      "layout": {
+        "elk.direction": "RIGHT"
+      },
+      "groups": [
+        {
+          "id": "edge",
+          "title": "Edge",
+          "tone": "b"
+        },
+        {
+          "id": "core",
+          "title": "Core",
+          "tone": "a"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "client",
+          "title": "Client"
+        },
+        {
+          "id": "gateway",
+          "title": "Gateway",
+          "group": "edge",
+          "tone": "b"
+        },
+        {
+          "id": "cache",
+          "title": "Cache",
+          "group": "edge",
+          "tone": "b"
+        },
+        {
+          "id": "service",
+          "title": "Service",
+          "group": "core"
+        },
+        {
+          "id": "store",
+          "title": "Store",
+          "sub": "primary db",
+          "group": "core"
+        }
+      ],
+      "edges": [
+        {
+          "from": "client",
+          "to": "gateway"
+        },
+        {
+          "from": "gateway",
+          "to": "cache",
+          "label": "lookup"
+        },
+        {
+          "from": "gateway",
+          "to": "service",
+          "label": "miss"
+        },
+        {
+          "from": "service",
+          "to": "store"
+        },
+        {
+          "from": "service",
+          "to": "cache",
+          "style": "dashed",
+          "label": "fill"
+        }
+      ]
+    }
+  }
+}
