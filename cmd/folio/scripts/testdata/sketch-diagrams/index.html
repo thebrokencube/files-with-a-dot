@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>sketch-diagrams fixture</title>
+<style>
+  :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#fff;
+          --a:#6366f1; --b:#06b6d4; --c:#22c55e; --d:#eab308; --e:#f43f5e;
+          --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+  main{max-width:960px;margin:0 auto;padding:24px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:28px 0 10px}
+</style>
+</head>
+<body>
+<main>
+  <h2>Flow with a retry loop</h2>
+  <svg data-elk="pipeline"></svg>
+  <h2>Data model</h2>
+  <svg data-elk="model"></svg>
+  <h2>Lanes</h2>
+  <svg data-elk="lanes"></svg>
+</main>
+</body>
+</html>

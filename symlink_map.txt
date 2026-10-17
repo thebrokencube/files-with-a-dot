@@ -60,6 +60,9 @@ plugins/dendrik/skills/dendrik:$HOME/.claude/skills/dendrik
 plugins/dendrik/skills/dendrik:$HOME/.omp/agent/skills/dendrik
 plugins/dendrik/skills/dendrik:$HOME/.codex/skills/dendrik
 
+# omp agents
+configs/base/omp/.omp/agent/agents/sketch-language-editor.md:$HOME/.omp/agent/agents/sketch-language-editor.md
+
 # Jujutsu VCS — managed file (base + private overlay merged via managed_map.txt)
 
 # Mise (version manager)

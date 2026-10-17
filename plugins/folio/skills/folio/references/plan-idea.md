@@ -12,6 +12,11 @@ from an embedded seed and creates the work dir (like `design`). One self-contain
 seed is a **minimal skeleton** — replace its card/table slots with the visuals below; do not treat
 the seed's shape as the target.
 
+Declare every graph-shaped diagram on the page (nodes and edges: data flow, pipeline, system map,
+ER model, commit spine, handoff) in a sibling **`diagrams.json`** for ELK (Eclipse Layout Kernel)
+to lay out — see **Generated diagrams** below. Both files are the artifact; register both in
+`folio.yml`.
+
 **Title** = a capability **noun-phrase** — no `type(scope)`. It must NOT parse as a
 conventional-commit header (the design phase mints that later from this phrase).
 
@@ -40,9 +45,11 @@ show the shapes a sketch takes; pick by what the idea is:
   of the narrative when the round must land a decision and commit shape rather than a today → idea →
   unlock sequence. It has seven named `<h2>` sections: **Outcome**, **Target shape**, **Open forks**,
   **Proof**, **Commit spine** (including predicted intent slices), **Handoff boundary**, and one named
-  **Open questions** slot. Use HTML/CSS cards or tables alongside SVG when they make the decision
-  legible; the named Open questions slot may contain short bullets and one caption without a visual.
-  Every other section keeps one visual plus one caption.
+  **Open questions** slot. Add **Data model** (after Target shape, optionally followed by **One record,
+  concretely**) whenever the plan reads or writes records — including a no-schema-change refactor —
+  and **Enables next** whenever scope excludes a consumer the reader will expect. Use HTML/CSS cards or
+  tables alongside SVG when they make the decision legible. The named Open questions slot may contain
+  short bullets and one caption without a visual; every other section keeps one visual plus one caption.
 
 ## The vocabulary
 Reach for these first. Everything data-shaped is monospace; everything else is a one-line caption.
@@ -51,8 +58,9 @@ reuse them so every sketch reads as one system.
 
 | Element | What it is | When |
 |---|---|---|
-| **ER entity boxes** | one monospace box per entity: a title row tagged `new` \| `existing` \| `code-registry`, then `name : type` field rows. PK/FK marked; removed fields shown with ~~strikethrough~~ (`.del`); `uniq(...)` noted; relationship lines (`repos 1 ──< N configs`) drawn between boxes. `new` boxes highlighted (`.ent.new`), `code-registry` boxes dashed (`.ent.code`). | data-model lede |
-| **Data-flow SVG** | inline `<svg>` of boxes + arrows: a record fanning into the gates or surfaces that read each field, one arrow per consumer | a record drives behavior at 2+ points |
+| **ER entity boxes** | generated (`"type": "er"` in `diagrams.json`): one monospace box per entity with a title row tagged `new` \| `changed` \| `existing` \| `code-registry` \| `future`, then `name · type` rows. primary key (`pk`) marked, removed fields struck through (`del`), new fields highlighted (`new`), `uniq(...)` noted, and relationships drawn as edges with `tail`/`head` cardinality labels (`1`, `0..*`). Show only the columns that carry the argument (identity key, state, evidence vs human-owned fields). | data-model lede |
+| **Data-flow / system SVG** | generated (`"type": "flow"`): boxes + arrows, a record fanning into the gates or surfaces that read each field, one arrow per consumer; optional lanes (`groups`), `lines` for small lists inside a node, `future` nodes | a record drives behavior at 2+ points; any pipeline, handoff or commit spine |
+| **Future node / table** (`future`) | dashed, muted box for what this plan enables but does not build; edges into it render dotted | scope stops short of a consumer the reader expects |
 | **Concrete example** | one real record as a syntax-colored `<pre>` (key=accent, string=green, number=amber, comment=muted) — optionally beside a small reference table with an italic `future`/drop-in row for extensibility — or one CLI call + its output | data-model / record-shaped sketches |
 | **Open-forks cards** (`.fork`) | compact cards, one per unresolved decision; each states the options with the picked one marked `▸` (`.pick`) | the reaction surface — where the user's call lands |
 | **Invariant callout** (`.inv`) | one centered, accent-bordered line stating a law the design must hold (counts match, never-drop) | when the idea hinges on a constraint |
@@ -75,31 +83,29 @@ For a **narrative-of-models** sketch the slots become the sequence: the one-line
 of open-forks cards.
 
 For a **decision-surface** sketch the named sections are: **Outcome**, **Target shape**, **Open
-forks**, **Proof**, **Commit spine**, **Handoff boundary**, and one named **Open questions** slot.
-The other five sections each contain one visual plus one caption; **Commit spine** contains one visual
-whose caption is the page's single multiline `.one` block naming the predicted intent slices. The
-variant uses that `.one` block instead of adding a separate one-liner. Open questions contains short
-bullets plus one caption and no visual. The invariant callout remains available when one law carries
-the design.
+forks**, **Proof**, **Commit spine**, **Handoff boundary**, and one named **Open questions** slot,
+plus **Data model** (and optionally **One record, concretely**) and **Enables next** when they apply.
+Every section except Commit spine and Open questions contains one visual plus one caption; **Commit
+spine** contains one visual whose caption is the page's single multiline `.one` block naming the
+predicted intent slices. The variant uses that `.one` block instead of adding a separate one-liner.
+Open questions contains short bullets plus one caption and no visual. The invariant callout remains
+available when one law carries the design.
 
 ## Build conventions (visual-first, self-contained)
 - **Single self-contained HTML file. Inline all CSS / JS / SVG. NO external deps / CDNs.**
 - **Derive every tint from palette vars via `color-mix(in srgb, var(--x) N%, transparent)`** —
   callout backgrounds, entity highlights, card fills, and SVG box fills. Never hardcode a fill, so
   light and dark both hold.
-- **Inline SVG is the default medium, not an exception.** Hand-author it, or compile a text-DSL
-  (e.g. D2) to SVG; if compiled, strip its opaque page background (both the background rect and the
-  `.fill-N7`-style rule that overrides fills) and the root `<svg>` width/height (**but keep the
-  `viewBox`** — see the reviewer gate), and cap the rendered size so it stays proportional to the
-  page. For repeated iconography, inline a `<symbol>` sprite and reference it with `<use>`.
+- **Inline SVG is the default medium, not an exception.** Graph diagrams come from the generator;
+  hand-author the rest. For repeated iconography, inline a `<symbol>` sprite and reference it with
+  `<use>`.
 - **`<defs>` holds only `<marker>`, `<symbol>`, gradients, and clip paths** — never renderable
-  shapes (a shape there renders blank; the reviewer gate verifies this). Arrow endpoints must land on
-  the boxes they connect, and all content stays inside the `viewBox`.
-- When the content isn't a data model — a UI, a reframe, components/ownership, a hierarchy — reach
-  for the matching visual: **wireframe** (app frame mocking real screens), **system map** (SVG boxes
-  + arrows), **pipeline / fan-out** diagram, **positioning chart** (2 labeled axes + plotted points
-  + a move-arrow, for "these properties are independent" or "we're moving up this axis" arguments),
-  or **monospace tree** (URL schemas, directory layouts).
+  shapes (a shape there renders blank; the reviewer gate verifies this). In hand-authored SVG, arrow
+  endpoints must land on the boxes they connect, and all content stays inside the `viewBox`.
+- **Graph diagrams are generated, never hand-placed** — see **Generated diagrams**. Hand-author SVG
+  only for visuals with no node–edge structure: a matrix or heatmap, a timeline with an axis, a
+  positioning chart (2 labeled axes + plotted points + a move-arrow), a wireframe (app frame mocking
+  real screens), or a monospace tree (URL schemas, directory layouts).
 - Dark-mode via `prefers-color-scheme`; drive the palette from CSS vars so SVG and HTML share it.
   Keep it scannably dense.
 - **No customer data or secrets.** Code identifiers — table / class / field / slug names — are
@@ -108,10 +114,67 @@ the design.
 - Roughly-right, then frozen — not iterated line-by-line (HTML/SVG diff coarsely; that's acceptable
   for a layer meant to be socialized and frozen).
 
+## Generated diagrams (ELK)
+`scripts/sketch-diagrams.mjs` (skill-relative; run with `node`, not bun) reads `diagrams.json` beside
+the page, lays each diagram out with ELK's layered algorithm and orthogonal edges, and replaces every
+`<svg data-elk="ID">` placeholder with the rendered SVG. Re-running is idempotent; `--check` validates
+without writing. Change the spec and re-run — never edit a generated `<svg>` by hand.
+
+```
+node <skill>/scripts/sketch-diagrams.mjs reference/sketch/index.html [--check]
+```
+
+- **Spec.** `{"diagrams": {"ID": {"type": "flow" | "er", "label", "layout"?, "groups"?, "nodes", "edges"}}}`.
+  Flow nodes: `id`, `title`, `sub`?, `tone`? (`a`…`e`, `muted`), `strong`?, `lines`? (1–4), `group`?,
+  `future`?. ER nodes: `id`, `title`, `tag`, `rows` (`[name, type, mod?]` with `mod` = `pk` · `new` ·
+  `del`), `partition`? (integer). Edges: `from`, `to`, `label`?, `tail`?/`head`? (ER cardinality),
+  `tone`?, `style`? (`solid` · `dashed` · `dotted`), `arrow`?. `layout` passes ELK options through
+  verbatim, e.g. `"layout": {"elk.direction": "RIGHT"}`. Write `uniq(...)` in a row's type column.
+- **Order nodes in reading order.** Layout follows model order (`DOWN` by default) and breaks cycles
+  against it, so list a pipeline in sequence, put each side input immediately before the node it
+  feeds, and let the feedback edges (retry, settle, amend) be the ones drawn backward.
+- **Pick the direction from the shape.** N parallel pipelines (shell → core → shell, one per seam) read
+  best as `RIGHT` rows; a single sequence or handoff reads best `DOWN`.
+- **Lanes only for one-way flows.** `groups` draw lanes. Do not use `groups` when edges cross back and forth between lanes; put the
+  actor in each node's `sub` field instead (`you · …`, `runner · …`).
+- **ER columns via `partition`.** With direction `RIGHT`, each `partition` number is a column from left to right (registries →
+  maps → tables → future); every edge must point to a higher `partition`. Name a same-column foreign key in its row instead
+  of drawing an edge that forces an extra layer.
+- **Width.** The renderer warns above 960px and renders wider diagrams full-bleed. Fix the layout
+  (direction, partitions, fewer rows per box) before accepting the warning; a diagram must stay
+  legible in a 1050px window.
+
+## Scope on the page
+- **Name what is out.** A consumer the owner has not scoped into this plan goes in **Enables next** as a
+  `future` node — never into a track, the Commit spine or a unit list.
+- **Name what is not ours.** Areas owned by others are compare-only: say so in the invariant callout
+  (e.g. `no edits under <path>`), and keep them out of every change list.
+- **State the record invariant.** When a plan changes no schema, state that in the invariant callout
+  and still draw the Data model: the existing records it binds to plus any code registries it adds.
+
 ## Read-only (v1)
 The sketch is **read-only**. The react loop runs conversationally: show the rendered page, the user
 reacts, the lead rebuilds. That IS the round-trip, human-mediated through the session — no listener
 or in-page controls (deferred; interactivity is a prompt-injection surface and redundant in-session).
+
+## Language pass (fresh subagent, a different model — before the reviewer gate)
+Once content is settled, run the `sketch-language-editor` agent over the page and `diagrams.json`. It
+routes to a different model family from the drafter (`model: ["@gemini-4", "@default"]`), returns
+exact replacements, and never edits files. Apply only meaning-preserving edits; edit diagram text in
+`diagrams.json` and re-run the generator. Resolve its `questions` against the planning notes and codebase before the reviewer gate — a
+second model reading for language catches count and naming mismatches.
+
+House rules it enforces, and the drafter should write to:
+- **Captions state the takeaway**, not the legend ("dotted boxes are future" belongs in the visual).
+- **No semicolons in captions** — a semicolon usually hides two ideas; subordinate one or cut it.
+- **One canonical noun per concept and per component** on the whole page; code identifiers only in
+  `<code>` or monospace diagram text; expand an acronym on its first prose use.
+- **Fork titles are questions**, and the options in one card share one grammatical form.
+- **Proof rows read as `<count> <what it counts>`**; state both sides of a ratio in order.
+- **Noun phrases for things, verb phrases for steps** (`read provider`, `apply transition`).
+- **` · ` separates siblings, ` → ` marks a sequence**; no `+` or `/` for either.
+- **Don't reuse a domain verb as page meta-copy** — if the design defines "react" or "settle", the
+  page header says "review".
 
 ## Reviewer gate (fresh subagent — before the sign-off gate)
 After building or editing the sketch, and **before rendering it for the user**, run one fresh
@@ -124,8 +187,10 @@ root(s), and the local planning notes.
 
 Four dimensions — return concrete defects (what's wrong + the fix):
 
-1. **SVG blank-render bugs (highest priority — these silently ship an invisible diagram; every one
-   is statically checkable).**
+1. **Render bugs (highest priority — these silently ship an invisible diagram).** For generated
+   diagrams, run `node <skill>/scripts/sketch-diagrams.mjs <page> --check` (it fails on dangling
+   edges and endpoints off their boxes, and warns on width) and look at a 1440px and a 1050px render;
+   fix by editing `diagrams.json`, never the SVG. For hand-authored SVG, check statically:
    - **Shapes in `<defs>`** — a `<rect>`/`<circle>`/`<path>`/`<text>`/`<line>` inside `<defs>` never
      paints (`<defs>` is markers/symbols/gradients/clip-paths only). **This exact bug has shipped a
      blank diagram.**
@@ -142,27 +207,28 @@ Four dimensions — return concrete defects (what's wrong + the fix):
      (`M … C x1 y1, x2 y2, x y` → `x y`). Confirm each endpoint sits within ~`markerWidth` of a
      rect's edge, not floating in whitespace.
    - **Out-of-viewBox / hidden** — coords outside the `viewBox`, or an opaque rect fully covering an
-     earlier element (later paint wins). Fine legibility/overflow can't be judged statically — leave
-     it to the human render gate.
+     earlier element (later paint wins). Judge legibility and overflow on the 1440px and 1050px
+     renders (headless browser screenshots).
 2. **Prose bloat.** Flag any `<h2>` section with no visual, except the one explicitly named
    **Open questions** section; the Commit spine's single caption is the page's multiline `.one` block
    naming the predicted intent slices — do not flag it as an over-long caption or expect a separate
    one-line caption there. Flag any other caption longer than one sentence and any other visual-less
    section. The mechanical rule still rejects a general prose escape hatch.
-3. **Missing data-model / relationships.** For a data-model sketch: are the entities, their
-   `new|existing|code-registry` tags, and the relationship lines actually *drawn* — not just
-   described in prose?
+3. **Missing data-model / relationships.** In any sketch with a Data model section, flag any entity,
+   `new|changed|existing|code-registry|future` tag, or relationship mentioned in a caption that is not
+   drawn in the diagram.
 4. **Codebase contradictions.** Treat each ER box title as a table/class, each field row as a
    column + type, each slug / value / captioned behavior / PR number as a claim; grep the codebase
    (schema / migration, class / module, constant, PR) and flag anything that doesn't exist or
-   differs. A wrong premise wastes the whole round.
+   differs — and flag a proposed name that already exists. Cross-check every count on the page
+   against the spike or design tables it summarizes. A wrong premise wastes the whole round.
 
 **Loop:** blank-render (dimension-1) defects are mechanical and objective — keep fixing them; never
 surface-and-proceed on a broken diagram, and escalate to the user if one truly won't resolve. For
 judgment defects (dimensions 2-4), cap at 2 iterations — lower than Phase 4b's 3, since the sketch is
 a single roughly-right file — then surface any remainder alongside the sketch. A clean gate means no
-*statically detectable* defect, not a verified render; the birds-eye gate below is the human render
-check.
+statically detectable defect and nothing visibly broken in the reviewer's renders; the birds-eye gate
+below is the human render check.
 
 ## The birds-eye sign-off gate (Hard)
 Runs after the reviewer gate passes. **Show the artifact, don't summarize it** (see the standing

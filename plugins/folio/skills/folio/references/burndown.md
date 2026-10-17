@@ -163,6 +163,39 @@ Wave count is a judgment call at planning time — more waves means more checkpo
 and more flywheel turns, fewer waves means less overhead. Let complexity and
 uncertainty guide the split, not item count.
 
+### Fewer waves, primed groups
+
+Each wave boundary costs a checkpoint and a restart. Remove the reasons to split in planning
+instead of paying for them with waves:
+
+| Split reason | Remove it in planning by | Keep the wave only if |
+|---|---|---|
+| Dependency tier (B needs A's result) | keeping cores local until two consumers share a decision, so no "unify" step follows | a group truly consumes another group's output |
+| Shared tracking file (every group edits one registry) | computing status from the code (a guard checks what exists) instead of editing a list | never — this is pure contention |
+| Approach divergence | proving one recipe in the pilot and writing every later group as that recipe | a group needs a different technique after the pilot |
+| Risk heterogeneity | splitting the wave into **lanes** — concurrent batches with different automation (unattended vs gated) — rather than sequential waves | the pilot checkpoint shows the recipe failing on the riskier lane |
+
+**Prime every group before its wave starts** so execution follows a recipe instead of
+discovering one. Include in each group brief: the exact files, the decision table to pin with tests
+(every branch, inputs → outcome), the existing tests to keep, the acceptance command, the commit
+title, and the do-not list. Link
+the merged pilot work from every later group as the pattern to copy, and turn on cross-group
+memory if the runner has it. Write the briefs into the work plan's track files during the brief
+phase; the batch document is generated from them.
+
+### Executing a wave on a batch runner
+
+When an agent batch runner (one agent per group, a dependency graph, gates) executes the waves:
+
+- **A wave is one batch per lane**, all created together after the previous checkpoint — strategy
+  changes between waves, not during one.
+- **Groups that touch the same file are chained inside the batch**; nothing depends across batches.
+- **Automation is a per-lane choice.** Run the pilot gated; run a lane unattended only when its groups
+  have strong existing tests and the pilot's recipe held.
+- **Group prompts are self-contained** — the runner's agents have no planning context. The brief *is*
+  the prompt.
+- **Approving a batch is a hard gate** (it starts agents and opens PRs): show the group document first.
+
 ## State Tracking
 
 All state lives in the work track as plain files:

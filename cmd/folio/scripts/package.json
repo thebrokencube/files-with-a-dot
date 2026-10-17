@@ -11,6 +11,10 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "elkjs": "^0.12.0",
     "marklassian": "^1.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
