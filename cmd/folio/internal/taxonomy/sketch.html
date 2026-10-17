@@ -7,8 +7,11 @@
 <!--
   IDEA / ARCHITECTURE SKETCH — folio's birds-eye layer. Conventions (keep these):
   · Single self-contained HTML file. Inline all CSS/JS. NO external deps / CDNs.
-  · HTML-first for information + visuals: cards, tables, ladders carry the content.
-    Reach for a graph diagram (inline SVG) only when a visual needs real 2D structure.
+  · Visual-first: lead each section with its strongest visual plus a one-line caption.
+  · Graph diagrams (flows, data models, commit spine, handoff) are generated: declare them in a
+    sibling diagrams.json, place <svg data-elk="ID"></svg> where each goes, then run
+    node <folio skill>/scripts/sketch-diagrams.mjs index.html. Hand-author SVG only for
+    matrices, timelines, positioning charts, wireframes and trees.
   · Capability noun-phrase title (no type/scope). NO private/internal tool or project
     names — this is the shareable surface.
   Fill each slot below, delete the guidance comments, then open in a browser to react.

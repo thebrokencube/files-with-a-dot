@@ -382,7 +382,7 @@ is how provenance chains break.
 - **references/publish.md** — Publish workflow: tooling resolution, Jira push pipeline, Notion templates, other targets
 - **references/proposal.md** — Proposal format: sections, bullet rules, claim linking, diagram policy, word budget, audit, feedback table
 - **references/plan.md** — Plan workflow: pipeline overview, phase routing, lightweight mode, re-run rules
-  - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): HTML-first birds-eye page, visual vocabulary, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
+  - **references/plan-idea.md** — Plan Phase 1.5 (idea/arch sketch): visual-first birds-eye page, ELK-generated diagrams from `diagrams.json` (`scripts/sketch-diagrams.mjs`), visual vocabulary, scope rules, language pass, fresh-subagent reviewer gate, sign-off gate, lightweight track-count decision
   - **references/plan-design.md** — Plan Phases 1-4 (Design agent): understand, propose, converge, fill/review design doc
 - **references/lifecycle.md** — Lifecycle derivation: type/status-based suggestions, digest freshness, deterministic session entry display, artifact routing, schema migration hints
   - **references/plan-execute.md** — Plan Phases 7-8 (Execute agent): implement per track, retro
