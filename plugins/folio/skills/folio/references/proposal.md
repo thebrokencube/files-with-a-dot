@@ -62,11 +62,19 @@ Delete any section that would say only "None" or "N/A". TL;DR, Decision and Feed
 
 ## Diagrams
 
-- At most one.
-- Only for content that branches or has states: a decision tree, a state machine, a flow that forks. Write a
-  linear sequence as a numbered list.
-- No before-and-after pairs and no rollout diagram; the Timeline list already shows the order.
-- Put a one-line caption under it saying what the reader should notice.
+- When the work has a frozen idea/arch sketch, reuse its diagrams instead of drawing new ones. Readers react
+  to the same shape the planners froze, and a diagram the sketch already proved costs no words.
+- Pick the sketch diagrams that carry the decision, at most three: today's shape in Context, the target
+  shape in Decision, and the cutover in Timeline when it branches (a rollback edge, a gated step).
+- Put each one in the section it supports, with a one-line caption stating what the reader should notice.
+- Check each diagram against the Decision text before rendering. If a label is stale, fix `diagrams.json`
+  and re-run `scripts/sketch-diagrams.mjs`; never ship a diagram the proposal contradicts.
+- Render each sketch diagram to `outputs/diagram-<id>.png` beside the proposal: screenshot its
+  `svg[data-elk="<id>"]` element with the page's light color scheme, so it reads on a white page. Reference
+  it as `![<label>](diagram-<id>.png)`. Re-render whenever the sketch changes.
+- Without a sketch: at most one diagram, only for content that branches or has states (a decision tree, a
+  state machine, a forking flow). Write a linear sequence as a numbered list.
+- No before-and-after pair drawn only for the proposal. Diagrams do not count toward the word budget.
 
 ## Length
 
@@ -83,7 +91,8 @@ Run before the compose review gate.
 4. Does every behavioral claim and every number link to where a reader can check it?
 5. Does each section open with its conclusion and say something no earlier section said?
 6. Does any bullet restate its heading or the TL;DR? Cut it.
-7. Is there at most one diagram, and does it show branching or state?
+7. If a sketch exists, are its decision-carrying diagrams in (at most three), each captioned and matching the
+   Decision? Without a sketch, is there at most one diagram, and does it show branching or state?
 8. Is the body within the word budget? Report the count at the review gate.
 9. For a shared destination: are local paths, planning ids and agent names gone, and does every link open for
    the intended reader?

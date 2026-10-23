@@ -104,6 +104,11 @@ Each of these has cost a fetch-fix-push cycle. Always fetch the page back and co
 - **Tables:** `<tr>`/`<td>` only — a `<thead>` or `<tbody>` collapses the header into the first data row.
 - **Bold:** `**markdown**`, not `<strong>`, which renders as raw HTML.
 - **Empty cells** need `<td> </td>` with a space; `<td></td>` merges columns.
+- **Images:** a local `![…](diagram-<id>.png)` reference does not upload. For each one, call
+  `notion-create-file-upload` with the filename, POST the PNG as multipart `file` to the returned `upload_url`
+  with its `upload_headers`, and replace the reference with the POST response's `suggested_markdown`
+  (`<image source="file-upload://…" />`). Keep the local file's markdown references unchanged. After
+  publishing, fetch the page and confirm each image came back as a `notion-file-block://` source.
 
 ## Other Publish Targets
 
