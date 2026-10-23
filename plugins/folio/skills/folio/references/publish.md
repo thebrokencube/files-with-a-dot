@@ -80,9 +80,19 @@ each item in order. One review gate per item. Report progress as
 Proposal structure and its Feedback table are applied at compose time (`references/proposal.md`), so the
 output file already contains them. Publish pushes that file unchanged.
 
-**Notion targets are write-only.** All edits happen in the local output file. Publish
-replaces the full page content. Never use `update_content` for incremental Notion edits —
-compose the final version locally, then publish once with `replace_content`.
+**Notion targets are write-only.** All edits happen in the local output file. The first publish
+creates the page with the full content. Compose the final version locally, then publish once.
+
+**Republishing a page that has reviewers** must not use `replace_content`. Notion anchors inline
+discussions to blocks, and a full replace recreates every block, which deletes every open comment
+thread with no warning and no API to restore it. Before any republish, call `notion-get-comments`
+with `include_all_blocks: true`:
+
+- **No discussions**: `replace_content` with the full local file is fine.
+- **Any discussion**: publish the local diff as targeted `update_content` operations, each `old_str`
+  the smallest exact span that changed, so commented blocks keep their identity. A changed image is
+  an `update_content` that swaps only its `<image …/>` tag. Afterwards, call `notion-get-comments` again
+  and confirm the same discussion count.
 
 The iterative loop stays local:
 
