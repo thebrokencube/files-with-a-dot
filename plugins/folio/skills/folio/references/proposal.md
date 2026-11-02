@@ -2,7 +2,7 @@
 
 Default shape for any folio target that asks readers to approve a decision: proposals, tech specs, RFCs and
 decision requests, whatever the destination. Compose applies it without an opt-in. The target's `how` supplies
-the audience, the stakeholders, the decision requested and any deviations. If `how` names a different set of
+the audience, the decision requested and any deviations. If `how` names a different set of
 sections, `how` wins; the writing rules, linking rules and audit still apply inside those sections.
 
 Not for launch plans, reference docs, glossaries, status updates, Jira issues (see `/jf`), PR bodies (see the
@@ -16,10 +16,7 @@ proposal needs.
 ```
 # Proposal: {what changes, in a few words}
 
-**Authors:** {names}
-**Stakeholders:** {teams or roles who must read it}
-**Last Updated:** {YYYY-MM-DD}
-**Status:** {Draft | In review | Approved}   ← optional
+**Work:** [{epic, board or project name}]({url})   ← only when work is already running
 
 ## TL;DR
 ## Context
@@ -33,6 +30,17 @@ proposal needs.
 ```
 
 If the destination renders the page title from a property, drop the H1 and let the property carry it.
+
+No metadata block: no Authors, Stakeholders, Last Updated or Status lines. The destination's page properties
+carry owner, status and edit time, and the audience belongs in the target's `how`, not on the page. The page
+opens with the Work link when there is one, then the TL;DR.
+
+When the change already runs as tracked work (an epic, a project board, a queue of planned PRs), put its link in
+`**Work:**` so a reader can go from the one-line summary straight to the live work, then read on for the
+reasoning. Link the page that shows live state, not a planning doc. Do not state progress or status anywhere
+in the proposal ("open", "in review", "2 of 5 merged"); the linked page carries it and the doc never goes
+stale. Timeline links each phase to its own PR or ticket and does not repeat the header link. Omit `**Work:**`
+when nothing is running yet.
 
 ## Section rules
 
@@ -48,6 +56,20 @@ If the destination renders the page title from a property, drop the H1 and let t
 | Feedback | Always last, after a `---` divider. |
 
 Delete any section that would say only "None" or "N/A". TL;DR, Decision and Feedback always stay.
+
+## Writing for the reader
+
+Write for someone who uses the system, not someone reading its source.
+
+- Describe behavior a reader sees ("only the author can ask for a fix"), not the code that implements it
+  ("`can?` maps the capability to `:admin?`"). Name a class, method, setting or constant only when the reader
+  will type it, configure it or search for it.
+- One claim per bullet, one link per claim. A bullet that needs three links is three bullets or a footnote in
+  References.
+- Decision: at most six top-level bullets. Use sub-bullets only for a list of peers (commands, tiers, modes).
+  Key components: at most four, each one line.
+- Impact and Alternatives bullets fit on one line when the page is read at normal width.
+- Prefer the reader's nouns: product names, settings names and UI labels over internal module names.
 
 ## Linking claims
 
@@ -75,6 +97,11 @@ Delete any section that would say only "None" or "N/A". TL;DR, Decision and Feed
 - Without a sketch: at most one diagram, only for content that branches or has states (a decision tree, a
   state machine, a forking flow). Write a linear sequence as a numbered list.
 - No before-and-after pair drawn only for the proposal. Diagrams do not count toward the word budget.
+- When `**Work:**` is set, end Timeline with the work breakdown: one box per work item (title, plus its PR
+  number once one exists) and an arrow from each item to the items that wait on it, generated from the
+  tracker's dependency edges rather than drawn by hand. Render it through the same `diagrams.json` pipeline as
+  `outputs/diagram-work.png`, captioned "Each box is one PR-sized piece of the work; an arrow points from the
+  item it waits on." It is in addition to the limits above, and it carries no status colors.
 
 ## Length
 
@@ -96,6 +123,10 @@ Run before the compose review gate.
 8. Is the body within the word budget? Report the count at the review gate.
 9. For a shared destination: are local paths, planning ids and agent names gone, and does every link open for
    the intended reader?
+10. If the work is already running, does `**Work:**` link its live page, is the proposal free of progress or
+    status wording, and does Timeline end with the work breakdown generated from the tracker's edges?
+11. Could someone who uses the system, but has never read its code, follow every bullet? Is there any
+    metadata block left above the TL;DR?
 
 ## Feedback table
 
@@ -123,10 +154,6 @@ Other destinations use a markdown table with the same three columns.
 
 ```
 # Proposal: Send Invoice Emails From a Queue
-
-**Authors:** A. Writer
-**Stakeholders:** Billing engineers · Support leads
-**Last Updated:** 2030-01-15
 
 ## TL;DR
 
